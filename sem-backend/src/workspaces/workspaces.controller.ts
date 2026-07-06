@@ -289,6 +289,53 @@ export class WorkspacesController {
     return this.workspacesService.removeCompetition(id, eventId, competitionId, req.user.id);
   }
 
+  // ─── Competition Teams (Participants) ─────────────────────────────────────
+
+  @Get(':id/events/:eventId/competitions/:competitionId/teams')
+  getCompetitionTeams(
+    @Param('id') id: string,
+    @Param('eventId') eventId: string,
+    @Param('competitionId') competitionId: string,
+    @Request() req: any,
+  ) {
+    return this.workspacesService.getCompetitionTeams(id, eventId, competitionId, req.user.id);
+  }
+
+  @Post(':id/events/:eventId/competitions/:competitionId/teams')
+  addTeamToCompetition(
+    @Param('id') id: string,
+    @Param('eventId') eventId: string,
+    @Param('competitionId') competitionId: string,
+    @Body('teamId') teamId: string,
+    @Request() req: any,
+  ) {
+    return this.workspacesService.addTeamToCompetition(id, eventId, competitionId, teamId, req.user.id);
+  }
+
+  @Delete(':id/events/:eventId/competitions/:competitionId/teams/:teamId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  removeTeamFromCompetition(
+    @Param('id') id: string,
+    @Param('eventId') eventId: string,
+    @Param('competitionId') competitionId: string,
+    @Param('teamId') teamId: string,
+    @Request() req: any,
+  ) {
+    return this.workspacesService.removeTeamFromCompetition(id, eventId, competitionId, teamId, req.user.id);
+  }
+
+  // ─── Fixture Generator ────────────────────────────────────────────────────
+
+  @Post(':id/events/:eventId/competitions/:competitionId/generate-fixtures')
+  generateFixtures(
+    @Param('id') id: string,
+    @Param('eventId') eventId: string,
+    @Param('competitionId') competitionId: string,
+    @Request() req: any,
+  ) {
+    return this.workspacesService.generateFixtures(id, eventId, competitionId, req.user.id);
+  }
+
   // ─── Competition Stages ───────────────────────────────────────────────────
 
   @Get(':id/events/:eventId/competitions/:competitionId/stages')

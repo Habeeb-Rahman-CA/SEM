@@ -106,7 +106,7 @@
           <!-- Teams Card -->
           <div (click)="activeTab.set('teams')"
             class="bg-slate-900 border border-white/10 hover:border-violet-500/50 hover:bg-slate-900/80 rounded-2xl p-6 flex flex-col gap-3 transition-all duration-300 cursor-pointer group">
-            <div class="text-2xl group-hover:scale-110 transition-transform duration-300">👥</div>
+            <div class="text-2xl group-hover:scale-110 transition-transform duration-300"><i class="fi fi-rr-users"></i></div>
             <div>
               <div class="flex items-center gap-2">
                 <h3 class="font-bold text-white text-sm group-hover:text-violet-400 transition-colors">Teams</h3>
@@ -118,7 +118,7 @@
           <!-- Players Card -->
           <div (click)="activeTab.set('players')"
             class="bg-slate-900 border border-white/10 hover:border-violet-500/50 hover:bg-slate-900/80 rounded-2xl p-6 flex flex-col gap-3 transition-all duration-300 cursor-pointer group">
-            <div class="text-2xl group-hover:scale-110 transition-transform duration-300">🏃</div>
+            <div class="text-2xl group-hover:scale-110 transition-transform duration-300"><i class="fi fi-rr-running"></i></div>
             <div>
               <div class="flex items-center gap-2">
                 <h3 class="font-bold text-white text-sm group-hover:text-violet-400 transition-colors">Players</h3>
@@ -130,7 +130,7 @@
           <!-- Events Card -->
           <div (click)="activeTab.set('events')"
             class="bg-slate-900 border border-white/10 hover:border-violet-500/50 hover:bg-slate-900/80 rounded-2xl p-6 flex flex-col gap-3 transition-all duration-300 cursor-pointer group">
-            <div class="text-2xl group-hover:scale-110 transition-transform duration-300">🏆</div>
+            <div class="text-2xl group-hover:scale-110 transition-transform duration-300"><i class="fi fi-rr-trophy"></i></div>
             <div>
               <div class="flex items-center gap-2">
                 <h3 class="font-bold text-white text-sm group-hover:text-violet-400 transition-colors">Events</h3>
@@ -141,10 +141,10 @@
 
           <!-- Other Coming Soon Modules -->
           @for (module of [
-            { icon: '📊', label: 'Reports', desc: 'Analytics and event reports', soon: true },
+            { icon: 'fi-rr-chart-histogram', label: 'Reports', desc: 'Analytics and event reports', soon: true },
           ]; track module.label) {
             <div class="bg-slate-900 border border-white/10 rounded-2xl p-6 flex flex-col gap-3 opacity-60">
-              <div class="text-2xl">{{ module.icon }}</div>
+              <div class="text-2xl"><i class="fi {{ module.icon }}"></i></div>
               <div>
                 <div class="flex items-center gap-2">
                   <h3 class="font-bold text-white text-sm">{{ module.label }}</h3>
@@ -159,7 +159,7 @@
           @if (canManageMembers()) {
             <div (click)="activeTab.set('settings')"
               class="bg-slate-900 border border-white/10 hover:border-violet-500/50 hover:bg-slate-900/80 rounded-2xl p-6 flex flex-col gap-3 transition-all duration-300 cursor-pointer group">
-              <div class="text-2xl group-hover:scale-110 transition-transform duration-300">⚙️</div>
+              <div class="text-2xl group-hover:scale-110 transition-transform duration-300"><i class="fi fi-rr-settings"></i></div>
               <div>
                 <div class="flex items-center gap-2">
                   <h3 class="font-bold text-white text-sm group-hover:text-violet-400 transition-colors">Settings</h3>
@@ -169,7 +169,7 @@
             </div>
           } @else {
             <div class="bg-slate-900 border border-white/10 rounded-2xl p-6 flex flex-col gap-3 opacity-60">
-              <div class="text-2xl">⚙️</div>
+              <div class="text-2xl"><i class="fi fi-rr-settings"></i></div>
               <div>
                 <div class="flex items-center gap-2">
                   <h3 class="font-bold text-white text-sm">Settings</h3>
@@ -845,7 +845,7 @@
                     </div>
                   } @else if (competitions().length === 0) {
                     <div class="rounded-2xl border border-dashed border-white/10 p-12 text-center flex flex-col items-center justify-center gap-3">
-                      <span class="text-3xl">🏅</span>
+                      <span class="text-3xl"><i class="fi fi-rr-medal"></i></span>
                       <div>
                         <h3 class="text-sm font-semibold text-white">No competitions created for this event</h3>
                         <p class="text-xs text-slate-500 mt-1">Add competitions/categories (e.g. Under-19 Football, Open Badminton) on the right.</p>
@@ -1077,7 +1077,147 @@
                   </div>
                 </div>
 
+                <!-- ═══════════════ COMPETITION TEAMS (PARTICIPANTS) ═══════════════ -->
+                @if (!selectedStage() && !selectedMatch()) {
+                  <div class="bg-slate-900 border border-white/10 rounded-2xl p-6 flex flex-col gap-5">
+                    <div class="flex items-center justify-between border-b border-white/5 pb-3">
+                      <div>
+                        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                          <i class="fi fi-rr-users text-violet-400"></i> Enrolled Teams
+                        </h3>
+                        <p class="text-xs text-slate-500 mt-0.5">Teams registered to participate in this competition</p>
+                      </div>
+                      <span class="text-xs font-bold px-2.5 py-1 bg-violet-500/10 text-violet-300 rounded-lg border border-violet-500/20">
+                        {{ competitionTeams().length }} teams
+                      </span>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                      <!-- Team roster list -->
+                      <div class="lg:col-span-2">
+                        @if (isLoadingCompetitionTeams()) {
+                          <div class="flex items-center justify-center py-8">
+                            <svg class="animate-spin w-6 h-6 text-violet-500" fill="none" viewBox="0 0 24 24">
+                              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                            </svg>
+                          </div>
+                        } @else if (competitionTeams().length === 0) {
+                          <div class="rounded-xl border border-dashed border-white/10 p-8 text-center flex flex-col items-center gap-2">
+                            <i class="fi fi-rr-shield-exclamation text-2xl text-slate-600"></i>
+                            <p class="text-xs text-slate-500">No teams enrolled yet. Add teams using the panel on the right.</p>
+                          </div>
+                        } @else {
+                          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            @for (ct of competitionTeams(); track ct.id) {
+                              <div class="bg-slate-950 border border-white/5 hover:border-violet-500/20 rounded-xl px-4 py-3 flex items-center justify-between gap-3 transition-all group">
+                                <div class="flex items-center gap-3">
+                                  <div class="w-8 h-8 rounded-lg bg-violet-500/10 border border-violet-500/20 flex items-center justify-center flex-shrink-0">
+                                    <i class="fi fi-rr-shield text-violet-400 text-xs"></i>
+                                  </div>
+                                  <span class="text-sm font-semibold text-white">{{ ct.team.name }}</span>
+                                </div>
+                                @if (canManageMembers()) {
+                                  <button (click)="onRemoveTeamFromCompetition(ct)"
+                                    class="p-1.5 text-slate-600 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100 cursor-pointer">
+                                    <i class="fi fi-rr-trash text-xs"></i>
+                                  </button>
+                                }
+                              </div>
+                            }
+                          </div>
+                        }
+                      </div>
+
+                      <!-- Add team sidebar -->
+                      @if (canManageMembers()) {
+                        <div class="flex flex-col gap-3">
+                          <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Add Team</h4>
+
+                          @if (addTeamSuccess()) {
+                            <div class="rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-3 text-emerald-300 text-xs">
+                              {{ addTeamSuccess() }}
+                            </div>
+                          }
+                          @if (addTeamError()) {
+                            <div class="rounded-xl bg-rose-500/10 border border-rose-500/30 p-3 text-rose-300 text-xs">
+                              {{ addTeamError() }}
+                            </div>
+                          }
+
+                          <select
+                            class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-3.5 py-2.5 text-xs text-white outline-none w-full"
+                            [ngModel]="addTeamId()" (ngModelChange)="addTeamId.set($event)" name="addTeam">
+                            <option value="" disabled>Select a team to add</option>
+                            @for (team of teams(); track team.id) {
+                              @if (!competitionTeams().some(ct => ct.teamId === team.id)) {
+                                <option [value]="team.id">{{ team.name }}</option>
+                              }
+                            }
+                          </select>
+
+                          <button (click)="onAddTeamToCompetition()"
+                            [disabled]="isAddingTeam() || !addTeamId()"
+                            class="w-full py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2">
+                            @if (isAddingTeam()) {
+                              <svg class="animate-spin w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                              </svg>
+                            }
+                            <i class="fi fi-rr-user-add"></i> Enroll Team
+                          </button>
+                        </div>
+                      }
+                    </div>
+
+                    <!-- ── Generate Fixtures Banner ── -->
+                    @if (canManageMembers()) {
+                      <div class="mt-2 border-t border-white/5 pt-5 flex flex-col gap-3">
+                        @if (generateFixturesSuccess()) {
+                          <div class="rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-3 text-emerald-300 text-xs flex items-center gap-2">
+                            <i class="fi fi-rr-check-circle"></i> {{ generateFixturesSuccess() }}
+                          </div>
+                        }
+                        @if (generateFixturesError()) {
+                          <div class="rounded-xl bg-rose-500/10 border border-rose-500/30 p-3 text-rose-300 text-xs flex items-center gap-2">
+                            <i class="fi fi-rr-circle-xmark"></i> {{ generateFixturesError() }}
+                          </div>
+                        }
+                        @if (stages().length === 0) {
+                          <div class="rounded-xl bg-amber-500/5 border border-amber-500/20 p-3 text-amber-400 text-xs flex items-center gap-2">
+                            <i class="fi fi-rr-triangle-warning"></i>
+                            No stages configured yet — add stages below first, then generate fixtures.
+                          </div>
+                        }
+                        <div class="flex items-center justify-between gap-4">
+                          <div>
+                            <p class="text-xs font-bold text-white">Ready to generate?</p>
+                            <p class="text-[10px] text-slate-500 mt-0.5">
+                              Randomly seeds {{ competitionTeams().length }} teams across all configured stages. Existing matches will be replaced.
+                            </p>
+                          </div>
+                          <button (click)="onGenerateFixtures()"
+                            [disabled]="isGeneratingFixtures() || competitionTeams().length < 2 || stages().length === 0"
+                            class="flex-shrink-0 px-5 py-3 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-2 shadow-lg shadow-violet-900/30">
+                            @if (isGeneratingFixtures()) {
+                              <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                              </svg>
+                              Generating...
+                            } @else {
+                              <i class="fi fi-rr-bolt"></i> Generate Fixtures
+                            }
+                          </button>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+
                 <!-- ═══════════════ NESTED VIEWS ═══════════════ -->
+
                 @if (!selectedStage()) {
                   <!-- ─── 1. Stages List & Form ─── -->
                   <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -1092,7 +1232,7 @@
                         </div>
                       } @else if (stages().length === 0) {
                         <div class="rounded-2xl border border-dashed border-white/10 p-12 text-center flex flex-col items-center justify-center gap-3">
-                          <span class="text-3xl">⚙️</span>
+                          <span class="text-3xl"><i class="fi fi-rr-settings"></i></span>
                           <div>
                             <h3 class="text-sm font-semibold text-white">No stages configured for this competition</h3>
                             <p class="text-xs text-slate-500 mt-1">Add a tournament stage (e.g. Group Stage, Knockouts) using the panel on the right.</p>
@@ -1101,9 +1241,10 @@
                       } @else {
                         <div class="flex flex-col gap-4">
                           @for (stage of stages(); track stage.id) {
-                            <div class="bg-slate-900 border border-white/10 hover:border-violet-500/30 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group transition-all duration-300">
+                            <div (click)="onSelectStage(stage)"
+                              class="bg-slate-900 border border-white/10 hover:border-violet-500/30 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group transition-all duration-300 cursor-pointer">
                               <div class="flex flex-col gap-2">
-                                <h4 class="text-base font-extrabold text-white">{{ stage.name }}</h4>
+                                <h4 class="text-base font-extrabold text-white group-hover:text-violet-300 transition-colors">{{ stage.name }}</h4>
                                 <div class="flex flex-wrap items-center gap-2 mt-1">
                                   <!-- Stage Type Badge -->
                                   <span class="text-[10px] font-bold px-2 py-0.5 bg-violet-500/10 text-violet-300 rounded-md border border-violet-500/20 uppercase tracking-wider">
@@ -1129,18 +1270,17 @@
                               </div>
 
                               <div class="flex items-center gap-2">
-                                <button (click)="onSelectStage(stage)"
-                                  class="px-3.5 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-xl cursor-pointer transition-all">
-                                  Manage Matches →
-                                </button>
+                                <span class="text-[10px] text-slate-500 group-hover:text-violet-400 transition-colors flex items-center gap-1">
+                                  View Fixtures <i class="fi fi-rr-arrow-right"></i>
+                                </span>
                                 @if (canManageMembers()) {
-                                  <button (click)="onEditStage(stage)"
+                                  <button (click)="onEditStage(stage); $event.stopPropagation()"
                                     class="p-2 text-violet-400 hover:text-white hover:bg-violet-600/20 border border-violet-500/10 rounded-xl transition-all cursor-pointer">
-                                    ⚙️
+                                    <i class="fi fi-rr-settings"></i>
                                   </button>
-                                  <button (click)="onDeleteStage(stage)"
+                                  <button (click)="onDeleteStage(stage); $event.stopPropagation()"
                                     class="p-2 text-rose-400 hover:text-white hover:bg-rose-600/20 border border-rose-500/10 rounded-xl transition-all cursor-pointer">
-                                    🗑️
+                                    <i class="fi fi-rr-trash"></i>
                                   </button>
                                 }
                               </div>
@@ -1346,7 +1486,7 @@
 
                       @if (matches().length === 0) {
                         <div class="rounded-2xl border border-dashed border-white/10 p-12 text-center flex flex-col items-center justify-center gap-3">
-                          <span class="text-3xl">⚽</span>
+                          <span class="text-3xl"><i class="fi fi-rr-football"></i></span>
                           <div>
                             <h3 class="text-sm font-semibold text-white">No matches scheduled for this stage</h3>
                             <p class="text-xs text-slate-500 mt-1">Use the panel on the right to schedule a match.</p>
@@ -1407,7 +1547,7 @@
                                 @if (canManageMembers()) {
                                   <button (click)="onDeleteMatch(match)"
                                     class="p-2 text-rose-400 hover:text-white hover:bg-rose-600/20 border border-rose-500/10 hover:border-rose-500/30 rounded-lg transition-all cursor-pointer">
-                                    🗑️
+                                    <i class="fi fi-rr-trash"></i>
                                   </button>
                                 }
                               </div>
@@ -1514,7 +1654,7 @@
                               <div class="text-[10px] text-slate-400 mt-1 flex flex-col items-end">
                                 @for (ev of match.liveData?.events; track ev) {
                                   @if (ev.type === 'goal' && ev.teamId === match.homeTeamId) {
-                                    <span>⚽ {{ ev.minute }}' ({{ getPlayersForTeam(match.homeTeamId).find(p => p.userId === ev.playerUserId)?.user?.username || 'Player' }})</span>
+                                    <span><i class="fi fi-rr-football text-violet-400"></i> {{ ev.minute }}' ({{ getPlayersForTeam(match.homeTeamId).find(p => p.userId === ev.playerUserId)?.user?.username || 'Player' }})</span>
                                   }
                                 }
                               </div>
@@ -1549,7 +1689,7 @@
                               <div class="text-[10px] text-slate-400 mt-1 flex flex-col items-start">
                                 @for (ev of match.liveData?.events; track ev) {
                                   @if (ev.type === 'goal' && ev.teamId === match.awayTeamId) {
-                                    <span>⚽ {{ ev.minute }}' ({{ getPlayersForTeam(match.awayTeamId).find(p => p.userId === ev.playerUserId)?.user?.username || 'Player' }})</span>
+                                    <span><i class="fi fi-rr-football text-violet-400"></i> {{ ev.minute }}' ({{ getPlayersForTeam(match.awayTeamId).find(p => p.userId === ev.playerUserId)?.user?.username || 'Player' }})</span>
                                   }
                                 }
                               </div>
@@ -1585,9 +1725,9 @@
                                 class="px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-2"
                                 [class]="match.liveData?.timerRunning ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-emerald-600 hover:bg-emerald-500 text-white'">
                                 @if (match.liveData?.timerRunning) {
-                                  ⏸️ Pause Match
+                                  <i class="fi fi-rr-pause"></i> Pause Match
                                 } @else {
-                                  ▶️ {{ match.liveData?.elapsedSeconds ? 'Resume Match' : 'Start Match' }}
+                                  <i class="fi fi-rr-play"></i> {{ match.liveData?.elapsedSeconds ? 'Resume Match' : 'Start Match' }}
                                 }
                               </button>
                             </div>
@@ -1772,7 +1912,7 @@
                                   <span class="text-slate-700">|</span>
                                   <button (click)="onRecordCricketBall(0, 0, true)"
                                     class="px-3 py-1.5 bg-rose-600/20 hover:bg-rose-600 border border-rose-500/20 hover:border-transparent text-rose-400 hover:text-white text-xs font-bold rounded-lg cursor-pointer transition-all">
-                                    OUT / Wicket 🔴
+                                    <i class="fi fi-rr-circle-xmark text-rose-400"></i> OUT / Wicket
                                   </button>
                                 </div>
                               </div>
@@ -1837,7 +1977,7 @@
                         <div class="flex justify-end pt-2">
                           <button (click)="onEndMatch()"
                             class="px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold rounded-xl cursor-pointer transition-all">
-                            Complete / End Match 🏁
+                            <i class="fi fi-rr-flag-checkered"></i> Complete / End Match
                           </button>
                         </div>
                       }
@@ -1859,7 +1999,7 @@
                                 <span class="text-xs font-bold text-violet-400 w-8 flex-shrink-0">{{ e.minute }}'</span>
                                 <div class="flex-1 flex flex-col gap-0.5">
                                   @if (e.type === 'goal') {
-                                    <span class="text-xs font-bold text-white">⚽ GOAL!</span>
+                                    <span class="text-xs font-bold text-white"><i class="fi fi-rr-football"></i> GOAL!</span>
                                     <span class="text-[10px] text-slate-400">
                                       Scorer: {{ getPlayersForTeam(e.teamId).find(p => p.userId === e.playerUserId)?.user?.username || 'Player' }}
                                       @if (e.assistPlayerUserId) {
@@ -1868,7 +2008,7 @@
                                     </span>
                                   } @else if (e.type === 'card') {
                                     <span class="text-xs font-bold text-white">
-                                      {{ e.cardType === 'yellow' ? '🟨 Yellow Card' : '🟥 Red Card' }}
+                                      <i [class]="e.cardType === 'yellow' ? 'fi fi-ss-square text-amber-400' : 'fi fi-ss-square text-rose-500'"></i> {{ e.cardType === 'yellow' ? 'Yellow Card' : 'Red Card' }}
                                     </span>
                                     <span class="text-[10px] text-slate-400">
                                       Player: {{ getPlayersForTeam(e.teamId).find(p => p.userId === e.playerUserId)?.user?.username || 'Player' }}
@@ -1882,7 +2022,7 @@
                             @if (match.liveData?.tossWinnerId) {
                               @let twName = match.liveData.tossWinnerId === match.homeTeamId ? match.homeTeam?.name : match.awayTeam?.name;
                               <div class="flex gap-2 items-start text-left border-b border-white/5 pb-2">
-                                <span class="text-xs text-emerald-400">🪙</span>
+                                <span class="text-xs text-emerald-400"><i class="fi fi-rr-coin"></i></span>
                                 <span class="text-xs text-slate-300">Toss won by <strong>{{ twName }}</strong>, elected to <strong>{{ match.liveData.tossChoice }}</strong>.</span>
                               </div>
                             }
@@ -1944,7 +2084,7 @@
 
               @if (events().length === 0) {
                 <div class="rounded-2xl border border-dashed border-white/10 p-12 text-center flex flex-col items-center justify-center gap-3">
-                  <span class="text-3xl">🏆</span>
+                  <span class="text-3xl"><i class="fi fi-rr-trophy"></i></span>
                   <div>
                     <h3 class="text-sm font-semibold text-white">No events registered yet</h3>
                     <p class="text-xs text-slate-500 mt-1">Create your first sports festival or competition to get started.</p>

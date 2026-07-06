@@ -2,7 +2,7 @@ import { Component, OnInit, signal, inject } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { WorkspaceService, Workspace, WorkspaceMember, Role, Team, Player, WorkspaceEvent, Sport, Competition, CompetitionStage, Match } from '../../services/workspace.service';
+import { WorkspaceService, Workspace, WorkspaceMember, Role, Team, Player, WorkspaceEvent, Sport, Competition, CompetitionStage, CompetitionTeam, Match } from '../../services/workspace.service';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
@@ -149,6 +149,19 @@ export class WorkspaceDetailComponent implements OnInit {
 
   matchCreateError = signal('');
   matchCreateSuccess = signal('');
+
+  // ── Competition Teams State ──────────────────────────────────────────────────
+  competitionTeams = signal<CompetitionTeam[]>([]);
+  isLoadingCompetitionTeams = signal(false);
+  addTeamId = signal('');
+  isAddingTeam = signal(false);
+  addTeamError = signal('');
+  addTeamSuccess = signal('');
+
+  // ── Fixture Generator State ─────────────────────────────────────────────────
+  isGeneratingFixtures = signal(false);
+  generateFixturesError = signal('');
+  generateFixturesSuccess = signal('');
 
   // ── Workspace Edit State ───────────────────────────────────────────────────
   editName = signal('');
@@ -861,7 +874,11 @@ export class WorkspaceDetailComponent implements OnInit {
     this.editingStage.set(null);
     this.stageCreateError.set('');
     this.stageCreateSuccess.set('');
+    this.addTeamError.set('');
+    this.addTeamSuccess.set('');
+    this.addTeamId.set('');
     this.loadStages(comp.id);
+    this.loadCompetitionTeams(comp.id);
   }
 
   onDeselectCompetition() {
@@ -882,6 +899,105 @@ export class WorkspaceDetailComponent implements OnInit {
       error: (err) => {
         console.error('Failed to load stages', err);
         this.isLoadingStages.set(false);
+      }
+    });
+  }
+
+  loadCompetitionTeams(competitionId: string) {
+    const ws = this.workspace();
+    const event = this.selectedEvent();
+    if (!ws || !event) return;
+    this.isLoadingCompetitionTeams.set(true);
+    this.workspaceService.getCompetitionTeams(ws.id, event.id, competitionId).subscribe({
+      next: (ct) => {
+        this.competitionTeams.set(ct);
+        this.isLoadingCompetitionTeams.set(false);
+      },
+      error: (err) => {
+        console.error('Failed to load competition teams', err);
+        this.isLoadingCompetitionTeams.set(false);
+      }
+    });
+  }
+
+  onAddTeamToCompetition() {
+    const teamId = this.addTeamId();
+    const ws = this.workspace();
+    const event = this.selectedEvent();
+    const comp = this.selectedCompetition();
+    if (!ws || !event || !comp || !teamId) return;
+    this.isAddingTeam.set(true);
+    this.addTeamError.set('');
+    this.addTeamSuccess.set('');
+    this.workspaceService.addTeamToCompetition(ws.id, event.id, comp.id, teamId).subscribe({
+      next: (entry) => {
+        this.isAddingTeam.set(false);
+        this.competitionTeams.update(prev => [...prev, entry]);
+        this.addTeamId.set('');
+        this.addTeamSuccess.set('Team enrolled in competition!');
+        setTimeout(() => this.addTeamSuccess.set(''), 3000);
+      },
+      error: (err) => {
+        this.isAddingTeam.set(false);
+        this.addTeamError.set(err.error?.message ?? 'Failed to add team.');
+      }
+    });
+  }
+
+  onRemoveTeamFromCompetition(entry: CompetitionTeam) {
+    const ws = this.workspace();
+    const event = this.selectedEvent();
+    const comp = this.selectedCompetition();
+    if (!ws || !event || !comp) return;
+    if (!confirm(`Remove "${entry.team.name}" from this competition?`)) return;
+    this.workspaceService.removeTeamFromCompetition(ws.id, event.id, comp.id, entry.teamId).subscribe({
+      next: () => {
+        this.competitionTeams.update(prev => prev.filter(t => t.id !== entry.id));
+      },
+      error: (err) => alert(err.error?.message ?? 'Failed to remove team.')
+    });
+  }
+
+  onGenerateFixtures() {
+    const ws = this.workspace();
+    const event = this.selectedEvent();
+    const comp = this.selectedCompetition();
+    if (!ws || !event || !comp) return;
+
+    const stagesCount = this.stages().length;
+    const teamsCount = this.competitionTeams().length;
+
+    if (stagesCount === 0) {
+      this.generateFixturesError.set('Configure at least one stage before generating fixtures.');
+      return;
+    }
+    if (teamsCount < 2) {
+      this.generateFixturesError.set('Enroll at least 2 teams before generating fixtures.');
+      return;
+    }
+
+    const hasExistingMatches = this.stages().length > 0;
+    if (hasExistingMatches) {
+      if (!confirm(`This will DELETE any existing matches and regenerate all fixtures randomly. Continue?`)) return;
+    }
+
+    this.isGeneratingFixtures.set(true);
+    this.generateFixturesError.set('');
+    this.generateFixturesSuccess.set('');
+
+    this.workspaceService.generateFixtures(ws.id, event.id, comp.id).subscribe({
+      next: (result) => {
+        this.isGeneratingFixtures.set(false);
+        this.generateFixturesSuccess.set(
+          `Generated ${result.matchesCreated} fixtures across ${result.stagesGenerated} stage(s)!`
+        );
+        // Reload stages so match counts update
+        this.loadStages(comp.id);
+        setTimeout(() => this.generateFixturesSuccess.set(''), 5000);
+      },
+      error: (err) => {
+        this.isGeneratingFixtures.set(false);
+        this.generateFixturesError.set(err.error?.message ?? 'Failed to generate fixtures.');
       }
     });
   }

@@ -118,6 +118,14 @@ export interface Match {
   updatedAt: string;
 }
 
+export interface CompetitionTeam {
+  id: string;
+  competitionId: string;
+  teamId: string;
+  team: Team;
+  createdAt: string;
+}
+
 
 export interface WorkspaceMember {
   id: string;
@@ -397,6 +405,38 @@ export class WorkspaceService {
   }
 
   // ─── Competition Stages ───────────────────────────────────────────────────
+
+  // ─── Competition Teams (Participants) ─────────────────────────────────────
+
+  getCompetitionTeams(workspaceId: string, eventId: string, competitionId: string): Observable<CompetitionTeam[]> {
+    return this.http.get<CompetitionTeam[]>(
+      `${this.apiUrl}/${workspaceId}/events/${eventId}/competitions/${competitionId}/teams`,
+      { headers: this.headers }
+    );
+  }
+
+  addTeamToCompetition(workspaceId: string, eventId: string, competitionId: string, teamId: string): Observable<CompetitionTeam> {
+    return this.http.post<CompetitionTeam>(
+      `${this.apiUrl}/${workspaceId}/events/${eventId}/competitions/${competitionId}/teams`,
+      { teamId },
+      { headers: this.headers }
+    );
+  }
+
+  removeTeamFromCompetition(workspaceId: string, eventId: string, competitionId: string, teamId: string): Observable<void> {
+    return this.http.delete<void>(
+      `${this.apiUrl}/${workspaceId}/events/${eventId}/competitions/${competitionId}/teams/${teamId}`,
+      { headers: this.headers }
+    );
+  }
+
+  generateFixtures(workspaceId: string, eventId: string, competitionId: string): Observable<{ stagesGenerated: number; matchesCreated: number }> {
+    return this.http.post<{ stagesGenerated: number; matchesCreated: number }>(
+      `${this.apiUrl}/${workspaceId}/events/${eventId}/competitions/${competitionId}/generate-fixtures`,
+      {},
+      { headers: this.headers }
+    );
+  }
 
   getStages(workspaceId: string, eventId: string, competitionId: string): Observable<CompetitionStage[]> {
     return this.http.get<CompetitionStage[]>(

@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ConflictException,
   ForbiddenException,
+  BadRequestException,
   OnModuleInit,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -17,6 +18,7 @@ import { Sport } from './entities/sport.entity';
 import { Competition } from './entities/competition.entity';
 import { CompetitionStage } from './entities/competition-stage.entity';
 import { Match } from './entities/match.entity';
+import { CompetitionTeam } from './entities/competition-team.entity';
 import { CreateWorkspaceDto } from './dto/create-workspace.dto';
 import { UpdateWorkspaceDto } from './dto/update-workspace.dto';
 import { UsersService } from '../users/users.service';
@@ -59,6 +61,8 @@ export class WorkspacesService implements OnModuleInit {
     private readonly stageRepo: Repository<CompetitionStage>,
     @InjectRepository(Match)
     private readonly matchRepo: Repository<Match>,
+    @InjectRepository(CompetitionTeam)
+    private readonly competitionTeamRepo: Repository<CompetitionTeam>,
     private readonly usersService: UsersService,
   ) {}
 
@@ -1006,5 +1010,194 @@ export class WorkspacesService implements OnModuleInit {
       throw new NotFoundException(`Match "${matchId}" not found in stage`);
     }
     await this.matchRepo.remove(match);
+  }
+
+  // ─── Competition Teams (Participants) ─────────────────────────────────────
+
+  async getCompetitionTeams(
+    workspaceId: string,
+    eventId: string,
+    competitionId: string,
+    userId: string,
+  ): Promise<CompetitionTeam[]> {
+    await this.ensureMember(workspaceId, userId);
+    const competition = await this.competitionRepo.findOne({ where: { id: competitionId, eventId } });
+    if (!competition) throw new NotFoundException(`Competition "${competitionId}" not found`);
+    return this.competitionTeamRepo.find({
+      where: { competitionId },
+      relations: { team: true },
+      order: { createdAt: 'ASC' },
+    });
+  }
+
+  async addTeamToCompetition(
+    workspaceId: string,
+    eventId: string,
+    competitionId: string,
+    teamId: string,
+    userId: string,
+  ): Promise<CompetitionTeam> {
+    await this.ensureAdminOrOwner(workspaceId, userId);
+    const competition = await this.competitionRepo.findOne({ where: { id: competitionId, eventId } });
+    if (!competition) throw new NotFoundException(`Competition "${competitionId}" not found`);
+    const team = await this.teamRepo.findOne({ where: { id: teamId, workspaceId } });
+    if (!team) throw new NotFoundException(`Team "${teamId}" not found in workspace`);
+    const existing = await this.competitionTeamRepo.findOne({ where: { competitionId, teamId } });
+    if (existing) throw new ConflictException(`Team is already enrolled in this competition`);
+    const entry = this.competitionTeamRepo.create({ competitionId, teamId });
+    const saved = await this.competitionTeamRepo.save(entry);
+    return this.competitionTeamRepo.findOne({ where: { id: saved.id }, relations: { team: true } }) as Promise<CompetitionTeam>;
+  }
+
+  async removeTeamFromCompetition(
+    workspaceId: string,
+    eventId: string,
+    competitionId: string,
+    teamId: string,
+    userId: string,
+  ): Promise<void> {
+    await this.ensureAdminOrOwner(workspaceId, userId);
+    const entry = await this.competitionTeamRepo.findOne({ where: { competitionId, teamId } });
+    if (!entry) throw new NotFoundException(`Team is not enrolled in this competition`);
+    await this.competitionTeamRepo.remove(entry);
+  }
+
+  // ─── Fixture Generator ─────────────────────────────────────────────────────
+
+  async generateFixtures(
+    workspaceId: string,
+    eventId: string,
+    competitionId: string,
+    userId: string,
+  ): Promise<{ stagesGenerated: number; matchesCreated: number }> {
+    await this.ensureAdminOrOwner(workspaceId, userId);
+
+    const event = await this.eventRepo.findOne({ where: { id: eventId, workspaceId } });
+    if (!event) throw new NotFoundException(`Event not found`);
+
+    const competition = await this.competitionRepo.findOne({ where: { id: competitionId, eventId } });
+    if (!competition) throw new NotFoundException(`Competition not found`);
+
+    // Enrolled teams
+    const enrolled = await this.competitionTeamRepo.find({ where: { competitionId } });
+    if (enrolled.length < 2) {
+      throw new BadRequestException('At least 2 teams must be enrolled before generating fixtures.');
+    }
+
+    // Stages
+    const stages = await this.stageRepo.find({
+      where: { competitionId },
+      order: { sequence: 'ASC', createdAt: 'ASC' },
+    });
+    if (stages.length === 0) {
+      throw new BadRequestException('Configure at least one stage before generating fixtures.');
+    }
+
+    // Shuffle team IDs
+    const teamIds = enrolled.map((ct) => ct.teamId);
+    this.shuffleArray(teamIds);
+
+    let totalMatches = 0;
+
+    for (const stage of stages) {
+      // Remove existing matches for this stage before regenerating
+      const existing = await this.matchRepo.find({ where: { stageId: stage.id } });
+      if (existing.length) await this.matchRepo.remove(existing);
+
+      const pairings: [string | null, string | null][] = [];
+
+      // ── Group / Group+Knockout group phase ──────────────────────────────
+      if (stage.type === 'group' || stage.type === 'group_knockout') {
+        const groupsCount = stage.config?.groupsCount ?? 2;
+        const twoLegged = stage.config?.twoLegged ?? false;
+
+        // Distribute teams snake-draft style
+        const groups: string[][] = Array.from({ length: groupsCount }, () => []);
+        teamIds.forEach((id, idx) => groups[idx % groupsCount].push(id));
+
+        for (const group of groups) {
+          if (group.length < 2) continue;
+          const roundRobin = this.generateRoundRobin(group, twoLegged);
+          pairings.push(...roundRobin);
+        }
+      }
+
+      // ── Pure Knockout first round ────────────────────────────────────────
+      if (stage.type === 'knockout') {
+        const twoLegged = stage.config?.twoLegged ?? false;
+        const bracket = this.generateKnockoutBracket(teamIds, twoLegged);
+        pairings.push(...bracket);
+      }
+
+      // ── group_knockout: generate group fixtures + skeleton KO bracket ──
+      // KO bracket teams are TBD (null) — placeholders created once groups finish.
+      // We skip KO skeleton creation here; admin can generate after group phase.
+
+      if (pairings.length === 0) continue;
+
+      const matchEntities = pairings.map((pair) =>
+        this.matchRepo.create({
+          stageId: stage.id,
+          homeTeamId: pair[0],
+          awayTeamId: pair[1],
+          homeScore: 0,
+          awayScore: 0,
+          status: 'scheduled',
+          config: {},
+          liveData: null,
+        }),
+      );
+
+      await this.matchRepo.save(matchEntities);
+      totalMatches += matchEntities.length;
+    }
+
+    return { stagesGenerated: stages.length, matchesCreated: totalMatches };
+  }
+
+  /** Fisher-Yates in-place shuffle */
+  private shuffleArray<T>(arr: T[]): void {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+  }
+
+  /** Round-robin pairings for a group of teams */
+  private generateRoundRobin(
+    teams: string[],
+    twoLegged: boolean,
+  ): [string, string][] {
+    const matches: [string, string][] = [];
+    for (let i = 0; i < teams.length; i++) {
+      for (let j = i + 1; j < teams.length; j++) {
+        matches.push([teams[i], teams[j]]);
+        if (twoLegged) matches.push([teams[j], teams[i]]);
+      }
+    }
+    return matches;
+  }
+
+  /** First-round knockout bracket; pads to next power-of-2 with null byes */
+  private generateKnockoutBracket(
+    teams: string[],
+    twoLegged: boolean,
+  ): [string | null, string | null][] {
+    const n = teams.length;
+    const bracketSize = Math.pow(2, Math.ceil(Math.log2(Math.max(n, 2))));
+    const padded: (string | null)[] = [...teams, ...Array(bracketSize - n).fill(null)];
+
+    const matches: [string | null, string | null][] = [];
+    for (let i = 0; i < padded.length; i += 2) {
+      const home = padded[i];
+      const away = padded[i + 1];
+      // Skip double-bye slots
+      if (home === null && away === null) continue;
+      matches.push([home, away]);
+      if (twoLegged && home !== null && away !== null) {
+        matches.push([away, home]);
+      }
+    }
+    return matches;
   }
 }
