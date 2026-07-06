@@ -92,6 +92,14 @@ export class WorkspacesController {
     return this.workspacesService.inviteMember(id, dto, req.user.id);
   }
 
+  @Post(':id/join')
+  joinWorkspace(
+    @Param('id') id: string,
+    @Request() req: any,
+  ) {
+    return this.workspacesService.joinWorkspace(id, req.user.id);
+  }
+
   @Patch(':id/members/:userId')
   updateMemberRole(
     @Param('id') id: string,

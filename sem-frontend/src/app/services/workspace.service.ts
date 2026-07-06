@@ -195,6 +195,14 @@ export class WorkspaceService {
     );
   }
 
+  joinWorkspace(workspaceId: string): Observable<WorkspaceMember> {
+    return this.http.post<WorkspaceMember>(
+      `${this.apiUrl}/${workspaceId}/join`,
+      {},
+      { headers: this.headers }
+    );
+  }
+
   updateMemberRole(workspaceId: string, userId: string, role: string): Observable<WorkspaceMember> {
     return this.http.patch<WorkspaceMember>(
       `${this.apiUrl}/${workspaceId}/members/${userId}`,

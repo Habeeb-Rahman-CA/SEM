@@ -281,6 +281,22 @@ export class WorkspaceDetailComponent implements OnInit {
     this.router.navigate(['/login']);
   }
 
+  isCopied = signal(false);
+
+  getInviteLink(): string {
+    return `${window.location.origin}/workspaces/join?id=${this.workspace()?.id}`;
+  }
+
+  getQrCodeUrl(): string {
+    return `https://api.qrserver.com/v1/create-qr-code/?size=150x150&color=222831&bgcolor=EEEEEE&data=${encodeURIComponent(this.getInviteLink())}`;
+  }
+
+  copyInviteLink() {
+    navigator.clipboard.writeText(this.getInviteLink());
+    this.isCopied.set(true);
+    setTimeout(() => this.isCopied.set(false), 2000);
+  }
+
   // ── Role Helpers ────────────────────────────────────────────────────────────
 
   roleBadgeClass(slug: string): string {

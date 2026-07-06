@@ -277,6 +277,39 @@ export class WorkspacesService implements OnModuleInit {
     return saved;
   }
 
+  async joinWorkspace(
+    workspaceId: string,
+    userId: string,
+  ): Promise<WorkspaceMember> {
+    const workspace = await this.workspaceRepo.findOne({ where: { id: workspaceId } });
+    if (!workspace) {
+      throw new NotFoundException('Workspace not found');
+    }
+
+    const existing = await this.memberRepo.findOne({
+      where: { workspaceId, userId },
+      relations: { user: true, role: true },
+    });
+    if (existing) {
+      return existing;
+    }
+
+    const role = await this.findRoleBySlug('viewer', workspaceId);
+    
+    const member = this.memberRepo.create({
+      workspaceId,
+      userId,
+      roleId: role.id,
+    });
+    const saved = await this.memberRepo.save(member);
+    
+    const fullMember = await this.memberRepo.findOne({
+      where: { id: saved.id },
+      relations: { user: true, role: true },
+    });
+    return fullMember!;
+  }
+
   async updateMemberRole(
     workspaceId: string,
     targetUserId: string,

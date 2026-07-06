@@ -19,6 +19,7 @@ export const routes: Routes = [
   // Workspace routes
   { path: 'workspaces', component: WorkspacesComponent, canActivate: [authGuard] },
   { path: 'workspaces/new', component: CreateWorkspaceComponent, canActivate: [authGuard] },
+  { path: 'workspaces/join', loadComponent: () => import('./components/workspaces/join-workspace').then(m => m.JoinWorkspaceComponent) },
   { path: 'workspaces/:id', component: WorkspaceDetailComponent, canActivate: [authGuard] },
   { path: 'system-settings', component: SystemSettingsComponent, canActivate: [authGuard] },
 
