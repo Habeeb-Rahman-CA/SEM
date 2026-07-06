@@ -21,5 +21,5 @@ export const noAuthGuard = () => {
     return true;
   }
 
-  return router.parseUrl('/dashboard');
+  return router.parseUrl('/workspaces');
 };

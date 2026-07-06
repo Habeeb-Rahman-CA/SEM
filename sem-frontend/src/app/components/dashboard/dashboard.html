@@ -1,48 +1,49 @@
-<div class="max-w-4xl mx-auto px-4 py-8 flex flex-col gap-6">
-  <!-- Header -->
-  <header class="flex justify-between items-center border-b border-gray-200 pb-4">
-    <div>
-      <h1 class="text-2xl font-bold text-gray-900">SEM Workspace</h1>
-      <p class="text-xs text-gray-500 flex items-center gap-1.5 mt-0.5">
-        <span>Logged in as:</span>
-        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-100">
-          {{ authService.currentUser()?.username }}
-        </span>
-      </p>
-    </div>
-    <div class="flex items-center gap-3">
-      <button (click)="logout()" class="px-4 py-2 border border-gray-200 hover:bg-gray-50 text-gray-700 text-sm font-medium rounded shadow-sm transition cursor-pointer">
-        Logout
-      </button>
-    </div>
-  </header>
+<div class="min-h-screen bg-slate-950 text-white flex flex-col">
 
-  <!-- Welcome Card -->
-  <main class="bg-white border border-gray-200 rounded-xl p-8 shadow-sm flex flex-col gap-4">
-    <div class="flex items-center gap-4">
-      <span class="inline-flex items-center justify-center p-3 bg-indigo-50 border border-indigo-100 rounded-xl text-indigo-600">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6">
-          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-          <circle cx="12" cy="7" r="4"></circle>
+  <!-- Top Nav -->
+  <nav class="border-b border-white/10 bg-slate-900/80 backdrop-blur-md">
+    <div class="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-lg">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/>
+          </svg>
+        </div>
+        <span class="text-sm font-bold text-white">SEM Platform</span>
+      </div>
+      <div class="flex items-center gap-4">
+        <span class="text-xs text-slate-400">
+          <span class="text-violet-400 font-semibold">{{ authService.currentUser()?.username }}</span>
+        </span>
+        <button (click)="logout()"
+          class="text-xs text-slate-400 hover:text-white border border-white/10 hover:border-white/30 px-3 py-1.5 rounded-lg transition cursor-pointer">
+          Sign out
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Body -->
+  <div class="flex-1 flex items-center justify-center px-4 py-16">
+    <div class="text-center max-w-md">
+      <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center mx-auto mb-6 shadow-xl shadow-violet-900/40">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-white" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/>
         </svg>
-      </span>
-      <div>
-        <h2 class="text-lg font-bold text-gray-900">Welcome to SEM Workspace!</h2>
-        <p class="text-sm text-gray-500">You are successfully logged in to the application.</p>
       </div>
+      <h1 class="text-3xl font-extrabold text-white mb-2">Welcome back!</h1>
+      <p class="text-slate-400 text-sm mb-8">
+        You're signed in as <span class="text-violet-400 font-semibold">{{ authService.currentUser()?.username }}</span>.
+        Head to your workspaces to manage sports events.
+      </p>
+      <a routerLink="/workspaces"
+        class="inline-flex items-center gap-2 px-6 py-3 bg-violet-600 hover:bg-violet-500 text-white text-sm font-bold rounded-xl shadow-lg shadow-violet-900/40 transition cursor-pointer">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9h-4v4h-2v-4H9V9h4V5h2v4h4v2z"/>
+        </svg>
+        Go to Workspaces
+      </a>
     </div>
-    <div class="border-t border-gray-100 pt-4 mt-2">
-      <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">User Details</h3>
-      <div class="grid grid-cols-2 gap-4 text-sm">
-        <div>
-          <span class="text-gray-500 block">Username</span>
-          <span class="font-semibold text-gray-900">{{ authService.currentUser()?.username }}</span>
-        </div>
-        <div>
-          <span class="text-gray-500 block">User ID</span>
-          <span class="font-mono text-xs text-gray-900">{{ authService.currentUser()?.id }}</span>
-        </div>
-      </div>
-    </div>
-  </main>
+  </div>
 </div>
+

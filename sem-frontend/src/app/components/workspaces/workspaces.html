@@ -1,0 +1,139 @@
+<div class="min-h-screen bg-slate-950 text-white">
+
+  <!-- Top Nav -->
+  <nav class="border-b border-white/10 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50">
+    <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <!-- Platform Logo -->
+        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-lg">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/>
+          </svg>
+        </div>
+        <span class="text-sm font-bold text-white tracking-tight">SEM Platform</span>
+      </div>
+      <div class="flex items-center gap-4">
+        <span class="text-xs text-slate-400">
+          Signed in as <span class="text-violet-400 font-semibold">{{ authService.currentUser()?.username }}</span>
+        </span>
+        <button (click)="logout()"
+          class="text-xs text-slate-400 hover:text-white border border-white/10 hover:border-white/30 px-3 py-1.5 rounded-lg transition-all cursor-pointer">
+          Sign out
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="max-w-6xl mx-auto px-6 py-12">
+
+    <!-- Header -->
+    <div class="flex items-end justify-between mb-10">
+      <div>
+        <p class="text-xs font-semibold text-violet-400 uppercase tracking-widest mb-2">Sports Event Management</p>
+        <h1 class="text-4xl font-extrabold text-white tracking-tight">Your Workspaces</h1>
+        <p class="text-slate-400 mt-2 text-sm">Select a workspace to manage events, teams, and players — or create a new one.</p>
+      </div>
+      <a routerLink="/workspaces/new"
+        class="flex items-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold rounded-xl shadow-lg shadow-violet-900/40 transition-all cursor-pointer">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+        </svg>
+        New Workspace
+      </a>
+    </div>
+
+    <!-- Loading -->
+    @if (isLoading()) {
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        @for (_ of [1,2,3]; track $index) {
+          <div class="bg-slate-900 border border-white/10 rounded-2xl p-6 animate-pulse">
+            <div class="flex items-center gap-4 mb-4">
+              <div class="w-12 h-12 rounded-xl bg-slate-800"></div>
+              <div class="flex-1 space-y-2">
+                <div class="h-4 bg-slate-800 rounded w-3/4"></div>
+                <div class="h-3 bg-slate-800 rounded w-1/2"></div>
+              </div>
+            </div>
+            <div class="h-3 bg-slate-800 rounded w-full mb-2"></div>
+            <div class="h-3 bg-slate-800 rounded w-2/3"></div>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Error -->
+    @if (error()) {
+      <div class="rounded-xl bg-rose-500/10 border border-rose-500/30 p-5 text-rose-300 text-sm flex items-center gap-3">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+        </svg>
+        {{ error() }}
+      </div>
+    }
+
+    <!-- Empty State -->
+    @if (!isLoading() && !error() && workspaces().length === 0) {
+      <div class="flex flex-col items-center justify-center py-24 text-center">
+        <div class="w-20 h-20 rounded-2xl bg-slate-800 border border-white/10 flex items-center justify-center mb-6">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 text-slate-600" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9h-4v4h-2v-4H9V9h4V5h2v4h4v2z"/>
+          </svg>
+        </div>
+        <h2 class="text-xl font-bold text-white mb-2">No workspaces yet</h2>
+        <p class="text-slate-400 text-sm mb-8 max-w-sm">Create your first workspace to start managing sports events for your organization.</p>
+        <a routerLink="/workspaces/new"
+          class="px-6 py-3 bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold rounded-xl shadow-lg shadow-violet-900/40 transition-all cursor-pointer">
+          Create your first workspace
+        </a>
+      </div>
+    }
+
+    <!-- Workspace Cards Grid -->
+    @if (!isLoading() && !error() && workspaces().length > 0) {
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        @for (ws of workspaces(); track ws.id) {
+          <a [routerLink]="['/workspaces', ws.id]"
+            class="group bg-slate-900 hover:bg-slate-800/80 border border-white/10 hover:border-violet-500/40 rounded-2xl p-6 flex flex-col gap-4 transition-all duration-200 cursor-pointer shadow-sm hover:shadow-violet-900/20 hover:shadow-lg">
+
+            <!-- Card Header -->
+            <div class="flex items-start gap-4">
+              <!-- Avatar -->
+              <div class="w-12 h-12 rounded-xl flex-shrink-0 flex items-center justify-center text-white text-sm font-bold shadow-inner"
+                [style.background]="avatarColor(ws.name)">
+                {{ initials(ws.name) }}
+              </div>
+              <div class="flex-1 min-w-0">
+                <h2 class="text-base font-bold text-white group-hover:text-violet-300 transition-colors truncate">
+                  {{ ws.name }}
+                </h2>
+                <p class="text-xs text-slate-500 font-mono mt-0.5">{{ ws.slug }}</p>
+              </div>
+              <!-- Arrow icon -->
+              <svg xmlns="http://www.w3.org/2000/svg"
+                class="w-4 h-4 text-slate-600 group-hover:text-violet-400 group-hover:translate-x-0.5 transition-all flex-shrink-0 mt-0.5"
+                viewBox="0 0 24 24" fill="currentColor">
+                <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/>
+              </svg>
+            </div>
+
+            <!-- Description -->
+            @if (ws.description) {
+              <p class="text-sm text-slate-400 leading-relaxed line-clamp-2">{{ ws.description }}</p>
+            } @else {
+              <p class="text-sm text-slate-600 italic">No description</p>
+            }
+
+            <!-- Footer -->
+            <div class="flex items-center gap-2 pt-2 border-t border-white/5">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-slate-600" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm4.24 16L12 15.45 7.77 18l1.12-4.81-3.73-3.23 4.92-.42L12 5l1.92 4.53 4.92.42-3.73 3.23L16.23 18z"/>
+              </svg>
+              <span class="text-xs text-slate-500">Created {{ ws.createdAt | date: 'MMM d, y' }}</span>
+            </div>
+          </a>
+        }
+      </div>
+    }
+  </div>
+</div>

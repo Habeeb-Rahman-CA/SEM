@@ -1,0 +1,138 @@
+<div class="min-h-screen bg-slate-950 text-white">
+
+  <!-- Loading -->
+  @if (isLoading()) {
+    <div class="flex items-center justify-center min-h-screen">
+      <div class="flex flex-col items-center gap-4">
+        <svg class="animate-spin w-8 h-8 text-violet-500" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+        </svg>
+        <p class="text-slate-400 text-sm">Loading workspace...</p>
+      </div>
+    </div>
+  }
+
+  <!-- Error -->
+  @if (error()) {
+    <div class="flex items-center justify-center min-h-screen px-4">
+      <div class="text-center">
+        <div class="w-16 h-16 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center mx-auto mb-4">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-rose-400" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+          </svg>
+        </div>
+        <p class="text-white font-bold text-lg mb-1">{{ error() }}</p>
+        <a routerLink="/workspaces" class="text-sm text-violet-400 hover:text-violet-300 underline">Back to workspaces</a>
+      </div>
+    </div>
+  }
+
+  @if (!isLoading() && !error() && workspace()) {
+    <!-- Top Nav -->
+    <nav class="border-b border-white/10 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50">
+      <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <a routerLink="/workspaces" class="flex items-center gap-2 text-sm text-slate-400 hover:text-white transition cursor-pointer">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+            </svg>
+            Workspaces
+          </a>
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-700" viewBox="0 0 24 24" fill="currentColor"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
+          <span class="text-sm font-semibold text-white">{{ workspace()!.name }}</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="text-xs text-slate-500 font-mono">/{{ workspace()!.slug }}</span>
+          @if (isOwner()) {
+            <button (click)="deleteWorkspace()"
+              class="text-xs text-rose-400 hover:text-rose-300 border border-rose-500/20 hover:border-rose-500/40 px-3 py-1.5 rounded-lg transition cursor-pointer">
+              Delete
+            </button>
+          }
+        </div>
+      </div>
+    </nav>
+
+    <div class="max-w-6xl mx-auto px-6 py-10">
+
+      <!-- Workspace Hero -->
+      <div class="flex items-start gap-6 mb-10">
+        <div class="w-16 h-16 rounded-2xl flex-shrink-0 flex items-center justify-center text-white text-xl font-extrabold shadow-xl"
+          [style.background]="avatarColor(workspace()!.name)">
+          {{ initials(workspace()!.name) }}
+        </div>
+        <div>
+          <h1 class="text-3xl font-extrabold text-white tracking-tight">{{ workspace()!.name }}</h1>
+          @if (workspace()!.description) {
+            <p class="text-slate-400 mt-1 text-sm max-w-xl">{{ workspace()!.description }}</p>
+          }
+          <p class="text-xs text-slate-600 mt-2">Created {{ workspace()!.createdAt | date:'MMMM d, y' }}</p>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="flex gap-1 border-b border-white/10 mb-8">
+        <button (click)="activeTab.set('overview')"
+          class="px-4 py-2.5 text-sm font-semibold transition cursor-pointer border-b-2"
+          [class]="activeTab() === 'overview' ? 'text-violet-400 border-violet-500' : 'text-slate-400 hover:text-white border-transparent'">
+          Overview
+        </button>
+        <button (click)="activeTab.set('members')"
+          class="px-4 py-2.5 text-sm font-semibold transition cursor-pointer border-b-2"
+          [class]="activeTab() === 'members' ? 'text-violet-400 border-violet-500' : 'text-slate-400 hover:text-white border-transparent'">
+          Members ({{ members().length }})
+        </button>
+      </div>
+
+      <!-- Overview Tab -->
+      @if (activeTab() === 'overview') {
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+
+          <!-- Coming Soon Cards for future modules -->
+          @for (module of [
+            { icon: '🏆', label: 'Events', desc: 'Manage multi-sport competitions', soon: true },
+            { icon: '👥', label: 'Teams', desc: 'Register and organize teams', soon: true },
+            { icon: '🏃', label: 'Players', desc: 'Player profiles and statistics', soon: true },
+            { icon: '📊', label: 'Reports', desc: 'Analytics and event reports', soon: true },
+            { icon: '⚙️', label: 'Settings', desc: 'Workspace configuration', soon: true },
+          ]; track module.label) {
+            <div class="bg-slate-900 border border-white/10 rounded-2xl p-6 flex flex-col gap-3 opacity-60">
+              <div class="text-2xl">{{ module.icon }}</div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <h3 class="font-bold text-white text-sm">{{ module.label }}</h3>
+                  <span class="text-[10px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30 px-1.5 py-0.5 rounded">
+                    Coming soon
+                  </span>
+                </div>
+                <p class="text-xs text-slate-500 mt-1">{{ module.desc }}</p>
+              </div>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- Members Tab -->
+      @if (activeTab() === 'members') {
+        <div class="flex flex-col gap-3">
+          @for (member of members(); track member.id) {
+            <div class="bg-slate-900 border border-white/10 rounded-xl px-5 py-4 flex items-center gap-4">
+              <div class="w-9 h-9 rounded-xl flex-shrink-0 flex items-center justify-center text-white text-xs font-bold"
+                [style.background]="avatarColor(member.user.username)">
+                {{ initials(member.user.username) }}
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-semibold text-white truncate">{{ member.user.username }}</p>
+                <p class="text-xs text-slate-500">Joined {{ member.joinedAt | date:'MMM d, y' }}</p>
+              </div>
+              <span class="text-xs font-semibold px-2.5 py-1 rounded-lg border" [class]="roleBadgeClass(member.role)">
+                {{ roleLabel(member.role) }}
+              </span>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>
