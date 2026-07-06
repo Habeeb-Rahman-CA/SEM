@@ -6,8 +6,10 @@ import {
   UpdateDateColumn,
   ManyToOne,
   JoinColumn,
+  OneToMany,
 } from 'typeorm';
 import { Workspace } from './workspace.entity';
+import { Competition } from './competition.entity';
 
 @Entity('events')
 export class Event {
@@ -35,6 +37,9 @@ export class Event {
   @ManyToOne(() => Workspace, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'workspace_id' })
   workspace: Workspace;
+
+  @OneToMany(() => Competition, (competition) => competition.event)
+  competitions: Competition[];
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

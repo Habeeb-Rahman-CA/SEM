@@ -60,6 +60,26 @@ export interface WorkspaceEvent {
   updatedAt: string;
 }
 
+export interface Sport {
+  id: string;
+  name: string;
+  code: string;
+  description: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Competition {
+  id: string;
+  name: string;
+  eventId: string;
+  sportId: string;
+  sport?: Sport;
+  status: string; // 'upcoming' | 'ongoing' | 'completed' | 'cancelled'
+  createdAt: string;
+  updatedAt: string;
+}
+
 
 export interface WorkspaceMember {
   id: string;
@@ -289,5 +309,52 @@ export class WorkspaceService {
     return this.http.delete<void>(`${this.apiUrl}/${workspaceId}/events/${eventId}`, {
       headers: this.headers,
     });
+  }
+
+  // ─── Competitions ─────────────────────────────────────────────────────────
+
+  getSports(): Observable<Sport[]> {
+    return this.http.get<Sport[]>(`${this.apiUrl}/sports`, {
+      headers: this.headers,
+    });
+  }
+
+  getCompetitions(workspaceId: string, eventId: string): Observable<Competition[]> {
+    return this.http.get<Competition[]>(
+      `${this.apiUrl}/${workspaceId}/events/${eventId}/competitions`,
+      { headers: this.headers }
+    );
+  }
+
+  createCompetition(
+    workspaceId: string,
+    eventId: string,
+    payload: { name: string; sportId: string; status?: string }
+  ): Observable<Competition> {
+    return this.http.post<Competition>(
+      `${this.apiUrl}/${workspaceId}/events/${eventId}/competitions`,
+      payload,
+      { headers: this.headers }
+    );
+  }
+
+  updateCompetition(
+    workspaceId: string,
+    eventId: string,
+    competitionId: string,
+    payload: { name?: string; sportId?: string; status?: string }
+  ): Observable<Competition> {
+    return this.http.patch<Competition>(
+      `${this.apiUrl}/${workspaceId}/events/${eventId}/competitions/${competitionId}`,
+      payload,
+      { headers: this.headers }
+    );
+  }
+
+  removeCompetition(workspaceId: string, eventId: string, competitionId: string): Observable<void> {
+    return this.http.delete<void>(
+      `${this.apiUrl}/${workspaceId}/events/${eventId}/competitions/${competitionId}`,
+      { headers: this.headers }
+    );
   }
 }

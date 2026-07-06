@@ -6,6 +6,8 @@ import { Role } from './entities/role.entity';
 import { Team } from './entities/team.entity';
 import { Player } from './entities/player.entity';
 import { Event } from './entities/event.entity';
+import { Sport } from './entities/sport.entity';
+import { Competition } from './entities/competition.entity';
 import { WorkspacesService } from './workspaces.service';
 import { WorkspacesController } from './workspaces.controller';
 import { SystemSettingsController } from './system-settings.controller';
@@ -13,7 +15,7 @@ import { UsersModule } from '../users/users.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Workspace, WorkspaceMember, Role, Team, Player, Event]),
+    TypeOrmModule.forFeature([Workspace, WorkspaceMember, Role, Team, Player, Event, Sport, Competition]),
     UsersModule,
   ],
 

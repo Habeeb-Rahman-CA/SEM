@@ -13,6 +13,8 @@ import { Role } from './entities/role.entity';
 import { Team } from './entities/team.entity';
 import { Player } from './entities/player.entity';
 import { Event } from './entities/event.entity';
+import { Sport } from './entities/sport.entity';
+import { Competition } from './entities/competition.entity';
 import { CreateWorkspaceDto } from './dto/create-workspace.dto';
 import { UpdateWorkspaceDto } from './dto/update-workspace.dto';
 import { UsersService } from '../users/users.service';
@@ -25,6 +27,8 @@ import { CreatePlayerDto } from './dto/create-player.dto';
 import { UpdatePlayerDto } from './dto/update-player.dto';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
+import { CreateCompetitionDto } from './dto/create-competition.dto';
+import { UpdateCompetitionDto } from './dto/update-competition.dto';
 
 @Injectable()
 export class WorkspacesService implements OnModuleInit {
@@ -41,10 +45,26 @@ export class WorkspacesService implements OnModuleInit {
     private readonly playerRepo: Repository<Player>,
     @InjectRepository(Event)
     private readonly eventRepo: Repository<Event>,
+    @InjectRepository(Sport)
+    private readonly sportRepo: Repository<Sport>,
+    @InjectRepository(Competition)
+    private readonly competitionRepo: Repository<Competition>,
     private readonly usersService: UsersService,
   ) {}
 
   async onModuleInit() {
+    const defaultSports = [
+      { name: 'Football', code: 'football', description: 'Association football/soccer' },
+      { name: 'Cricket', code: 'cricket', description: 'Bat-and-ball game played between two teams' },
+      { name: 'Badminton', code: 'badminton', description: 'Racket sport played with shuttlecocks' },
+    ];
+
+    for (const s of defaultSports) {
+      const existing = await this.sportRepo.findOne({ where: { code: s.code } });
+      if (!existing) {
+        await this.sportRepo.save(this.sportRepo.create(s));
+      }
+    }
     const defaultRoles = [
       { slug: 'owner', name: 'Owner', description: 'Full control — delete workspace, manage all', isSystem: true },
       { slug: 'administrator', name: 'Administrator', description: 'Manage members, events, settings', isSystem: true },
@@ -603,5 +623,110 @@ export class WorkspacesService implements OnModuleInit {
       throw new NotFoundException('Event not found in this workspace');
     }
     await this.eventRepo.remove(event);
+  }
+
+  // ─── Sports Master Data ───────────────────────────────────────────────────
+
+  async getSports(): Promise<Sport[]> {
+    return await this.sportRepo.find({ order: { name: 'ASC' } });
+  }
+
+  // ─── Competitions CRUD ────────────────────────────────────────────────────
+
+  async getCompetitions(workspaceId: string, eventId: string, userId: string): Promise<Competition[]> {
+    await this.ensureMember(workspaceId, userId);
+    const event = await this.eventRepo.findOne({ where: { id: eventId, workspaceId } });
+    if (!event) {
+      throw new NotFoundException(`Event "${eventId}" not found in workspace`);
+    }
+    return await this.competitionRepo.find({
+      where: { eventId },
+      relations: { sport: true },
+      order: { name: 'ASC' },
+    });
+  }
+
+  async createCompetition(
+    workspaceId: string,
+    eventId: string,
+    dto: CreateCompetitionDto,
+    userId: string,
+  ): Promise<Competition> {
+    await this.ensureAdminOrOwner(workspaceId, userId);
+    const event = await this.eventRepo.findOne({ where: { id: eventId, workspaceId } });
+    if (!event) {
+      throw new NotFoundException(`Event "${eventId}" not found in workspace`);
+    }
+
+    const sport = await this.sportRepo.findOne({ where: { id: dto.sportId } });
+    if (!sport) {
+      throw new NotFoundException(`Sport with ID "${dto.sportId}" not found`);
+    }
+
+    const competition = this.competitionRepo.create({
+      name: dto.name,
+      eventId,
+      sportId: dto.sportId,
+      status: dto.status || 'upcoming',
+    });
+
+    const saved = await this.competitionRepo.save(competition);
+    const found = await this.competitionRepo.findOne({ where: { id: saved.id }, relations: { sport: true } });
+    if (!found) {
+      throw new NotFoundException(`Competition "${saved.id}" not found`);
+    }
+    return found;
+  }
+
+  async updateCompetition(
+    workspaceId: string,
+    eventId: string,
+    competitionId: string,
+    dto: UpdateCompetitionDto,
+    userId: string,
+  ): Promise<Competition> {
+    await this.ensureAdminOrOwner(workspaceId, userId);
+    const event = await this.eventRepo.findOne({ where: { id: eventId, workspaceId } });
+    if (!event) {
+      throw new NotFoundException(`Event "${eventId}" not found in workspace`);
+    }
+
+    const competition = await this.competitionRepo.findOne({ where: { id: competitionId, eventId } });
+    if (!competition) {
+      throw new NotFoundException(`Competition "${competitionId}" not found in event`);
+    }
+
+    if (dto.sportId) {
+      const sport = await this.sportRepo.findOne({ where: { id: dto.sportId } });
+      if (!sport) {
+        throw new NotFoundException(`Sport with ID "${dto.sportId}" not found`);
+      }
+      competition.sportId = dto.sportId;
+    }
+
+    if (dto.name !== undefined) competition.name = dto.name;
+    if (dto.status !== undefined) competition.status = dto.status;
+
+    await this.competitionRepo.save(competition);
+    const found = await this.competitionRepo.findOne({ where: { id: competitionId }, relations: { sport: true } });
+    if (!found) {
+      throw new NotFoundException(`Competition "${competitionId}" not found`);
+    }
+    return found;
+  }
+
+  async removeCompetition(workspaceId: string, eventId: string, competitionId: string, userId: string): Promise<void> {
+    await this.ensureAdminOrOwner(workspaceId, userId);
+    const event = await this.eventRepo.findOne({ where: { id: eventId, workspaceId } });
+    if (!event) {
+      throw new NotFoundException(`Event "${eventId}" not found in workspace`);
+    }
+
+    const competition = await this.competitionRepo.findOne({ where: { id: competitionId, eventId } });
+    if (!competition) {
+      throw new NotFoundException(`Competition "${competitionId}" not found in event`);
+    }
+
+    await this.competitionRepo.remove(competition);
   }
 }

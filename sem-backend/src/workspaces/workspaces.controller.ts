@@ -25,6 +25,8 @@ import { CreatePlayerDto } from './dto/create-player.dto';
 import { UpdatePlayerDto } from './dto/update-player.dto';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
+import { CreateCompetitionDto } from './dto/create-competition.dto';
+import { UpdateCompetitionDto } from './dto/update-competition.dto';
 
 
 @Controller('workspaces')
@@ -43,6 +45,11 @@ export class WorkspacesController {
   @Get()
   findAll(@Request() req: any) {
     return this.workspacesService.findAllForUser(req.user.id);
+  }
+
+  @Get('sports')
+  getSports() {
+    return this.workspacesService.getSports();
   }
 
   @Get(':id')
@@ -233,5 +240,48 @@ export class WorkspacesController {
     @Request() req: any,
   ) {
     return this.workspacesService.removeEvent(id, eventId, req.user.id);
+  }
+
+  // ─── Competitions ─────────────────────────────────────────────────────────
+
+  @Get(':id/events/:eventId/competitions')
+  getCompetitions(
+    @Param('id') id: string,
+    @Param('eventId') eventId: string,
+    @Request() req: any,
+  ) {
+    return this.workspacesService.getCompetitions(id, eventId, req.user.id);
+  }
+
+  @Post(':id/events/:eventId/competitions')
+  createCompetition(
+    @Param('id') id: string,
+    @Param('eventId') eventId: string,
+    @Body() dto: CreateCompetitionDto,
+    @Request() req: any,
+  ) {
+    return this.workspacesService.createCompetition(id, eventId, dto, req.user.id);
+  }
+
+  @Patch(':id/events/:eventId/competitions/:competitionId')
+  updateCompetition(
+    @Param('id') id: string,
+    @Param('eventId') eventId: string,
+    @Param('competitionId') competitionId: string,
+    @Body() dto: UpdateCompetitionDto,
+    @Request() req: any,
+  ) {
+    return this.workspacesService.updateCompetition(id, eventId, competitionId, dto, req.user.id);
+  }
+
+  @Delete(':id/events/:eventId/competitions/:competitionId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  removeCompetition(
+    @Param('id') id: string,
+    @Param('eventId') eventId: string,
+    @Param('competitionId') competitionId: string,
+    @Request() req: any,
+  ) {
+    return this.workspacesService.removeCompetition(id, eventId, competitionId, req.user.id);
   }
 }

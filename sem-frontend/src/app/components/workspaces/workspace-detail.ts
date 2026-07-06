@@ -2,7 +2,7 @@ import { Component, OnInit, signal, inject } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { WorkspaceService, Workspace, WorkspaceMember, Role, Team, Player, WorkspaceEvent } from '../../services/workspace.service';
+import { WorkspaceService, Workspace, WorkspaceMember, Role, Team, Player, WorkspaceEvent, Sport, Competition } from '../../services/workspace.service';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
@@ -82,6 +82,27 @@ export class WorkspaceDetailComponent implements OnInit {
   eventUpdateError = signal('');
   eventUpdateSuccess = signal('');
 
+  // ── Competitions State ───────────────────────────────────────────────────────
+  sports = signal<Sport[]>([]);
+  selectedEvent = signal<WorkspaceEvent | null>(null);
+  competitions = signal<Competition[]>([]);
+  isLoadingCompetitions = signal(false);
+  
+  newCompetitionName = signal('');
+  newCompetitionSportId = signal('');
+  newCompetitionStatus = signal('upcoming');
+  isCreatingCompetition = signal(false);
+  competitionCreateError = signal('');
+  competitionCreateSuccess = signal('');
+
+  editingCompetition = signal<Competition | null>(null);
+  editCompetitionName = signal('');
+  editCompetitionSportId = signal('');
+  editCompetitionStatus = signal('upcoming');
+  isUpdatingCompetition = signal(false);
+  competitionUpdateError = signal('');
+  competitionUpdateSuccess = signal('');
+
   // ── Workspace Edit State ───────────────────────────────────────────────────
   editName = signal('');
   editDescription = signal('');
@@ -120,6 +141,7 @@ export class WorkspaceDetailComponent implements OnInit {
         this.loadTeams(id);
         this.loadPlayers(id);
         this.loadEvents(id);
+        this.loadSports();
       },
       error: (err) => {
         console.error(err);
@@ -647,6 +669,140 @@ export class WorkspaceDetailComponent implements OnInit {
       },
       error: (err) => {
         alert(err.error?.message ?? 'Failed to delete event.');
+      }
+    });
+  }
+
+  // ── Competitions CRUD ───────────────────────────────────────────────────────
+
+  loadSports() {
+    this.workspaceService.getSports().subscribe({
+      next: (sports) => this.sports.set(sports),
+      error: (err) => console.error('Failed to load sports', err),
+    });
+  }
+
+  onSelectEvent(event: WorkspaceEvent) {
+    this.selectedEvent.set(event);
+    this.editingCompetition.set(null);
+    this.competitionCreateError.set('');
+    this.competitionCreateSuccess.set('');
+    this.loadCompetitions(event.id);
+  }
+
+  onDeselectEvent() {
+    this.selectedEvent.set(null);
+    this.competitions.set([]);
+  }
+
+  loadCompetitions(eventId: string) {
+    const ws = this.workspace();
+    if (!ws) return;
+    this.isLoadingCompetitions.set(true);
+    this.workspaceService.getCompetitions(ws.id, eventId).subscribe({
+      next: (comps) => {
+        this.competitions.set(comps);
+        this.isLoadingCompetitions.set(false);
+      },
+      error: (err) => {
+        console.error('Failed to load competitions', err);
+        this.isLoadingCompetitions.set(false);
+      }
+    });
+  }
+
+  onCreateCompetition() {
+    const name = this.newCompetitionName().trim();
+    const sportId = this.newCompetitionSportId();
+    const status = this.newCompetitionStatus();
+    const ws = this.workspace();
+    const event = this.selectedEvent();
+    if (!ws || !event || !name || !sportId) return;
+
+    this.isCreatingCompetition.set(true);
+    this.competitionCreateError.set('');
+    this.competitionCreateSuccess.set('');
+
+    const payload = {
+      name,
+      sportId,
+      status,
+    };
+
+    this.workspaceService.createCompetition(ws.id, event.id, payload).subscribe({
+      next: (comp) => {
+        this.isCreatingCompetition.set(false);
+        this.competitionCreateSuccess.set(`Competition "${comp.name}" created successfully!`);
+        this.newCompetitionName.set('');
+        this.newCompetitionSportId.set('');
+        this.newCompetitionStatus.set('upcoming');
+        this.competitions.update(prev => [...prev, comp]);
+      },
+      error: (err) => {
+        this.isCreatingCompetition.set(false);
+        this.competitionCreateError.set(err.error?.message ?? 'Failed to create competition.');
+      }
+    });
+  }
+
+  onEditCompetition(comp: Competition) {
+    this.editingCompetition.set(comp);
+    this.editCompetitionName.set(comp.name);
+    this.editCompetitionSportId.set(comp.sportId);
+    this.editCompetitionStatus.set(comp.status);
+    this.competitionUpdateError.set('');
+    this.competitionUpdateSuccess.set('');
+  }
+
+  onCancelEditCompetition() {
+    this.editingCompetition.set(null);
+  }
+
+  onUpdateCompetition() {
+    const name = this.editCompetitionName().trim();
+    const sportId = this.editCompetitionSportId();
+    const status = this.editCompetitionStatus();
+    const ws = this.workspace();
+    const event = this.selectedEvent();
+    const comp = this.editingCompetition();
+    if (!ws || !event || !comp || !name || !sportId) return;
+
+    this.isUpdatingCompetition.set(true);
+    this.competitionUpdateError.set('');
+    this.competitionUpdateSuccess.set('');
+
+    const payload = {
+      name,
+      sportId,
+      status,
+    };
+
+    this.workspaceService.updateCompetition(ws.id, event.id, comp.id, payload).subscribe({
+      next: (updated) => {
+        this.isUpdatingCompetition.set(false);
+        this.competitionUpdateSuccess.set(`Competition updated successfully!`);
+        this.competitions.update(prev => prev.map(c => c.id === comp.id ? updated : c));
+        setTimeout(() => this.editingCompetition.set(null), 1000);
+      },
+      error: (err) => {
+        this.isUpdatingCompetition.set(false);
+        this.competitionUpdateError.set(err.error?.message ?? 'Failed to update competition.');
+      }
+    });
+  }
+
+  onDeleteCompetition(comp: Competition) {
+    const ws = this.workspace();
+    const event = this.selectedEvent();
+    if (!ws || !event) return;
+    if (!confirm(`Delete competition "${comp.name}"? This cannot be undone.`)) return;
+
+    this.workspaceService.removeCompetition(ws.id, event.id, comp.id).subscribe({
+      next: () => {
+        this.competitions.update(prev => prev.filter(c => c.id !== comp.id));
+      },
+      error: (err) => {
+        alert(err.error?.message ?? 'Failed to delete competition.');
       }
     });
   }

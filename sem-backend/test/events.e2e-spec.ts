@@ -4,11 +4,13 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
 
-describe('Events Controller (e2e)', () => {
+describe('Events & Competitions Controller (e2e)', () => {
   let app: INestApplication<App>;
   let jwtToken: string;
   let workspaceId: string;
   let eventId: string;
+  let sportId: string;
+  let competitionId: string;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -48,6 +50,22 @@ describe('Events Controller (e2e)', () => {
     await app.close();
   });
 
+  it('should retrieve list of seeded sports', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/workspaces/sports')
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .expect(200);
+
+    expect(Array.isArray(res.body)).toBe(true);
+    expect(res.body.length).toBeGreaterThanOrEqual(3);
+    
+    // Find Football
+    const football = res.body.find((s: any) => s.code === 'football');
+    expect(football).toBeDefined();
+    expect(football.name).toBe('Football');
+    sportId = football.id;
+  });
+
   it('should create an event inside the workspace', async () => {
     const res = await request(app.getHttpServer())
       .post(`/workspaces/${workspaceId}/events`)
@@ -67,15 +85,61 @@ describe('Events Controller (e2e)', () => {
     eventId = res.body.id;
   });
 
-  it('should retrieve a list of events', async () => {
+  it('should create a competition inside the event', async () => {
     const res = await request(app.getHttpServer())
-      .get(`/workspaces/${workspaceId}/events`)
+      .post(`/workspaces/${workspaceId}/events/${eventId}/competitions`)
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .send({
+        name: 'Inter-House Football Championship',
+        sportId: sportId,
+        status: 'upcoming',
+      })
+      .expect(201);
+
+    expect(res.body).toHaveProperty('id');
+    expect(res.body.name).toBe('Inter-House Football Championship');
+    expect(res.body.sport.code).toBe('football');
+    competitionId = res.body.id;
+  });
+
+  it('should retrieve list of competitions for an event', async () => {
+    const res = await request(app.getHttpServer())
+      .get(`/workspaces/${workspaceId}/events/${eventId}/competitions`)
       .set('Authorization', `Bearer ${jwtToken}`)
       .expect(200);
 
     expect(Array.isArray(res.body)).toBe(true);
-    expect(res.body.length).toBeGreaterThanOrEqual(1);
-    expect(res.body.some((e: any) => e.id === eventId)).toBe(true);
+    expect(res.body.length).toBe(1);
+    expect(res.body[0].id).toBe(competitionId);
+  });
+
+  it('should update the competition details', async () => {
+    const res = await request(app.getHttpServer())
+      .patch(`/workspaces/${workspaceId}/events/${eventId}/competitions/${competitionId}`)
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .send({
+        name: 'Inter-House Football Cup v2',
+        status: 'ongoing',
+      })
+      .expect(200);
+
+    expect(res.body.name).toBe('Inter-House Football Cup v2');
+    expect(res.body.status).toBe('ongoing');
+  });
+
+  it('should delete the competition', async () => {
+    await request(app.getHttpServer())
+      .delete(`/workspaces/${workspaceId}/events/${eventId}/competitions/${competitionId}`)
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .expect(204);
+
+    // Verify it is gone
+    const res = await request(app.getHttpServer())
+      .get(`/workspaces/${workspaceId}/events/${eventId}/competitions`)
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .expect(200);
+
+    expect(res.body.length).toBe(0);
   });
 
   it('should update the created event', async () => {
