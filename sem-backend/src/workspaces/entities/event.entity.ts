@@ -31,6 +31,9 @@ export class Event {
   @Column({ type: 'varchar', length: 20, default: 'upcoming' })
   status: string; // 'upcoming' | 'ongoing' | 'completed' | 'cancelled'
 
+  @Column({ name: 'logo_url', type: 'varchar', length: 500, nullable: true })
+  logoUrl: string | null;
+
   @Column({ name: 'workspace_id', type: 'uuid' })
   workspaceId: string;
 

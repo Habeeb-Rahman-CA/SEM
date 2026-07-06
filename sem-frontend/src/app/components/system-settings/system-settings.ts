@@ -3,6 +3,7 @@ import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { WorkspaceService, Role, Permission } from '../../services/workspace.service';
 import { AuthService } from '../../services/auth.service';
+import { UiService } from '../../services/ui.service';
 
 @Component({
   selector: 'app-system-settings',
@@ -15,6 +16,7 @@ export class SystemSettingsComponent implements OnInit {
   private workspaceService = inject(WorkspaceService);
   authService = inject(AuthService);
   private router = inject(Router);
+  private uiService = inject(UiService);
 
   activeSection = signal<string | null>(null);
 
@@ -92,15 +94,22 @@ export class SystemSettingsComponent implements OnInit {
     });
   }
 
-  onDeleteRole(role: Role) {
-    if (!confirm(`Delete the global role "${role.name}"? This cannot be undone.`)) return;
+  async onDeleteRole(role: Role) {
+    const confirmed = await this.uiService.confirm({
+      title: 'Delete Global Role',
+      message: `Delete the global role "${role.name}"? This cannot be undone.`,
+      confirmText: 'Delete',
+      type: 'danger',
+    });
+    if (!confirmed) return;
 
     this.workspaceService.removeGlobalRole(role.id).subscribe({
       next: () => {
         this.roles.update((prev) => prev.filter((r) => r.id !== role.id));
+        this.uiService.success(`Global role "${role.name}" deleted successfully.`);
       },
       error: (err) => {
-        alert(err.error?.message ?? 'Failed to delete global role.');
+        this.uiService.error(err.error?.message ?? 'Failed to delete global role.');
       },
     });
   }
@@ -139,10 +148,11 @@ export class SystemSettingsComponent implements OnInit {
           prev.map((r) => (r.id === updatedRole.id ? { ...r, permissions: updatedRole.permissions } : r))
         );
         this.closePermissionModal();
+        this.uiService.success('Role permissions updated successfully.');
       },
       error: (err) => {
         this.isSavingPermissions.set(false);
-        alert(err.error?.message ?? 'Failed to update permissions.');
+        this.uiService.error(err.error?.message ?? 'Failed to update permissions.');
       },
     });
   }

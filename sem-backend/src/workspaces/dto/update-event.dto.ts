@@ -24,4 +24,9 @@ export class UpdateEventDto {
   @IsString()
   @IsIn(['upcoming', 'ongoing', 'completed', 'cancelled'])
   status?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  logoUrl?: string;
 }

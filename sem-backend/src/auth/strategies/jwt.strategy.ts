@@ -23,6 +23,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('User not found or token invalid');
     }
     // This is attached to Request object: req.user
-    return { id: user.id, username: user.username };
+    return { id: user.id, username: user.username, avatarUrl: user.avatarUrl };
   }
 }

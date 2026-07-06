@@ -135,8 +135,12 @@
         <!-- Top Bar -->
         <header class="flex items-center justify-between border-b border-white/5 pb-5 mb-8">
           <div>
-            <h1 class="text-lg font-extrabold text-white flex items-center gap-2">
-              <span class="text-slate-400 font-normal">Workspace /</span>
+            <h1 class="text-base font-extrabold text-white tracking-tight flex items-center gap-2">
+              @if (workspace()?.logoUrl) {
+                <img [src]="workspace()?.logoUrl" alt="Logo" class="w-6 h-6 rounded-md object-cover" />
+              } @else {
+                <span class="w-2.5 h-2.5 rounded-full bg-violet-500"></span>
+              }
               {{ workspace()!.name }}
             </h1>
           </div>
@@ -152,10 +156,31 @@
           </div>
           
           <div class="flex items-center gap-4">
-            <div class="flex items-center gap-3 bg-slate-900 border border-white/5 rounded-xl px-4 py-2">
+            <div class="flex items-center gap-3 bg-slate-900 border border-white/5 rounded-xl px-4 py-2 group relative">
               <!-- Profile Icon (Avatar) -->
-              <div class="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center text-white font-bold text-sm shadow-sm select-none">
-                {{ initials(authService.currentUser()?.username || 'U') }}
+              <div class="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center text-white font-bold text-sm shadow-sm select-none overflow-hidden relative">
+                @if (isUploadingAvatar()) {
+                  <div class="absolute inset-0 bg-slate-950/85 flex items-center justify-center">
+                    <svg class="animate-spin h-4.5 w-4.5 text-violet-500" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  </div>
+                } @else {
+                  @if (authService.currentUser()?.avatarUrl) {
+                    <img [src]="authService.currentUser()?.avatarUrl" alt="Avatar" class="w-full h-full object-cover" />
+                  } @else {
+                    {{ initials(authService.currentUser()?.username || 'U') }}
+                  }
+                  <!-- Hover Upload Overlay -->
+                  <label class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <input type="file" class="hidden" accept="image/*" (change)="onAvatarUpload($event)" />
+                  </label>
+                }
               </div>
               <div class="text-left leading-none">
                 <p class="text-xs font-bold text-white">{{ authService.currentUser()?.username }}</p>
@@ -473,6 +498,42 @@
 
             <form (submit)="onSaveSettings(); $event.preventDefault()" class="flex flex-col gap-4">
               <div class="flex flex-col gap-1.5">
+                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Workspace Logo</label>
+                <div class="flex items-center gap-4">
+                  <div class="w-16 h-16 rounded-xl bg-slate-800 border border-white/10 flex items-center justify-center overflow-hidden relative">
+                    @if (isUploadingWorkspaceLogo()) {
+                      <div class="absolute inset-0 bg-slate-950/80 flex items-center justify-center">
+                        <svg class="animate-spin h-5 w-5 text-violet-500" fill="none" viewBox="0 0 24 24">
+                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                      </div>
+                    } @else if (editLogoUrl()) {
+                      <img [src]="editLogoUrl()" alt="Logo" class="w-full h-full object-cover" />
+                    } @else {
+                      <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    }
+                  </div>
+                  <label class="px-4 py-2 bg-slate-850 hover:bg-slate-800 border border-white/10 hover:border-white/20 text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1.5" [class.opacity-50]="isUploadingWorkspaceLogo()" [class.pointer-events-none]="isUploadingWorkspaceLogo()">
+                    @if (isUploadingWorkspaceLogo()) {
+                      <span class="animate-pulse">Uploading...</span>
+                    } @else {
+                      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                      </svg>
+                      Upload Logo
+                      <input type="file" class="hidden" accept="image/*" (change)="onWorkspaceLogoUpload($event)" />
+                    }
+                  </label>
+                  @if (editLogoUrl()) {
+                    <button type="button" (click)="editLogoUrl.set('')" class="text-xs text-rose-400 hover:text-rose-300">Remove</button>
+                  }
+                </div>
+              </div>
+
+              <div class="flex flex-col gap-1.5">
                 <label for="ws-name" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Workspace Name</label>
                 <input id="ws-name" type="text" placeholder="Workspace Name" autocomplete="off"
                   class="bg-slate-800 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 outline-none transition-all"
@@ -629,10 +690,36 @@
                     </div>
 
                     <div class="flex flex-col gap-1.5">
-                      <label for="team-logo" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Logo URL <span class="text-slate-600 font-normal normal-case">(optional)</span></label>
-                      <input id="team-logo" type="url" placeholder="https://example.com/logo.png" autocomplete="off"
-                        class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition-all w-full"
-                        [ngModel]="newTeamLogoUrl()" (ngModelChange)="newTeamLogoUrl.set($event)" name="teamLogo" />
+                      <label for="team-logo" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Logo URL / Upload <span class="text-slate-600 font-normal normal-case">(optional)</span></label>
+                      <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-slate-950 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0 relative">
+                          @if (isUploadingTeamLogo()) {
+                            <div class="absolute inset-0 bg-slate-950/80 flex items-center justify-center">
+                              <svg class="animate-spin h-4 w-4 text-violet-500" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                              </svg>
+                            </div>
+                          } @else if (newTeamLogoUrl()) {
+                            <img [src]="newTeamLogoUrl()" alt="Logo Preview" class="w-full h-full object-cover" />
+                          } @else {
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                          }
+                        </div>
+                        <input id="team-logo" type="url" placeholder="https://example.com/logo.png" autocomplete="off"
+                          class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition-all flex-1"
+                          [ngModel]="newTeamLogoUrl()" (ngModelChange)="newTeamLogoUrl.set($event)" name="teamLogo" />
+                        <label class="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 border border-white/10 text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex-shrink-0" [class.opacity-50]="isUploadingTeamLogo()" [class.pointer-events-none]="isUploadingTeamLogo()">
+                          @if (isUploadingTeamLogo()) {
+                            <span class="animate-pulse">...</span>
+                          } @else {
+                            Upload
+                            <input type="file" class="hidden" accept="image/*" (change)="onTeamLogoUpload($event, false)" />
+                          }
+                        </label>
+                      </div>
                     </div>
 
                     <div class="flex flex-col gap-1.5">
@@ -684,10 +771,36 @@
                     </div>
 
                     <div class="flex flex-col gap-1.5">
-                      <label for="edit-team-logo" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Logo URL</label>
-                      <input id="edit-team-logo" type="url" autocomplete="off"
-                        class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-all w-full"
-                        [ngModel]="editTeamLogoUrl()" (ngModelChange)="editTeamLogoUrl.set($event)" name="editTeamLogo" />
+                      <label for="edit-team-logo" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Logo URL / Upload</label>
+                      <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-slate-950 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0 relative">
+                          @if (isUploadingTeamLogo()) {
+                            <div class="absolute inset-0 bg-slate-950/80 flex items-center justify-center">
+                              <svg class="animate-spin h-4 w-4 text-violet-500" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                              </svg>
+                            </div>
+                          } @else if (editTeamLogoUrl()) {
+                            <img [src]="editTeamLogoUrl()" alt="Logo Preview" class="w-full h-full object-cover" />
+                          } @else {
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                          }
+                        </div>
+                        <input id="edit-team-logo" type="url" placeholder="https://example.com/logo.png" autocomplete="off"
+                          class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition-all flex-1"
+                          [ngModel]="editTeamLogoUrl()" (ngModelChange)="editTeamLogoUrl.set($event)" name="editTeamLogo" />
+                        <label class="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 border border-white/10 text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex-shrink-0" [class.opacity-50]="isUploadingTeamLogo()" [class.pointer-events-none]="isUploadingTeamLogo()">
+                          @if (isUploadingTeamLogo()) {
+                            <span class="animate-pulse">...</span>
+                          } @else {
+                            Upload
+                            <input type="file" class="hidden" accept="image/*" (change)="onTeamLogoUpload($event, true)" />
+                          }
+                        </label>
+                      </div>
                     </div>
 
                     <div class="flex flex-col gap-1.5">
@@ -2230,6 +2343,18 @@
                     <div class="bg-slate-900 border border-white/10 hover:border-violet-500/30 rounded-2xl p-5 flex flex-col justify-between gap-4 group transition-all duration-300 text-left">
                       <div class="flex flex-col gap-2">
                         <div class="flex items-center justify-between gap-2">
+                          <!-- Event Logo or Default Trophy -->
+                          <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-slate-800 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0">
+                              @if (event.logoUrl) {
+                                <img [src]="event.logoUrl" alt="Event Logo" class="w-full h-full object-cover" />
+                              } @else {
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-violet-400" viewBox="0 0 24 24" fill="currentColor">
+                                  <path d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94A5.006 5.006 0 0 0 11 15.9V19H9v2h6v-2h-2v-3.1a5.006 5.006 0 0 0 3.61-2.96C19.08 10.63 21 8.55 21 8V7c0-1.1-.9-2-2-2zM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8zm14 0c0 1.3-.84 2.4-2 2.82V7h2v1z"/>
+                                </svg>
+                              }
+                            </div>
+                          </div>
                           <!-- Status Badge -->
                           @if (event.status === 'ongoing') {
                             <span class="text-[10px] font-bold px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded-md border border-emerald-500/20">
@@ -2335,6 +2460,39 @@
                       </div>
 
                       <div class="flex flex-col gap-1.5 text-left">
+                        <label for="event-logo" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Event Logo <span class="text-slate-600 font-normal normal-case">(optional)</span></label>
+                        <div class="flex items-center gap-3">
+                          <div class="w-10 h-10 rounded-xl bg-slate-950 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0 relative">
+                            @if (isUploadingEventLogo()) {
+                              <div class="absolute inset-0 bg-slate-950/80 flex items-center justify-center">
+                                <svg class="animate-spin h-4 w-4 text-violet-500" fill="none" viewBox="0 0 24 24">
+                                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                </svg>
+                              </div>
+                            } @else if (newEventLogoUrl()) {
+                              <img [src]="newEventLogoUrl()" alt="Logo Preview" class="w-full h-full object-cover" />
+                            } @else {
+                              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                            }
+                          </div>
+                          <input id="event-logo" type="url" placeholder="https://example.com/logo.png" autocomplete="off"
+                            class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 outline-none transition-all flex-1"
+                            [ngModel]="newEventLogoUrl()" (ngModelChange)="newEventLogoUrl.set($event)" name="eventLogo" />
+                          <label class="px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-white/10 text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex-shrink-0" [class.opacity-50]="isUploadingEventLogo()" [class.pointer-events-none]="isUploadingEventLogo()">
+                            @if (isUploadingEventLogo()) {
+                              <span class="animate-pulse">...</span>
+                            } @else {
+                              Upload
+                              <input type="file" class="hidden" accept="image/*" (change)="onEventLogoUpload($event, false)" />
+                            }
+                          </label>
+                        </div>
+                      </div>
+
+                      <div class="flex flex-col gap-1.5 text-left">
                         <label for="e-desc" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Description</label>
                         <textarea id="e-desc" placeholder="Details about this sports festival..." rows="3"
                           class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 outline-none transition-all w-full resize-none"
@@ -2406,6 +2564,39 @@
                         <input id="edit-e-name" type="text" placeholder="e.g. Annual Sports Meet 2028" autocomplete="off"
                           class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 outline-none transition-all w-full"
                           [ngModel]="editEventName()" (ngModelChange)="editEventName.set($event)" name="editEName" required />
+                      </div>
+
+                      <div class="flex flex-col gap-1.5 text-left">
+                        <label for="edit-event-logo" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Event Logo <span class="text-slate-600 font-normal normal-case">(optional)</span></label>
+                        <div class="flex items-center gap-3">
+                          <div class="w-10 h-10 rounded-xl bg-slate-950 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0 relative">
+                            @if (isUploadingEventLogo()) {
+                              <div class="absolute inset-0 bg-slate-950/80 flex items-center justify-center">
+                                <svg class="animate-spin h-4 w-4 text-violet-500" fill="none" viewBox="0 0 24 24">
+                                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                </svg>
+                              </div>
+                            } @else if (editEventLogoUrl()) {
+                              <img [src]="editEventLogoUrl()" alt="Logo Preview" class="w-full h-full object-cover" />
+                            } @else {
+                              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                            }
+                          </div>
+                          <input id="edit-event-logo" type="url" placeholder="https://example.com/logo.png" autocomplete="off"
+                            class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 outline-none transition-all flex-1"
+                            [ngModel]="editEventLogoUrl()" (ngModelChange)="editEventLogoUrl.set($event)" name="editEventLogo" />
+                          <label class="px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-white/10 text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex-shrink-0" [class.opacity-50]="isUploadingEventLogo()" [class.pointer-events-none]="isUploadingEventLogo()">
+                            @if (isUploadingEventLogo()) {
+                              <span class="animate-pulse">...</span>
+                            } @else {
+                              Upload
+                              <input type="file" class="hidden" accept="image/*" (change)="onEventLogoUpload($event, true)" />
+                            }
+                          </label>
+                        </div>
                       </div>
 
                       <div class="flex flex-col gap-1.5 text-left">

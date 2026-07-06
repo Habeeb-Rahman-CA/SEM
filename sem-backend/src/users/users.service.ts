@@ -37,4 +37,24 @@ export class UsersService {
   async findOneById(id: string): Promise<User | null> {
     return await this.userRepository.findOne({ where: { id } });
   }
+
+  async update(id: string, updateData: { username?: string; avatarUrl?: string }): Promise<User> {
+    const user = await this.findOneById(id);
+    if (!user) {
+      throw new ConflictException('User not found');
+    }
+    if (updateData.username && updateData.username !== user.username) {
+      const existingUser = await this.findOneByUsername(updateData.username);
+      if (existingUser) {
+        throw new ConflictException('Username is already taken');
+      }
+      user.username = updateData.username;
+    }
+    if (updateData.avatarUrl !== undefined) {
+      user.avatarUrl = updateData.avatarUrl;
+    }
+    const savedUser = await this.userRepository.save(user);
+    delete savedUser.password;
+    return savedUser;
+  }
 }

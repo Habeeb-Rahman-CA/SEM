@@ -5,6 +5,7 @@ import { Observable, tap, catchError, throwError, of } from 'rxjs';
 export interface User {
   id: string;
   username: string;
+  avatarUrl?: string | null;
 }
 
 export interface AuthResponse {
@@ -84,6 +85,20 @@ export class AuthService {
       catchError(err => {
         this.logout();
         return throwError(() => err);
+      })
+    );
+  }
+
+  updateProfile(username?: string, avatarUrl?: string): Observable<User> {
+    const currentToken = this.token();
+    return this.http.patch<User>(`${this.apiUrl}/profile`, { username, avatarUrl }, {
+      headers: {
+        Authorization: `Bearer ${currentToken}`
+      }
+    }).pipe(
+      tap(user => {
+        this.currentUser.set(user);
+        localStorage.setItem('user', JSON.stringify(user));
       })
     );
   }

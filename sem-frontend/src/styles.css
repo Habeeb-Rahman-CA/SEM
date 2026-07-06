@@ -50,6 +50,31 @@
   --color-indigo-300: #00ADB5;
   --color-indigo-200: #00ADB5;
   --color-indigo-100: #00ADB5;
+
+  --animate-scaleUp: scaleUp 0.15s ease-out;
+  --animate-slideIn: slideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+
+  @keyframes scaleUp {
+    from {
+      transform: scale(0.96);
+      opacity: 0;
+    }
+    to {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideIn {
+    from {
+      transform: translateY(-0.75rem) scale(0.97);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+  }
 }
 
 body {

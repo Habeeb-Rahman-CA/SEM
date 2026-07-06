@@ -4,6 +4,7 @@ import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { WorkspaceService, Workspace, WorkspaceMember, Role, Team, Player, WorkspaceEvent, Sport, Competition, CompetitionStage, CompetitionTeam, Match } from '../../services/workspace.service';
 import { AuthService } from '../../services/auth.service';
+import { UiService } from '../../services/ui.service';
 
 @Component({
   selector: 'app-workspace-detail',
@@ -17,6 +18,7 @@ export class WorkspaceDetailComponent implements OnInit {
   authService = inject(AuthService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private uiService = inject(UiService);
 
   workspace = signal<Workspace | null>(null);
   members = signal<WorkspaceMember[]>([]);
@@ -25,6 +27,12 @@ export class WorkspaceDetailComponent implements OnInit {
   error = signal('');
   activeTab = signal<'overview' | 'members' | 'settings' | 'teams' | 'players' | 'events'>('overview');
   isSidebarOpen = signal(false);
+
+  // Image Upload Loading States
+  isUploadingAvatar = signal(false);
+  isUploadingWorkspaceLogo = signal(false);
+  isUploadingTeamLogo = signal(false);
+  isUploadingEventLogo = signal(false);
 
   // ── Teams State ────────────────────────────────────────────────────────────
   teams = signal<Team[]>([]);
@@ -68,6 +76,7 @@ export class WorkspaceDetailComponent implements OnInit {
   newEventStartDate = signal('');
   newEventEndDate = signal('');
   newEventStatus = signal('upcoming');
+  newEventLogoUrl = signal('');
   isCreatingEvent = signal(false);
   eventCreateError = signal('');
   eventCreateSuccess = signal('');
@@ -79,6 +88,7 @@ export class WorkspaceDetailComponent implements OnInit {
   editEventStartDate = signal('');
   editEventEndDate = signal('');
   editEventStatus = signal('upcoming');
+  editEventLogoUrl = signal('');
   isUpdatingEvent = signal(false);
   eventUpdateError = signal('');
   eventUpdateSuccess = signal('');
@@ -167,6 +177,7 @@ export class WorkspaceDetailComponent implements OnInit {
   // ── Workspace Edit State ───────────────────────────────────────────────────
   editName = signal('');
   editDescription = signal('');
+  editLogoUrl = signal('');
   isSavingSettings = signal(false);
   settingsError = signal('');
   settingsSuccess = signal('');
@@ -197,6 +208,7 @@ export class WorkspaceDetailComponent implements OnInit {
         this.workspace.set(ws);
         this.editName.set(ws.name);
         this.editDescription.set(ws.description ?? '');
+        this.editLogoUrl.set(ws.logoUrl ?? '');
         this.loadMembers(id);
         this.loadRoles(id);
         this.loadTeams(id);
@@ -229,13 +241,22 @@ export class WorkspaceDetailComponent implements OnInit {
     });
   }
 
-  deleteWorkspace() {
+  async deleteWorkspace() {
     const ws = this.workspace();
     if (!ws) return;
-    if (!confirm(`Are you sure you want to delete "${ws.name}"? This cannot be undone.`)) return;
+    const confirmed = await this.uiService.confirm({
+      title: 'Delete Workspace',
+      message: `Are you sure you want to delete "${ws.name}"? This cannot be undone.`,
+      confirmText: 'Delete',
+      type: 'danger',
+    });
+    if (!confirmed) return;
     this.workspaceService.remove(ws.id).subscribe({
-      next: () => this.router.navigate(['/workspaces']),
-      error: (err) => alert(err.error?.message ?? 'Failed to delete workspace.'),
+      next: () => {
+        this.uiService.success(`Workspace "${ws.name}" deleted successfully.`);
+        this.router.navigate(['/workspaces']);
+      },
+      error: (err) => this.uiService.error(err.error?.message ?? 'Failed to delete workspace.'),
     });
   }
 
@@ -249,7 +270,9 @@ export class WorkspaceDetailComponent implements OnInit {
     this.settingsError.set('');
     this.settingsSuccess.set('');
 
-    this.workspaceService.update(ws.id, { name, description }).subscribe({
+    const logoUrl = this.editLogoUrl().trim();
+
+    this.workspaceService.update(ws.id, { name, description, logoUrl: logoUrl || undefined }).subscribe({
       next: (updatedWs) => {
         this.isSavingSettings.set(false);
         this.workspace.set(updatedWs);
@@ -354,9 +377,10 @@ export class WorkspaceDetailComponent implements OnInit {
     this.workspaceService.updateMemberRole(ws.id, member.userId, newRoleSlug).subscribe({
       next: (updated) => {
         this.members.update(prev => prev.map(m => m.id === member.id ? { ...m, role: updated.role } : m));
+        this.uiService.success(`Role for ${member.user.username} updated to ${updated.role.name}.`);
       },
       error: (err) => {
-        alert(err.error?.message ?? 'Failed to update member role.');
+        this.uiService.error(err.error?.message ?? 'Failed to update member role.');
         select.value = member.role?.slug ?? '';
       }
     });
@@ -364,14 +388,23 @@ export class WorkspaceDetailComponent implements OnInit {
 
   // ── Remove Member ──────────────────────────────────────────────────────────
 
-  onRemoveMember(member: WorkspaceMember) {
+  async onRemoveMember(member: WorkspaceMember) {
     const ws = this.workspace();
     if (!ws) return;
-    if (!confirm(`Remove "${member.user.username}" from this workspace?`)) return;
+    const confirmed = await this.uiService.confirm({
+      title: 'Remove Member',
+      message: `Remove "${member.user.username}" from this workspace?`,
+      confirmText: 'Remove',
+      type: 'danger',
+    });
+    if (!confirmed) return;
 
     this.workspaceService.removeMember(ws.id, member.userId).subscribe({
-      next: () => this.members.update(prev => prev.filter(m => m.userId !== member.userId)),
-      error: (err) => alert(err.error?.message ?? 'Failed to remove member.'),
+      next: () => {
+        this.members.update(prev => prev.filter(m => m.userId !== member.userId));
+        this.uiService.success(`Removed "${member.user.username}" from workspace.`);
+      },
+      error: (err) => this.uiService.error(err.error?.message ?? 'Failed to remove member.'),
     });
   }
 
@@ -404,14 +437,23 @@ export class WorkspaceDetailComponent implements OnInit {
 
   // ── Delete Custom Role ─────────────────────────────────────────────────────
 
-  onDeleteRole(role: Role) {
+  async onDeleteRole(role: Role) {
     const ws = this.workspace();
     if (!ws) return;
-    if (!confirm(`Delete the role "${role.name}"? This cannot be undone.`)) return;
+    const confirmed = await this.uiService.confirm({
+      title: 'Delete Custom Role',
+      message: `Delete the role "${role.name}"? This cannot be undone.`,
+      confirmText: 'Delete',
+      type: 'danger',
+    });
+    if (!confirmed) return;
 
     this.workspaceService.removeRole(ws.id, role.id).subscribe({
-      next: () => this.roles.update(prev => prev.filter(r => r.id !== role.id)),
-      error: (err) => alert(err.error?.message ?? 'Failed to delete role.'),
+      next: () => {
+        this.roles.update(prev => prev.filter(r => r.id !== role.id));
+        this.uiService.success(`Role "${role.name}" deleted successfully.`);
+      },
+      error: (err) => this.uiService.error(err.error?.message ?? 'Failed to delete role.'),
     });
   }
 
@@ -490,17 +532,24 @@ export class WorkspaceDetailComponent implements OnInit {
     });
   }
 
-  onDeleteTeam(team: Team) {
+  async onDeleteTeam(team: Team) {
     const ws = this.workspace();
     if (!ws) return;
-    if (!confirm(`Delete team "${team.name}"? This cannot be undone.`)) return;
+    const confirmed = await this.uiService.confirm({
+      title: 'Delete Team',
+      message: `Delete team "${team.name}"? This cannot be undone.`,
+      confirmText: 'Delete',
+      type: 'danger',
+    });
+    if (!confirmed) return;
 
     this.workspaceService.removeTeam(ws.id, team.id).subscribe({
       next: () => {
         this.teams.update(prev => prev.filter(t => t.id !== team.id));
+        this.uiService.success(`Team "${team.name}" deleted successfully.`);
       },
       error: (err) => {
-        alert(err.error?.message ?? 'Failed to delete team.');
+        this.uiService.error(err.error?.message ?? 'Failed to delete team.');
       }
     });
   }
@@ -589,17 +638,24 @@ export class WorkspaceDetailComponent implements OnInit {
     });
   }
 
-  onDeletePlayer(player: Player) {
+  async onDeletePlayer(player: Player) {
     const ws = this.workspace();
     if (!ws) return;
-    if (!confirm(`Delete player "${player.user.username}"? This cannot be undone.`)) return;
+    const confirmed = await this.uiService.confirm({
+      title: 'Delete Player',
+      message: `Delete player "${player.user.username}"? This cannot be undone.`,
+      confirmText: 'Delete',
+      type: 'danger',
+    });
+    if (!confirmed) return;
 
     this.workspaceService.removePlayer(ws.id, player.id).subscribe({
       next: () => {
         this.players.update(prev => prev.filter(p => p.id !== player.id));
+        this.uiService.success(`Player "${player.user.username}" deleted successfully.`);
       },
       error: (err) => {
-        alert(err.error?.message ?? 'Failed to delete player.');
+        this.uiService.error(err.error?.message ?? 'Failed to delete player.');
       }
     });
   }
@@ -669,6 +725,7 @@ export class WorkspaceDetailComponent implements OnInit {
       ...(startDate && { startDate: new Date(startDate).toISOString() }),
       ...(endDate && { endDate: new Date(endDate).toISOString() }),
       ...(status && { status }),
+      ...(this.newEventLogoUrl() && { logoUrl: this.newEventLogoUrl() }),
     };
 
     this.workspaceService.createEvent(ws.id, payload).subscribe({
@@ -680,6 +737,7 @@ export class WorkspaceDetailComponent implements OnInit {
         this.newEventStartDate.set('');
         this.newEventEndDate.set('');
         this.newEventStatus.set('upcoming');
+        this.newEventLogoUrl.set('');
         this.events.update(prev => [...prev, event]);
       },
       error: (err) => {
@@ -696,6 +754,7 @@ export class WorkspaceDetailComponent implements OnInit {
     this.editEventStartDate.set(this.formatToLocalDatetime(event.startDate));
     this.editEventEndDate.set(this.formatToLocalDatetime(event.endDate));
     this.editEventStatus.set(event.status);
+    this.editEventLogoUrl.set(event.logoUrl ?? '');
     this.eventUpdateError.set('');
     this.eventUpdateSuccess.set('');
   }
@@ -724,6 +783,7 @@ export class WorkspaceDetailComponent implements OnInit {
       startDate: startDate ? new Date(startDate).toISOString() : null,
       endDate: endDate ? new Date(endDate).toISOString() : null,
       status,
+      logoUrl: this.editEventLogoUrl() || undefined,
     };
 
     this.workspaceService.updateEvent(ws.id, event.id, payload).subscribe({
@@ -740,17 +800,24 @@ export class WorkspaceDetailComponent implements OnInit {
     });
   }
 
-  onDeleteEvent(event: WorkspaceEvent) {
+  async onDeleteEvent(event: WorkspaceEvent) {
     const ws = this.workspace();
     if (!ws) return;
-    if (!confirm(`Delete event "${event.name}"? This cannot be undone.`)) return;
+    const confirmed = await this.uiService.confirm({
+      title: 'Delete Event',
+      message: `Delete event "${event.name}"? This cannot be undone.`,
+      confirmText: 'Delete',
+      type: 'danger',
+    });
+    if (!confirmed) return;
 
     this.workspaceService.removeEvent(ws.id, event.id).subscribe({
       next: () => {
         this.events.update(prev => prev.filter(e => e.id !== event.id));
+        this.uiService.success(`Event "${event.name}" deleted successfully.`);
       },
       error: (err) => {
-        alert(err.error?.message ?? 'Failed to delete event.');
+        this.uiService.error(err.error?.message ?? 'Failed to delete event.');
       }
     });
   }
@@ -873,18 +940,25 @@ export class WorkspaceDetailComponent implements OnInit {
     });
   }
 
-  onDeleteCompetition(comp: Competition) {
+  async onDeleteCompetition(comp: Competition) {
     const ws = this.workspace();
     const event = this.selectedEvent();
     if (!ws || !event) return;
-    if (!confirm(`Delete competition "${comp.name}"? This cannot be undone.`)) return;
+    const confirmed = await this.uiService.confirm({
+      title: 'Delete Competition',
+      message: `Delete competition "${comp.name}"? This cannot be undone.`,
+      confirmText: 'Delete',
+      type: 'danger',
+    });
+    if (!confirmed) return;
 
     this.workspaceService.removeCompetition(ws.id, event.id, comp.id).subscribe({
       next: () => {
         this.competitions.update(prev => prev.filter(c => c.id !== comp.id));
+        this.uiService.success(`Competition "${comp.name}" deleted successfully.`);
       },
       error: (err) => {
-        alert(err.error?.message ?? 'Failed to delete competition.');
+        this.uiService.error(err.error?.message ?? 'Failed to delete competition.');
       }
     });
   }
@@ -974,21 +1048,28 @@ export class WorkspaceDetailComponent implements OnInit {
     });
   }
 
-  onRemoveTeamFromCompetition(entry: CompetitionTeam) {
+  async onRemoveTeamFromCompetition(entry: CompetitionTeam) {
     const ws = this.workspace();
     const event = this.selectedEvent();
     const comp = this.selectedCompetition();
     if (!ws || !event || !comp) return;
-    if (!confirm(`Remove "${entry.team.name}" from this competition?`)) return;
+    const confirmed = await this.uiService.confirm({
+      title: 'Remove Team',
+      message: `Remove "${entry.team.name}" from this competition?`,
+      confirmText: 'Remove',
+      type: 'danger',
+    });
+    if (!confirmed) return;
     this.workspaceService.removeTeamFromCompetition(ws.id, event.id, comp.id, entry.teamId).subscribe({
       next: () => {
         this.competitionTeams.update(prev => prev.filter(t => t.id !== entry.id));
+        this.uiService.success(`Removed "${entry.team.name}" from competition.`);
       },
-      error: (err) => alert(err.error?.message ?? 'Failed to remove team.')
+      error: (err) => this.uiService.error(err.error?.message ?? 'Failed to remove team.')
     });
   }
 
-  onGenerateFixtures() {
+  async onGenerateFixtures() {
     const ws = this.workspace();
     const event = this.selectedEvent();
     const comp = this.selectedCompetition();
@@ -1008,7 +1089,13 @@ export class WorkspaceDetailComponent implements OnInit {
 
     const hasExistingMatches = this.stages().length > 0;
     if (hasExistingMatches) {
-      if (!confirm(`This will DELETE any existing matches and regenerate all fixtures randomly. Continue?`)) return;
+      const confirmed = await this.uiService.confirm({
+        title: 'Regenerate Fixtures',
+        message: 'This will DELETE any existing matches and regenerate all fixtures randomly. Continue?',
+        confirmText: 'Regenerate',
+        type: 'warning',
+      });
+      if (!confirmed) return;
     }
 
     this.isGeneratingFixtures.set(true);
@@ -1021,6 +1108,7 @@ export class WorkspaceDetailComponent implements OnInit {
         this.generateFixturesSuccess.set(
           `Generated ${result.matchesCreated} fixtures across ${result.stagesGenerated} stage(s)!`
         );
+        this.uiService.success(`Fixtures generated successfully!`);
         // Reload stages so match counts update
         this.loadStages(comp.id);
         setTimeout(() => this.generateFixturesSuccess.set(''), 5000);
@@ -1028,6 +1116,7 @@ export class WorkspaceDetailComponent implements OnInit {
       error: (err) => {
         this.isGeneratingFixtures.set(false);
         this.generateFixturesError.set(err.error?.message ?? 'Failed to generate fixtures.');
+        this.uiService.error(err.error?.message ?? 'Failed to generate fixtures.');
       }
     });
   }
@@ -1158,19 +1247,26 @@ export class WorkspaceDetailComponent implements OnInit {
     });
   }
 
-  onDeleteStage(stage: CompetitionStage) {
+  async onDeleteStage(stage: CompetitionStage) {
     const ws = this.workspace();
     const event = this.selectedEvent();
     const comp = this.selectedCompetition();
     if (!ws || !event || !comp) return;
-    if (!confirm(`Delete stage "${stage.name}"? This cannot be undone.`)) return;
+    const confirmed = await this.uiService.confirm({
+      title: 'Delete Stage',
+      message: `Delete stage "${stage.name}"? This cannot be undone.`,
+      confirmText: 'Delete',
+      type: 'danger',
+    });
+    if (!confirmed) return;
 
     this.workspaceService.removeStage(ws.id, event.id, comp.id, stage.id).subscribe({
       next: () => {
         this.stages.update(prev => prev.filter(s => s.id !== stage.id));
+        this.uiService.success(`Stage "${stage.name}" deleted successfully.`);
       },
       error: (err) => {
-        alert(err.error?.message ?? 'Failed to delete stage.');
+        this.uiService.error(err.error?.message ?? 'Failed to delete stage.');
       }
     });
   }
@@ -1196,7 +1292,7 @@ export class WorkspaceDetailComponent implements OnInit {
         this.matches.set(data);
       },
       error: (err) => {
-        alert(err.error?.message ?? 'Failed to load matches.');
+        this.uiService.error(err.error?.message ?? 'Failed to load matches.');
       }
     });
   }
@@ -1240,6 +1336,7 @@ export class WorkspaceDetailComponent implements OnInit {
       next: (created) => {
         this.matches.update(prev => [...prev, created]);
         this.matchCreateSuccess.set('Match scheduled successfully!');
+        this.uiService.success('Match scheduled successfully!');
         this.newMatchHomeTeamId.set('');
         this.newMatchAwayTeamId.set('');
         setTimeout(() => {
@@ -1253,13 +1350,19 @@ export class WorkspaceDetailComponent implements OnInit {
     });
   }
 
-  onDeleteMatch(match: Match) {
+  async onDeleteMatch(match: Match) {
     const ws = this.workspace();
     const event = this.selectedEvent();
     const comp = this.selectedCompetition();
     const stage = this.selectedStage();
     if (!ws || !event || !comp || !stage) return;
-    if (!confirm('Delete this match? This cannot be undone.')) return;
+    const confirmed = await this.uiService.confirm({
+      title: 'Delete Match',
+      message: 'Delete this match? This cannot be undone.',
+      confirmText: 'Delete',
+      type: 'danger',
+    });
+    if (!confirmed) return;
 
     this.workspaceService.removeMatch(ws.id, event.id, comp.id, stage.id, match.id).subscribe({
       next: () => {
@@ -1267,9 +1370,10 @@ export class WorkspaceDetailComponent implements OnInit {
         if (this.selectedMatch()?.id === match.id) {
           this.selectedMatch.set(null);
         }
+        this.uiService.success('Match deleted successfully.');
       },
       error: (err) => {
-        alert(err.error?.message ?? 'Failed to delete match.');
+        this.uiService.error(err.error?.message ?? 'Failed to delete match.');
       }
     });
   }
@@ -1598,6 +1702,98 @@ export class WorkspaceDetailComponent implements OnInit {
         this.selectedMatch.set(updated);
         this.matches.update(prev => prev.map(m => m.id === updated.id ? updated : m));
         this.stopFootballTimer();
+      }
+    });
+  }
+
+  onAvatarUpload(event: any) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    this.isUploadingAvatar.set(true);
+    this.workspaceService.uploadImage(file, 'user').subscribe({
+      next: (res) => {
+        this.authService.updateProfile(undefined, res.url).subscribe({
+          next: () => {
+            this.isUploadingAvatar.set(false);
+            this.uiService.success('Profile picture updated successfully!');
+          },
+          error: (err) => {
+            this.isUploadingAvatar.set(false);
+            console.error(err);
+            this.uiService.error('Failed to update user profile image.');
+          }
+        });
+      },
+      error: (err) => {
+        this.isUploadingAvatar.set(false);
+        console.error(err);
+        this.uiService.error('Image upload failed.');
+      }
+    });
+  }
+
+  onWorkspaceLogoUpload(event: any) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    this.isUploadingWorkspaceLogo.set(true);
+    this.workspaceService.uploadImage(file, 'workspace').subscribe({
+      next: (res) => {
+        this.isUploadingWorkspaceLogo.set(false);
+        this.editLogoUrl.set(res.url);
+        this.uiService.success('Workspace logo uploaded successfully.');
+      },
+      error: (err) => {
+        this.isUploadingWorkspaceLogo.set(false);
+        console.error(err);
+        this.uiService.error('Workspace logo upload failed.');
+      }
+    });
+  }
+
+  onTeamLogoUpload(event: any, isEdit: boolean) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    this.isUploadingTeamLogo.set(true);
+    this.workspaceService.uploadImage(file, 'team').subscribe({
+      next: (res) => {
+        this.isUploadingTeamLogo.set(false);
+        if (isEdit) {
+          this.editTeamLogoUrl.set(res.url);
+        } else {
+          this.newTeamLogoUrl.set(res.url);
+        }
+        this.uiService.success('Team logo uploaded successfully.');
+      },
+      error: (err) => {
+        this.isUploadingTeamLogo.set(false);
+        console.error(err);
+        this.uiService.error('Team logo upload failed.');
+      }
+    });
+  }
+
+  onEventLogoUpload(event: any, isEdit: boolean) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    this.isUploadingEventLogo.set(true);
+    this.workspaceService.uploadImage(file, 'event').subscribe({
+      next: (res) => {
+        this.isUploadingEventLogo.set(false);
+        if (isEdit) {
+          this.editEventLogoUrl.set(res.url);
+        } else {
+          this.newEventLogoUrl.set(res.url);
+        }
+        this.uiService.success('Event logo uploaded successfully.');
+      },
+      error: (err) => {
+        this.isUploadingEventLogo.set(false);
+        console.error(err);
+        this.uiService.error('Event logo upload failed.');
       }
     });
   }

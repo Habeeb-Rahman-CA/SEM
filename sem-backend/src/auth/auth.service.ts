@@ -18,7 +18,7 @@ export class AuthService {
     return await this.usersService.create(username, password);
   }
 
-  async login(loginDto: LoginDto): Promise<{ accessToken: string; user: { id: string; username: string } }> {
+  async login(loginDto: LoginDto): Promise<{ accessToken: string; user: { id: string; username: string; avatarUrl?: string } }> {
     const { username, password } = loginDto;
     const user = await this.usersService.findOneByUsername(username);
 
@@ -39,6 +39,7 @@ export class AuthService {
       user: {
         id: user.id,
         username: user.username,
+        avatarUrl: user.avatarUrl ?? undefined,
       },
     };
   }

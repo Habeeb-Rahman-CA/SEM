@@ -63,6 +63,7 @@ export interface WorkspaceEvent {
   startDate: string | null;
   endDate: string | null;
   status: string; // 'upcoming' | 'ongoing' | 'completed' | 'cancelled'
+  logoUrl?: string | null;
   workspaceId: string;
   createdAt: string;
   updatedAt: string;
@@ -360,7 +361,7 @@ export class WorkspaceService {
 
   createEvent(
     workspaceId: string,
-    payload: { name: string; description?: string; startDate?: string; endDate?: string; status?: string }
+    payload: { name: string; description?: string; startDate?: string; endDate?: string; status?: string; logoUrl?: string }
   ): Observable<WorkspaceEvent> {
     return this.http.post<WorkspaceEvent>(
       `${this.apiUrl}/${workspaceId}/events`,
@@ -372,7 +373,7 @@ export class WorkspaceService {
   updateEvent(
     workspaceId: string,
     eventId: string,
-    payload: { name?: string; description?: string; startDate?: string | null; endDate?: string | null; status?: string }
+    payload: { name?: string; description?: string; startDate?: string | null; endDate?: string | null; status?: string; logoUrl?: string }
   ): Observable<WorkspaceEvent> {
     return this.http.patch<WorkspaceEvent>(
       `${this.apiUrl}/${workspaceId}/events/${eventId}`,
@@ -566,6 +567,16 @@ export class WorkspaceService {
   ): Observable<void> {
     return this.http.delete<void>(
       `${this.apiUrl}/${workspaceId}/events/${eventId}/competitions/${competitionId}/stages/${stageId}/matches/${matchId}`,
+      { headers: this.headers }
+    );
+  }
+
+  uploadImage(file: File, type: 'workspace' | 'team' | 'user' | 'event'): Observable<{ url: string; publicId: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<{ url: string; publicId: string }>(
+      `http://localhost:3001/api/upload?type=${type}`,
+      formData,
       { headers: this.headers }
     );
   }

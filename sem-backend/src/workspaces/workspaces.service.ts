@@ -715,6 +715,7 @@ export class WorkspacesService implements OnModuleInit {
       startDate: dto.startDate ? new Date(dto.startDate) : null,
       endDate: dto.endDate ? new Date(dto.endDate) : null,
       status: dto.status ?? 'upcoming',
+      logoUrl: dto.logoUrl ?? null,
       workspaceId,
     });
     return this.eventRepo.save(event);
@@ -738,6 +739,7 @@ export class WorkspacesService implements OnModuleInit {
       ...(dto.startDate !== undefined && { startDate: dto.startDate ? new Date(dto.startDate) : null }),
       ...(dto.endDate !== undefined && { endDate: dto.endDate ? new Date(dto.endDate) : null }),
       ...(dto.status !== undefined && { status: dto.status }),
+      ...(dto.logoUrl !== undefined && { logoUrl: dto.logoUrl }),
     });
 
     return this.eventRepo.save(event);

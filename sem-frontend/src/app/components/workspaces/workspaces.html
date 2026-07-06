@@ -107,9 +107,13 @@
             <!-- Card Header -->
             <div class="flex items-start gap-4">
               <!-- Avatar -->
-              <div class="w-12 h-12 rounded-xl flex-shrink-0 flex items-center justify-center text-white text-sm font-bold shadow-inner"
-                [style.background]="avatarColor(ws.name)">
-                {{ initials(ws.name) }}
+              <div class="w-12 h-12 rounded-xl flex-shrink-0 flex items-center justify-center text-white text-sm font-bold shadow-inner overflow-hidden"
+                [style.background]="ws.logoUrl ? 'transparent' : avatarColor(ws.name)">
+                @if (ws.logoUrl) {
+                  <img [src]="ws.logoUrl" alt="Logo" class="w-full h-full object-cover" />
+                } @else {
+                  {{ initials(ws.name) }}
+                }
               </div>
               <div class="flex-1 min-w-0">
                 <h2 class="text-base font-bold text-white group-hover:text-violet-300 transition-colors truncate">
