@@ -11,7 +11,14 @@
           Workspaces
         </a>
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-700" viewBox="0 0 24 24" fill="currentColor"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
-        <span class="text-sm font-semibold text-white">System Settings</span>
+        
+        @if (activeSection() === 'roles') {
+          <span (click)="activeSection.set(null)" class="text-sm text-slate-400 hover:text-white transition cursor-pointer">System Settings</span>
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-700" viewBox="0 0 24 24" fill="currentColor"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
+          <span class="text-sm font-semibold text-white">Role Management</span>
+        } @else {
+          <span class="text-sm font-semibold text-white">System Settings</span>
+        }
       </div>
       <div class="flex items-center gap-4">
         <span class="text-xs text-slate-400">
@@ -25,137 +32,287 @@
 
     <!-- Page Header -->
     <div class="mb-10">
-      <p class="text-xs font-semibold text-violet-400 uppercase tracking-widest mb-2">Master Data Management</p>
-      <h1 class="text-3xl font-extrabold text-white tracking-tight">System Settings</h1>
-      <p class="text-slate-400 mt-2 text-sm">Configure system-wide settings, defaults, and global master data like Roles.</p>
+      @if (activeSection() === 'roles') {
+        <div (click)="activeSection.set(null)" class="flex items-center gap-2 text-xs text-slate-400 hover:text-white transition cursor-pointer mb-4 w-fit">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+          </svg>
+          Back to Settings
+        </div>
+        <p class="text-xs font-semibold text-violet-400 uppercase tracking-widest mb-2">Master Data Management</p>
+        <h1 class="text-3xl font-extrabold text-white tracking-tight">Role Management</h1>
+        <p class="text-slate-400 mt-2 text-sm">Create and manage default roles available globally to all workspaces.</p>
+      } @else {
+        <p class="text-xs font-semibold text-violet-400 uppercase tracking-widest mb-2">Master Data Management</p>
+        <h1 class="text-3xl font-extrabold text-white tracking-tight">System Settings</h1>
+        <p class="text-slate-400 mt-2 text-sm">Configure system-wide settings, defaults, and global master data like Roles.</p>
+      }
     </div>
 
-    <!-- Main Grid -->
-    <div class="grid grid-cols-1 gap-8">
+    <!-- Main Content -->
+    @if (activeSection() === null) {
+      <!-- Dashboard Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
-      <!-- Roles Master Data Management Card -->
-      <div class="bg-slate-900 border border-white/10 rounded-2xl p-6 shadow-xl flex flex-col gap-6 relative overflow-hidden">
-        <div class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-violet-500 to-indigo-500"></div>
-        <div>
-          <h2 class="text-lg font-bold text-white mb-1">Global Role Management</h2>
-          <p class="text-xs text-slate-400">Create and manage default roles available globally to all workspaces.</p>
-        </div>
-
-        <!-- Create Global Role -->
-        <div class="bg-slate-950 border border-white/5 rounded-xl p-5">
-          <h3 class="text-xs font-bold text-white mb-1">Create Global Role</h3>
-          <p class="text-[11px] text-slate-500 mb-4">Add a new role that will be available in all workspaces.</p>
-
-          @if (roleCreateSuccess()) {
-            <div class="mb-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-3 text-emerald-300 text-xs flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-              </svg>
-              {{ roleCreateSuccess() }}
-            </div>
-          }
-          @if (roleCreateError()) {
-            <div class="mb-4 rounded-xl bg-rose-500/10 border border-rose-500/30 p-3 text-rose-300 text-xs flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
-              </svg>
-              {{ roleCreateError() }}
-            </div>
-          }
-
-          <form (submit)="onCreateRole(); $event.preventDefault()" class="flex flex-col sm:flex-row gap-3 items-end">
-            <div class="flex-1 flex flex-col gap-1.5 w-full">
-              <label for="role-name" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Role Name</label>
-              <input id="role-name" type="text" placeholder="e.g. Referee, Coordinator" autocomplete="off"
-                class="bg-slate-900 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 outline-none transition-all w-full"
-                [ngModel]="newRoleName()" (ngModelChange)="newRoleName.set($event)" name="roleName" required />
-            </div>
-            <div class="flex-1 flex flex-col gap-1.5 w-full">
-              <label for="role-desc" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Description <span class="text-slate-600 font-normal normal-case">(optional)</span></label>
-              <input id="role-desc" type="text" placeholder="Short description of duties"
-                class="bg-slate-900 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 outline-none transition-all w-full"
-                [ngModel]="newRoleDescription()" (ngModelChange)="newRoleDescription.set($event)" name="roleDesc" />
-            </div>
-            <button type="submit"
-              [disabled]="isCreatingRole() || !newRoleName().trim()"
-              class="w-full sm:w-auto px-6 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 h-[42px]">
-              @if (isCreatingRole()) {
-                <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+        <!-- Role Management Card -->
+        <div (click)="activeSection.set('roles')" 
+          class="group bg-slate-900 border border-white/10 hover:border-violet-500/40 rounded-2xl p-6 flex flex-col justify-between transition-all duration-300 cursor-pointer shadow-sm hover:shadow-violet-900/20 hover:shadow-lg relative overflow-hidden">
+          <div class="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-violet-500 to-indigo-500 transform -translate-y-[3px] group-hover:translate-y-0 transition-transform duration-300"></div>
+          <div>
+            <!-- Icon & Header -->
+            <div class="flex items-center justify-between mb-4">
+              <div class="w-12 h-12 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-400 group-hover:bg-violet-600 group-hover:text-white transition-all duration-300">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
-              } @else { Create }
-            </button>
-          </form>
+              </div>
+              <span class="text-[10px] font-bold bg-violet-500/15 text-violet-400 border border-violet-500/30 px-2.5 py-0.5 rounded-full uppercase tracking-wider">Active</span>
+            </div>
+            
+            <h3 class="text-lg font-bold text-white group-hover:text-violet-300 transition-colors mb-2">Role Management</h3>
+            <p class="text-xs text-slate-400 leading-relaxed mb-6">Create, view, and manage default system roles available globally across all workspaces.</p>
+          </div>
+
+          <div class="flex items-center justify-between pt-4 border-t border-white/5">
+            <span class="text-xs text-slate-500 font-medium flex items-center gap-1.5">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-violet-400/70" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+              </svg>
+              {{ roles().length }} global role{{ roles().length !== 1 ? 's' : '' }}
+            </span>
+            <span class="text-xs text-violet-400 group-hover:text-violet-300 font-bold flex items-center gap-1">
+              Configure
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 transform group-hover:translate-x-0.5 transition-transform" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/>
+              </svg>
+            </span>
+          </div>
         </div>
 
-        <!-- Global Roles Table -->
-        @if (isLoading()) {
-          <div class="py-8 flex flex-col items-center justify-center gap-3">
-            <svg class="animate-spin w-6 h-6 text-violet-500" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+        <!-- Workspace Defaults Card (Upcoming) -->
+        <div class="group bg-slate-900/40 border border-white/5 opacity-85 rounded-2xl p-6 flex flex-col justify-between transition-all duration-300 relative overflow-hidden">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <div class="w-12 h-12 rounded-xl bg-slate-800 border border-white/5 flex items-center justify-center text-slate-500">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                </svg>
+              </div>
+              <span class="text-[10px] font-bold bg-slate-800 text-slate-500 border border-white/5 px-2.5 py-0.5 rounded-full uppercase tracking-wider">Upcoming</span>
+            </div>
+            
+            <h3 class="text-lg font-bold text-slate-400 mb-2">Workspace Defaults</h3>
+            <p class="text-xs text-slate-500 leading-relaxed mb-6">Define global default configurations, modules, and join policies for new workspaces.</p>
+          </div>
+
+          <div class="flex items-center justify-between pt-4 border-t border-white/5 text-slate-600">
+            <span class="text-xs italic">Locked</span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
-            <span class="text-xs text-slate-500">Loading global roles...</span>
           </div>
-        } @else {
-          <div class="bg-slate-950 border border-white/5 rounded-xl overflow-hidden">
-            <div class="px-6 py-4 border-b border-white/10 flex items-center justify-between">
-              <h3 class="text-xs font-bold text-white">All Global Roles</h3>
-              <span class="text-[11px] text-slate-500">{{ roles().length }} role{{ roles().length !== 1 ? 's' : '' }}</span>
+        </div>
+
+        <!-- User Directory (Upcoming) -->
+        <div class="group bg-slate-900/40 border border-white/5 opacity-85 rounded-2xl p-6 flex flex-col justify-between transition-all duration-300 relative overflow-hidden">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <div class="w-12 h-12 rounded-xl bg-slate-800 border border-white/5 flex items-center justify-center text-slate-500">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              </div>
+              <span class="text-[10px] font-bold bg-slate-800 text-slate-500 border border-white/5 px-2.5 py-0.5 rounded-full uppercase tracking-wider">Upcoming</span>
             </div>
-
-            <!-- Table Header -->
-            <div class="hidden sm:grid grid-cols-[1fr_2fr_100px] gap-4 px-6 py-2.5 border-b border-white/5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-              <span>Role name</span>
-              <span>Description</span>
-              <span class="text-center">Action</span>
-            </div>
-
-            <!-- Table Rows -->
-            <div class="divide-y divide-white/5">
-              @for (role of roles(); track role.id) {
-                <div class="grid grid-cols-1 sm:grid-cols-[1fr_2fr_100px] gap-3 sm:gap-4 px-6 py-4 items-center hover:bg-white/[0.02] transition-colors group">
-
-                  <!-- Role Badge -->
-                  <div class="flex items-center gap-3">
-                    <span class="text-xs font-bold px-2.5 py-1 rounded-lg border" [class]="roleBadgeClass(role.slug)">
-                      {{ role.name }}
-                    </span>
-                  </div>
-
-                  <!-- Description -->
-                  <div>
-                    <p class="text-xs text-slate-400 truncate">{{ role.description || '—' }}</p>
-                    <p class="text-[10px] text-slate-600 font-mono mt-0.5">{{ role.slug }}</p>
-                  </div>
-
-                  <!-- Action -->
-                  <div class="flex items-center justify-center">
-                    @if (role.isSystem && ['owner', 'administrator', 'viewer'].includes(role.slug)) {
-                      <span class="text-[10px] font-semibold bg-slate-700/60 text-slate-400 border border-slate-600 px-2 py-0.5 rounded">Core System</span>
-                    } @else {
-                      <button (click)="onDeleteRole(role)" title="Delete Global Role"
-                        class="p-1.5 text-slate-600 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all cursor-pointer opacity-0 group-hover:opacity-100 flex items-center justify-center gap-1 text-[11px] font-bold">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <polyline points="3 6 5 6 21 6"></polyline>
-                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                        </svg>
-                        Delete
-                      </button>
-                    }
-                  </div>
-
-                </div>
-              }
-            </div>
+            
+            <h3 class="text-lg font-bold text-slate-400 mb-2">User Directory</h3>
+            <p class="text-xs text-slate-500 leading-relaxed mb-6">Manage global user registration approvals, view user profiles, and audit active user states.</p>
           </div>
-        }
+
+          <div class="flex items-center justify-between pt-4 border-t border-white/5 text-slate-600">
+            <span class="text-xs italic">Locked</span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+        </div>
+
+        <!-- Audit Logs (Upcoming) -->
+        <div class="group bg-slate-900/40 border border-white/5 opacity-85 rounded-2xl p-6 flex flex-col justify-between transition-all duration-300 relative overflow-hidden">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <div class="w-12 h-12 rounded-xl bg-slate-800 border border-white/5 flex items-center justify-center text-slate-500">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <span class="text-[10px] font-bold bg-slate-800 text-slate-500 border border-white/5 px-2.5 py-0.5 rounded-full uppercase tracking-wider">Upcoming</span>
+            </div>
+            
+            <h3 class="text-lg font-bold text-slate-400 mb-2">Audit Logs</h3>
+            <p class="text-xs text-slate-500 leading-relaxed mb-6">Track and audit all system administrative actions, security configuration changes, and failures.</p>
+          </div>
+
+          <div class="flex items-center justify-between pt-4 border-t border-white/5 text-slate-600">
+            <span class="text-xs italic">Locked</span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+        </div>
+
+        <!-- SMTP Settings (Upcoming) -->
+        <div class="group bg-slate-900/40 border border-white/5 opacity-85 rounded-2xl p-6 flex flex-col justify-between transition-all duration-300 relative overflow-hidden">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <div class="w-12 h-12 rounded-xl bg-slate-800 border border-white/5 flex items-center justify-center text-slate-500">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <span class="text-[10px] font-bold bg-slate-800 text-slate-500 border border-white/5 px-2.5 py-0.5 rounded-full uppercase tracking-wider">Upcoming</span>
+            </div>
+            
+            <h3 class="text-lg font-bold text-slate-400 mb-2">SMTP Settings</h3>
+            <p class="text-xs text-slate-500 leading-relaxed mb-6">Configure global SMTP mail servers, email templates, and automated alert policies.</p>
+          </div>
+
+          <div class="flex items-center justify-between pt-4 border-t border-white/5 text-slate-600">
+            <span class="text-xs italic">Locked</span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+        </div>
 
       </div>
+    } @else if (activeSection() === 'roles') {
+      <!-- Main Grid -->
+      <div class="grid grid-cols-1 gap-8">
 
-    </div>
+        <!-- Roles Master Data Management Card -->
+        <div class="bg-slate-900 border border-white/10 rounded-2xl p-6 shadow-xl flex flex-col gap-6 relative overflow-hidden">
+          <div class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-violet-500 to-indigo-500"></div>
+          <div>
+            <h2 class="text-lg font-bold text-white mb-1">Global Role Management</h2>
+            <p class="text-xs text-slate-400">Create and manage default roles available globally to all workspaces.</p>
+          </div>
 
+          <!-- Create Global Role -->
+          <div class="bg-slate-950 border border-white/5 rounded-xl p-5">
+            <h3 class="text-xs font-bold text-white mb-1">Create Global Role</h3>
+            <p class="text-[11px] text-slate-500 mb-4">Add a new role that will be available in all workspaces.</p>
+
+            @if (roleCreateSuccess()) {
+              <div class="mb-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-3 text-emerald-300 text-xs flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                </svg>
+                {{ roleCreateSuccess() }}
+              </div>
+            }
+            @if (roleCreateError()) {
+              <div class="mb-4 rounded-xl bg-rose-500/10 border border-rose-500/30 p-3 text-rose-300 text-xs flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                </svg>
+                {{ roleCreateError() }}
+              </div>
+            }
+
+            <form (submit)="onCreateRole(); $event.preventDefault()" class="flex flex-col sm:flex-row gap-3 items-end">
+              <div class="flex-1 flex flex-col gap-1.5 w-full">
+                <label for="role-name" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Role Name</label>
+                <input id="role-name" type="text" placeholder="e.g. Referee, Coordinator" autocomplete="off"
+                  class="bg-slate-900 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 outline-none transition-all w-full"
+                  [ngModel]="newRoleName()" (ngModelChange)="newRoleName.set($event)" name="roleName" required />
+              </div>
+              <div class="flex-1 flex flex-col gap-1.5 w-full">
+                <label for="role-desc" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Description <span class="text-slate-600 font-normal normal-case">(optional)</span></label>
+                <input id="role-desc" type="text" placeholder="Short description of duties"
+                  class="bg-slate-900 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 outline-none transition-all w-full"
+                  [ngModel]="newRoleDescription()" (ngModelChange)="newRoleDescription.set($event)" name="roleDesc" />
+              </div>
+              <button type="submit"
+                [disabled]="isCreatingRole() || !newRoleName().trim()"
+                class="w-full sm:w-auto px-6 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 h-[42px]">
+                @if (isCreatingRole()) {
+                  <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                  </svg>
+                } @else { Create }
+              </button>
+            </form>
+          </div>
+
+          <!-- Global Roles Table -->
+          @if (isLoading()) {
+            <div class="py-8 flex flex-col items-center justify-center gap-3">
+              <svg class="animate-spin w-6 h-6 text-violet-500" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+              </svg>
+              <span class="text-xs text-slate-500">Loading global roles...</span>
+            </div>
+          } @else {
+            <div class="bg-slate-950 border border-white/5 rounded-xl overflow-hidden">
+              <div class="px-6 py-4 border-b border-white/10 flex items-center justify-between">
+                <h3 class="text-xs font-bold text-white">All Global Roles</h3>
+                <span class="text-[11px] text-slate-500">{{ roles().length }} role{{ roles().length !== 1 ? 's' : '' }}</span>
+              </div>
+
+              <!-- Table Header -->
+              <div class="hidden sm:grid grid-cols-[1fr_2fr_100px] gap-4 px-6 py-2.5 border-b border-white/5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                <span>Role name</span>
+                <span>Description</span>
+                <span class="text-center">Action</span>
+              </div>
+
+              <!-- Table Rows -->
+              <div class="divide-y divide-white/5">
+                @for (role of roles(); track role.id) {
+                  <div class="grid grid-cols-1 sm:grid-cols-[1fr_2fr_100px] gap-3 sm:gap-4 px-6 py-4 items-center hover:bg-white/[0.02] transition-colors group">
+
+                    <!-- Role Badge -->
+                    <div class="flex items-center gap-3">
+                      <span class="text-xs font-bold px-2.5 py-1 rounded-lg border" [class]="roleBadgeClass(role.slug)">
+                        {{ role.name }}
+                      </span>
+                    </div>
+
+                    <!-- Description -->
+                    <div>
+                      <p class="text-xs text-slate-400 truncate">{{ role.description || '—' }}</p>
+                      <p class="text-[10px] text-slate-600 font-mono mt-0.5">{{ role.slug }}</p>
+                    </div>
+
+                    <!-- Action -->
+                    <div class="flex items-center justify-center">
+                      @if (role.isSystem && ['owner', 'administrator', 'viewer'].includes(role.slug)) {
+                        <span class="text-[10px] font-semibold bg-slate-700/60 text-slate-400 border border-slate-600 px-2 py-0.5 rounded">Core System</span>
+                      } @else {
+                        <button (click)="onDeleteRole(role)" title="Delete Global Role"
+                          class="p-1.5 text-slate-600 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all cursor-pointer opacity-0 group-hover:opacity-100 flex items-center justify-center gap-1 text-[11px] font-bold">
+                          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                          </svg>
+                          Delete
+                        </button>
+                      }
+                    </div>
+
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
+        </div>
+
+      </div>
+    }
   </div>
 
 </div>

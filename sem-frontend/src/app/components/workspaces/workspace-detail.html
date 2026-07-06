@@ -126,12 +126,6 @@
           <a routerLink="/workspaces" class="flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-white transition cursor-pointer px-4 py-2.5 hover:bg-white/5 rounded-xl">
             <i class="fi fi-rr-angle-small-left text-base"></i> Back to Workspaces
           </a>
-          @if (isOwner()) {
-            <button (click)="deleteWorkspace()"
-              class="w-full text-left flex items-center gap-2 text-xs font-bold text-rose-400 hover:text-rose-300 hover:bg-rose-500/5 px-4 py-2.5 rounded-xl transition cursor-pointer">
-              <i class="fi fi-rr-trash text-base"></i> Delete Workspace
-            </button>
-          }
         </div>
       </aside>
 

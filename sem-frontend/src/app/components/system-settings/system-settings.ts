@@ -16,6 +16,8 @@ export class SystemSettingsComponent implements OnInit {
   authService = inject(AuthService);
   private router = inject(Router);
 
+  activeSection = signal<string | null>(null);
+
   roles = signal<Role[]>([]);
   isLoading = signal(false);
   error = signal('');
