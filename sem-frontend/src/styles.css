@@ -4,10 +4,56 @@
 @theme {
   --font-sans: 'Space Grotesk', sans-serif;
   --font-display: 'Space Grotesk', sans-serif;
+  
+  /* Core palette configuration */
+  --color-canvas: #222831;
+  --color-surface: #393E46;
+  --color-accent: #00ADB5;
+  --color-highlight: #00ADB5;
+  --color-text-main: #EEEEEE;
+
+  /* Override standard colors to conform to the new palette */
+  --color-slate-950: #222831;
+  --color-slate-900: #393E46;
+  --color-slate-800: #4B525D;
+  --color-slate-700: #EEEEEE;
+  --color-slate-600: #A9B2C3;
+  --color-slate-500: #8892A2;
+  --color-slate-400: #EEEEEE;
+  --color-slate-300: #EEEEEE;
+  --color-slate-200: #EEEEEE;
+  --color-slate-100: #EEEEEE;
+  
+  --color-white: #EEEEEE;
+
+  /* Redirect violet (accent) to #00ADB5 */
+  --color-violet-950: #222831;
+  --color-violet-900: #393E46;
+  --color-violet-850: #393E46;
+  --color-violet-800: #00ADB5;
+  --color-violet-700: #00ADB5;
+  --color-violet-600: #00ADB5;
+  --color-violet-500: #00ADB5;
+  --color-violet-400: #00ADB5;
+  --color-violet-300: #00ADB5;
+  --color-violet-200: #00ADB5;
+  --color-violet-100: #00ADB5;
+
+  /* Redirect indigo (accent/gradient highlights) to #00ADB5 */
+  --color-indigo-950: #222831;
+  --color-indigo-900: #393E46;
+  --color-indigo-800: #00ADB5;
+  --color-indigo-700: #00ADB5;
+  --color-indigo-600: #00ADB5;
+  --color-indigo-500: #00ADB5;
+  --color-indigo-400: #00ADB5;
+  --color-indigo-300: #00ADB5;
+  --color-indigo-200: #00ADB5;
+  --color-indigo-100: #00ADB5;
 }
 
 body {
   font-family: var(--font-sans);
-  background-color: #f9fafb; /* Clean flat light gray background */
-  color: #111827;
+  background-color: var(--color-canvas);
+  color: var(--color-text-main);
 }

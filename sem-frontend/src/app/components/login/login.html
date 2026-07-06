@@ -1,26 +1,26 @@
-<div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-  <div class="max-w-md w-full space-y-8 bg-white p-8 border border-gray-200 rounded-xl shadow-lg transition hover:shadow-xl">
+<div class="min-h-screen flex items-center justify-center bg-slate-950 py-12 px-4 sm:px-6 lg:px-8">
+  <div class="max-w-md w-full space-y-8 bg-slate-900 p-8 border border-white/5 rounded-2xl shadow-2xl transition hover:shadow-3xl">
     <div>
       <div class="flex justify-center">
-        <span class="inline-flex items-center justify-center p-3 bg-indigo-50 border border-indigo-100 rounded-lg text-indigo-600">
+        <span class="inline-flex items-center justify-center p-3.5 bg-violet-600/10 border border-violet-500/20 rounded-xl text-violet-400">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
           </svg>
         </span>
       </div>
-      <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+      <h2 class="mt-6 text-center text-3xl font-extrabold text-white tracking-tight">
         Sign in to SEM
       </h2>
-      <p class="mt-2 text-center text-sm text-gray-600">
+      <p class="mt-2 text-center text-xs text-slate-400">
         Or
-        <a routerLink="/register" class="font-medium text-indigo-600 hover:text-indigo-500 transition">
+        <a routerLink="/register" class="font-bold text-violet-400 hover:text-violet-300 transition">
           create a new account
         </a>
       </p>
     </div>
 
     @if (errorMessage()) {
-      <div class="rounded-md bg-rose-50 border border-rose-100 p-4">
+      <div class="rounded-xl bg-rose-500/10 border border-rose-500/20 p-4">
         <div class="flex">
           <div class="flex-shrink-0">
             <svg class="h-5 w-5 text-rose-400" viewBox="0 0 20 20" fill="currentColor">
@@ -28,10 +28,10 @@
             </svg>
           </div>
           <div class="ml-3">
-            <h3 class="text-sm font-semibold text-rose-800">
+            <h3 class="text-sm font-semibold text-rose-300">
               Authentication Error
             </h3>
-            <div class="mt-1 text-xs text-rose-700">
+            <div class="mt-1 text-xs text-rose-400/80">
               <p>{{ errorMessage() }}</p>
             </div>
           </div>
@@ -40,15 +40,15 @@
     }
 
     <form class="mt-8 space-y-6" (submit)="onSubmit(); $event.preventDefault()">
-      <div class="rounded-md shadow-sm space-y-4">
+      <div class="rounded-md space-y-5">
         <div class="flex flex-col gap-1.5">
-          <label for="username" class="text-xs font-semibold text-gray-600">Username</label>
+          <label for="username" class="text-xs font-semibold text-slate-400">Username</label>
           <input
             id="username"
             name="username"
             type="text"
             required
-            class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-400 text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+            class="appearance-none relative block w-full px-4 py-3 bg-slate-950 border border-white/10 placeholder-slate-600 text-white rounded-xl focus:outline-none focus:border-violet-500 text-xs transition"
             placeholder="Enter your username"
             [ngModel]="username()"
             (ngModelChange)="username.set($event)"
@@ -57,13 +57,13 @@
         </div>
 
         <div class="flex flex-col gap-1.5">
-          <label for="password" class="text-xs font-semibold text-gray-600">Password</label>
+          <label for="password" class="text-xs font-semibold text-slate-400">Password</label>
           <input
             id="password"
             name="password"
             type="password"
             required
-            class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-400 text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+            class="appearance-none relative block w-full px-4 py-3 bg-slate-950 border border-white/10 placeholder-slate-600 text-white rounded-xl focus:outline-none focus:border-violet-500 text-xs transition"
             placeholder="••••••••"
             [ngModel]="password()"
             (ngModelChange)="password.set($event)"
@@ -76,7 +76,7 @@
         <button
           type="submit"
           [disabled]="isLoading() || !username().trim() || !password().trim()"
-          class="group relative w-full flex justify-center py-2.5 px-4 border border-transparent text-sm font-semibold rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition cursor-pointer"
+          class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-xs font-bold rounded-xl text-white bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed transition cursor-pointer"
         >
           @if (isLoading()) {
             <span class="flex items-center gap-2">
