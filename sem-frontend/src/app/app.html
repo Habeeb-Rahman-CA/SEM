@@ -1,0 +1,217 @@
+<div class="max-w-4xl mx-auto px-4 py-8 flex flex-col gap-6">
+  <!-- Header -->
+  <header class="flex justify-between items-center border-b border-gray-200 pb-4">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">SEM Workspace</h1>
+      <p class="text-xs text-gray-500">Manage project items and tasks</p>
+    </div>
+    <button (click)="openAddModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded shadow-sm transition cursor-pointer">
+      + New Item
+    </button>
+  </header>
+
+  <!-- Stats -->
+  <section class="grid grid-cols-3 gap-4 text-center">
+    <div class="bg-white border border-gray-200 rounded p-4 shadow-sm">
+      <span class="text-xs text-gray-500 uppercase font-semibold">Total Scope</span>
+      <div class="text-2xl font-bold text-gray-900 mt-1">{{ totalItems() }}</div>
+    </div>
+    <div class="bg-white border border-gray-200 rounded p-4 shadow-sm">
+      <span class="text-xs text-gray-500 uppercase font-semibold">Completed</span>
+      <div class="text-2xl font-bold text-emerald-600 mt-1">{{ completedItemsCount() }}</div>
+    </div>
+    <div class="bg-white border border-gray-200 rounded p-4 shadow-sm">
+      <span class="text-xs text-gray-500 uppercase font-semibold">Pending</span>
+      <div class="text-2xl font-bold text-amber-600 mt-1">{{ pendingItemsCount() }}</div>
+    </div>
+  </section>
+
+  <!-- Filters & Search -->
+  <section class="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white border border-gray-200 rounded p-4 shadow-sm">
+    <input 
+      type="text" 
+      placeholder="Search items..." 
+      class="w-full sm:max-w-xs px-3 py-2 bg-gray-50 border border-gray-300 rounded text-sm text-gray-900 focus:outline-none focus:border-indigo-500"
+      [ngModel]="searchQuery()"
+      (ngModelChange)="searchQuery.set($event)"
+    />
+    <div class="flex border border-gray-200 rounded p-0.5 bg-gray-50">
+      <button (click)="setFilter('all')" class="px-3 py-1 text-xs font-medium rounded transition cursor-pointer" [class]="activeFilter() === 'all' ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:text-gray-900'">
+        All
+      </button>
+      <button (click)="setFilter('pending')" class="px-3 py-1 text-xs font-medium rounded transition cursor-pointer" [class]="activeFilter() === 'pending' ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:text-gray-900'">
+        Pending
+      </button>
+      <button (click)="setFilter('completed')" class="px-3 py-1 text-xs font-medium rounded transition cursor-pointer" [class]="activeFilter() === 'completed' ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:text-gray-900'">
+        Completed
+      </button>
+    </div>
+  </section>
+
+  <!-- Items list -->
+  <main class="flex flex-col gap-3">
+    @if (isLoading()) {
+      <div class="text-center py-10 text-gray-500 text-sm">
+        Loading items from database...
+      </div>
+    } @else {
+      <div class="flex flex-col gap-2">
+        @for (item of filteredItems(); track item.id) {
+          <div class="bg-white border border-gray-200 rounded p-4 flex items-center justify-between gap-4 shadow-sm hover:border-gray-350 transition">
+            <div class="flex items-center gap-3">
+              <input 
+                type="checkbox" 
+                [checked]="item.isCompleted" 
+                (change)="toggleItemStatus(item)"
+                class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 cursor-pointer"
+              />
+              <div class="flex flex-col">
+                <span class="text-sm font-semibold text-gray-900" [class.line-through]="item.isCompleted" [class.text-gray-400]="item.isCompleted">
+                  {{ item.title }}
+                </span>
+                @if (item.description) {
+                  <span class="text-xs text-gray-500 mt-0.5">{{ item.description }}</span>
+                }
+              </div>
+            </div>
+            
+            <div class="flex items-center gap-2">
+              <button (click)="openEditModal(item)" class="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-gray-100 rounded transition cursor-pointer" title="Edit">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" class="fill-current">
+                  <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                </svg>
+              </button>
+              <button (click)="deleteItem(item.id)" class="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-gray-100 rounded transition cursor-pointer" title="Delete">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" class="fill-current">
+                  <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        } @empty {
+          <div class="text-center py-10 bg-white border border-gray-200 rounded text-gray-500 text-sm">
+            No items found. Create a new item to get started.
+          </div>
+        }
+      </div>
+    }
+  </main>
+</div>
+
+<!-- Add Modal -->
+<div 
+  class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 transition-opacity duration-200"
+  [class.opacity-100]="isAddModalOpen()"
+  [class.pointer-events-auto]="isAddModalOpen()"
+  [class.opacity-0]="!isAddModalOpen()"
+  [class.pointer-events-none]="!isAddModalOpen()"
+>
+  <div class="bg-white border border-gray-200 rounded p-6 w-full max-w-sm shadow-lg">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-sm font-bold text-gray-900">Add New Item</h3>
+      <button (click)="closeAddModal()" class="text-gray-400 hover:text-gray-600 cursor-pointer">&times;</button>
+    </div>
+    <form (submit)="addNewItem(); $event.preventDefault()">
+      <div class="flex flex-col gap-1 mb-3">
+        <label class="text-xs font-semibold text-gray-600" for="add-title">Title *</label>
+        <input 
+          id="add-title"
+          type="text" 
+          name="addTitle"
+          class="px-3 py-2 bg-gray-50 border border-gray-300 rounded text-sm text-gray-900 focus:outline-none focus:border-indigo-500" 
+          [(ngModel)]="newTitle" 
+          required 
+          autocomplete="off"
+        />
+      </div>
+      <div class="flex flex-col gap-1 mb-4">
+        <label class="text-xs font-semibold text-gray-600" for="add-desc">Description</label>
+        <textarea 
+          id="add-desc"
+          name="addDesc"
+          class="px-3 py-2 bg-gray-50 border border-gray-300 rounded text-sm text-gray-900 focus:outline-none focus:border-indigo-500 resize-none h-20" 
+          [(ngModel)]="newDescription"
+        ></textarea>
+      </div>
+      <div class="flex justify-end gap-2">
+        <button type="button" (click)="closeAddModal()" class="px-3 py-1.5 border border-gray-300 hover:bg-gray-100 text-gray-700 text-xs rounded transition cursor-pointer">
+          Cancel
+        </button>
+        <button type="submit" [disabled]="!newTitle.trim()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs rounded transition cursor-pointer">
+          Save
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit Modal -->
+<div 
+  class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 transition-opacity duration-200"
+  [class.opacity-100]="isEditModalOpen()"
+  [class.pointer-events-auto]="isEditModalOpen()"
+  [class.opacity-0]="!isEditModalOpen()"
+  [class.pointer-events-none]="!isEditModalOpen()"
+>
+  <div class="bg-white border border-gray-200 rounded p-6 w-full max-w-sm shadow-lg">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-sm font-bold text-gray-900">Edit Item</h3>
+      <button (click)="closeEditModal()" class="text-gray-400 hover:text-gray-600 cursor-pointer">&times;</button>
+    </div>
+    <form (submit)="updateItem(); $event.preventDefault()">
+      <div class="flex flex-col gap-1 mb-3">
+        <label class="text-xs font-semibold text-gray-600" for="edit-title">Title *</label>
+        <input 
+          id="edit-title"
+          type="text" 
+          name="editTitle"
+          class="px-3 py-2 bg-gray-50 border border-gray-300 rounded text-sm text-gray-900 focus:outline-none focus:border-indigo-500" 
+          [(ngModel)]="editingTitle" 
+          required 
+          autocomplete="off"
+        />
+      </div>
+      <div class="flex flex-col gap-1 mb-3">
+        <label class="text-xs font-semibold text-gray-600" for="edit-desc">Description</label>
+        <textarea 
+          id="edit-desc"
+          name="editDesc"
+          class="px-3 py-2 bg-gray-50 border border-gray-300 rounded text-sm text-gray-900 focus:outline-none focus:border-indigo-500 resize-none h-20" 
+          [(ngModel)]="editingDescription"
+        ></textarea>
+      </div>
+      <div class="flex items-center gap-2 mb-4">
+        <input 
+          type="checkbox" 
+          name="editCompleted"
+          [(ngModel)]="editingIsCompleted"
+          id="edit-completed"
+          class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 cursor-pointer"
+        />
+        <label class="text-xs text-gray-700 cursor-pointer select-none" for="edit-completed">
+          Completed
+        </label>
+      </div>
+      <div class="flex justify-end gap-2">
+        <button type="button" (click)="closeEditModal()" class="px-3 py-1.5 border border-gray-300 hover:bg-gray-100 text-gray-700 text-xs rounded transition cursor-pointer">
+          Cancel
+        </button>
+        <button type="submit" [disabled]="!editingTitle.trim()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs rounded transition cursor-pointer">
+          Save Changes
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Toast -->
+@if (toast().visible) {
+  <div 
+    class="fixed bottom-6 right-6 px-4 py-2.5 rounded shadow border text-xs font-semibold flex items-center gap-2 bg-white"
+    [class.border-l-4]="true"
+    [class.border-l-emerald-500]="toast().type === 'success'"
+    [class.border-l-rose-500]="toast().type === 'error'"
+  >
+    <span>{{ toast().message }}</span>
+  </div>
+}
