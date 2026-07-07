@@ -2,9 +2,11 @@ import { Component, OnInit, signal, inject } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { WorkspaceService, Workspace, WorkspaceMember, Role, Team, Player, WorkspaceEvent, Sport, Competition, CompetitionStage, CompetitionTeam, Match } from '../../services/workspace.service';
+import { WorkspaceService, Workspace, WorkspaceMember, Role, Team, Player, WorkspaceEvent, Sport, Competition, CompetitionStage, CompetitionTeam, Match, Venue } from '../../services/workspace.service';
 import { AuthService } from '../../services/auth.service';
 import { UiService } from '../../services/ui.service';
+
+declare const L: any;
 
 @Component({
   selector: 'app-workspace-detail',
@@ -20,12 +22,15 @@ export class WorkspaceDetailComponent implements OnInit {
   private router = inject(Router);
   private uiService = inject(UiService);
 
+  map: any = null;
+  marker: any = null;
+
   workspace = signal<Workspace | null>(null);
   members = signal<WorkspaceMember[]>([]);
   roles = signal<Role[]>([]);
   isLoading = signal(true);
   error = signal('');
-  activeTab = signal<'overview' | 'members' | 'settings' | 'teams' | 'players' | 'events'>('overview');
+  activeTab = signal<'overview' | 'members' | 'settings' | 'teams' | 'players' | 'events' | 'venues'>('overview');
   isSidebarOpen = signal(false);
 
   // Image Upload Loading States
@@ -191,6 +196,27 @@ export class WorkspaceDetailComponent implements OnInit {
   addTeamError = signal('');
   addTeamSuccess = signal('');
 
+  // ── Venues State ───────────────────────────────────────────────────────────
+  venues = signal<Venue[]>([]);
+  isVenueModalOpen = signal(false);
+  newVenueName = signal('');
+  newVenueLocation = signal('');
+  newVenueCapacity = signal<number | null>(null);
+  isCreatingVenue = signal(false);
+  venueCreateError = signal('');
+  venueCreateSuccess = signal('');
+
+  // Editing state for Venues
+  editingVenue = signal<Venue | null>(null);
+  editVenueName = signal('');
+  editVenueLocation = signal('');
+  editVenueCapacity = signal<number | null>(null);
+  isUpdatingVenue = signal(false);
+  venueUpdateError = signal('');
+  venueUpdateSuccess = signal('');
+
+  newMatchVenueId = signal('');
+
   // ── Fixture Generator State ─────────────────────────────────────────────────
   isGeneratingFixtures = signal(false);
   generateFixturesError = signal('');
@@ -238,6 +264,7 @@ export class WorkspaceDetailComponent implements OnInit {
         this.loadPlayers(id);
         this.loadEvents(id);
         this.loadSports();
+        this.loadVenues(id);
       },
       error: (err) => {
         console.error(err);
@@ -477,6 +504,318 @@ export class WorkspaceDetailComponent implements OnInit {
         this.uiService.success(`Role "${role.name}" deleted successfully.`);
       },
       error: (err) => this.uiService.error(err.error?.message ?? 'Failed to delete role.'),
+    });
+  }
+
+  // ── Venues CRUD ────────────────────────────────────────────────────────────
+
+  loadVenues(workspaceId: string) {
+    this.workspaceService.getVenues(workspaceId).subscribe({
+      next: (venues) => this.venues.set(venues),
+      error: (err) => console.error('Failed to load venues', err),
+    });
+  }
+
+  onAddVenue() {
+    this.editingVenue.set(null);
+    this.newVenueName.set('');
+    this.newVenueLocation.set('');
+    this.newVenueCapacity.set(null);
+    this.venueCreateError.set('');
+    this.venueCreateSuccess.set('');
+    this.isVenueModalOpen.set(true);
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          this.initMap(position.coords.latitude, position.coords.longitude);
+        },
+        () => {
+          this.initMap();
+        }
+      );
+    } else {
+      this.initMap();
+    }
+  }
+
+  onCreateVenue() {
+    const name = this.newVenueName().trim();
+    const location = this.newVenueLocation().trim();
+    const capacity = this.newVenueCapacity();
+    const ws = this.workspace();
+    if (!ws || !name) return;
+
+    this.isCreatingVenue.set(true);
+    this.venueCreateError.set('');
+    this.venueCreateSuccess.set('');
+
+    const payload: any = { name };
+    if (location) payload.location = location;
+    if (capacity !== null && capacity !== undefined) payload.capacity = capacity;
+
+    this.workspaceService.createVenue(ws.id, payload).subscribe({
+      next: (venue) => {
+        this.isCreatingVenue.set(false);
+        this.venueCreateSuccess.set(`Venue "${venue.name}" registered successfully!`);
+        this.newVenueName.set('');
+        this.newVenueLocation.set('');
+        this.newVenueCapacity.set(null);
+        this.venues.update(prev => [...prev, venue]);
+        setTimeout(() => this.closeVenueModal(), 1000);
+      },
+      error: (err) => {
+        this.isCreatingVenue.set(false);
+        this.venueCreateError.set(err.error?.message ?? 'Failed to create venue.');
+      }
+    });
+  }
+
+  onEditVenue(venue: Venue) {
+    this.editingVenue.set(venue);
+    this.editVenueName.set(venue.name);
+    this.editVenueLocation.set(venue.location ?? '');
+    this.editVenueCapacity.set(venue.capacity);
+    this.venueUpdateError.set('');
+    this.venueUpdateSuccess.set('');
+    this.isVenueModalOpen.set(true);
+
+    const coordsMatch = venue.location?.match(/(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)/);
+    if (coordsMatch) {
+      const lat = parseFloat(coordsMatch[1]);
+      const lng = parseFloat(coordsMatch[2]);
+      this.initMap(lat, lng);
+    } else if (venue.location) {
+      this.geocodeAndCenterMap(venue.location);
+    } else {
+      this.initMap();
+    }
+  }
+
+  onCancelEditVenue() {
+    this.closeVenueModal();
+  }
+
+  closeVenueModal() {
+    this.isVenueModalOpen.set(false);
+    this.editingVenue.set(null);
+    this.venueCreateError.set('');
+    this.venueCreateSuccess.set('');
+    this.venueUpdateError.set('');
+    this.venueUpdateSuccess.set('');
+    if (this.map) {
+      try {
+        this.map.remove();
+      } catch (e) {
+        console.error(e);
+      }
+      this.map = null;
+      this.marker = null;
+    }
+  }
+
+  initMap(latitude?: number, longitude?: number) {
+    if (this.map) {
+      try {
+        this.map.remove();
+      } catch (e) {
+        console.error(e);
+      }
+      this.map = null;
+      this.marker = null;
+    }
+
+    const lat = latitude ?? 51.505;
+    const lng = longitude ?? -0.09;
+    const zoom = latitude && longitude ? 15 : 13;
+
+    const mapEl = document.getElementById('venue-map');
+    if (!mapEl) {
+      setTimeout(() => this.initMap(latitude, longitude), 100);
+      return;
+    }
+
+    try {
+      this.map = L.map('venue-map').setView([lat, lng], zoom);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(this.map);
+
+      // Fix default Leaflet marker icon paths
+      const DefaultIcon = L.icon({
+        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+      });
+
+      this.marker = L.marker([lat, lng], { draggable: true, icon: DefaultIcon }).addTo(this.map);
+
+      const updateCoords = (newLat: number, newLng: number) => {
+        this.reverseGeocode(newLat, newLng);
+      };
+
+      this.marker.on('dragend', (event: any) => {
+        const markerPos = event.target.getLatLng();
+        updateCoords(markerPos.lat, markerPos.lng);
+      });
+
+      this.map.on('click', (event: any) => {
+        const clickedPos = event.latlng;
+        this.marker.setLatLng(clickedPos);
+        updateCoords(clickedPos.lat, clickedPos.lng);
+      });
+    } catch (e) {
+      console.error('Error initializing map:', e);
+    }
+  }
+
+  reverseGeocode(lat: number, lng: number) {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
+    fetch(url, {
+      headers: {
+        'Accept-Language': 'en'
+      }
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.display_name) {
+          const address = data.display_name;
+          if (this.editingVenue()) {
+            this.editVenueLocation.set(address);
+          } else {
+            this.newVenueLocation.set(address);
+          }
+        } else {
+          const coords = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+          if (this.editingVenue()) {
+            this.editVenueLocation.set(coords);
+          } else {
+            this.newVenueLocation.set(coords);
+          }
+        }
+      })
+      .catch(err => {
+        console.error('Reverse geocoding failed:', err);
+        const coords = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+        if (this.editingVenue()) {
+          this.editVenueLocation.set(coords);
+        } else {
+          this.newVenueLocation.set(coords);
+        }
+      });
+  }
+
+  geocodeAndCenterMap(query: string) {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`;
+    fetch(url, {
+      headers: {
+        'Accept-Language': 'en'
+      }
+    })
+      .then(res => res.json())
+      .then(results => {
+        if (results && results.length > 0) {
+          const lat = parseFloat(results[0].lat);
+          const lng = parseFloat(results[0].lon);
+          this.initMap(lat, lng);
+        } else {
+          this.initMap();
+        }
+      })
+      .catch(err => {
+        console.error('Geocoding failed:', err);
+        this.initMap();
+      });
+  }
+
+  searchMapLocation(query: string) {
+    if (!query.trim()) return;
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`;
+    fetch(url, {
+      headers: {
+        'Accept-Language': 'en'
+      }
+    })
+      .then(res => res.json())
+      .then(results => {
+        if (results && results.length > 0) {
+          const lat = parseFloat(results[0].lat);
+          const lng = parseFloat(results[0].lon);
+          
+          if (this.map && this.marker) {
+            this.map.setView([lat, lng], 15);
+            this.marker.setLatLng([lat, lng]);
+            if (this.editingVenue()) {
+              this.editVenueLocation.set(results[0].display_name);
+            } else {
+              this.newVenueLocation.set(results[0].display_name);
+            }
+          } else {
+            this.initMap(lat, lng);
+          }
+        } else {
+          this.uiService.error('Location not found. Please try a different search.');
+        }
+      })
+      .catch(err => {
+        console.error('Geocoding search failed:', err);
+        this.uiService.error('Failed to search location.');
+      });
+  }
+
+  onUpdateVenue() {
+    const name = this.editVenueName().trim();
+    const location = this.editVenueLocation().trim();
+    const capacity = this.editVenueCapacity();
+    const ws = this.workspace();
+    const venue = this.editingVenue();
+    if (!ws || !venue || !name) return;
+
+    this.isUpdatingVenue.set(true);
+    this.venueUpdateError.set('');
+    this.venueUpdateSuccess.set('');
+
+    const payload: any = { name };
+    payload.location = location || null;
+    payload.capacity = capacity !== null && capacity !== undefined ? capacity : null;
+
+    this.workspaceService.updateVenue(ws.id, venue.id, payload).subscribe({
+      next: (updated) => {
+        this.isUpdatingVenue.set(false);
+        this.venueUpdateSuccess.set(`Venue updated successfully!`);
+        this.venues.update(prev => prev.map(v => v.id === venue.id ? updated : v));
+        this.matches.update(prevMatches => prevMatches.map(m => m.venueId === venue.id ? { ...m, venue: updated } : m));
+        setTimeout(() => this.closeVenueModal(), 1000);
+      },
+      error: (err) => {
+        this.isUpdatingVenue.set(false);
+        this.venueUpdateError.set(err.error?.message ?? 'Failed to update venue.');
+      }
+    });
+  }
+
+  async onDeleteVenue(venue: Venue) {
+    const ws = this.workspace();
+    if (!ws) return;
+    const confirmed = await this.uiService.confirm({
+      title: 'Delete Venue',
+      message: `Delete venue "${venue.name}"? This cannot be undone.`,
+      confirmText: 'Delete',
+      type: 'danger',
+    });
+    if (!confirmed) return;
+
+    this.workspaceService.removeVenue(ws.id, venue.id).subscribe({
+      next: () => {
+        this.venues.update(prev => prev.filter(v => v.id !== venue.id));
+        this.matches.update(prevMatches => prevMatches.map(m => m.venueId === venue.id ? { ...m, venueId: null, venue: null } : m));
+        this.uiService.success(`Venue "${venue.name}" deleted successfully.`);
+      },
+      error: (err) => this.uiService.error(err.error?.message ?? 'Failed to delete venue.'),
     });
   }
 
@@ -1879,6 +2218,7 @@ export class WorkspaceDetailComponent implements OnInit {
     this.workspaceService.createMatch(ws.id, event.id, comp.id, stage.id, {
       homeTeamId: homeId,
       awayTeamId: awayId,
+      venueId: this.newMatchVenueId() || null,
       config,
     }).subscribe({
       next: (created) => {
@@ -1887,6 +2227,7 @@ export class WorkspaceDetailComponent implements OnInit {
         this.uiService.success('Match scheduled successfully!');
         this.newMatchHomeTeamId.set('');
         this.newMatchAwayTeamId.set('');
+        this.newMatchVenueId.set('');
         setTimeout(() => {
           this.isCreatingMatch.set(false);
           this.matchCreateSuccess.set('');

@@ -31,6 +31,8 @@ import { CreateStageDto } from './dto/create-stage.dto';
 import { UpdateStageDto } from './dto/update-stage.dto';
 import { CreateMatchDto } from './dto/create-match.dto';
 import { UpdateMatchDto } from './dto/update-match.dto';
+import { CreateVenueDto } from './dto/create-venue.dto';
+import { UpdateVenueDto } from './dto/update-venue.dto';
 
 
 @Controller('workspaces')
@@ -144,6 +146,42 @@ export class WorkspacesController {
     @Request() req: any,
   ) {
     return this.workspacesService.removeRole(id, roleId, req.user.id);
+  }
+
+  // ─── Venues ────────────────────────────────────────────────────────────────
+
+  @Get(':id/venues')
+  getVenues(@Param('id') id: string, @Request() req: any) {
+    return this.workspacesService.getVenues(id, req.user.id);
+  }
+
+  @Post(':id/venues')
+  createVenue(
+    @Param('id') id: string,
+    @Body() dto: CreateVenueDto,
+    @Request() req: any,
+  ) {
+    return this.workspacesService.createVenue(id, dto, req.user.id);
+  }
+
+  @Patch(':id/venues/:venueId')
+  updateVenue(
+    @Param('id') id: string,
+    @Param('venueId') venueId: string,
+    @Body() dto: UpdateVenueDto,
+    @Request() req: any,
+  ) {
+    return this.workspacesService.updateVenue(id, venueId, dto, req.user.id);
+  }
+
+  @Delete(':id/venues/:venueId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  removeVenue(
+    @Param('id') id: string,
+    @Param('venueId') venueId: string,
+    @Request() req: any,
+  ) {
+    return this.workspacesService.removeVenue(id, venueId, req.user.id);
   }
 
   // ─── Teams ────────────────────────────────────────────────────────────────

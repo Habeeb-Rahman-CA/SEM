@@ -10,6 +10,10 @@ export class CreateMatchDto {
   awayTeamId: string;
 
   @IsOptional()
+  @IsUUID()
+  venueId?: string;
+
+  @IsOptional()
   @IsObject()
   config?: {
     timerDuration?: number;

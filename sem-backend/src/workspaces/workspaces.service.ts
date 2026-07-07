@@ -20,6 +20,7 @@ import { Competition } from './entities/competition.entity';
 import { CompetitionStage } from './entities/competition-stage.entity';
 import { Match } from './entities/match.entity';
 import { CompetitionTeam } from './entities/competition-team.entity';
+import { Venue } from './entities/venue.entity';
 import { CreateWorkspaceDto } from './dto/create-workspace.dto';
 import { UpdateWorkspaceDto } from './dto/update-workspace.dto';
 import { UsersService } from '../users/users.service';
@@ -38,6 +39,8 @@ import { CreateStageDto } from './dto/create-stage.dto';
 import { UpdateStageDto } from './dto/update-stage.dto';
 import { CreateMatchDto } from './dto/create-match.dto';
 import { UpdateMatchDto } from './dto/update-match.dto';
+import { CreateVenueDto } from './dto/create-venue.dto';
+import { UpdateVenueDto } from './dto/update-venue.dto';
 
 @Injectable()
 export class WorkspacesService implements OnModuleInit {
@@ -66,6 +69,8 @@ export class WorkspacesService implements OnModuleInit {
     private readonly matchRepo: Repository<Match>,
     @InjectRepository(CompetitionTeam)
     private readonly competitionTeamRepo: Repository<CompetitionTeam>,
+    @InjectRepository(Venue)
+    private readonly venueRepo: Repository<Venue>,
     private readonly usersService: UsersService,
   ) {}
 
@@ -1018,7 +1023,7 @@ export class WorkspacesService implements OnModuleInit {
 
     return this.matchRepo.find({
       where: { stageId },
-      relations: { homeTeam: true, awayTeam: true },
+      relations: { homeTeam: true, awayTeam: true, venue: true },
       order: { createdAt: 'ASC' },
     });
   }
@@ -1093,6 +1098,7 @@ export class WorkspacesService implements OnModuleInit {
       stageId,
       homeTeamId: dto.homeTeamId,
       awayTeamId: dto.awayTeamId,
+      venueId: dto.venueId ?? null,
       homeScore: 0,
       awayScore: 0,
       status: 'scheduled',
@@ -1103,7 +1109,7 @@ export class WorkspacesService implements OnModuleInit {
     const saved = await this.matchRepo.save(match);
     return (await this.matchRepo.findOne({
       where: { id: saved.id },
-      relations: { homeTeam: true, awayTeam: true },
+      relations: { homeTeam: true, awayTeam: true, venue: true },
     }))!;
   }
 
@@ -1124,6 +1130,7 @@ export class WorkspacesService implements OnModuleInit {
 
     if (dto.homeTeamId !== undefined) match.homeTeamId = dto.homeTeamId;
     if (dto.awayTeamId !== undefined) match.awayTeamId = dto.awayTeamId;
+    if (dto.venueId !== undefined) match.venueId = dto.venueId ?? null;
     if (dto.homeScore !== undefined) match.homeScore = dto.homeScore;
     if (dto.awayScore !== undefined) match.awayScore = dto.awayScore;
     if (dto.status !== undefined) match.status = dto.status;
@@ -1137,7 +1144,7 @@ export class WorkspacesService implements OnModuleInit {
     const saved = await this.matchRepo.save(match);
     return (await this.matchRepo.findOne({
       where: { id: saved.id },
-      relations: { homeTeam: true, awayTeam: true },
+      relations: { homeTeam: true, awayTeam: true, venue: true },
     }))!;
   }
 
@@ -1345,4 +1352,56 @@ export class WorkspacesService implements OnModuleInit {
     }
     return matches;
   }
+
+  // ─── Venues Management ─────────────────────────────────────────────────────
+
+  async getVenues(workspaceId: string, userId: string): Promise<Venue[]> {
+    await this.ensureMember(workspaceId, userId);
+    return this.venueRepo.find({
+      where: { workspaceId },
+      order: { name: 'ASC' },
+    });
+  }
+
+  async createVenue(workspaceId: string, dto: CreateVenueDto, userId: string): Promise<Venue> {
+    await this.ensureMember(workspaceId, userId);
+    const venue = this.venueRepo.create({
+      name: dto.name,
+      location: dto.location ?? null,
+      capacity: dto.capacity ?? null,
+      workspaceId,
+    });
+    return this.venueRepo.save(venue);
+  }
+
+  async updateVenue(
+    workspaceId: string,
+    venueId: string,
+    dto: UpdateVenueDto,
+    userId: string,
+  ): Promise<Venue> {
+    await this.ensureMember(workspaceId, userId);
+    const venue = await this.venueRepo.findOne({ where: { id: venueId, workspaceId } });
+    if (!venue) {
+      throw new NotFoundException('Venue not found in this workspace');
+    }
+
+    Object.assign(venue, {
+      ...(dto.name !== undefined && { name: dto.name }),
+      ...(dto.location !== undefined && { location: dto.location }),
+      ...(dto.capacity !== undefined && { capacity: dto.capacity }),
+    });
+
+    return this.venueRepo.save(venue);
+  }
+
+  async removeVenue(workspaceId: string, venueId: string, userId: string): Promise<void> {
+    await this.ensureAdminOrOwner(workspaceId, userId);
+    const venue = await this.venueRepo.findOne({ where: { id: venueId, workspaceId } });
+    if (!venue) {
+      throw new NotFoundException('Venue not found in this workspace');
+    }
+    await this.venueRepo.remove(venue);
+  }
 }
+

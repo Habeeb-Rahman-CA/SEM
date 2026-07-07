@@ -14,6 +14,16 @@ export interface Workspace {
   updatedAt: string;
 }
 
+export interface Venue {
+  id: string;
+  name: string;
+  location: string | null;
+  capacity: number | null;
+  workspaceId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Permission {
   id: string;
   name: string;
@@ -116,6 +126,8 @@ export interface Match {
   homeTeam?: Team | null;
   awayTeamId: string | null;
   awayTeam?: Team | null;
+  venueId?: string | null;
+  venue?: Venue | null;
   homeScore: number;
   awayScore: number;
   status: 'scheduled' | 'live' | 'completed';
@@ -517,6 +529,43 @@ export class WorkspaceService {
     );
   }
 
+  // ─── Venues ────────────────────────────────────────────────────────────────
+
+  getVenues(workspaceId: string): Observable<Venue[]> {
+    return this.http.get<Venue[]>(`${this.apiUrl}/${workspaceId}/venues`, {
+      headers: this.headers,
+    });
+  }
+
+  createVenue(
+    workspaceId: string,
+    payload: { name: string; location?: string; capacity?: number }
+  ): Observable<Venue> {
+    return this.http.post<Venue>(
+      `${this.apiUrl}/${workspaceId}/venues`,
+      payload,
+      { headers: this.headers }
+    );
+  }
+
+  updateVenue(
+    workspaceId: string,
+    venueId: string,
+    payload: { name?: string; location?: string; capacity?: number }
+  ): Observable<Venue> {
+    return this.http.patch<Venue>(
+      `${this.apiUrl}/${workspaceId}/venues/${venueId}`,
+      payload,
+      { headers: this.headers }
+    );
+  }
+
+  removeVenue(workspaceId: string, venueId: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${workspaceId}/venues/${venueId}`, {
+      headers: this.headers,
+    });
+  }
+
   // ─── Matches ──────────────────────────────────────────────────────────────
 
   getMatches(
@@ -536,7 +585,7 @@ export class WorkspaceService {
     eventId: string,
     competitionId: string,
     stageId: string,
-    payload: { homeTeamId: string; awayTeamId: string; config?: any }
+    payload: { homeTeamId: string; awayTeamId: string; venueId?: string | null; config?: any }
   ): Observable<Match> {
     return this.http.post<Match>(
       `${this.apiUrl}/${workspaceId}/events/${eventId}/competitions/${competitionId}/stages/${stageId}/matches`,
@@ -551,7 +600,7 @@ export class WorkspaceService {
     competitionId: string,
     stageId: string,
     matchId: string,
-    payload: { homeTeamId?: string; awayTeamId?: string; homeScore?: number; awayScore?: number; status?: string; config?: any; liveData?: any }
+    payload: { homeTeamId?: string; awayTeamId?: string; venueId?: string | null; homeScore?: number; awayScore?: number; status?: string; config?: any; liveData?: any }
   ): Observable<Match> {
     return this.http.patch<Match>(
       `${this.apiUrl}/${workspaceId}/events/${eventId}/competitions/${competitionId}/stages/${stageId}/matches/${matchId}`,

@@ -9,6 +9,7 @@ import {
 } from 'typeorm';
 import { CompetitionStage } from './competition-stage.entity';
 import { Team } from './team.entity';
+import { Venue } from './venue.entity';
 
 @Entity('matches')
 export class Match {
@@ -35,6 +36,13 @@ export class Match {
   @ManyToOne(() => Team, { onDelete: 'SET NULL', nullable: true })
   @JoinColumn({ name: 'away_team_id' })
   awayTeam: Team | null;
+
+  @Column({ name: 'venue_id', type: 'uuid', nullable: true })
+  venueId: string | null;
+
+  @ManyToOne(() => Venue, { onDelete: 'SET NULL', nullable: true })
+  @JoinColumn({ name: 'venue_id' })
+  venue: Venue | null;
 
   @Column({ name: 'home_score', type: 'int', default: 0 })
   homeScore: number;

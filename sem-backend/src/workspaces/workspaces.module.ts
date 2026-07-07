@@ -12,6 +12,7 @@ import { CompetitionStage } from './entities/competition-stage.entity';
 import { Match } from './entities/match.entity';
 import { CompetitionTeam } from './entities/competition-team.entity';
 import { Permission } from './entities/permission.entity';
+import { Venue } from './entities/venue.entity';
 import { WorkspacesService } from './workspaces.service';
 import { WorkspacesController } from './workspaces.controller';
 import { SystemSettingsController } from './system-settings.controller';
@@ -32,6 +33,7 @@ import { UsersModule } from '../users/users.module';
       Match,
       CompetitionTeam,
       Permission,
+      Venue,
     ]),
     UsersModule,
   ],

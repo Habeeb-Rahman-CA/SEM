@@ -18,6 +18,10 @@ export class UpdateMatchDto {
   awayScore?: number;
 
   @IsOptional()
+  @IsUUID()
+  venueId?: string;
+
+  @IsOptional()
   @IsString()
   status?: 'scheduled' | 'live' | 'completed';
 
