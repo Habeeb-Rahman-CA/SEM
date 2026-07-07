@@ -86,7 +86,7 @@
 
       <!-- Actions -->
       <div class="flex items-center justify-end gap-3 pt-3 border-t border-white/5">
-        <button (click)="uiService.handleConfirm(false)" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer">
+        <button (click)="uiService.handleConfirm(false)" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white hover:text-slate-950 text-xs font-bold rounded-xl transition-all cursor-pointer">
           {{ uiService.confirmOptions()?.cancelText || 'Cancel' }}
         </button>
         <button (click)="uiService.handleConfirm(true)" class="px-4.5 py-2 text-white text-xs font-bold rounded-xl transition-all cursor-pointer" [ngClass]="{

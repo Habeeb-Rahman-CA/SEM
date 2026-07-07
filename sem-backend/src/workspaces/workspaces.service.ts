@@ -577,8 +577,29 @@ export class WorkspacesService implements OnModuleInit {
 
   async createTeam(workspaceId: string, dto: CreateTeamDto, userId: string): Promise<Team> {
     await this.ensureMember(workspaceId, userId);
+
+    let code = dto.code;
+    if (!code) {
+      // Auto-generate code if not provided (e.g. WAR423)
+      const prefix = (dto.name || 'TEM').substring(0, 3).toUpperCase().replace(/[^A-Z]/g, 'T');
+      code = prefix + Math.floor(100 + Math.random() * 900);
+    }
+
+    // Check code uniqueness
+    let existing = await this.teamRepo.findOne({ where: { code } });
+    if (existing) {
+      if (dto.code) {
+        throw new ConflictException(`Team code "${code}" is already taken`);
+      } else {
+        // Regenerate unique one
+        const prefix = (dto.name || 'TEM').substring(0, 3).toUpperCase().replace(/[^A-Z]/g, 'T');
+        code = prefix + Math.floor(1000 + Math.random() * 9000);
+      }
+    }
+
     const team = this.teamRepo.create({
       name: dto.name,
+      code,
       description: dto.description ?? null,
       logoUrl: dto.logoUrl ?? null,
       workspaceId,
@@ -598,8 +619,17 @@ export class WorkspacesService implements OnModuleInit {
       throw new NotFoundException('Team not found in this workspace');
     }
 
+    // Check code uniqueness if changing
+    if (dto.code && dto.code !== team.code) {
+      const existing = await this.teamRepo.findOne({ where: { code: dto.code } });
+      if (existing) {
+        throw new ConflictException(`Team code "${dto.code}" is already taken`);
+      }
+    }
+
     Object.assign(team, {
       ...(dto.name !== undefined && { name: dto.name }),
+      ...(dto.code !== undefined && { code: dto.code }),
       ...(dto.description !== undefined && { description: dto.description }),
       ...(dto.logoUrl !== undefined && { logoUrl: dto.logoUrl }),
     });

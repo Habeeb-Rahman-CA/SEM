@@ -34,6 +34,7 @@ export interface Role {
 export interface Team {
   id: string;
   name: string;
+  code: string;
   description: string | null;
   logoUrl: string | null;
   workspaceId: string;
@@ -293,18 +294,18 @@ export class WorkspaceService {
     });
   }
 
-  createTeam(workspaceId: string, name: string, description?: string, logoUrl?: string): Observable<Team> {
+  createTeam(workspaceId: string, name: string, code: string, description?: string, logoUrl?: string): Observable<Team> {
     return this.http.post<Team>(
       `${this.apiUrl}/${workspaceId}/teams`,
-      { name, description, logoUrl },
+      { name, code, description, logoUrl },
       { headers: this.headers },
     );
   }
 
-  updateTeam(workspaceId: string, teamId: string, name?: string, description?: string, logoUrl?: string): Observable<Team> {
+  updateTeam(workspaceId: string, teamId: string, name?: string, code?: string, description?: string, logoUrl?: string): Observable<Team> {
     return this.http.patch<Team>(
       `${this.apiUrl}/${workspaceId}/teams/${teamId}`,
-      { name, description, logoUrl },
+      { name, code, description, logoUrl },
       { headers: this.headers },
     );
   }

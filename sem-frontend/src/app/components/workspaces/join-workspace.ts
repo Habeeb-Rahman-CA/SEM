@@ -29,7 +29,7 @@ import { AuthService } from '../../services/auth.service';
           <h2 class="text-xl font-bold text-rose-400 mb-2">Failed to Join</h2>
           <p class="text-slate-400 text-xs mb-8">{{ error() }}</p>
           <a routerLink="/workspaces" 
-            class="inline-block w-full py-3 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl transition cursor-pointer">
+            class="inline-block w-full py-3 bg-slate-800 hover:bg-slate-700 text-white hover:text-slate-950 text-xs font-bold rounded-xl transition cursor-pointer">
             Go to Workspaces
           </a>
         }

@@ -38,15 +38,25 @@ export class WorkspaceDetailComponent implements OnInit {
   teams = signal<Team[]>([]);
   isTeamModalOpen = signal(false);
   newTeamName = signal('');
+  newTeamCode = signal('');
   newTeamDescription = signal('');
   newTeamLogoUrl = signal('');
   isCreatingTeam = signal(false);
   teamCreateError = signal('');
   teamCreateSuccess = signal('');
 
+  // Bulk Import Teams State
+  isBulkModalOpen = signal(false);
+  isImportingBulk = signal(false);
+  bulkImportProgress = signal(0);
+  bulkImportTeams = signal<any[]>([]);
+  bulkImportError = signal('');
+  bulkImportSuccess = signal('');
+
   // Editing state for Teams
   editingTeam = signal<Team | null>(null);
   editTeamName = signal('');
+  editTeamCode = signal('');
   editTeamDescription = signal('');
   editTeamLogoUrl = signal('');
   isUpdatingTeam = signal(false);
@@ -471,6 +481,7 @@ export class WorkspaceDetailComponent implements OnInit {
   onAddTeam() {
     this.editingTeam.set(null);
     this.newTeamName.set('');
+    this.newTeamCode.set('');
     this.newTeamDescription.set('');
     this.newTeamLogoUrl.set('');
     this.teamCreateError.set('');
@@ -480,20 +491,22 @@ export class WorkspaceDetailComponent implements OnInit {
 
   onCreateTeam() {
     const name = this.newTeamName().trim();
+    const code = this.newTeamCode().trim().toUpperCase();
     const description = this.newTeamDescription().trim();
     const logoUrl = this.newTeamLogoUrl().trim();
     const ws = this.workspace();
-    if (!ws || !name) return;
+    if (!ws || !name || !code) return;
 
     this.isCreatingTeam.set(true);
     this.teamCreateError.set('');
     this.teamCreateSuccess.set('');
 
-    this.workspaceService.createTeam(ws.id, name, description || undefined, logoUrl || undefined).subscribe({
+    this.workspaceService.createTeam(ws.id, name, code, description || undefined, logoUrl || undefined).subscribe({
       next: (team) => {
         this.isCreatingTeam.set(false);
         this.teamCreateSuccess.set(`Team "${team.name}" registered successfully!`);
         this.newTeamName.set('');
+        this.newTeamCode.set('');
         this.newTeamDescription.set('');
         this.newTeamLogoUrl.set('');
         this.teams.update(prev => [...prev, team]);
@@ -509,6 +522,7 @@ export class WorkspaceDetailComponent implements OnInit {
   onEditTeam(team: Team) {
     this.editingTeam.set(team);
     this.editTeamName.set(team.name);
+    this.editTeamCode.set(team.code ?? '');
     this.editTeamDescription.set(team.description ?? '');
     this.editTeamLogoUrl.set(team.logoUrl ?? '');
     this.teamUpdateError.set('');
@@ -531,17 +545,18 @@ export class WorkspaceDetailComponent implements OnInit {
 
   onUpdateTeam() {
     const name = this.editTeamName().trim();
+    const code = this.editTeamCode().trim().toUpperCase();
     const description = this.editTeamDescription().trim();
     const logoUrl = this.editTeamLogoUrl().trim();
     const ws = this.workspace();
     const team = this.editingTeam();
-    if (!ws || !team || !name) return;
+    if (!ws || !team || !name || !code) return;
 
     this.isUpdatingTeam.set(true);
     this.teamUpdateError.set('');
     this.teamUpdateSuccess.set('');
 
-    this.workspaceService.updateTeam(ws.id, team.id, name, description || undefined, logoUrl || undefined).subscribe({
+    this.workspaceService.updateTeam(ws.id, team.id, name, code, description || undefined, logoUrl || undefined).subscribe({
       next: (updated) => {
         this.isUpdatingTeam.set(false);
         this.teamUpdateSuccess.set(`Team updated successfully!`);
@@ -553,6 +568,162 @@ export class WorkspaceDetailComponent implements OnInit {
         this.teamUpdateError.set(err.error?.message ?? 'Failed to update team.');
       }
     });
+  }
+
+  openBulkModal() {
+    this.bulkImportTeams.set([]);
+    this.bulkImportError.set('');
+    this.bulkImportSuccess.set('');
+    this.bulkImportProgress.set(0);
+    this.isImportingBulk.set(false);
+    this.isBulkModalOpen.set(true);
+  }
+
+  closeBulkModal() {
+    this.isBulkModalOpen.set(false);
+    this.bulkImportTeams.set([]);
+    this.bulkImportError.set('');
+    this.bulkImportSuccess.set('');
+    this.bulkImportProgress.set(0);
+    this.isImportingBulk.set(false);
+  }
+
+  async downloadTemplate() {
+    const XLSX = await import('xlsx-js-style') as any;
+    
+    // Create the structure with cell objects that have styles
+    const ws: any = {
+      '!ref': 'A1:D3',
+      
+      // Row 1: Field values (bold)
+      'A1': { v: 'Name', t: 's', s: { font: { bold: true } } },
+      'B1': { v: 'Code', t: 's', s: { font: { bold: true } } },
+      'C1': { v: 'Description', t: 's', s: { font: { bold: true } } },
+      'D1': { v: 'LogoUrl', t: 's', s: { font: { bold: true } } },
+      
+      // Row 2: Required or Optional (dark grey color: #4B525D)
+      'A2': { v: '#Required', t: 's', s: { font: { color: { rgb: '4B525D' } } } },
+      'B2': { v: '#Required', t: 's', s: { font: { color: { rgb: '4B525D' } } } },
+      'C2': { v: '#Optional', t: 's', s: { font: { color: { rgb: '4B525D' } } } },
+      'D2': { v: '#Optional', t: 's', s: { font: { color: { rgb: '4B525D' } } } },
+      
+      // Row 3: eg. (italic)
+      'A3': { v: 'eg. Warriors FC', t: 's', s: { font: { italic: true } } },
+      'B3': { v: 'eg. WAR', t: 's', s: { font: { italic: true } } },
+      'C3': { v: 'eg. A passionate local football club.', t: 's', s: { font: { italic: true } } },
+      'D3': { v: 'eg. https://example.com/logo.png', t: 's', s: { font: { italic: true } } }
+    };
+
+    // Auto-fit or define column widths to prevent truncation
+    ws['!cols'] = [
+      { wch: 22 }, // Column A width (Name)
+      { wch: 15 }, // Column B width (Code)
+      { wch: 42 }, // Column C width (Description)
+      { wch: 42 }  // Column D width (LogoUrl)
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Teams Template');
+    XLSX.writeFile(wb, 'teams_import_template.xlsx');
+  }
+
+  onExcelUpload(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+    const file = input.files[0];
+    const reader = new FileReader();
+    reader.onload = async (e: any) => {
+      try {
+        const XLSX = await import('xlsx');
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const json: any[] = XLSX.utils.sheet_to_json(worksheet);
+        
+        // Map and validate rows, filtering out instructions and examples
+        const parsedTeams = json.map((row: any) => {
+          const nameKey = Object.keys(row).find(k => k.toLowerCase() === 'name') || 'Name';
+          const codeKey = Object.keys(row).find(k => k.toLowerCase() === 'code') || 'Code';
+          const descKey = Object.keys(row).find(k => k.toLowerCase() === 'description') || 'Description';
+          const logoKey = Object.keys(row).find(k => k.toLowerCase() === 'logourl' || k.toLowerCase() === 'logo') || 'LogoUrl';
+          
+          return {
+            name: (row[nameKey] || '').toString().trim(),
+            code: (row[codeKey] || '').toString().trim(),
+            description: (row[descKey] || '').toString().trim(),
+            logoUrl: (row[logoKey] || '').toString().trim(),
+          };
+        }).filter(t => {
+          if (!t.name) return false;
+          
+          // Exclude template metadata/example rows
+          const lowerName = t.name.toLowerCase();
+          if (lowerName === '#required' || lowerName === 'required') return false;
+          if (lowerName.startsWith('eg.')) return false;
+          if (lowerName.startsWith('eg ')) return false;
+          
+          return true;
+        });
+        
+        this.bulkImportTeams.set(parsedTeams);
+        this.bulkImportError.set('');
+        if (parsedTeams.length === 0) {
+          this.bulkImportError.set('No valid teams found in the spreadsheet. Make sure you have a "Name" column.');
+        }
+      } catch (err) {
+        console.error('Failed to parse file', err);
+        this.bulkImportError.set('Failed to parse spreadsheet. Please ensure it is a valid format.');
+      }
+    };
+    reader.readAsArrayBuffer(file);
+    input.value = '';
+  }
+
+  async onConfirmBulkImport() {
+    const ws = this.workspace();
+    const teamsToImport = this.bulkImportTeams();
+    if (!ws || teamsToImport.length === 0) return;
+
+    this.isImportingBulk.set(true);
+    this.bulkImportProgress.set(0);
+    this.bulkImportError.set('');
+    this.bulkImportSuccess.set('');
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (let i = 0; i < teamsToImport.length; i++) {
+      const item = teamsToImport[i];
+      try {
+        await new Promise<void>((resolve) => {
+          const finalCode = item.code || item.name.substring(0, 3).toUpperCase() + Math.floor(100 + Math.random() * 900);
+          this.workspaceService.createTeam(ws.id, item.name, finalCode, item.description || undefined, item.logoUrl || undefined).subscribe({
+            next: (team) => {
+              this.teams.update(prev => [...prev, team]);
+              successCount++;
+              resolve();
+            },
+            error: (err) => {
+              failCount++;
+              console.error(`Failed to import team: ${item.name}`, err);
+              resolve();
+            }
+          });
+        });
+      } catch (err) {
+        failCount++;
+      }
+      this.bulkImportProgress.set(Math.round(((i + 1) / teamsToImport.length) * 100));
+    }
+
+    this.isImportingBulk.set(false);
+    if (failCount === 0) {
+      this.bulkImportSuccess.set(`Successfully imported all ${successCount} teams!`);
+      setTimeout(() => this.closeBulkModal(), 1500);
+    } else {
+      this.bulkImportSuccess.set(`Import finished: ${successCount} successful, ${failCount} failed.`);
+    }
   }
 
   async onDeleteTeam(team: Team) {

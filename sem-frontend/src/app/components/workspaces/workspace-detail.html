@@ -410,7 +410,7 @@
                       <input type="text" [value]="getInviteLink()" readonly
                         class="w-full bg-slate-800 border border-white/10 rounded-xl pl-4 pr-12 py-2.5 text-xs text-slate-400 outline-none select-all" />
                       <button (click)="copyInviteLink()"
-                        class="absolute right-2.5 top-1.5 p-1.5 hover:bg-slate-700 text-slate-400 hover:text-white rounded-lg transition-colors cursor-pointer">
+                        class="absolute right-2.5 top-1.5 p-1.5 hover:bg-slate-700 text-slate-400 hover:text-slate-950 rounded-lg transition-colors cursor-pointer">
                         <i class="fi" [class.fi-rr-copy]="!isCopied()" [class.fi-rr-check]="isCopied()"></i>
                       </button>
                     </div>
@@ -625,6 +625,13 @@
                 {{ teams().length }} Total
               </span>
               @if (canManageMembers()) {
+                <button (click)="openBulkModal()"
+                  class="flex items-center gap-1.5 px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-white/10 text-white hover:text-slate-950 text-xs font-bold rounded-xl transition-all cursor-pointer">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                  </svg>
+                  Bulk Import
+                </button>
                 <button (click)="onAddTeam()"
                   class="flex items-center gap-1.5 px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-violet-900/20 transition-all cursor-pointer">
                   <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -662,7 +669,14 @@
                       </div>
                     }
                     <div class="flex-1 min-w-0">
-                      <h4 class="text-sm font-bold text-white truncate">{{ team.name }}</h4>
+                      <div class="flex items-center gap-2">
+                        <h4 class="text-sm font-bold text-white truncate">{{ team.name }}</h4>
+                        @if (team.code) {
+                          <span class="text-[10px] font-bold px-1.5 py-0.5 bg-slate-800 text-violet-400 border border-white/5 rounded">
+                            {{ team.code }}
+                          </span>
+                        }
+                      </div>
                       <p class="text-[10px] text-slate-500 mt-0.5">Registered {{ team.createdAt | date: 'MMM d, y' }}</p>
                     </div>
                   </div>
@@ -737,7 +751,7 @@
                         <h4 class="text-sm font-bold text-white truncate">{{ player.user.username }}</h4>
                         <div class="flex items-center gap-1.5 mt-1">
                           <span class="text-[10px] px-2 py-0.5 bg-violet-500/10 text-violet-400 rounded-md border border-violet-500/20 max-w-[120px] truncate">
-                            {{ player.team?.name }}
+                            {{ player.team.name }}
                           </span>
                           @if (player.jerseyNumber) {
                             <span class="text-[10px] px-1.5 py-0.5 bg-slate-800 text-slate-300 rounded border border-white/5">
@@ -902,7 +916,7 @@
 
                     <div class="flex gap-2">
                       <button type="button" (click)="onCancelEditPlayer()"
-                        class="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer">
+                        class="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-white hover:text-slate-950 text-xs font-bold rounded-xl transition-all cursor-pointer">
                         Cancel
                       </button>
                       <button type="submit" [disabled]="isUpdatingPlayer() || !editPlayerTeamId()"
@@ -933,7 +947,7 @@
             @if (!selectedCompetition()) {
               <div class="flex items-center gap-4 border-b border-white/5 pb-4">
                 <button (click)="onDeselectEvent()"
-                  class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl cursor-pointer transition-all border border-white/5">
+                  class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white hover:text-slate-950 text-xs font-bold rounded-xl cursor-pointer transition-all border border-white/5">
                   ← Back to Events
                 </button>
                 <div>
@@ -1143,7 +1157,7 @@
 
                           <div class="flex gap-2">
                             <button type="button" (click)="onCancelEditCompetition()"
-                              class="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer">
+                              class="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-white hover:text-slate-950 text-xs font-bold rounded-xl transition-all cursor-pointer">
                               Cancel
                             </button>
                             <button type="submit" [disabled]="isUpdatingCompetition() || !editCompetitionName() || !editCompetitionSportId()"
@@ -1169,7 +1183,7 @@
                 <div class="flex items-center justify-between border-b border-white/5 pb-4">
                   <div class="flex items-center gap-3">
                     <button (click)="onDeselectCompetition()"
-                      class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl cursor-pointer transition-all border border-white/5">
+                      class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white hover:text-slate-950 text-xs font-bold rounded-xl cursor-pointer transition-all border border-white/5">
                       ← Back to Competitions
                     </button>
                     <div class="flex items-center gap-1.5 text-xs text-slate-400">
@@ -1362,17 +1376,17 @@
                                   <!-- Stage Config summaries -->
                                   @if (stage.type === 'group' || stage.type === 'group_knockout') {
                                     <span class="text-[10px] text-slate-400">
-                                      Win: {{ stage.config?.winPoint ?? 3 }} pts | Draw: {{ stage.config?.drawPoint ?? 1 }} pts | Games/Team: {{ stage.config?.gamesPerTeam ?? 3 }}
+                                      Win: {{ stage.config.winPoint ?? 3 }} pts | Draw: {{ stage.config.drawPoint ?? 1 }} pts | Games/Team: {{ stage.config.gamesPerTeam ?? 3 }}
                                     </span>
                                   }
                                   @if (stage.type === 'knockout' || stage.type === 'group_knockout') {
                                     <span class="text-[10px] text-slate-400">
-                                      Format: {{ stage.config?.twoLegged ? '2-Legged' : 'Single KO' }}
+                                      Format: {{ stage.config.twoLegged ? '2-Legged' : 'Single KO' }}
                                     </span>
                                   }
                                   @if (stage.type === 'group_knockout') {
                                     <span class="text-[10px] text-slate-400">
-                                      Groups: {{ stage.config?.groupsCount ?? 2 }} | Advancing: {{ stage.config?.advancingCount ?? 2 }}
+                                      Groups: {{ stage.config.groupsCount ?? 2 }} | Advancing: {{ stage.config.advancingCount ?? 2 }}
                                     </span>
                                   }
                                 </div>
@@ -1570,7 +1584,7 @@
 
                               <div class="flex gap-2">
                                 <button type="button" (click)="onCancelEditStage()"
-                                  class="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer">
+                                  class="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-white hover:text-slate-950 text-xs font-bold rounded-xl transition-all cursor-pointer">
                                   Cancel
                                 </button>
                                 <button type="submit" [disabled]="isUpdatingStage() || !editStageName()"
@@ -1855,13 +1869,13 @@
                                     <select #homeScorerSelect class="flex-1 bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white outline-none">
                                       <option value="">Select Scorer</option>
                                       @for (p of getPlayersForTeam(match.homeTeamId); track p.id) {
-                                        <option [value]="p.userId">{{ p.user?.username || p.id }}</option>
+                                        <option [value]="p.userId">{{ p.user.username || p.id }}</option>
                                       }
                                     </select>
                                     <select #homeAssistSelect class="flex-1 bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white outline-none">
                                       <option value="">Select Assist (Opt)</option>
                                       @for (p of getPlayersForTeam(match.homeTeamId); track p.id) {
-                                        <option [value]="p.userId">{{ p.user?.username || p.id }}</option>
+                                        <option [value]="p.userId">{{ p.user.username || p.id }}</option>
                                       }
                                     </select>
                                     <button (click)="onRecordFootballGoal(match.homeTeamId!, homeScorerSelect.value, homeAssistSelect.value); homeScorerSelect.value=''; homeAssistSelect.value=''"
@@ -1879,7 +1893,7 @@
                                     <select #homeCardPlayer class="flex-1 bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white outline-none">
                                       <option value="">Select Player</option>
                                       @for (p of getPlayersForTeam(match.homeTeamId); track p.id) {
-                                        <option [value]="p.userId">{{ p.user?.username || p.id }}</option>
+                                        <option [value]="p.userId">{{ p.user.username || p.id }}</option>
                                       }
                                     </select>
                                     <select #homeCardType class="bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white outline-none">
@@ -1906,13 +1920,13 @@
                                     <select #awayScorerSelect class="flex-1 bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white outline-none">
                                       <option value="">Select Scorer</option>
                                       @for (p of getPlayersForTeam(match.awayTeamId); track p.id) {
-                                        <option [value]="p.userId">{{ p.user?.username || p.id }}</option>
+                                        <option [value]="p.userId">{{ p.user.username || p.id }}</option>
                                       }
                                     </select>
                                     <select #awayAssistSelect class="flex-1 bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white outline-none">
                                       <option value="">Select Assist (Opt)</option>
                                       @for (p of getPlayersForTeam(match.awayTeamId); track p.id) {
-                                        <option [value]="p.userId">{{ p.user?.username || p.id }}</option>
+                                        <option [value]="p.userId">{{ p.user.username || p.id }}</option>
                                       }
                                     </select>
                                     <button (click)="onRecordFootballGoal(match.awayTeamId!, awayScorerSelect.value, awayAssistSelect.value); awayScorerSelect.value=''; awayAssistSelect.value=''"
@@ -1930,7 +1944,7 @@
                                     <select #awayCardPlayer class="flex-1 bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white outline-none">
                                       <option value="">Select Player</option>
                                       @for (p of getPlayersForTeam(match.awayTeamId); track p.id) {
-                                        <option [value]="p.userId">{{ p.user?.username || p.id }}</option>
+                                        <option [value]="p.userId">{{ p.user.username || p.id }}</option>
                                       }
                                     </select>
                                     <select #awayCardType class="bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white outline-none">
@@ -2057,7 +2071,7 @@
                                       +1 Pt
                                     </button>
                                     <button (click)="onRecordBadmintonPoint('home', -1)"
-                                      class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl cursor-pointer transition-all">
+                                      class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white hover:text-slate-950 text-xs font-bold rounded-xl cursor-pointer transition-all">
                                       -1
                                     </button>
                                   </div>
@@ -2072,7 +2086,7 @@
                                       +1 Pt
                                     </button>
                                     <button (click)="onRecordBadmintonPoint('away', -1)"
-                                      class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl cursor-pointer transition-all">
+                                      class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white hover:text-slate-950 text-xs font-bold rounded-xl cursor-pointer transition-all">
                                       -1
                                     </button>
                                   </div>
@@ -2343,7 +2357,7 @@
                           <input id="event-logo" type="url" placeholder="https://example.com/logo.png" autocomplete="off"
                             class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 outline-none transition-all flex-1"
                             [ngModel]="newEventLogoUrl()" (ngModelChange)="newEventLogoUrl.set($event)" name="eventLogo" />
-                          <label class="px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-white/10 text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex-shrink-0" [class.opacity-50]="isUploadingEventLogo()" [class.pointer-events-none]="isUploadingEventLogo()">
+                          <label class="px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-white/10 text-white hover:text-slate-950 text-xs font-bold rounded-xl transition-all cursor-pointer flex-shrink-0" [class.opacity-50]="isUploadingEventLogo()" [class.pointer-events-none]="isUploadingEventLogo()">
                             @if (isUploadingEventLogo()) {
                               <span class="animate-pulse">...</span>
                             } @else {
@@ -2450,7 +2464,7 @@
                           <input id="edit-event-logo" type="url" placeholder="https://example.com/logo.png" autocomplete="off"
                             class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 outline-none transition-all flex-1"
                             [ngModel]="editEventLogoUrl()" (ngModelChange)="editEventLogoUrl.set($event)" name="editEventLogo" />
-                          <label class="px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-white/10 text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex-shrink-0" [class.opacity-50]="isUploadingEventLogo()" [class.pointer-events-none]="isUploadingEventLogo()">
+                          <label class="px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-white/10 text-white hover:text-slate-950 text-xs font-bold rounded-xl transition-all cursor-pointer flex-shrink-0" [class.opacity-50]="isUploadingEventLogo()" [class.pointer-events-none]="isUploadingEventLogo()">
                             @if (isUploadingEventLogo()) {
                               <span class="animate-pulse">...</span>
                             } @else {
@@ -2496,7 +2510,7 @@
 
                       <div class="flex gap-2">
                         <button type="button" (click)="onCancelEditEvent()"
-                          class="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer">
+                          class="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-white hover:text-slate-950 text-xs font-bold rounded-xl transition-all cursor-pointer">
                           Cancel
                         </button>
                         <button type="submit" [disabled]="isUpdatingEvent() || !editEventName()"
@@ -2585,6 +2599,13 @@
               </div>
 
               <div class="flex flex-col gap-1.5">
+                <label for="team-code" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Team Code <span class="text-rose-400">*</span></label>
+                <input id="team-code" type="text" placeholder="e.g. WAR" autocomplete="off"
+                  class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition-all w-full uppercase"
+                  [ngModel]="newTeamCode()" (ngModelChange)="newTeamCode.set($event)" name="teamCode" required />
+              </div>
+
+              <div class="flex flex-col gap-1.5">
                 <label for="team-logo" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Logo URL / Upload <span class="text-slate-600 font-normal normal-case">(optional)</span></label>
                 <div class="flex items-center gap-3">
                   <div class="w-10 h-10 rounded-xl bg-slate-950 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0 relative">
@@ -2606,7 +2627,7 @@
                   <input id="team-logo" type="url" placeholder="https://example.com/logo.png" autocomplete="off"
                     class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition-all flex-1"
                     [ngModel]="newTeamLogoUrl()" (ngModelChange)="newTeamLogoUrl.set($event)" name="teamLogo" />
-                  <label class="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 border border-white/10 text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex-shrink-0" [class.opacity-50]="isUploadingTeamLogo()" [class.pointer-events-none]="isUploadingTeamLogo()">
+                  <label class="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 border border-white/10 text-white hover:text-slate-950 text-xs font-bold rounded-xl transition-all cursor-pointer flex-shrink-0" [class.opacity-50]="isUploadingTeamLogo()" [class.pointer-events-none]="isUploadingTeamLogo()">
                     @if (isUploadingTeamLogo()) {
                       <span class="animate-pulse">...</span>
                     } @else {
@@ -2627,10 +2648,10 @@
               <!-- Footer Buttons -->
               <div class="flex justify-end gap-3 pt-4 border-t border-white/5">
                 <button type="button" (click)="closeTeamModal()"
-                  class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer">
+                  class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white hover:text-slate-950 text-xs font-bold rounded-xl transition-all cursor-pointer">
                   Cancel
                 </button>
-                <button type="submit" [disabled]="isCreatingTeam() || !newTeamName().trim()"
+                <button type="submit" [disabled]="isCreatingTeam() || !newTeamName().trim() || !newTeamCode().trim()"
                   class="px-5 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-2">
                   @if (isCreatingTeam()) {
                     <svg class="animate-spin w-4 h-4 text-white" fill="none" viewBox="0 0 24 24">
@@ -2672,6 +2693,13 @@
               </div>
 
               <div class="flex flex-col gap-1.5">
+                <label for="edit-team-code" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Team Code <span class="text-rose-400">*</span></label>
+                <input id="edit-team-code" type="text" placeholder="e.g. WAR" autocomplete="off"
+                  class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-all w-full uppercase"
+                  [ngModel]="editTeamCode()" (ngModelChange)="editTeamCode.set($event)" name="editTeamCode" required />
+              </div>
+
+              <div class="flex flex-col gap-1.5">
                 <label for="edit-team-logo" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Logo URL / Upload</label>
                 <div class="flex items-center gap-3">
                   <div class="w-10 h-10 rounded-xl bg-slate-950 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0 relative">
@@ -2693,7 +2721,7 @@
                   <input id="edit-team-logo" type="url" placeholder="https://example.com/logo.png" autocomplete="off"
                     class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition-all flex-1"
                     [ngModel]="editTeamLogoUrl()" (ngModelChange)="editTeamLogoUrl.set($event)" name="editTeamLogo" />
-                  <label class="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 border border-white/10 text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex-shrink-0" [class.opacity-50]="isUploadingTeamLogo()" [class.pointer-events-none]="isUploadingTeamLogo()">
+                  <label class="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 border border-white/10 text-white hover:text-slate-950 text-xs font-bold rounded-xl transition-all cursor-pointer flex-shrink-0" [class.opacity-50]="isUploadingTeamLogo()" [class.pointer-events-none]="isUploadingTeamLogo()">
                     @if (isUploadingTeamLogo()) {
                       <span class="animate-pulse">...</span>
                     } @else {
@@ -2714,10 +2742,10 @@
               <!-- Footer Buttons -->
               <div class="flex justify-end gap-3 pt-4 border-t border-white/5">
                 <button type="button" (click)="closeTeamModal()"
-                  class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer">
+                  class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white hover:text-slate-950 text-xs font-bold rounded-xl transition-all cursor-pointer">
                   Cancel
                 </button>
-                <button type="submit" [disabled]="isUpdatingTeam() || !editTeamName().trim()"
+                <button type="submit" [disabled]="isUpdatingTeam() || !editTeamName().trim() || !editTeamCode().trim()"
                   class="px-5 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-2">
                   @if (isUpdatingTeam()) {
                     <svg class="animate-spin w-4 h-4 text-white" fill="none" viewBox="0 0 24 24">
@@ -2732,6 +2760,134 @@
               </div>
             </form>
           }
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Bulk Import Teams Modal -->
+  @if (isBulkModalOpen()) {
+    <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" (click)="closeBulkModal()">
+      <div class="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col shadow-2xl relative overflow-hidden" (click)="$event.stopPropagation()">
+        <!-- Gradient top line -->
+        <div class="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-violet-500 to-indigo-500"></div>
+
+        <!-- Header -->
+        <div class="px-6 py-5 border-b border-white/5 flex items-center justify-between">
+          <div>
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+              </svg>
+              <span>Bulk Import Teams</span>
+            </h3>
+            <p class="text-xs text-slate-400 mt-1">Upload a spreadsheet or Excel file to register multiple teams at once.</p>
+          </div>
+          <button (click)="closeBulkModal()" class="text-slate-400 hover:text-white transition cursor-pointer">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Content -->
+        <div class="p-6 overflow-y-auto flex-1 flex flex-col gap-5">
+          <!-- Step 1: Download format -->
+          <div class="bg-slate-950/50 border border-white/5 rounded-xl p-4 flex flex-col gap-3">
+            <h4 class="text-xs font-bold text-white uppercase tracking-wider">1. Prepare your spreadsheet</h4>
+            <p class="text-xs text-slate-400 leading-relaxed">
+              Your file must contain a header row with at least a <strong class="text-violet-400">Name</strong> column. Optional columns: <strong class="text-slate-300">Description</strong> and <strong class="text-slate-300">LogoUrl</strong>.
+            </p>
+            <button (click)="downloadTemplate()"
+              class="self-start flex items-center gap-2 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white hover:text-slate-950 text-xs font-bold rounded-lg border border-white/10 transition cursor-pointer">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Download Excel Template
+            </button>
+          </div>
+
+          <!-- Step 2: Upload File -->
+          <div class="flex flex-col gap-2">
+            <h4 class="text-xs font-bold text-white uppercase tracking-wider">2. Upload spreadsheet file</h4>
+            
+            <label class="flex flex-col items-center justify-center border-2 border-dashed border-white/10 hover:border-violet-500/50 rounded-xl p-6 cursor-pointer bg-slate-950/20 hover:bg-slate-950/40 transition">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-slate-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <span class="text-xs font-bold text-white">Choose Excel or CSV File</span>
+              <span class="text-[10px] text-slate-500 mt-1">Supports .xlsx, .xls, .csv</span>
+              <input type="file" (change)="onExcelUpload($event)" accept=".xlsx,.xls,.csv" class="hidden" />
+            </label>
+          </div>
+
+          <!-- Status Banners -->
+          @if (bulkImportError()) {
+            <div class="rounded-xl bg-rose-500/10 border border-rose-500/30 p-3 text-rose-300 text-xs flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+              </svg>
+              {{ bulkImportError() }}
+            </div>
+          }
+          @if (bulkImportSuccess()) {
+            <div class="rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-3 text-emerald-300 text-xs flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+              </svg>
+              {{ bulkImportSuccess() }}
+            </div>
+          }
+
+          <!-- Preview & Progress -->
+          @if (bulkImportTeams().length > 0) {
+            <div class="flex flex-col gap-2">
+              <h4 class="text-xs font-bold text-white uppercase tracking-wider flex justify-between">
+                <span>Preview Teams ({{ bulkImportTeams().length }} found)</span>
+                <span class="text-violet-400 capitalize">Ready</span>
+              </h4>
+              <div class="max-h-36 overflow-y-auto border border-white/5 rounded-xl bg-slate-950/40 p-2 text-xs flex flex-col gap-1.5">
+                @for (t of bulkImportTeams(); track $index) {
+                  <div class="flex items-center justify-between px-2 py-1 bg-slate-900/60 rounded border border-white/5">
+                    <div class="font-bold text-white truncate max-w-[200px]">{{ t.name }}</div>
+                    <div class="text-[10px] text-slate-500 truncate max-w-[150px]">{{ t.description || 'No description' }}</div>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
+          @if (isImportingBulk()) {
+            <div class="flex flex-col gap-2 bg-slate-950/30 p-4 border border-white/5 rounded-xl">
+              <div class="flex justify-between text-xs font-bold text-white">
+                <span>Importing Teams...</span>
+                <span>{{ bulkImportProgress() }}%</span>
+              </div>
+              <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden border border-white/5">
+                <div class="bg-gradient-to-r from-violet-500 to-indigo-500 h-full rounded-full transition-all duration-300" [style.width]="bulkImportProgress() + '%'"></div>
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- Footer Buttons -->
+        <div class="px-6 py-5 border-t border-white/5 flex justify-end gap-3">
+          <button type="button" (click)="closeBulkModal()" [disabled]="isImportingBulk()"
+            class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white hover:text-slate-950 text-xs font-bold rounded-xl transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+            Close
+          </button>
+          <button type="button" (click)="onConfirmBulkImport()" [disabled]="isImportingBulk() || bulkImportTeams().length === 0"
+            class="px-5 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-2">
+            @if (isImportingBulk()) {
+              <svg class="animate-spin w-4 h-4 text-white" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+              </svg>
+              Importing...
+            } @else {
+              Import Teams
+            }
+          </button>
         </div>
       </div>
     </div>
