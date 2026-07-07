@@ -47,6 +47,7 @@ export interface Player {
   user: {
     id: string;
     username: string;
+    avatarUrl?: string | null;
   };
   jerseyNumber: string | null;
   teamId: string;
@@ -142,21 +143,21 @@ export interface WorkspaceMember {
   userId: string;
   role: Role;
   joinedAt: string;
-  user: { id: string; username: string };
+  user: { id: string; username: string; avatarUrl?: string | null };
 }
 
 export interface CreateWorkspacePayload {
   name: string;
   slug?: string;
   description?: string;
-  logoUrl?: string;
+  logoUrl?: string | null;
 }
 
 export interface UpdateWorkspacePayload {
   name?: string;
   slug?: string;
   description?: string;
-  logoUrl?: string;
+  logoUrl?: string | null;
 }
 
 @Injectable({ providedIn: 'root' })

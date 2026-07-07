@@ -3,6 +3,7 @@ import { Router, RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { WorkspaceService, Workspace } from '../../services/workspace.service';
 import { AuthService } from '../../services/auth.service';
+import { UiService } from '../../services/ui.service';
 
 @Component({
   selector: 'app-workspaces',
@@ -15,10 +16,15 @@ export class WorkspacesComponent implements OnInit {
   private workspaceService = inject(WorkspaceService);
   authService = inject(AuthService);
   private router = inject(Router);
+  private uiService = inject(UiService);
 
   workspaces = signal<Workspace[]>([]);
   isLoading = signal(true);
   error = signal('');
+
+  // Dropdown & Upload signals
+  isUserDropdownOpen = signal(false);
+  isUploadingAvatar = signal(false);
 
   ngOnInit() {
     this.workspaceService.getAll().subscribe({
@@ -39,16 +45,48 @@ export class WorkspacesComponent implements OnInit {
     this.router.navigate(['/login']);
   }
 
+  onSignOut() {
+    this.logout();
+  }
+
+  onAvatarUpload(event: any) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    this.isUploadingAvatar.set(true);
+    this.workspaceService.uploadImage(file, 'user').subscribe({
+      next: (res) => {
+        this.authService.updateProfile(undefined, res.url).subscribe({
+          next: () => {
+            this.isUploadingAvatar.set(false);
+            this.uiService.success('Avatar updated successfully!');
+          },
+          error: (err) => {
+            console.error(err);
+            this.isUploadingAvatar.set(false);
+            this.uiService.error('Failed to update profile with new avatar.');
+          }
+        });
+      },
+      error: (err) => {
+        console.error(err);
+        this.isUploadingAvatar.set(false);
+        this.uiService.error('Failed to upload avatar image.');
+      }
+    });
+  }
+
   initials(name: string): string {
-    return name
-      .split(' ')
-      .slice(0, 2)
-      .map((w) => w[0])
-      .join('')
-      .toUpperCase();
+    if (!name) return '';
+    const parts = name.split(' ');
+    if (parts.length > 1) {
+      return parts.slice(0, 2).map(w => w[0]).join('').toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
   }
 
   avatarColor(name: string): string {
+    if (!name) return '#6366f1';
     const colors = [
       '#6366f1', '#8b5cf6', '#ec4899', '#f59e0b',
       '#10b981', '#3b82f6', '#ef4444', '#14b8a6',

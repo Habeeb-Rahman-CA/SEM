@@ -57,9 +57,13 @@
         <!-- Sidebar Workspace Header -->
         <div class="p-6 border-b border-white/5 flex flex-col gap-4">
           <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white text-base font-extrabold shadow-md shrink-0"
-              [style.background]="avatarColor(workspace()!.name)">
-              {{ initials(workspace()!.name) }}
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white text-base font-extrabold shadow-md shrink-0 overflow-hidden"
+              [style.background]="workspace()?.logoUrl ? 'transparent' : avatarColor(workspace()!.name)">
+              @if (workspace()?.logoUrl) {
+                <img [src]="workspace()?.logoUrl" alt="Logo" class="w-full h-full object-cover" />
+              } @else {
+                {{ initials(workspace()!.name) }}
+              }
             </div>
             <div class="min-w-0">
               <h2 class="text-sm font-extrabold text-white truncate">{{ workspace()!.name }}</h2>
@@ -156,43 +160,62 @@
           </div>
           
           <div class="flex items-center gap-4">
-            <div class="flex items-center gap-3 bg-slate-900 border border-white/5 rounded-xl px-4 py-2 group relative">
-              <!-- Profile Icon (Avatar) -->
-              <div class="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center text-white font-bold text-sm shadow-sm select-none overflow-hidden relative">
-                @if (isUploadingAvatar()) {
-                  <div class="absolute inset-0 bg-slate-950/85 flex items-center justify-center">
-                    <svg class="animate-spin h-4.5 w-4.5 text-violet-500" fill="none" viewBox="0 0 24 24">
-                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                  </div>
-                } @else {
-                  @if (authService.currentUser()?.avatarUrl) {
-                    <img [src]="authService.currentUser()?.avatarUrl" alt="Avatar" class="w-full h-full object-cover" />
+            <!-- User Dropdown Menu -->
+            <div class="relative">
+              <button (click)="isUserDropdownOpen.set(!isUserDropdownOpen())"
+                class="flex items-center gap-3 bg-slate-900 hover:bg-slate-800/80 border border-white/5 rounded-xl px-4 py-2 text-left cursor-pointer transition-all">
+                <!-- Profile Icon (Avatar) -->
+                <div class="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center text-white font-bold text-sm shadow-sm select-none overflow-hidden relative">
+                  @if (isUploadingAvatar()) {
+                    <div class="absolute inset-0 bg-slate-950/85 flex items-center justify-center">
+                      <svg class="animate-spin h-4.5 w-4.5 text-violet-500" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                    </div>
                   } @else {
-                    {{ initials(authService.currentUser()?.username || 'U') }}
+                    @if (authService.currentUser()?.avatarUrl) {
+                      <img [src]="authService.currentUser()?.avatarUrl" alt="Avatar" class="w-full h-full object-cover" />
+                    } @else {
+                      {{ initials(authService.currentUser()?.username || 'U') }}
+                    }
+                    <!-- Hover Upload Overlay -->
+                    <label class="absolute inset-0 bg-black/60 opacity-0 hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      <input type="file" class="hidden" accept="image/*" (change)="onAvatarUpload($event)" />
+                    </label>
                   }
-                  <!-- Hover Upload Overlay -->
-                  <label class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    <input type="file" class="hidden" accept="image/*" (change)="onAvatarUpload($event)" />
-                  </label>
-                }
-              </div>
-              <div class="text-left leading-none">
-                <p class="text-xs font-bold text-white">{{ authService.currentUser()?.username }}</p>
-                <p class="text-[9px] text-slate-500 font-mono mt-0.5 capitalize">{{ getCurrentUserRoleSlug() }}</p>
-              </div>
+                </div>
+                <div class="text-left leading-none pr-1">
+                  <p class="text-xs font-bold text-white">{{ authService.currentUser()?.username }}</p>
+                  <p class="text-[9px] text-slate-500 font-mono mt-0.5 capitalize">{{ getCurrentUserRoleSlug() }}</p>
+                </div>
+                <i class="fi fi-rr-angle-small-down text-slate-400 text-sm transition-transform duration-200"
+                  [class.rotate-180]="isUserDropdownOpen()"></i>
+              </button>
+
+              <!-- Dropdown Menu -->
+              @if (isUserDropdownOpen()) {
+                <!-- Backdrop to close -->
+                <div class="fixed inset-0 z-10" (click)="isUserDropdownOpen.set(false)"></div>
+                
+                <div class="absolute right-0 mt-2 w-48 bg-slate-900 border border-white/10 rounded-xl shadow-2xl py-1.5 z-20 animate-fadeIn shrink-0">
+                  <div class="px-4 py-2 border-b border-white/5 mb-1.5">
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Signed in as</p>
+                    <p class="text-xs font-bold text-white truncate mt-0.5">{{ authService.currentUser()?.username }}</p>
+                  </div>
+
+                  <button (click)="onSignOut(); isUserDropdownOpen.set(false)"
+                    class="w-full flex items-center gap-2.5 px-4 py-2 text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-500/5 transition-all cursor-pointer text-left">
+                    <i class="fi fi-rr-sign-out-alt text-sm"></i>
+                    Sign Out
+                  </button>
+                </div>
+              }
             </div>
-            
-            <button (click)="onSignOut()"
-              class="flex items-center gap-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 px-4.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer">
-              <i class="fi fi-rr-sign-out-alt"></i>
-              Sign Out
-            </button>
           </div>
         </header>
 
@@ -410,9 +433,13 @@
                 <div class="px-6 py-4 flex flex-col sm:flex-row sm:items-center gap-4 hover:bg-white/[0.02] transition-colors">
                   <!-- Avatar + Info -->
                   <div class="flex items-center gap-4 flex-1 min-w-0">
-                    <div class="w-9 h-9 rounded-xl flex-shrink-0 flex items-center justify-center text-white text-xs font-bold shadow-inner"
-                      [style.background]="avatarColor(member.user.username)">
-                      {{ initials(member.user.username) }}
+                    <div class="w-9 h-9 rounded-xl flex-shrink-0 flex items-center justify-center text-white text-xs font-bold shadow-inner overflow-hidden"
+                      [style.background]="member.user.avatarUrl ? 'transparent' : avatarColor(member.user.username)">
+                      @if (member.user.avatarUrl) {
+                        <img [src]="member.user.avatarUrl" alt="Avatar" class="w-full h-full object-cover" />
+                      } @else {
+                        {{ initials(member.user.username) }}
+                      }
                     </div>
                     <div class="min-w-0">
                       <p class="text-sm font-semibold text-white truncate">{{ member.user.username }}</p>
@@ -867,9 +894,13 @@
                   <div class="bg-slate-900 border border-white/10 hover:border-violet-500/30 rounded-2xl p-5 flex flex-col gap-4 group transition-all duration-300">
                     <div class="flex items-start gap-4">
                       <!-- Player Avatar -->
-                      <div class="w-12 h-12 rounded-xl flex items-center justify-center text-white text-sm font-extrabold shadow-inner flex-shrink-0"
-                        [style.background]="avatarColor(player.user.username)">
-                        {{ initials(player.user.username) }}
+                      <div class="w-12 h-12 rounded-xl flex items-center justify-center text-white text-sm font-extrabold shadow-inner flex-shrink-0 overflow-hidden"
+                        [style.background]="player.user.avatarUrl ? 'transparent' : avatarColor(player.user.username)">
+                        @if (player.user.avatarUrl) {
+                          <img [src]="player.user.avatarUrl" alt="Avatar" class="w-full h-full object-cover" />
+                        } @else {
+                          {{ initials(player.user.username) }}
+                        }
                       </div>
                       <div class="flex-1 min-w-0">
                         <h4 class="text-sm font-bold text-white truncate">{{ player.user.username }}</h4>

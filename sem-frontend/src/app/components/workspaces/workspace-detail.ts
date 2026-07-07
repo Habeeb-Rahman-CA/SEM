@@ -178,6 +178,7 @@ export class WorkspaceDetailComponent implements OnInit {
   editName = signal('');
   editDescription = signal('');
   editLogoUrl = signal('');
+  isUserDropdownOpen = signal(false);
   isSavingSettings = signal(false);
   settingsError = signal('');
   settingsSuccess = signal('');
@@ -272,7 +273,7 @@ export class WorkspaceDetailComponent implements OnInit {
 
     const logoUrl = this.editLogoUrl().trim();
 
-    this.workspaceService.update(ws.id, { name, description, logoUrl: logoUrl || undefined }).subscribe({
+    this.workspaceService.update(ws.id, { name, description, logoUrl: logoUrl || null }).subscribe({
       next: (updatedWs) => {
         this.isSavingSettings.set(false);
         this.workspace.set(updatedWs);
