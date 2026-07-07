@@ -119,6 +119,7 @@ export class WorkspaceDetailComponent implements OnInit {
   selectedEvent = signal<WorkspaceEvent | null>(null);
   competitions = signal<Competition[]>([]);
   isLoadingCompetitions = signal(false);
+  isCompetitionModalOpen = signal(false);
   
   newCompetitionName = signal('');
   newCompetitionSportId = signal('');
@@ -1383,6 +1384,31 @@ export class WorkspaceDetailComponent implements OnInit {
     });
   }
 
+  onAddCompetition() {
+    this.editingCompetition.set(null);
+    this.newCompetitionName.set('');
+    this.newCompetitionSportId.set('');
+    this.newCompetitionStatus.set('upcoming');
+    this.competitionCreateError.set('');
+    this.competitionCreateSuccess.set('');
+    this.isCompetitionModalOpen.set(true);
+  }
+
+  closeCompetitionModal() {
+    this.isCompetitionModalOpen.set(false);
+    this.editingCompetition.set(null);
+    this.newCompetitionName.set('');
+    this.newCompetitionSportId.set('');
+    this.newCompetitionStatus.set('upcoming');
+    this.competitionCreateError.set('');
+    this.competitionCreateSuccess.set('');
+    this.editCompetitionName.set('');
+    this.editCompetitionSportId.set('');
+    this.editCompetitionStatus.set('upcoming');
+    this.competitionUpdateError.set('');
+    this.competitionUpdateSuccess.set('');
+  }
+
   onCreateCompetition() {
     const name = this.newCompetitionName().trim();
     const sportId = this.newCompetitionSportId();
@@ -1405,10 +1431,8 @@ export class WorkspaceDetailComponent implements OnInit {
       next: (comp) => {
         this.isCreatingCompetition.set(false);
         this.competitionCreateSuccess.set(`Competition "${comp.name}" created successfully!`);
-        this.newCompetitionName.set('');
-        this.newCompetitionSportId.set('');
-        this.newCompetitionStatus.set('upcoming');
         this.competitions.update(prev => [...prev, comp]);
+        setTimeout(() => this.closeCompetitionModal(), 1500);
       },
       error: (err) => {
         this.isCreatingCompetition.set(false);
@@ -1424,10 +1448,11 @@ export class WorkspaceDetailComponent implements OnInit {
     this.editCompetitionStatus.set(comp.status);
     this.competitionUpdateError.set('');
     this.competitionUpdateSuccess.set('');
+    this.isCompetitionModalOpen.set(true);
   }
 
   onCancelEditCompetition() {
-    this.editingCompetition.set(null);
+    this.closeCompetitionModal();
   }
 
   onUpdateCompetition() {
@@ -1454,7 +1479,7 @@ export class WorkspaceDetailComponent implements OnInit {
         this.isUpdatingCompetition.set(false);
         this.competitionUpdateSuccess.set(`Competition updated successfully!`);
         this.competitions.update(prev => prev.map(c => c.id === comp.id ? updated : c));
-        setTimeout(() => this.editingCompetition.set(null), 1000);
+        setTimeout(() => this.closeCompetitionModal(), 1500);
       },
       error: (err) => {
         this.isUpdatingCompetition.set(false);
