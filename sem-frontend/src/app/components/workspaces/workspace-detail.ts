@@ -2,7 +2,7 @@ import { Component, OnInit, signal, inject } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { WorkspaceService, Workspace, WorkspaceMember, Role, Team, Player, WorkspaceEvent, Sport, Competition, CompetitionStage, CompetitionTeam, Match, Venue } from '../../services/workspace.service';
+import { WorkspaceService, Workspace, WorkspaceMember, Role, Team, Player, WorkspaceEvent, Sport, Competition, CompetitionStage, CompetitionTeam, Match, Venue, PointsConfigEntry } from '../../services/workspace.service';
 import { AuthService } from '../../services/auth.service';
 import { UiService } from '../../services/ui.service';
 
@@ -129,6 +129,7 @@ export class WorkspaceDetailComponent implements OnInit {
   newCompetitionName = signal('');
   newCompetitionSportId = signal('');
   newCompetitionStatus = signal('upcoming');
+  newCompetitionPointsConfig = signal<PointsConfigEntry[]>([]);
   isCreatingCompetition = signal(false);
   competitionCreateError = signal('');
   competitionCreateSuccess = signal('');
@@ -137,6 +138,7 @@ export class WorkspaceDetailComponent implements OnInit {
   editCompetitionName = signal('');
   editCompetitionSportId = signal('');
   editCompetitionStatus = signal('upcoming');
+  editCompetitionPointsConfig = signal<PointsConfigEntry[]>([]);
   isUpdatingCompetition = signal(false);
   competitionUpdateError = signal('');
   competitionUpdateSuccess = signal('');
@@ -1728,6 +1730,7 @@ export class WorkspaceDetailComponent implements OnInit {
     this.newCompetitionName.set('');
     this.newCompetitionSportId.set('');
     this.newCompetitionStatus.set('upcoming');
+    this.newCompetitionPointsConfig.set([]);
     this.competitionCreateError.set('');
     this.competitionCreateSuccess.set('');
     this.isCompetitionModalOpen.set(true);
@@ -1739,13 +1742,33 @@ export class WorkspaceDetailComponent implements OnInit {
     this.newCompetitionName.set('');
     this.newCompetitionSportId.set('');
     this.newCompetitionStatus.set('upcoming');
+    this.newCompetitionPointsConfig.set([]);
     this.competitionCreateError.set('');
     this.competitionCreateSuccess.set('');
     this.editCompetitionName.set('');
     this.editCompetitionSportId.set('');
     this.editCompetitionStatus.set('upcoming');
+    this.editCompetitionPointsConfig.set([]);
     this.competitionUpdateError.set('');
     this.competitionUpdateSuccess.set('');
+  }
+
+  addPointsRow(isEdit: boolean) {
+    const cfg = isEdit ? this.editCompetitionPointsConfig : this.newCompetitionPointsConfig;
+    const current = cfg();
+    const nextPosition = current.length > 0 ? Math.max(...current.map(r => r.position)) + 1 : 1;
+    const defaultLabels: Record<number, string> = { 1: 'Winner', 2: 'Runner-up', 3: '3rd Place', 4: '4th Place' };
+    cfg.set([...current, { position: nextPosition, label: defaultLabels[nextPosition] ?? `${nextPosition}th Place`, points: 0 }]);
+  }
+
+  removePointsRow(index: number, isEdit: boolean) {
+    const cfg = isEdit ? this.editCompetitionPointsConfig : this.newCompetitionPointsConfig;
+    cfg.update(rows => rows.filter((_, i) => i !== index));
+  }
+
+  updatePointsRow(index: number, field: keyof PointsConfigEntry, value: any, isEdit: boolean) {
+    const cfg = isEdit ? this.editCompetitionPointsConfig : this.newCompetitionPointsConfig;
+    cfg.update(rows => rows.map((r, i) => i === index ? { ...r, [field]: field === 'points' || field === 'position' ? Number(value) : value } : r));
   }
 
   onCreateCompetition() {
@@ -1760,10 +1783,12 @@ export class WorkspaceDetailComponent implements OnInit {
     this.competitionCreateError.set('');
     this.competitionCreateSuccess.set('');
 
+    const pointsConfig = this.newCompetitionPointsConfig();
     const payload = {
       name,
       sportId,
       status,
+      pointsConfig: pointsConfig.length > 0 ? pointsConfig : null,
     };
 
     this.workspaceService.createCompetition(ws.id, event.id, payload).subscribe({
@@ -1785,6 +1810,7 @@ export class WorkspaceDetailComponent implements OnInit {
     this.editCompetitionName.set(comp.name);
     this.editCompetitionSportId.set(comp.sportId);
     this.editCompetitionStatus.set(comp.status);
+    this.editCompetitionPointsConfig.set(comp.pointsConfig ? [...comp.pointsConfig] : []);
     this.competitionUpdateError.set('');
     this.competitionUpdateSuccess.set('');
     this.isCompetitionModalOpen.set(true);
@@ -1807,10 +1833,12 @@ export class WorkspaceDetailComponent implements OnInit {
     this.competitionUpdateError.set('');
     this.competitionUpdateSuccess.set('');
 
+    const pointsConfig = this.editCompetitionPointsConfig();
     const payload = {
       name,
       sportId,
       status,
+      pointsConfig: pointsConfig.length > 0 ? pointsConfig : null,
     };
 
     this.workspaceService.updateCompetition(ws.id, event.id, comp.id, payload).subscribe({

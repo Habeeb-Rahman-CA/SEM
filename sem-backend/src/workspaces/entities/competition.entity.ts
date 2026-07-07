@@ -37,6 +37,9 @@ export class Competition {
   @Column({ type: 'varchar', length: 20, default: 'upcoming' })
   status: string; // 'upcoming' | 'ongoing' | 'completed' | 'cancelled'
 
+  @Column({ name: 'points_config', type: 'jsonb', nullable: true })
+  pointsConfig: Array<{ position: number; label: string; points: number }> | null;
+
   @OneToMany(() => CompetitionStage, (stage) => stage.competition, { cascade: true })
   stages: CompetitionStage[];
 

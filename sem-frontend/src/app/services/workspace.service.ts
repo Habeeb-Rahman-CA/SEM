@@ -90,6 +90,12 @@ export interface Sport {
   updatedAt: string;
 }
 
+export interface PointsConfigEntry {
+  position: number;
+  label: string;
+  points: number;
+}
+
 export interface Competition {
   id: string;
   name: string;
@@ -97,6 +103,7 @@ export interface Competition {
   sportId: string;
   sport?: Sport;
   status: string; // 'upcoming' | 'ongoing' | 'completed' | 'cancelled'
+  pointsConfig: PointsConfigEntry[] | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -420,7 +427,7 @@ export class WorkspaceService {
   createCompetition(
     workspaceId: string,
     eventId: string,
-    payload: { name: string; sportId: string; status?: string }
+    payload: { name: string; sportId: string; status?: string; pointsConfig?: PointsConfigEntry[] | null }
   ): Observable<Competition> {
     return this.http.post<Competition>(
       `${this.apiUrl}/${workspaceId}/events/${eventId}/competitions`,
@@ -433,7 +440,7 @@ export class WorkspaceService {
     workspaceId: string,
     eventId: string,
     competitionId: string,
-    payload: { name?: string; sportId?: string; status?: string }
+    payload: { name?: string; sportId?: string; status?: string; pointsConfig?: PointsConfigEntry[] | null }
   ): Observable<Competition> {
     return this.http.patch<Competition>(
       `${this.apiUrl}/${workspaceId}/events/${eventId}/competitions/${competitionId}`,

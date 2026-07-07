@@ -832,6 +832,7 @@ export class WorkspacesService implements OnModuleInit {
       eventId,
       sportId: dto.sportId,
       status: dto.status || 'upcoming',
+      pointsConfig: dto.pointsConfig ?? null,
     });
 
     const saved = await this.competitionRepo.save(competition);
@@ -870,6 +871,7 @@ export class WorkspacesService implements OnModuleInit {
 
     if (dto.name !== undefined) competition.name = dto.name;
     if (dto.status !== undefined) competition.status = dto.status;
+    if (dto.pointsConfig !== undefined) competition.pointsConfig = dto.pointsConfig ?? null;
 
     await this.competitionRepo.save(competition);
     const found = await this.competitionRepo.findOne({ where: { id: competitionId }, relations: { sport: true } });

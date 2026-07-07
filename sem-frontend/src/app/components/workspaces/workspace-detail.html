@@ -30,7 +30,7 @@
 
   @if (!isLoading() && !error() && workspace()) {
     <!-- Flex Container for Sidebar + Main Content -->
-    <div class="flex flex-col lg:flex-row min-h-screen bg-slate-950 text-white w-full">
+    <div class="flex flex-col lg:flex-row h-screen overflow-hidden bg-slate-950 text-white w-full">
 
       <!-- Mobile Header / Navbar -->
       <div class="lg:hidden flex items-center justify-between px-6 h-16 border-b border-white/10 bg-slate-900 sticky top-0 z-40">
@@ -1418,6 +1418,23 @@
                             {{ comp.name }}
                           </h4>
 
+                          <!-- Points Config Preview -->
+                          @if (comp.pointsConfig && comp.pointsConfig.length > 0) {
+                            <div class="flex flex-wrap gap-1.5 mt-2">
+                              @for (pt of comp.pointsConfig.slice(0, 4); track pt.position) {
+                                <div class="flex items-center gap-1 text-[10px] bg-amber-500/10 border border-amber-500/20 text-amber-300 rounded-md px-2 py-0.5 font-bold">
+                                  <span class="text-amber-500">#{{ pt.position }}</span>
+                                  <span>{{ pt.label }}</span>
+                                  <span class="text-slate-400">·</span>
+                                  <span>{{ pt.points }}pts</span>
+                                </div>
+                              }
+                              @if (comp.pointsConfig.length > 4) {
+                                <span class="text-[10px] text-slate-500 px-1.5 py-0.5 self-center">+{{ comp.pointsConfig.length - 4 }} more</span>
+                              }
+                            </div>
+                          }
+
                           <button (click)="onSelectCompetition(comp)"
                             class="w-full py-2 bg-violet-600/10 hover:bg-violet-600 text-violet-300 hover:text-white border border-violet-500/20 hover:border-transparent text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 mt-2">
                             Manage Stages & Matches →
@@ -1529,6 +1546,47 @@
                             </select>
                           </div>
 
+                          <!-- Points Structure Configuration -->
+                          <div class="flex flex-col gap-2">
+                            <div class="flex items-center justify-between">
+                              <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Points Structure <span class="text-slate-600">(Optional)</span></label>
+                              <button type="button" (click)="addPointsRow(false)"
+                                class="text-[10px] font-bold text-violet-400 hover:text-white flex items-center gap-1 px-2 py-1 bg-violet-600/10 hover:bg-violet-600/20 border border-violet-500/20 rounded-lg transition-all cursor-pointer">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                                Add Position
+                              </button>
+                            </div>
+                            @if (newCompetitionPointsConfig().length === 0) {
+                              <p class="text-[10px] text-slate-600 italic border border-dashed border-white/10 rounded-xl px-4 py-3 text-center">No points configuration set. Click "Add Position" to configure points for winners, runners-up, etc.</p>
+                            } @else {
+                              <div class="flex flex-col gap-1.5">
+                                <div class="grid grid-cols-12 gap-1.5 text-[9px] font-bold text-slate-500 uppercase tracking-wider px-1 mb-0.5">
+                                  <span class="col-span-2">Rank</span>
+                                  <span class="col-span-5">Label</span>
+                                  <span class="col-span-3">Points</span>
+                                  <span class="col-span-2"></span>
+                                </div>
+                                @for (row of newCompetitionPointsConfig(); track row.position; let i = $index) {
+                                  <div class="grid grid-cols-12 gap-1.5 items-center">
+                                    <input type="number" min="1"
+                                      class="col-span-2 bg-slate-800 border border-white/10 focus:border-violet-500 rounded-lg px-2 py-1.5 text-xs text-white outline-none text-center"
+                                      [ngModel]="row.position" (ngModelChange)="updatePointsRow(i, 'position', $event, false)" [name]="'nPos_' + i" />
+                                    <input type="text" placeholder="e.g. Winner"
+                                      class="col-span-5 bg-slate-800 border border-white/10 focus:border-violet-500 rounded-lg px-2 py-1.5 text-xs text-white placeholder-slate-600 outline-none"
+                                      [ngModel]="row.label" (ngModelChange)="updatePointsRow(i, 'label', $event, false)" [name]="'nLabel_' + i" />
+                                    <input type="number" min="0" step="0.5"
+                                      class="col-span-3 bg-slate-800 border border-white/10 focus:border-violet-500 rounded-lg px-2 py-1.5 text-xs text-white outline-none text-center"
+                                      [ngModel]="row.points" (ngModelChange)="updatePointsRow(i, 'points', $event, false)" [name]="'nPts_' + i" />
+                                    <button type="button" (click)="removePointsRow(i, false)"
+                                      class="col-span-2 flex items-center justify-center w-7 h-7 text-rose-400 hover:text-white hover:bg-rose-600/20 border border-rose-500/10 hover:border-rose-500/30 rounded-lg transition-all cursor-pointer mx-auto">
+                                      <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                                    </button>
+                                  </div>
+                                }
+                              </div>
+                            }
+                          </div>
+
                           <button type="submit" [disabled]="isCreatingCompetition() || !newCompetitionName() || !newCompetitionSportId()"
                             class="w-full py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2">
                             @if (isCreatingCompetition()) {
@@ -1589,6 +1647,47 @@
                               <option value="completed">Completed</option>
                               <option value="cancelled">Cancelled</option>
                             </select>
+                          </div>
+
+                          <!-- Points Structure Configuration (Edit) -->
+                          <div class="flex flex-col gap-2">
+                            <div class="flex items-center justify-between">
+                              <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Points Structure <span class="text-slate-600">(Optional)</span></label>
+                              <button type="button" (click)="addPointsRow(true)"
+                                class="text-[10px] font-bold text-violet-400 hover:text-white flex items-center gap-1 px-2 py-1 bg-violet-600/10 hover:bg-violet-600/20 border border-violet-500/20 rounded-lg transition-all cursor-pointer">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                                Add Position
+                              </button>
+                            </div>
+                            @if (editCompetitionPointsConfig().length === 0) {
+                              <p class="text-[10px] text-slate-600 italic border border-dashed border-white/10 rounded-xl px-4 py-3 text-center">No points configuration. Click "Add Position" to set up a ranking structure.</p>
+                            } @else {
+                              <div class="flex flex-col gap-1.5">
+                                <div class="grid grid-cols-12 gap-1.5 text-[9px] font-bold text-slate-500 uppercase tracking-wider px-1 mb-0.5">
+                                  <span class="col-span-2">Rank</span>
+                                  <span class="col-span-5">Label</span>
+                                  <span class="col-span-3">Points</span>
+                                  <span class="col-span-2"></span>
+                                </div>
+                                @for (row of editCompetitionPointsConfig(); track row.position; let i = $index) {
+                                  <div class="grid grid-cols-12 gap-1.5 items-center">
+                                    <input type="number" min="1"
+                                      class="col-span-2 bg-slate-800 border border-white/10 focus:border-violet-500 rounded-lg px-2 py-1.5 text-xs text-white outline-none text-center"
+                                      [ngModel]="row.position" (ngModelChange)="updatePointsRow(i, 'position', $event, true)" [name]="'ePos_' + i" />
+                                    <input type="text" placeholder="e.g. Runner-up"
+                                      class="col-span-5 bg-slate-800 border border-white/10 focus:border-violet-500 rounded-lg px-2 py-1.5 text-xs text-white placeholder-slate-600 outline-none"
+                                      [ngModel]="row.label" (ngModelChange)="updatePointsRow(i, 'label', $event, true)" [name]="'eLabel_' + i" />
+                                    <input type="number" min="0" step="0.5"
+                                      class="col-span-3 bg-slate-800 border border-white/10 focus:border-violet-500 rounded-lg px-2 py-1.5 text-xs text-white outline-none text-center"
+                                      [ngModel]="row.points" (ngModelChange)="updatePointsRow(i, 'points', $event, true)" [name]="'ePts_' + i" />
+                                    <button type="button" (click)="removePointsRow(i, true)"
+                                      class="col-span-2 flex items-center justify-center w-7 h-7 text-rose-400 hover:text-white hover:bg-rose-600/20 border border-rose-500/10 hover:border-rose-500/30 rounded-lg transition-all cursor-pointer mx-auto">
+                                      <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                                    </button>
+                                  </div>
+                                }
+                              </div>
+                            }
                           </div>
 
                           <div class="flex gap-2">
