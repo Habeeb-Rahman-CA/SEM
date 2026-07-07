@@ -1,5 +1,6 @@
 import { Component, OnInit, signal, inject } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { WorkspaceService, Workspace, WorkspaceMember, Role, Team, Player, WorkspaceEvent, Sport, Competition, CompetitionStage, CompetitionTeam, Match, Venue, PointsConfigEntry } from '../../services/workspace.service';
@@ -223,6 +224,12 @@ export class WorkspaceDetailComponent implements OnInit {
   isGeneratingFixtures = signal(false);
   generateFixturesError = signal('');
   generateFixturesSuccess = signal('');
+
+  // Combined Stage & Team Setup Modal
+  isGenerateFixturesModalOpen = signal(false);
+  selectedFixtureTeamIds = signal<string[]>([]);
+  isGeneratingFixturesSubmit = signal(false);
+  generateFixturesSubmitError = signal('');
 
   // ── Workspace Edit State ───────────────────────────────────────────────────
   editName = signal('');
@@ -1914,6 +1921,9 @@ export class WorkspaceDetailComponent implements OnInit {
       next: (stages) => {
         this.stages.set(stages);
         this.isLoadingStages.set(false);
+        if (stages.length > 0) {
+          this.onSelectStage(stages[0]);
+        }
       },
       error: (err) => {
         console.error('Failed to load stages', err);
@@ -2713,5 +2723,162 @@ export class WorkspaceDetailComponent implements OnInit {
         this.uiService.error('Event logo upload failed.');
       }
     });
+  }
+
+  openGenerateFixturesModal() {
+    const comp = this.selectedCompetition();
+    if (!comp) return;
+
+    const currentTeamIds = this.competitionTeams().map(ct => ct.teamId);
+    this.selectedFixtureTeamIds.set(currentTeamIds);
+
+    const existingStages = this.stages();
+    if (existingStages.length > 0) {
+      const stage = existingStages[0];
+      this.newStageName.set(stage.name);
+      this.newStageType.set(stage.type as any);
+      this.newStageWinPoint.set(stage.config?.winPoint ?? 3);
+      this.newStageDrawPoint.set(stage.config?.drawPoint ?? 1);
+      this.newStageTwoLegged.set(stage.config?.twoLegged ?? false);
+      this.newStageGroupsCount.set(stage.config?.groupsCount ?? 2);
+      this.newStageAdvancingCount.set(stage.config?.advancingCount ?? 2);
+      this.newStageGamesPerTeam.set(stage.config?.gamesPerTeam ?? 3);
+    } else {
+      this.newStageName.set('Main Stage');
+      this.newStageType.set('group');
+      this.newStageWinPoint.set(3);
+      this.newStageDrawPoint.set(1);
+      this.newStageTwoLegged.set(false);
+      this.newStageGroupsCount.set(2);
+      this.newStageAdvancingCount.set(2);
+      this.newStageGamesPerTeam.set(3);
+    }
+
+    this.generateFixturesSubmitError.set('');
+    this.isGenerateFixturesModalOpen.set(true);
+  }
+
+  closeGenerateFixturesModal() {
+    this.isGenerateFixturesModalOpen.set(false);
+  }
+
+  toggleFixtureTeam(teamId: string) {
+    this.selectedFixtureTeamIds.update(ids => {
+      if (ids.includes(teamId)) {
+        return ids.filter(id => id !== teamId);
+      } else {
+        return [...ids, teamId];
+      }
+    });
+  }
+
+  async onGenerateFixturesSubmit() {
+    const ws = this.workspace();
+    const event = this.selectedEvent();
+    const comp = this.selectedCompetition();
+    if (!ws || !event || !comp) return;
+
+    const selectedIds = this.selectedFixtureTeamIds();
+    if (selectedIds.length < 2) {
+      this.generateFixturesSubmitError.set('Please select at least 2 teams to participate.');
+      return;
+    }
+
+    const stageName = this.newStageName().trim();
+    if (!stageName) {
+      this.generateFixturesSubmitError.set('Please enter a stage name.');
+      return;
+    }
+
+    const existingStages = this.stages();
+    if (existingStages.length > 0) {
+      const confirmed = await this.uiService.confirm({
+        title: 'Regenerate Fixtures',
+        message: 'This will DELETE any existing matches and regenerate all fixtures randomly. Continue?',
+        confirmText: 'Regenerate',
+        type: 'warning',
+      });
+      if (!confirmed) return;
+    }
+
+    this.isGeneratingFixturesSubmit.set(true);
+    this.generateFixturesSubmitError.set('');
+
+    try {
+      // 1. Sync teams in the competition
+      const currentTeams = this.competitionTeams();
+      const currentIds = currentTeams.map(ct => ct.teamId);
+
+      const teamsToAdd = selectedIds.filter(id => !currentIds.includes(id));
+      const teamsToRemove = currentTeams.filter(ct => !selectedIds.includes(ct.teamId));
+
+      for (const ct of teamsToRemove) {
+        await firstValueFrom(this.workspaceService.removeTeamFromCompetition(ws.id, event.id, comp.id, ct.teamId));
+      }
+
+      for (const teamId of teamsToAdd) {
+        await firstValueFrom(this.workspaceService.addTeamToCompetition(ws.id, event.id, comp.id, teamId));
+      }
+
+      // Refresh competition teams local state
+      const refreshedTeams = await firstValueFrom(this.workspaceService.getCompetitionTeams(ws.id, event.id, comp.id));
+      this.competitionTeams.set(refreshedTeams);
+
+      // 2. Setup stage (create or update)
+      const stagePayload: any = {
+        name: stageName,
+        type: this.newStageType(),
+        sequence: 1,
+        config: {}
+      };
+
+      if (this.newStageType() === 'group') {
+        stagePayload.config = {
+          winPoint: this.newStageWinPoint(),
+          drawPoint: this.newStageDrawPoint(),
+          gamesPerTeam: this.newStageGamesPerTeam()
+        };
+      } else if (this.newStageType() === 'knockout') {
+        stagePayload.config = {
+          twoLegged: this.newStageTwoLegged()
+        };
+      } else if (this.newStageType() === 'group_knockout') {
+        stagePayload.config = {
+          winPoint: this.newStageWinPoint(),
+          drawPoint: this.newStageDrawPoint(),
+          gamesPerTeam: this.newStageGamesPerTeam(),
+          twoLegged: this.newStageTwoLegged(),
+          groupsCount: this.newStageGroupsCount(),
+          advancingCount: this.newStageAdvancingCount()
+        };
+      }
+
+      if (existingStages.length > 0) {
+        await firstValueFrom(
+          this.workspaceService.updateStage(ws.id, event.id, comp.id, existingStages[0].id, stagePayload)
+        );
+      } else {
+        await firstValueFrom(
+          this.workspaceService.createStage(ws.id, event.id, comp.id, stagePayload)
+        );
+      }
+
+      // 3. Generate fixtures
+      const result = await firstValueFrom(
+        this.workspaceService.generateFixtures(ws.id, event.id, comp.id)
+      );
+
+      this.uiService.success(`Fixtures generated successfully! Created ${result.matchesCreated} matches.`);
+
+      // 4. Reload stages (this will auto-select the stage and load its matches)
+      this.loadStages(comp.id);
+      
+      this.isGeneratingFixturesSubmit.set(false);
+      this.closeGenerateFixturesModal();
+    } catch (err: any) {
+      console.error('Failed to setup fixtures', err);
+      this.generateFixturesSubmitError.set(err.error?.message ?? 'Failed to setup fixtures and generate matches.');
+      this.isGeneratingFixturesSubmit.set(false);
+    }
   }
 }
