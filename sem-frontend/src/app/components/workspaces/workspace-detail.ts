@@ -36,6 +36,7 @@ export class WorkspaceDetailComponent implements OnInit {
 
   // ── Teams State ────────────────────────────────────────────────────────────
   teams = signal<Team[]>([]);
+  isTeamModalOpen = signal(false);
   newTeamName = signal('');
   newTeamDescription = signal('');
   newTeamLogoUrl = signal('');
@@ -467,6 +468,16 @@ export class WorkspaceDetailComponent implements OnInit {
     });
   }
 
+  onAddTeam() {
+    this.editingTeam.set(null);
+    this.newTeamName.set('');
+    this.newTeamDescription.set('');
+    this.newTeamLogoUrl.set('');
+    this.teamCreateError.set('');
+    this.teamCreateSuccess.set('');
+    this.isTeamModalOpen.set(true);
+  }
+
   onCreateTeam() {
     const name = this.newTeamName().trim();
     const description = this.newTeamDescription().trim();
@@ -486,6 +497,7 @@ export class WorkspaceDetailComponent implements OnInit {
         this.newTeamDescription.set('');
         this.newTeamLogoUrl.set('');
         this.teams.update(prev => [...prev, team]);
+        setTimeout(() => this.closeTeamModal(), 1000);
       },
       error: (err) => {
         this.isCreatingTeam.set(false);
@@ -501,10 +513,20 @@ export class WorkspaceDetailComponent implements OnInit {
     this.editTeamLogoUrl.set(team.logoUrl ?? '');
     this.teamUpdateError.set('');
     this.teamUpdateSuccess.set('');
+    this.isTeamModalOpen.set(true);
   }
 
   onCancelEditTeam() {
+    this.closeTeamModal();
+  }
+
+  closeTeamModal() {
+    this.isTeamModalOpen.set(false);
     this.editingTeam.set(null);
+    this.teamCreateError.set('');
+    this.teamCreateSuccess.set('');
+    this.teamUpdateError.set('');
+    this.teamUpdateSuccess.set('');
   }
 
   onUpdateTeam() {
@@ -524,7 +546,7 @@ export class WorkspaceDetailComponent implements OnInit {
         this.isUpdatingTeam.set(false);
         this.teamUpdateSuccess.set(`Team updated successfully!`);
         this.teams.update(prev => prev.map(t => t.id === team.id ? updated : t));
-        setTimeout(() => this.editingTeam.set(null), 1000);
+        setTimeout(() => this.closeTeamModal(), 1000);
       },
       error: (err) => {
         this.isUpdatingTeam.set(false);
