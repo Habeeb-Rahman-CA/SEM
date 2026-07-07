@@ -1460,258 +1460,6 @@
                 }
               </div>
 
-              <!-- Add/Update Competition Modal -->
-              @if (isCompetitionModalOpen()) {
-                <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" (click)="closeCompetitionModal()">
-                  <div class="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col shadow-2xl relative overflow-hidden" (click)="$event.stopPropagation()">
-                    <!-- Gradient top line -->
-                    <div class="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-violet-500 to-indigo-500"></div>
-
-                    <!-- Header -->
-                    <div class="px-6 py-5 border-b border-white/5 flex items-center justify-between">
-                      <div>
-                        <h3 class="text-base font-bold text-white flex items-center gap-2">
-                          @if (editingCompetition()) {
-                            <span>Edit Competition:</span>
-                            <span class="text-violet-400">{{ editingCompetition()?.name }}</span>
-                          } @else {
-                            <span>Create New Competition</span>
-                          }
-                        </h3>
-                        <p class="text-xs text-slate-400 mt-1">
-                          @if (editingCompetition()) {
-                            Update the competition details and configuration.
-                          } @else {
-                            Add a new competition to this event.
-                          }
-                        </p>
-                      </div>
-                      <button (click)="closeCompetitionModal()" class="text-slate-400 hover:text-white transition cursor-pointer">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
-                        </svg>
-                      </button>
-                    </div>
-
-                    <!-- Form Content -->
-                    <div class="p-6 overflow-y-auto flex-1">
-                      @if (!editingCompetition()) {
-                        <!-- Create Mode Messages -->
-                        @if (competitionCreateSuccess()) {
-                          <div class="mb-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-3 text-emerald-300 text-xs flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                            </svg>
-                            {{ competitionCreateSuccess() }}
-                          </div>
-                        }
-                        @if (competitionCreateError()) {
-                          <div class="mb-4 rounded-xl bg-rose-500/10 border border-rose-500/30 p-3 text-rose-300 text-xs flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
-                            </svg>
-                            {{ competitionCreateError() }}
-                          </div>
-                        }
-
-                        <form (submit)="onCreateCompetition(); $event.preventDefault()" class="flex flex-col gap-4">
-                          <div class="flex flex-col gap-1.5 text-left">
-                            <label for="modal-c-name" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Competition Name <span class="text-rose-400">*</span></label>
-                            <input id="modal-c-name" type="text" placeholder="e.g. Under-19 Boys Singles" autocomplete="off"
-                              class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition-all w-full"
-                              [ngModel]="newCompetitionName()" (ngModelChange)="newCompetitionName.set($event)" name="cName" required />
-                          </div>
-
-                          <div class="flex flex-col gap-1.5 text-left">
-                            <label for="modal-c-sport" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sport <span class="text-rose-400">*</span></label>
-                            <select id="modal-c-sport"
-                              class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-all w-full"
-                              [ngModel]="newCompetitionSportId()" (ngModelChange)="newCompetitionSportId.set($event)" name="cSport" required>
-                              <option value="" disabled>Select a Sport</option>
-                              @for (sport of sports(); track sport.id) {
-                                <option [value]="sport.id">{{ sport.name }}</option>
-                              }
-                            </select>
-                          </div>
-
-                          <div class="flex flex-col gap-1.5 text-left">
-                            <label for="modal-c-status" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Status</label>
-                            <select id="modal-c-status"
-                              class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-all w-full"
-                              [ngModel]="newCompetitionStatus()" (ngModelChange)="newCompetitionStatus.set($event)" name="cStatus">
-                              <option value="upcoming">Upcoming</option>
-                              <option value="ongoing">Ongoing</option>
-                              <option value="completed">Completed</option>
-                              <option value="cancelled">Cancelled</option>
-                            </select>
-                          </div>
-
-                          <!-- Points Structure Configuration -->
-                          <div class="flex flex-col gap-2">
-                            <div class="flex items-center justify-between">
-                              <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Points Structure <span class="text-slate-600">(Optional)</span></label>
-                              <button type="button" (click)="addPointsRow(false)"
-                                class="text-[10px] font-bold text-violet-400 hover:text-white flex items-center gap-1 px-2 py-1 bg-violet-600/10 hover:bg-violet-600/20 border border-violet-500/20 rounded-lg transition-all cursor-pointer">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-                                Add Position
-                              </button>
-                            </div>
-                            @if (newCompetitionPointsConfig().length === 0) {
-                              <p class="text-[10px] text-slate-600 italic border border-dashed border-white/10 rounded-xl px-4 py-3 text-center">No points configuration set. Click "Add Position" to configure points for winners, runners-up, etc.</p>
-                            } @else {
-                              <div class="flex flex-col gap-1.5">
-                                <div class="grid grid-cols-12 gap-1.5 text-[9px] font-bold text-slate-500 uppercase tracking-wider px-1 mb-0.5">
-                                  <span class="col-span-2">Rank</span>
-                                  <span class="col-span-5">Label</span>
-                                  <span class="col-span-3">Points</span>
-                                  <span class="col-span-2"></span>
-                                </div>
-                                @for (row of newCompetitionPointsConfig(); track row.position; let i = $index) {
-                                  <div class="grid grid-cols-12 gap-1.5 items-center">
-                                    <input type="number" min="1"
-                                      class="col-span-2 bg-slate-800 border border-white/10 focus:border-violet-500 rounded-lg px-2 py-1.5 text-xs text-white outline-none text-center"
-                                      [ngModel]="row.position" (ngModelChange)="updatePointsRow(i, 'position', $event, false)" [name]="'nPos_' + i" />
-                                    <input type="text" placeholder="e.g. Winner"
-                                      class="col-span-5 bg-slate-800 border border-white/10 focus:border-violet-500 rounded-lg px-2 py-1.5 text-xs text-white placeholder-slate-600 outline-none"
-                                      [ngModel]="row.label" (ngModelChange)="updatePointsRow(i, 'label', $event, false)" [name]="'nLabel_' + i" />
-                                    <input type="number" min="0" step="0.5"
-                                      class="col-span-3 bg-slate-800 border border-white/10 focus:border-violet-500 rounded-lg px-2 py-1.5 text-xs text-white outline-none text-center"
-                                      [ngModel]="row.points" (ngModelChange)="updatePointsRow(i, 'points', $event, false)" [name]="'nPts_' + i" />
-                                    <button type="button" (click)="removePointsRow(i, false)"
-                                      class="col-span-2 flex items-center justify-center w-7 h-7 text-rose-400 hover:text-white hover:bg-rose-600/20 border border-rose-500/10 hover:border-rose-500/30 rounded-lg transition-all cursor-pointer mx-auto">
-                                      <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
-                                    </button>
-                                  </div>
-                                }
-                              </div>
-                            }
-                          </div>
-
-                          <button type="submit" [disabled]="isCreatingCompetition() || !newCompetitionName() || !newCompetitionSportId()"
-                            class="w-full py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2">
-                            @if (isCreatingCompetition()) {
-                              <svg class="animate-spin w-4 h-4 text-white" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                              </svg>
-                              Creating...
-                            } @else { Create Competition }
-                          </button>
-                        </form>
-                      } @else {
-                        <!-- Edit Mode Messages -->
-                        @if (competitionUpdateSuccess()) {
-                          <div class="mb-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-3 text-emerald-300 text-xs flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                            </svg>
-                            {{ competitionUpdateSuccess() }}
-                          </div>
-                        }
-                        @if (competitionUpdateError()) {
-                          <div class="mb-4 rounded-xl bg-rose-500/10 border border-rose-500/30 p-3 text-rose-300 text-xs flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
-                            </svg>
-                            {{ competitionUpdateError() }}
-                          </div>
-                        }
-
-                        <form (submit)="onUpdateCompetition(); $event.preventDefault()" class="flex flex-col gap-4">
-                          <div class="flex flex-col gap-1.5 text-left">
-                            <label for="edit-modal-c-name" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Competition Name <span class="text-rose-400">*</span></label>
-                            <input id="edit-modal-c-name" type="text" placeholder="e.g. Under-19 Boys Singles" autocomplete="off"
-                              class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition-all w-full"
-                              [ngModel]="editCompetitionName()" (ngModelChange)="editCompetitionName.set($event)" name="editCName" required />
-                          </div>
-
-                          <div class="flex flex-col gap-1.5 text-left">
-                            <label for="edit-modal-c-sport" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sport <span class="text-rose-400">*</span></label>
-                            <select id="edit-modal-c-sport"
-                              class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-all w-full"
-                              [ngModel]="editCompetitionSportId()" (ngModelChange)="editCompetitionSportId.set($event)" name="editCSport" required>
-                              <option value="" disabled>Select a Sport</option>
-                              @for (sport of sports(); track sport.id) {
-                                <option [value]="sport.id">{{ sport.name }}</option>
-                              }
-                            </select>
-                          </div>
-
-                          <div class="flex flex-col gap-1.5 text-left">
-                            <label for="edit-modal-c-status" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Status</label>
-                            <select id="edit-modal-c-status"
-                              class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-all w-full"
-                              [ngModel]="editCompetitionStatus()" (ngModelChange)="editCompetitionStatus.set($event)" name="editCStatus">
-                              <option value="upcoming">Upcoming</option>
-                              <option value="ongoing">Ongoing</option>
-                              <option value="completed">Completed</option>
-                              <option value="cancelled">Cancelled</option>
-                            </select>
-                          </div>
-
-                          <!-- Points Structure Configuration (Edit) -->
-                          <div class="flex flex-col gap-2">
-                            <div class="flex items-center justify-between">
-                              <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Points Structure <span class="text-slate-600">(Optional)</span></label>
-                              <button type="button" (click)="addPointsRow(true)"
-                                class="text-[10px] font-bold text-violet-400 hover:text-white flex items-center gap-1 px-2 py-1 bg-violet-600/10 hover:bg-violet-600/20 border border-violet-500/20 rounded-lg transition-all cursor-pointer">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-                                Add Position
-                              </button>
-                            </div>
-                            @if (editCompetitionPointsConfig().length === 0) {
-                              <p class="text-[10px] text-slate-600 italic border border-dashed border-white/10 rounded-xl px-4 py-3 text-center">No points configuration. Click "Add Position" to set up a ranking structure.</p>
-                            } @else {
-                              <div class="flex flex-col gap-1.5">
-                                <div class="grid grid-cols-12 gap-1.5 text-[9px] font-bold text-slate-500 uppercase tracking-wider px-1 mb-0.5">
-                                  <span class="col-span-2">Rank</span>
-                                  <span class="col-span-5">Label</span>
-                                  <span class="col-span-3">Points</span>
-                                  <span class="col-span-2"></span>
-                                </div>
-                                @for (row of editCompetitionPointsConfig(); track row.position; let i = $index) {
-                                  <div class="grid grid-cols-12 gap-1.5 items-center">
-                                    <input type="number" min="1"
-                                      class="col-span-2 bg-slate-800 border border-white/10 focus:border-violet-500 rounded-lg px-2 py-1.5 text-xs text-white outline-none text-center"
-                                      [ngModel]="row.position" (ngModelChange)="updatePointsRow(i, 'position', $event, true)" [name]="'ePos_' + i" />
-                                    <input type="text" placeholder="e.g. Runner-up"
-                                      class="col-span-5 bg-slate-800 border border-white/10 focus:border-violet-500 rounded-lg px-2 py-1.5 text-xs text-white placeholder-slate-600 outline-none"
-                                      [ngModel]="row.label" (ngModelChange)="updatePointsRow(i, 'label', $event, true)" [name]="'eLabel_' + i" />
-                                    <input type="number" min="0" step="0.5"
-                                      class="col-span-3 bg-slate-800 border border-white/10 focus:border-violet-500 rounded-lg px-2 py-1.5 text-xs text-white outline-none text-center"
-                                      [ngModel]="row.points" (ngModelChange)="updatePointsRow(i, 'points', $event, true)" [name]="'ePts_' + i" />
-                                    <button type="button" (click)="removePointsRow(i, true)"
-                                      class="col-span-2 flex items-center justify-center w-7 h-7 text-rose-400 hover:text-white hover:bg-rose-600/20 border border-rose-500/10 hover:border-rose-500/30 rounded-lg transition-all cursor-pointer mx-auto">
-                                      <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
-                                    </button>
-                                  </div>
-                                }
-                              </div>
-                            }
-                          </div>
-
-                          <div class="flex gap-2">
-                            <button type="button" (click)="closeCompetitionModal()"
-                              class="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-white hover:text-slate-950 text-xs font-bold rounded-xl transition-all cursor-pointer">
-                              Cancel
-                            </button>
-                            <button type="submit" [disabled]="isUpdatingCompetition() || !editCompetitionName() || !editCompetitionSportId()"
-                              class="flex-1 py-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2">
-                              @if (isUpdatingCompetition()) {
-                                <svg class="animate-spin w-4 h-4 text-white" fill="none" viewBox="0 0 24 24">
-                                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                                </svg>
-                                Saving...
-                              } @else { Save }
-                            </button>
-                          </div>
-                        </form>
-                      }
-                    </div>
-                  </div>
-                </div>
-              }
             } @else {
               <!-- Stages and Matches Management Interface -->
               <div class="flex flex-col gap-6 text-left">
@@ -3137,6 +2885,263 @@
       }
 
       </main>
+    </div>
+  }
+
+  <!-- Add/Update Competition Modal -->
+  @if (isCompetitionModalOpen()) {
+    <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" (click)="closeCompetitionModal()">
+      <div class="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col shadow-2xl relative overflow-hidden" (click)="$event.stopPropagation()">
+        <!-- Gradient top line -->
+        <div class="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-violet-500 to-indigo-500"></div>
+
+        <!-- Header -->
+        <div class="px-6 py-5 border-b border-white/5 flex items-center justify-between">
+          <div>
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+              @if (editingCompetition()) {
+                <span>Edit Competition:</span>
+                <span class="text-violet-400">{{ editingCompetition()?.name }}</span>
+              } @else {
+                <span>Create New Competition</span>
+              }
+            </h3>
+            <p class="text-xs text-slate-400 mt-1">
+              @if (editingCompetition()) {
+                Update the competition details and configuration.
+              } @else {
+                Add a new competition to this event.
+              }
+            </p>
+          </div>
+          <button (click)="closeCompetitionModal()" class="text-slate-400 hover:text-white transition cursor-pointer">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Form Content -->
+        <div class="p-6 overflow-y-auto flex-1">
+          @if (!editingCompetition()) {
+            <!-- Create Mode -->
+            @if (competitionCreateSuccess()) {
+              <div class="mb-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-3 text-emerald-300 text-xs flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                </svg>
+                {{ competitionCreateSuccess() }}
+              </div>
+            }
+            @if (competitionCreateError()) {
+              <div class="mb-4 rounded-xl bg-rose-500/10 border border-rose-500/30 p-3 text-rose-300 text-xs flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                </svg>
+                {{ competitionCreateError() }}
+              </div>
+            }
+            <form (submit)="onCreateCompetition(); $event.preventDefault()" class="flex flex-col gap-4">
+              <div class="flex flex-col gap-1.5">
+                <label for="comp-name" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Competition Name <span class="text-rose-400">*</span></label>
+                <input id="comp-name" type="text" placeholder="e.g. Under-19 Boys Singles" autocomplete="off"
+                  class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 outline-none transition-all"
+                  [ngModel]="newCompetitionName()" (ngModelChange)="newCompetitionName.set($event)" name="cName" required />
+              </div>
+
+              <div class="flex flex-col gap-1.5">
+                <label for="comp-sport" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sport <span class="text-rose-400">*</span></label>
+                <select id="comp-sport"
+                  class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-sm text-white outline-none transition-all"
+                  [ngModel]="newCompetitionSportId()" (ngModelChange)="newCompetitionSportId.set($event)" name="cSport" required>
+                  <option value="" disabled>Select a Sport</option>
+                  @for (sport of sports(); track sport.id) {
+                    <option [value]="sport.id">{{ sport.name }}</option>
+                  }
+                </select>
+              </div>
+
+              <div class="flex flex-col gap-1.5">
+                <label for="comp-status" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Status</label>
+                <select id="comp-status"
+                  class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-sm text-white outline-none transition-all"
+                  [ngModel]="newCompetitionStatus()" (ngModelChange)="newCompetitionStatus.set($event)" name="cStatus">
+                  <option value="upcoming">Upcoming</option>
+                  <option value="ongoing">Ongoing</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </div>
+
+              <!-- Points Structure -->
+              <div class="flex flex-col gap-2">
+                <div class="flex items-center justify-between">
+                  <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Points Structure <span class="text-slate-600">(Optional)</span></label>
+                  <button type="button" (click)="addPointsRow(false)"
+                    class="text-[10px] font-bold text-violet-400 hover:text-white flex items-center gap-1 px-2 py-1 bg-violet-600/10 hover:bg-violet-600/20 border border-violet-500/20 rounded-lg transition-all cursor-pointer">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                    Add Position
+                  </button>
+                </div>
+                @if (newCompetitionPointsConfig().length === 0) {
+                  <p class="text-[10px] text-slate-600 italic border border-dashed border-white/10 rounded-xl px-4 py-3 text-center">No points configuration. Click "Add Position" to configure points for winners, runners-up, etc.</p>
+                } @else {
+                  <div class="flex flex-col gap-1.5">
+                    <div class="grid grid-cols-12 gap-1.5 text-[9px] font-bold text-slate-500 uppercase tracking-wider px-1 mb-0.5">
+                      <span class="col-span-2">Rank</span>
+                      <span class="col-span-5">Label</span>
+                      <span class="col-span-3">Points</span>
+                      <span class="col-span-2"></span>
+                    </div>
+                    @for (row of newCompetitionPointsConfig(); track row.position; let i = $index) {
+                      <div class="grid grid-cols-12 gap-1.5 items-center">
+                        <input type="number" min="1"
+                          class="col-span-2 bg-slate-800 border border-white/10 focus:border-violet-500 rounded-lg px-2 py-1.5 text-xs text-white outline-none text-center"
+                          [ngModel]="row.position" (ngModelChange)="updatePointsRow(i, 'position', $event, false)" [name]="'nPos_' + i" />
+                        <input type="text" placeholder="e.g. Winner"
+                          class="col-span-5 bg-slate-800 border border-white/10 focus:border-violet-500 rounded-lg px-2 py-1.5 text-xs text-white placeholder-slate-600 outline-none"
+                          [ngModel]="row.label" (ngModelChange)="updatePointsRow(i, 'label', $event, false)" [name]="'nLabel_' + i" />
+                        <input type="number" min="0" step="0.5"
+                          class="col-span-3 bg-slate-800 border border-white/10 focus:border-violet-500 rounded-lg px-2 py-1.5 text-xs text-white outline-none text-center"
+                          [ngModel]="row.points" (ngModelChange)="updatePointsRow(i, 'points', $event, false)" [name]="'nPts_' + i" />
+                        <button type="button" (click)="removePointsRow(i, false)"
+                          class="col-span-2 flex items-center justify-center w-7 h-7 text-rose-400 hover:text-white hover:bg-rose-600/20 border border-rose-500/10 hover:border-rose-500/30 rounded-lg transition-all cursor-pointer mx-auto">
+                          <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                        </button>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+
+              <div class="flex items-center justify-end gap-3 mt-4 pt-4 border-t border-white/5">
+                <button type="button" (click)="closeCompetitionModal()"
+                  class="px-5 py-2.5 bg-slate-800 hover:bg-slate-750 text-white text-xs font-bold rounded-xl transition-all cursor-pointer">
+                  Cancel
+                </button>
+                <button type="submit" [disabled]="isCreatingCompetition() || !newCompetitionName() || !newCompetitionSportId()"
+                  class="px-5 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2">
+                  @if (isCreatingCompetition()) {
+                    <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                    </svg>
+                    Creating...
+                  } @else { Create Competition }
+                </button>
+              </div>
+            </form>
+          } @else {
+            <!-- Edit Mode -->
+            @if (competitionUpdateSuccess()) {
+              <div class="mb-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-3 text-emerald-300 text-xs flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                </svg>
+                {{ competitionUpdateSuccess() }}
+              </div>
+            }
+            @if (competitionUpdateError()) {
+              <div class="mb-4 rounded-xl bg-rose-500/10 border border-rose-500/30 p-3 text-rose-300 text-xs flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                </svg>
+                {{ competitionUpdateError() }}
+              </div>
+            }
+            <form (submit)="onUpdateCompetition(); $event.preventDefault()" class="flex flex-col gap-4">
+              <div class="flex flex-col gap-1.5">
+                <label for="edit-comp-name" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Competition Name <span class="text-rose-400">*</span></label>
+                <input id="edit-comp-name" type="text" placeholder="e.g. Under-19 Boys Singles" autocomplete="off"
+                  class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 outline-none transition-all"
+                  [ngModel]="editCompetitionName()" (ngModelChange)="editCompetitionName.set($event)" name="editCName" required />
+              </div>
+
+              <div class="flex flex-col gap-1.5">
+                <label for="edit-comp-sport" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sport <span class="text-rose-400">*</span></label>
+                <select id="edit-comp-sport"
+                  class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-sm text-white outline-none transition-all"
+                  [ngModel]="editCompetitionSportId()" (ngModelChange)="editCompetitionSportId.set($event)" name="editCSport" required>
+                  <option value="" disabled>Select a Sport</option>
+                  @for (sport of sports(); track sport.id) {
+                    <option [value]="sport.id">{{ sport.name }}</option>
+                  }
+                </select>
+              </div>
+
+              <div class="flex flex-col gap-1.5">
+                <label for="edit-comp-status" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Status</label>
+                <select id="edit-comp-status"
+                  class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-sm text-white outline-none transition-all"
+                  [ngModel]="editCompetitionStatus()" (ngModelChange)="editCompetitionStatus.set($event)" name="editCStatus">
+                  <option value="upcoming">Upcoming</option>
+                  <option value="ongoing">Ongoing</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </div>
+
+              <!-- Points Structure (Edit) -->
+              <div class="flex flex-col gap-2">
+                <div class="flex items-center justify-between">
+                  <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Points Structure <span class="text-slate-600">(Optional)</span></label>
+                  <button type="button" (click)="addPointsRow(true)"
+                    class="text-[10px] font-bold text-violet-400 hover:text-white flex items-center gap-1 px-2 py-1 bg-violet-600/10 hover:bg-violet-600/20 border border-violet-500/20 rounded-lg transition-all cursor-pointer">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                    Add Position
+                  </button>
+                </div>
+                @if (editCompetitionPointsConfig().length === 0) {
+                  <p class="text-[10px] text-slate-600 italic border border-dashed border-white/10 rounded-xl px-4 py-3 text-center">No points configuration. Click "Add Position" to set up a ranking structure.</p>
+                } @else {
+                  <div class="flex flex-col gap-1.5">
+                    <div class="grid grid-cols-12 gap-1.5 text-[9px] font-bold text-slate-500 uppercase tracking-wider px-1 mb-0.5">
+                      <span class="col-span-2">Rank</span>
+                      <span class="col-span-5">Label</span>
+                      <span class="col-span-3">Points</span>
+                      <span class="col-span-2"></span>
+                    </div>
+                    @for (row of editCompetitionPointsConfig(); track row.position; let i = $index) {
+                      <div class="grid grid-cols-12 gap-1.5 items-center">
+                        <input type="number" min="1"
+                          class="col-span-2 bg-slate-800 border border-white/10 focus:border-violet-500 rounded-lg px-2 py-1.5 text-xs text-white outline-none text-center"
+                          [ngModel]="row.position" (ngModelChange)="updatePointsRow(i, 'position', $event, true)" [name]="'ePos_' + i" />
+                        <input type="text" placeholder="e.g. Runner-up"
+                          class="col-span-5 bg-slate-800 border border-white/10 focus:border-violet-500 rounded-lg px-2 py-1.5 text-xs text-white placeholder-slate-600 outline-none"
+                          [ngModel]="row.label" (ngModelChange)="updatePointsRow(i, 'label', $event, true)" [name]="'eLabel_' + i" />
+                        <input type="number" min="0" step="0.5"
+                          class="col-span-3 bg-slate-800 border border-white/10 focus:border-violet-500 rounded-lg px-2 py-1.5 text-xs text-white outline-none text-center"
+                          [ngModel]="row.points" (ngModelChange)="updatePointsRow(i, 'points', $event, true)" [name]="'ePts_' + i" />
+                        <button type="button" (click)="removePointsRow(i, true)"
+                          class="col-span-2 flex items-center justify-center w-7 h-7 text-rose-400 hover:text-white hover:bg-rose-600/20 border border-rose-500/10 hover:border-rose-500/30 rounded-lg transition-all cursor-pointer mx-auto">
+                          <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                        </button>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+
+              <div class="flex items-center justify-end gap-3 mt-4 pt-4 border-t border-white/5">
+                <button type="button" (click)="closeCompetitionModal()"
+                  class="px-5 py-2.5 bg-slate-800 hover:bg-slate-750 text-white text-xs font-bold rounded-xl transition-all cursor-pointer">
+                  Cancel
+                </button>
+                <button type="submit" [disabled]="isUpdatingCompetition() || !editCompetitionName() || !editCompetitionSportId()"
+                  class="px-5 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2">
+                  @if (isUpdatingCompetition()) {
+                    <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                    </svg>
+                    Saving...
+                  } @else { Save Changes }
+                </button>
+              </div>
+            </form>
+          }
+        </div>
+      </div>
     </div>
   }
 
