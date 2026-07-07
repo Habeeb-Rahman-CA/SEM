@@ -2355,341 +2355,376 @@
             }
           </div>
         } @else {
-          <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            
-            <!-- Left Columns: Events List -->
-            <div class="lg:col-span-2 flex flex-col gap-6">
-              <div class="flex items-center justify-between border-b border-white/5 pb-4">
-                <div>
-                  <h2 class="text-lg font-bold text-white">Events</h2>
-                  <p class="text-xs text-slate-500 mt-1">Manage competitions, schedules, and matches</p>
-                </div>
-              </div>
+        <div class="flex flex-col gap-6">
+          
+          <!-- Header: Events -->
+          <div class="flex items-center justify-between border-b border-white/5 pb-4">
+            <div>
+              <h2 class="text-lg font-bold text-white">Events</h2>
+              <p class="text-xs text-slate-500 mt-1">Manage competitions, schedules, and matches</p>
+            </div>
+            @if (canManageMembers()) {
+              <button (click)="onAddEvent()"
+                class="flex items-center gap-1.5 px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-violet-900/20 transition-all cursor-pointer">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                Add Event
+              </button>
+            }
+          </div>
 
-              @if (events().length === 0) {
-                <div class="rounded-2xl border border-dashed border-white/10 p-12 text-center flex flex-col items-center justify-center gap-3">
-                  <span class="text-3xl"><i class="fi fi-rr-trophy"></i></span>
-                  <div>
-                    <h3 class="text-sm font-semibold text-white">No events registered yet</h3>
-                    <p class="text-xs text-slate-500 mt-1">Create your first sports festival or competition to get started.</p>
-                  </div>
-                </div>
-              } @else {
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  @for (event of events(); track event.id) {
-                    <div class="bg-slate-900 border border-white/10 hover:border-violet-500/30 rounded-2xl p-5 flex flex-col justify-between gap-4 group transition-all duration-300 text-left">
-                      <div class="flex flex-col gap-2">
-                        <div class="flex items-center justify-between gap-2">
-                          <!-- Event Logo or Default Trophy -->
-                          <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-xl bg-slate-800 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0">
-                              @if (event.logoUrl) {
-                                <img [src]="event.logoUrl" alt="Event Logo" class="w-full h-full object-cover" />
-                              } @else {
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-violet-400" viewBox="0 0 24 24" fill="currentColor">
-                                  <path d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94A5.006 5.006 0 0 0 11 15.9V19H9v2h6v-2h-2v-3.1a5.006 5.006 0 0 0 3.61-2.96C19.08 10.63 21 8.55 21 8V7c0-1.1-.9-2-2-2zM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8zm14 0c0 1.3-.84 2.4-2 2.82V7h2v1z"/>
-                                </svg>
-                              }
-                            </div>
-                          </div>
-                          <!-- Status Badge -->
-                          @if (event.status === 'ongoing') {
-                            <span class="text-[10px] font-bold px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded-md border border-emerald-500/20">
-                              Ongoing
-                            </span>
-                          } @else if (event.status === 'completed') {
-                            <span class="text-[10px] font-bold px-2 py-0.5 bg-blue-500/10 text-blue-400 rounded-md border border-blue-500/20">
-                              Completed
-                            </span>
-                          } @else if (event.status === 'cancelled') {
-                            <span class="text-[10px] font-bold px-2 py-0.5 bg-rose-500/10 text-rose-400 rounded-md border border-rose-500/20">
-                              Cancelled
-                            </span>
+          @if (events().length === 0) {
+            <div class="rounded-2xl border border-dashed border-white/10 p-12 text-center flex flex-col items-center justify-center gap-3">
+              <span class="text-3xl"><i class="fi fi-rr-trophy"></i></span>
+              <div>
+                <h3 class="text-sm font-semibold text-white">No events registered yet</h3>
+                <p class="text-xs text-slate-500 mt-1">Create your first sports festival or competition to get started.</p>
+              </div>
+            </div>
+          } @else {
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              @for (event of events(); track event.id) {
+                <div class="bg-slate-900 border border-white/10 hover:border-violet-500/30 rounded-2xl p-5 flex flex-col justify-between gap-4 group transition-all duration-300 text-left">
+                  <div class="flex flex-col gap-2">
+                    <div class="flex items-center justify-between gap-2">
+                      <!-- Event Logo or Default Trophy -->
+                      <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-slate-800 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0">
+                          @if (event.logoUrl) {
+                            <img [src]="event.logoUrl" alt="Event Logo" class="w-full h-full object-cover" />
                           } @else {
-                            <span class="text-[10px] font-bold px-2 py-0.5 bg-violet-500/10 text-violet-400 rounded-md border border-violet-500/20">
-                              Upcoming
-                            </span>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-violet-400" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94A5.006 5.006 0 0 0 11 15.9V19H9v2h6v-2h-2v-3.1a5.006 5.006 0 0 0 3.61-2.96C19.08 10.63 21 8.55 21 8V7c0-1.1-.9-2-2-2zM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8zm14 0c0 1.3-.84 2.4-2 2.82V7h2v1z"/>
+                            </svg>
                           }
                         </div>
-
-                        <h4 class="text-base font-extrabold text-white group-hover:text-violet-400 transition-colors mt-1">
-                          {{ event.name }}
-                        </h4>
-
-                        @if (event.description) {
-                          <p class="text-xs text-slate-400 line-clamp-2 mt-1">{{ event.description }}</p>
-                        } @else {
-                          <p class="text-xs text-slate-600 italic mt-1">No description provided</p>
-                        }
                       </div>
-
-                      <div class="flex flex-col gap-2 pt-3 border-t border-white/5 text-xs text-slate-400">
-                        @if (event.startDate) {
-                          <div class="flex justify-between items-center">
-                            <span class="text-slate-500">Starts:</span>
-                            <span class="text-white font-medium">{{ event.startDate | date:'MMM d, y, h:mm a' }}</span>
-                          </div>
-                        }
-                        @if (event.endDate) {
-                          <div class="flex justify-between items-center">
-                            <span class="text-slate-500">Ends:</span>
-                            <span class="text-white font-medium">{{ event.endDate | date:'MMM d, y, h:mm a' }}</span>
-                          </div>
-                        }
-                      </div>
-
-                      <!-- Actions -->
-                      <div class="flex items-center justify-between gap-2 pt-3 border-t border-white/5">
-                        <button (click)="onSelectEvent(event)"
-                          class="px-2.5 py-1.5 text-[11px] font-bold text-violet-400 hover:text-white hover:bg-violet-600/20 border border-violet-500/10 hover:border-violet-500/30 rounded-lg transition-all cursor-pointer">
-                          View Competitions
-                        </button>
-                        @if (canManageMembers()) {
-                          <div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button (click)="onEditEvent(event)"
-                              class="px-2 py-1 text-[10px] font-bold text-slate-400 hover:text-white hover:bg-slate-800 border border-white/10 rounded-md transition-all cursor-pointer">
-                              Edit
-                            </button>
-                            <button (click)="onDeleteEvent(event)"
-                              class="px-2 py-1 text-[10px] font-bold text-rose-400 hover:text-white hover:bg-rose-600/20 border border-rose-500/10 hover:border-rose-500/30 rounded-md transition-all cursor-pointer">
-                              Delete
-                            </button>
-                          </div>
-                        }
-                      </div>
+                      <!-- Status Badge -->
+                      @if (event.status === 'ongoing') {
+                        <span class="text-[10px] font-bold px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded-md border border-emerald-500/20">
+                          Ongoing
+                        </span>
+                      } @else if (event.status === 'completed') {
+                        <span class="text-[10px] font-bold px-2 py-0.5 bg-blue-500/10 text-blue-400 rounded-md border border-blue-500/20">
+                          Completed
+                        </span>
+                      } @else if (event.status === 'cancelled') {
+                        <span class="text-[10px] font-bold px-2 py-0.5 bg-rose-500/10 text-rose-400 rounded-md border border-rose-500/20">
+                          Cancelled
+                        </span>
+                      } @else {
+                        <span class="text-[10px] font-bold px-2 py-0.5 bg-violet-500/10 text-violet-400 rounded-md border border-violet-500/20">
+                          Upcoming
+                        </span>
+                      }
                     </div>
-                  }
+
+                    <h4 class="text-base font-extrabold text-white group-hover:text-violet-400 transition-colors mt-1">
+                      {{ event.name }}
+                    </h4>
+
+                    @if (event.description) {
+                      <p class="text-xs text-slate-400 line-clamp-2 mt-1">{{ event.description }}</p>
+                    } @else {
+                      <p class="text-xs text-slate-600 italic mt-1">No description provided</p>
+                    }
+                  </div>
+
+                  <div class="flex flex-col gap-2 pt-3 border-t border-white/5 text-xs text-slate-400">
+                    @if (event.startDate) {
+                      <div class="flex justify-between items-center">
+                        <span class="text-slate-500">Starts:</span>
+                        <span class="text-white font-medium">{{ event.startDate | date:'MMM d, y, h:mm a' }}</span>
+                      </div>
+                    }
+                    @if (event.endDate) {
+                      <div class="flex justify-between items-center">
+                        <span class="text-slate-500">Ends:</span>
+                        <span class="text-white font-medium">{{ event.endDate | date:'MMM d, y, h:mm a' }}</span>
+                      </div>
+                    }
+                  </div>
+
+                  <!-- Actions -->
+                  <div class="flex items-center justify-between gap-2 pt-3 border-t border-white/5">
+                    <button (click)="onSelectEvent(event)"
+                      class="px-2.5 py-1.5 text-[11px] font-bold text-violet-400 hover:text-white hover:bg-violet-600/20 border border-violet-500/10 hover:border-violet-500/30 rounded-lg transition-all cursor-pointer">
+                      View Competitions
+                    </button>
+                    @if (canManageMembers()) {
+                      <div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button (click)="onEditEvent(event)"
+                          class="px-2 py-1 text-[10px] font-bold text-slate-400 hover:text-white hover:bg-slate-800 border border-white/10 rounded-md transition-all cursor-pointer">
+                          Edit
+                        </button>
+                        <button (click)="onDeleteEvent(event)"
+                          class="px-2 py-1 text-[10px] font-bold text-rose-400 hover:text-white hover:bg-rose-600/20 border border-rose-500/10 hover:border-rose-500/30 rounded-md transition-all cursor-pointer">
+                          Delete
+                        </button>
+                      </div>
+                    }
+                  </div>
                 </div>
               }
             </div>
+          }
+        </div>
 
-            <!-- Right Column: Create/Edit Sidebar -->
-            @if (canManageMembers()) {
-              <div>
+        <!-- Add/Update Event Modal -->
+        @if (isEventModalOpen()) {
+          <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" (click)="closeEventModal()">
+            <div class="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col shadow-2xl relative overflow-hidden" (click)="$event.stopPropagation()">
+              <!-- Gradient top line -->
+              <div class="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-violet-500 to-indigo-500"></div>
+
+              <!-- Header -->
+              <div class="px-6 py-5 border-b border-white/5 flex items-center justify-between">
+                <div>
+                  <h3 class="text-base font-bold text-white flex items-center gap-2">
+                    @if (editingEvent()) {
+                      <span>Edit Event:</span>
+                      <span class="text-violet-400">{{ editingEvent()?.name }}</span>
+                    } @else {
+                      <span>Create New Event</span>
+                    }
+                  </h3>
+                  <p class="text-xs text-slate-400 mt-1">
+                    @if (editingEvent()) {
+                      Update the event details and configuration.
+                    } @else {
+                      Add a new event to this workspace.
+                    }
+                  </p>
+                </div>
+                <button (click)="closeEventModal()" class="text-slate-400 hover:text-white transition cursor-pointer">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                  </svg>
+                </button>
+              </div>
+
+              <!-- Form Content -->
+              <div class="p-6 overflow-y-auto flex-1">
                 @if (!editingEvent()) {
-                  <!-- Create Event Sidebar -->
-                  <div class="bg-slate-900 border border-white/10 rounded-2xl p-6 shadow-xl flex flex-col gap-5 sticky top-24">
-                    <h3 class="text-sm font-bold text-white border-b border-white/5 pb-3">Create Event</h3>
+                  <!-- Create Mode Messages -->
+                  @if (eventCreateSuccess()) {
+                    <div class="mb-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-3 text-emerald-300 text-xs flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                      </svg>
+                      {{ eventCreateSuccess() }}
+                    </div>
+                  }
+                  @if (eventCreateError()) {
+                    <div class="mb-4 rounded-xl bg-rose-500/10 border border-rose-500/30 p-3 text-rose-300 text-xs flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                      </svg>
+                      {{ eventCreateError() }}
+                    </div>
+                  }
 
-                    @if (eventCreateSuccess()) {
-                      <div class="rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-3 text-emerald-300 text-xs flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                        </svg>
-                        {{ eventCreateSuccess() }}
-                      </div>
-                    }
-                    @if (eventCreateError()) {
-                      <div class="rounded-xl bg-rose-500/10 border border-rose-500/30 p-3 text-rose-300 text-xs flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
-                        </svg>
-                        {{ eventCreateError() }}
-                      </div>
-                    }
+                  <form (submit)="onCreateEvent(); $event.preventDefault()" class="flex flex-col gap-4">
+                    <div class="flex flex-col gap-1.5 text-left">
+                      <label for="modal-e-name" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Event Name <span class="text-rose-400">*</span></label>
+                      <input id="modal-e-name" type="text" placeholder="e.g. Annual Sports Meet 2028" autocomplete="off"
+                        class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition-all w-full"
+                        [ngModel]="newEventName()" (ngModelChange)="newEventName.set($event)" name="eName" required />
+                    </div>
 
-                    <form (submit)="onCreateEvent(); $event.preventDefault()" class="flex flex-col gap-4">
-                      <div class="flex flex-col gap-1.5 text-left">
-                        <label for="e-name" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Event Name <span class="text-rose-400">*</span></label>
-                        <input id="e-name" type="text" placeholder="e.g. Annual Sports Meet 2028" autocomplete="off"
-                          class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 outline-none transition-all w-full"
-                          [ngModel]="newEventName()" (ngModelChange)="newEventName.set($event)" name="eName" required />
-                      </div>
-
-                      <div class="flex flex-col gap-1.5 text-left">
-                        <label for="event-logo" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Event Logo <span class="text-slate-600 font-normal normal-case">(optional)</span></label>
-                        <div class="flex items-center gap-3">
-                          <div class="w-10 h-10 rounded-xl bg-slate-950 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0 relative">
-                            @if (isUploadingEventLogo()) {
-                              <div class="absolute inset-0 bg-slate-950/80 flex items-center justify-center">
-                                <svg class="animate-spin h-4 w-4 text-violet-500" fill="none" viewBox="0 0 24 24">
-                                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                                </svg>
-                              </div>
-                            } @else if (newEventLogoUrl()) {
-                              <img [src]="newEventLogoUrl()" alt="Logo Preview" class="w-full h-full object-cover" />
-                            } @else {
-                              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    <div class="flex flex-col gap-1.5 text-left">
+                      <label for="modal-event-logo" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Event Logo <span class="text-slate-600 font-normal normal-case">(optional)</span></label>
+                      <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-slate-950 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0 relative">
+                          @if (isUploadingEventLogo()) {
+                            <div class="absolute inset-0 bg-slate-950/80 flex items-center justify-center">
+                              <svg class="animate-spin h-4 w-4 text-violet-500" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                               </svg>
-                            }
-                          </div>
-                          <input id="event-logo" type="url" placeholder="https://example.com/logo.png" autocomplete="off"
-                            class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 outline-none transition-all flex-1"
-                            [ngModel]="newEventLogoUrl()" (ngModelChange)="newEventLogoUrl.set($event)" name="eventLogo" />
-                          <label class="px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-white/10 text-white hover:text-slate-950 text-xs font-bold rounded-xl transition-all cursor-pointer flex-shrink-0" [class.opacity-50]="isUploadingEventLogo()" [class.pointer-events-none]="isUploadingEventLogo()">
-                            @if (isUploadingEventLogo()) {
-                              <span class="animate-pulse">...</span>
-                            } @else {
-                              Upload
-                              <input type="file" class="hidden" accept="image/*" (change)="onEventLogoUpload($event, false)" />
-                            }
-                          </label>
+                            </div>
+                          } @else if (newEventLogoUrl()) {
+                            <img [src]="newEventLogoUrl()" alt="Logo Preview" class="w-full h-full object-cover" />
+                          } @else {
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                          }
                         </div>
+                        <input id="modal-event-logo" type="url" placeholder="https://example.com/logo.png" autocomplete="off"
+                          class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition-all flex-1"
+                          [ngModel]="newEventLogoUrl()" (ngModelChange)="newEventLogoUrl.set($event)" name="eventLogo" />
+                        <label class="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 border border-white/10 text-white hover:text-slate-950 text-xs font-bold rounded-xl transition-all cursor-pointer flex-shrink-0" [class.opacity-50]="isUploadingEventLogo()" [class.pointer-events-none]="isUploadingEventLogo()">
+                          @if (isUploadingEventLogo()) {
+                            <span class="animate-pulse">...</span>
+                          } @else {
+                            Upload
+                            <input type="file" class="hidden" accept="image/*" (change)="onEventLogoUpload($event, false)" />
+                          }
+                        </label>
                       </div>
+                    </div>
 
-                      <div class="flex flex-col gap-1.5 text-left">
-                        <label for="e-desc" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Description</label>
-                        <textarea id="e-desc" placeholder="Details about this sports festival..." rows="3"
-                          class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 outline-none transition-all w-full resize-none"
-                          [ngModel]="newEventDescription()" (ngModelChange)="newEventDescription.set($event)" name="eDesc"></textarea>
+                    <div class="flex flex-col gap-1.5 text-left">
+                      <label for="modal-e-desc" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Description</label>
+                      <textarea id="modal-e-desc" placeholder="Details about this sports festival..." rows="3"
+                        class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition-all w-full resize-none"
+                        [ngModel]="newEventDescription()" (ngModelChange)="newEventDescription.set($event)" name="eDesc"></textarea>
+                    </div>
+
+                    <div class="flex flex-col gap-1.5 text-left">
+                      <label for="modal-e-start" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Start Date & Time</label>
+                      <input id="modal-e-start" type="datetime-local" (click)="showDatePicker($event)"
+                        class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-all w-full"
+                        [ngModel]="newEventStartDate()" (ngModelChange)="newEventStartDate.set($event)" name="eStartDate" />
+                    </div>
+
+                    <div class="flex flex-col gap-1.5 text-left">
+                      <label for="modal-e-end" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">End Date & Time</label>
+                      <input id="modal-e-end" type="datetime-local" (click)="showDatePicker($event)"
+                        class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-all w-full"
+                        [ngModel]="newEventEndDate()" (ngModelChange)="newEventEndDate.set($event)" name="eEndDate" />
+                    </div>
+
+                    <div class="flex flex-col gap-1.5 text-left">
+                      <label for="modal-e-status" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Status</label>
+                      <select id="modal-e-status"
+                        class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-all w-full"
+                        [ngModel]="newEventStatus()" (ngModelChange)="newEventStatus.set($event)" name="eStatus">
+                        <option value="upcoming">Upcoming</option>
+                        <option value="ongoing">Ongoing</option>
+                        <option value="completed">Completed</option>
+                        <option value="cancelled">Cancelled</option>
+                      </select>
+                    </div>
+
+                    <button type="submit" [disabled]="isCreatingEvent() || !newEventName()"
+                      class="w-full py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2">
+                      @if (isCreatingEvent()) {
+                        <svg class="animate-spin w-4 h-4 text-white" fill="none" viewBox="0 0 24 24">
+                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                        </svg>
+                        Creating...
+                      } @else { Create Event }
+                    </button>
+                  </form>
+                } @else {
+                  <!-- Edit Mode Messages -->
+                  @if (eventUpdateSuccess()) {
+                    <div class="mb-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-3 text-emerald-300 text-xs flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                      </svg>
+                      {{ eventUpdateSuccess() }}
+                    </div>
+                  }
+                  @if (eventUpdateError()) {
+                    <div class="mb-4 rounded-xl bg-rose-500/10 border border-rose-500/30 p-3 text-rose-300 text-xs flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                      </svg>
+                      {{ eventUpdateError() }}
+                    </div>
+                  }
+
+                  <form (submit)="onUpdateEvent(); $event.preventDefault()" class="flex flex-col gap-4">
+                    <div class="flex flex-col gap-1.5 text-left">
+                      <label for="edit-modal-e-name" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Event Name <span class="text-rose-400">*</span></label>
+                      <input id="edit-modal-e-name" type="text" placeholder="e.g. Annual Sports Meet 2028" autocomplete="off"
+                        class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition-all w-full"
+                        [ngModel]="editEventName()" (ngModelChange)="editEventName.set($event)" name="editEName" required />
+                    </div>
+
+                    <div class="flex flex-col gap-1.5 text-left">
+                      <label for="edit-modal-event-logo" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Event Logo <span class="text-slate-600 font-normal normal-case">(optional)</span></label>
+                      <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-slate-950 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0 relative">
+                          @if (isUploadingEventLogo()) {
+                            <div class="absolute inset-0 bg-slate-950/80 flex items-center justify-center">
+                              <svg class="animate-spin h-4 w-4 text-violet-500" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                              </svg>
+                            </div>
+                          } @else if (editEventLogoUrl()) {
+                            <img [src]="editEventLogoUrl()" alt="Logo Preview" class="w-full h-full object-cover" />
+                          } @else {
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                          }
+                        </div>
+                        <input id="edit-modal-event-logo" type="url" placeholder="https://example.com/logo.png" autocomplete="off"
+                          class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition-all flex-1"
+                          [ngModel]="editEventLogoUrl()" (ngModelChange)="editEventLogoUrl.set($event)" name="editEventLogo" />
+                        <label class="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 border border-white/10 text-white hover:text-slate-950 text-xs font-bold rounded-xl transition-all cursor-pointer flex-shrink-0" [class.opacity-50]="isUploadingEventLogo()" [class.pointer-events-none]="isUploadingEventLogo()">
+                          @if (isUploadingEventLogo()) {
+                            <span class="animate-pulse">...</span>
+                          } @else {
+                            Upload
+                            <input type="file" class="hidden" accept="image/*" (change)="onEventLogoUpload($event, true)" />
+                          }
+                        </label>
                       </div>
+                    </div>
 
-                      <div class="flex flex-col gap-1.5 text-left">
-                        <label for="e-start" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Start Date & Time</label>
-                        <input id="e-start" type="datetime-local" (click)="showDatePicker($event)"
-                          class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-3.5 py-2 text-xs text-white outline-none transition-all w-full"
-                          [ngModel]="newEventStartDate()" (ngModelChange)="newEventStartDate.set($event)" name="eStartDate" />
-                      </div>
+                    <div class="flex flex-col gap-1.5 text-left">
+                      <label for="edit-modal-e-desc" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Description</label>
+                      <textarea id="edit-modal-e-desc" placeholder="Details about this sports festival..." rows="3"
+                        class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition-all w-full resize-none"
+                        [ngModel]="editEventDescription()" (ngModelChange)="editEventDescription.set($event)" name="editEDesc"></textarea>
+                    </div>
 
-                      <div class="flex flex-col gap-1.5 text-left">
-                        <label for="e-end" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">End Date & Time</label>
-                        <input id="e-end" type="datetime-local" (click)="showDatePicker($event)"
-                          class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-3.5 py-2 text-xs text-white outline-none transition-all w-full"
-                          [ngModel]="newEventEndDate()" (ngModelChange)="newEventEndDate.set($event)" name="eEndDate" />
-                      </div>
+                    <div class="flex flex-col gap-1.5 text-left">
+                      <label for="edit-modal-e-start" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Start Date & Time</label>
+                      <input id="edit-modal-e-start" type="datetime-local" (click)="showDatePicker($event)"
+                        class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-all w-full"
+                        [ngModel]="editEventStartDate()" (ngModelChange)="editEventStartDate.set($event)" name="editEStartDate" />
+                    </div>
 
-                      <div class="flex flex-col gap-1.5 text-left">
-                        <label for="e-status" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Status</label>
-                        <select id="e-status"
-                          class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-3.5 py-2.5 text-xs text-white outline-none transition-all w-full"
-                          [ngModel]="newEventStatus()" (ngModelChange)="newEventStatus.set($event)" name="eStatus">
-                          <option value="upcoming">Upcoming</option>
-                          <option value="ongoing">Ongoing</option>
-                          <option value="completed">Completed</option>
-                          <option value="cancelled">Cancelled</option>
-                        </select>
-                      </div>
+                    <div class="flex flex-col gap-1.5 text-left">
+                      <label for="edit-modal-e-end" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">End Date & Time</label>
+                      <input id="edit-modal-e-end" type="datetime-local" (click)="showDatePicker($event)"
+                        class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-all w-full"
+                        [ngModel]="editEventEndDate()" (ngModelChange)="editEventEndDate.set($event)" name="editEEndDate" />
+                    </div>
 
-                      <button type="submit" [disabled]="isCreatingEvent() || !newEventName()"
-                        class="w-full py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2">
-                        @if (isCreatingEvent()) {
+                    <div class="flex flex-col gap-1.5 text-left">
+                      <label for="edit-modal-e-status" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Status</label>
+                      <select id="edit-modal-e-status"
+                        class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-all w-full"
+                        [ngModel]="editEventStatus()" (ngModelChange)="editEventStatus.set($event)" name="editEStatus">
+                        <option value="upcoming">Upcoming</option>
+                        <option value="ongoing">Ongoing</option>
+                        <option value="completed">Completed</option>
+                        <option value="cancelled">Cancelled</option>
+                      </select>
+                    </div>
+
+                    <div class="flex gap-2">
+                      <button type="button" (click)="closeEventModal()"
+                        class="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-white hover:text-slate-950 text-xs font-bold rounded-xl transition-all cursor-pointer">
+                        Cancel
+                      </button>
+                      <button type="submit" [disabled]="isUpdatingEvent() || !editEventName()"
+                        class="flex-1 py-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2">
+                        @if (isUpdatingEvent()) {
                           <svg class="animate-spin w-4 h-4 text-white" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                           </svg>
-                        } @else { Create Event }
+                          Saving...
+                        } @else { Save }
                       </button>
-                    </form>
-                  </div>
-                } @else {
-                  <!-- Edit Event Sidebar -->
-                  <div class="bg-slate-900 border border-violet-500/30 rounded-2xl p-6 shadow-xl flex flex-col gap-5 sticky top-24">
-                    <h3 class="text-sm font-bold text-white border-b border-white/5 pb-3">Edit Event</h3>
-
-                    @if (eventUpdateSuccess()) {
-                      <div class="rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-3 text-emerald-300 text-xs flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                        </svg>
-                        {{ eventUpdateSuccess() }}
-                      </div>
-                    }
-                    @if (eventUpdateError()) {
-                      <div class="rounded-xl bg-rose-500/10 border border-rose-500/30 p-3 text-rose-300 text-xs flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
-                        </svg>
-                        {{ eventUpdateError() }}
-                      </div>
-                    }
-
-                    <form (submit)="onUpdateEvent(); $event.preventDefault()" class="flex flex-col gap-4">
-                      <div class="flex flex-col gap-1.5 text-left">
-                        <label for="edit-e-name" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Event Name <span class="text-rose-400">*</span></label>
-                        <input id="edit-e-name" type="text" placeholder="e.g. Annual Sports Meet 2028" autocomplete="off"
-                          class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 outline-none transition-all w-full"
-                          [ngModel]="editEventName()" (ngModelChange)="editEventName.set($event)" name="editEName" required />
-                      </div>
-
-                      <div class="flex flex-col gap-1.5 text-left">
-                        <label for="edit-event-logo" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Event Logo <span class="text-slate-600 font-normal normal-case">(optional)</span></label>
-                        <div class="flex items-center gap-3">
-                          <div class="w-10 h-10 rounded-xl bg-slate-950 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0 relative">
-                            @if (isUploadingEventLogo()) {
-                              <div class="absolute inset-0 bg-slate-950/80 flex items-center justify-center">
-                                <svg class="animate-spin h-4 w-4 text-violet-500" fill="none" viewBox="0 0 24 24">
-                                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                                </svg>
-                              </div>
-                            } @else if (editEventLogoUrl()) {
-                              <img [src]="editEventLogoUrl()" alt="Logo Preview" class="w-full h-full object-cover" />
-                            } @else {
-                              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                              </svg>
-                            }
-                          </div>
-                          <input id="edit-event-logo" type="url" placeholder="https://example.com/logo.png" autocomplete="off"
-                            class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 outline-none transition-all flex-1"
-                            [ngModel]="editEventLogoUrl()" (ngModelChange)="editEventLogoUrl.set($event)" name="editEventLogo" />
-                          <label class="px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-white/10 text-white hover:text-slate-950 text-xs font-bold rounded-xl transition-all cursor-pointer flex-shrink-0" [class.opacity-50]="isUploadingEventLogo()" [class.pointer-events-none]="isUploadingEventLogo()">
-                            @if (isUploadingEventLogo()) {
-                              <span class="animate-pulse">...</span>
-                            } @else {
-                              Upload
-                              <input type="file" class="hidden" accept="image/*" (change)="onEventLogoUpload($event, true)" />
-                            }
-                          </label>
-                        </div>
-                      </div>
-
-                      <div class="flex flex-col gap-1.5 text-left">
-                        <label for="edit-e-desc" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Description</label>
-                        <textarea id="edit-e-desc" placeholder="Details about this sports festival..." rows="3"
-                          class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 outline-none transition-all w-full resize-none"
-                          [ngModel]="editEventDescription()" (ngModelChange)="editEventDescription.set($event)" name="editEDesc"></textarea>
-                      </div>
-
-                      <div class="flex flex-col gap-1.5 text-left">
-                        <label for="edit-e-start" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Start Date & Time</label>
-                        <input id="edit-e-start" type="datetime-local" (click)="showDatePicker($event)"
-                          class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-3.5 py-2 text-xs text-white outline-none transition-all w-full"
-                          [ngModel]="editEventStartDate()" (ngModelChange)="editEventStartDate.set($event)" name="editEStartDate" />
-                      </div>
-
-                      <div class="flex flex-col gap-1.5 text-left">
-                        <label for="edit-e-end" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">End Date & Time</label>
-                        <input id="edit-e-end" type="datetime-local" (click)="showDatePicker($event)"
-                          class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-3.5 py-2 text-xs text-white outline-none transition-all w-full"
-                          [ngModel]="editEventEndDate()" (ngModelChange)="editEventEndDate.set($event)" name="editEEndDate" />
-                      </div>
-
-                      <div class="flex flex-col gap-1.5 text-left">
-                        <label for="edit-e-status" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Status</label>
-                        <select id="edit-e-status"
-                          class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-3.5 py-2.5 text-xs text-white outline-none transition-all w-full"
-                          [ngModel]="editEventStatus()" (ngModelChange)="editEventStatus.set($event)" name="editEStatus">
-                          <option value="upcoming">Upcoming</option>
-                          <option value="ongoing">Ongoing</option>
-                          <option value="completed">Completed</option>
-                          <option value="cancelled">Cancelled</option>
-                        </select>
-                      </div>
-
-                      <div class="flex gap-2">
-                        <button type="button" (click)="onCancelEditEvent()"
-                          class="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-white hover:text-slate-950 text-xs font-bold rounded-xl transition-all cursor-pointer">
-                          Cancel
-                        </button>
-                        <button type="submit" [disabled]="isUpdatingEvent() || !editEventName()"
-                          class="flex-1 py-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2">
-                          @if (isUpdatingEvent()) {
-                            <svg class="animate-spin w-4 h-4 text-white" fill="none" viewBox="0 0 24 24">
-                              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                            </svg>
-                          } @else { Save }
-                        </button>
-                      </div>
-                    </form>
-                  </div>
+                    </div>
+                  </form>
                 }
               </div>
-            }
+            </div>
           </div>
+        }
         }
       }
 

@@ -100,6 +100,7 @@ export class WorkspaceDetailComponent implements OnInit {
   isCreatingEvent = signal(false);
   eventCreateError = signal('');
   eventCreateSuccess = signal('');
+  isEventModalOpen = signal(false);
 
   // Editing state for Events
   editingEvent = signal<WorkspaceEvent | null>(null);
@@ -1198,6 +1199,40 @@ export class WorkspaceDetailComponent implements OnInit {
     return localDate.toISOString().substring(0, 16);
   }
 
+  onAddEvent() {
+    this.editingEvent.set(null);
+    this.newEventName.set('');
+    this.newEventDescription.set('');
+    this.newEventStartDate.set('');
+    this.newEventEndDate.set('');
+    this.newEventStatus.set('upcoming');
+    this.newEventLogoUrl.set('');
+    this.eventCreateError.set('');
+    this.eventCreateSuccess.set('');
+    this.isEventModalOpen.set(true);
+  }
+
+  closeEventModal() {
+    this.isEventModalOpen.set(false);
+    this.editingEvent.set(null);
+    this.newEventName.set('');
+    this.newEventDescription.set('');
+    this.newEventStartDate.set('');
+    this.newEventEndDate.set('');
+    this.newEventStatus.set('upcoming');
+    this.newEventLogoUrl.set('');
+    this.eventCreateError.set('');
+    this.eventCreateSuccess.set('');
+    this.editEventName.set('');
+    this.editEventDescription.set('');
+    this.editEventStartDate.set('');
+    this.editEventEndDate.set('');
+    this.editEventStatus.set('upcoming');
+    this.editEventLogoUrl.set('');
+    this.eventUpdateError.set('');
+    this.eventUpdateSuccess.set('');
+  }
+
   onCreateEvent() {
     const name = this.newEventName().trim();
     const description = this.newEventDescription().trim();
@@ -1224,13 +1259,8 @@ export class WorkspaceDetailComponent implements OnInit {
       next: (event) => {
         this.isCreatingEvent.set(false);
         this.eventCreateSuccess.set(`Event "${event.name}" created successfully!`);
-        this.newEventName.set('');
-        this.newEventDescription.set('');
-        this.newEventStartDate.set('');
-        this.newEventEndDate.set('');
-        this.newEventStatus.set('upcoming');
-        this.newEventLogoUrl.set('');
         this.events.update(prev => [...prev, event]);
+        setTimeout(() => this.closeEventModal(), 1500);
       },
       error: (err) => {
         this.isCreatingEvent.set(false);
@@ -1249,10 +1279,11 @@ export class WorkspaceDetailComponent implements OnInit {
     this.editEventLogoUrl.set(event.logoUrl ?? '');
     this.eventUpdateError.set('');
     this.eventUpdateSuccess.set('');
+    this.isEventModalOpen.set(true);
   }
 
   onCancelEditEvent() {
-    this.editingEvent.set(null);
+    this.closeEventModal();
   }
 
   onUpdateEvent() {
@@ -1283,7 +1314,7 @@ export class WorkspaceDetailComponent implements OnInit {
         this.isUpdatingEvent.set(false);
         this.eventUpdateSuccess.set(`Event updated successfully!`);
         this.events.update(prev => prev.map(e => e.id === event.id ? updated : e));
-        setTimeout(() => this.editingEvent.set(null), 1000);
+        setTimeout(() => this.closeEventModal(), 1500);
       },
       error: (err) => {
         this.isUpdatingEvent.set(false);
