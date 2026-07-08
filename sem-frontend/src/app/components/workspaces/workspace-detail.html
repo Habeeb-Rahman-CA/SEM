@@ -1541,126 +1541,166 @@
           }
         </div>
 
-        <div class="flex flex-col gap-6">
-          @if (isLoadingCompetitions()) {
-          <div class="flex items-center justify-center p-12">
-            <svg class="animate-spin w-8 h-8 text-violet-500" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-            </svg>
-          </div>
-          } @else if (competitions().length === 0) {
-          <div
-            class="rounded-2xl border border-dashed border-white/10 p-12 text-center flex flex-col items-center justify-center gap-3">
-            <span class="text-3xl"><i class="fi fi-rr-medal"></i></span>
-            <div>
-              <h3 class="text-sm font-semibold text-white">No competitions created for this event</h3>
-              <p class="text-xs text-slate-500 mt-1">Add competitions/categories (e.g. Under-19 Football, Open
-                Badminton) to get started.</p>
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          <!-- Left Columns (3/4 width): Competitions -->
+          <div class="lg:col-span-3 flex flex-col gap-6">
+            @if (isLoadingCompetitions()) {
+            <div class="flex items-center justify-center p-12">
+              <svg class="animate-spin w-8 h-8 text-violet-500" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+              </svg>
             </div>
-          </div>
-          } @else {
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            @for (comp of competitions(); track comp.id) {
+            } @else if (competitions().length === 0) {
             <div
-              class="bg-slate-900 border border-white/10 hover:border-violet-500/30 rounded-2xl p-5 flex flex-col justify-between gap-4 group transition-all duration-300">
-              <div class="flex flex-col gap-2">
-                <div class="flex items-center justify-between gap-2">
-                  <!-- Sport Badge -->
-                  <span
-                    class="text-[10px] font-bold px-2 py-0.5 bg-violet-500/10 text-violet-300 rounded-md border border-violet-500/20 uppercase tracking-wider">
-                    {{ comp.sport?.name || 'Sport' }}
-                  </span>
-                  <!-- Status Badge -->
-                  @if (comp.status === 'ongoing') {
-                  <span
-                    class="text-[10px] font-bold px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded-md border border-emerald-500/20">
-                    Ongoing
-                  </span>
-                  } @else if (comp.status === 'completed') {
-                  <span
-                    class="text-[10px] font-bold px-2 py-0.5 bg-blue-500/10 text-blue-400 rounded-md border border-blue-500/20">
-                    Completed
-                  </span>
-                  } @else if (comp.status === 'cancelled') {
-                  <span
-                    class="text-[10px] font-bold px-2 py-0.5 bg-rose-500/10 text-rose-400 rounded-md border border-rose-500/20">
-                    Cancelled
-                  </span>
-                  } @else {
-                  <span
-                    class="text-[10px] font-bold px-2 py-0.5 bg-slate-500/10 text-slate-400 rounded-md border border-slate-500/20">
-                    Upcoming
-                  </span>
-                  }
-                </div>
-
-                <h4 class="text-base font-extrabold text-white group-hover:text-violet-400 transition-colors mt-1">
-                  {{ comp.name }}
-                </h4>
-
-                @if (getCompetitionWinnerAndRunnerUp(comp); as result) {
-                <div
-                  class="mt-2 bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-transparent border border-amber-500/30 rounded-xl p-2.5 flex items-center justify-between shadow-lg shadow-amber-500/5">
-                  <div class="flex items-center gap-2">
-                    <i class="fi fi-rr-trophy text-amber-400 text-base"></i>
-                    <div class="text-left">
-                      <div class="text-[9px] uppercase font-black tracking-widest text-amber-400">CHAMPIONS</div>
-                      <div class="text-xs font-black text-white">{{ result.winner }}</div>
-                    </div>
-                  </div>
-                  @if (result.runnerUp) {
-                  <div class="text-right border-l border-white/10 pl-3">
-                    <div class="text-[9px] uppercase font-bold tracking-widest text-slate-400">RUNNER-UP</div>
-                    <div class="text-[11px] font-bold text-white/90">{{ result.runnerUp }}</div>
-                  </div>
-                  }
-                </div>
-                }
-
-                <!-- Points Config Preview -->
-                @if (comp.pointsConfig && comp.pointsConfig.length > 0) {
-                <div class="flex flex-wrap gap-1.5 mt-2">
-                  @for (pt of comp.pointsConfig.slice(0, 4); track pt.position) {
-                  <div
-                    class="flex items-center gap-1 text-[10px] bg-amber-500/10 border border-amber-500/20 text-amber-300 rounded-md px-2 py-0.5 font-bold">
-                    <span class="text-amber-500">#{{ pt.position }}</span>
-                    <span>{{ pt.label }}</span>
-                    <span class="text-slate-400">·</span>
-                    <span>{{ pt.points }}pts</span>
-                  </div>
-                  }
-                  @if (comp.pointsConfig.length > 4) {
-                  <span class="text-[10px] text-slate-500 px-1.5 py-0.5 self-center">+{{ comp.pointsConfig.length - 4 }}
-                    more</span>
-                  }
-                </div>
-                }
-
-                <button (click)="onSelectCompetition(comp)"
-                  class="w-full py-2 bg-violet-600/10 hover:bg-violet-600 text-violet-300 hover:text-white border border-violet-500/20 hover:border-transparent text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 mt-2">
-                  Manage Stages & Matches →
-                </button>
+              class="rounded-2xl border border-dashed border-white/10 p-12 text-center flex flex-col items-center justify-center gap-3">
+              <span class="text-3xl"><i class="fi fi-rr-medal"></i></span>
+              <div>
+                <h3 class="text-sm font-semibold text-white">No competitions created for this event</h3>
+                <p class="text-xs text-slate-500 mt-1">Add competitions/categories (e.g. Under-19 Football, Open
+                  Badminton) to get started.</p>
               </div>
-
-              <!-- Actions -->
-              @if (canManageMembers()) {
+            </div>
+            } @else {
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              @for (comp of competitions(); track comp.id) {
               <div
-                class="flex items-center justify-end gap-2 pt-3 border-t border-white/5 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button (click)="onEditCompetition(comp)"
-                  class="px-2.5 py-1.5 text-[11px] font-bold text-violet-400 hover:text-white hover:bg-violet-600/20 border border-violet-500/10 hover:border-violet-500/30 rounded-lg transition-all cursor-pointer">
-                  Edit
-                </button>
-                <button (click)="onDeleteCompetition(comp)"
-                  class="px-2.5 py-1.5 text-[11px] font-bold text-rose-400 hover:text-white hover:bg-rose-600/20 border border-rose-500/10 hover:border-rose-500/30 rounded-lg transition-all cursor-pointer">
-                  Delete
-                </button>
+                class="bg-slate-900 border border-white/10 hover:border-violet-500/30 rounded-2xl p-5 flex flex-col justify-between gap-4 group transition-all duration-300">
+                <div class="flex flex-col gap-2">
+                  <div class="flex items-center justify-between gap-2">
+                    <!-- Sport Badge -->
+                    <span
+                      class="text-[10px] font-bold px-2 py-0.5 bg-violet-500/10 text-violet-300 rounded-md border border-violet-500/20 uppercase tracking-wider">
+                      {{ comp.sport?.name || 'Sport' }}
+                    </span>
+                    <!-- Status Badge -->
+                    @if (comp.status === 'ongoing') {
+                    <span
+                      class="text-[10px] font-bold px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded-md border border-emerald-500/20">
+                      Ongoing
+                    </span>
+                    } @else if (comp.status === 'completed') {
+                    <span
+                      class="text-[10px] font-bold px-2 py-0.5 bg-blue-500/10 text-blue-400 rounded-md border border-blue-500/20">
+                      Completed
+                    </span>
+                    } @else if (comp.status === 'cancelled') {
+                    <span
+                      class="text-[10px] font-bold px-2 py-0.5 bg-rose-500/10 text-rose-400 rounded-md border border-rose-500/20">
+                      Cancelled
+                    </span>
+                    } @else {
+                    <span
+                      class="text-[10px] font-bold px-2 py-0.5 bg-slate-500/10 text-slate-400 rounded-md border border-slate-500/20">
+                      Upcoming
+                    </span>
+                    }
+                  </div>
+
+                  <h4 class="text-base font-extrabold text-white group-hover:text-violet-400 transition-colors mt-1">
+                    {{ comp.name }}
+                  </h4>
+
+                  @if (getCompetitionWinnerAndRunnerUp(comp); as result) {
+                  <div
+                    class="mt-2 bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-transparent border border-amber-500/30 rounded-xl p-2.5 flex items-center justify-between shadow-lg shadow-amber-500/5">
+                    <div class="flex items-center gap-2">
+                      <i class="fi fi-rr-trophy text-amber-400 text-base"></i>
+                      <div class="text-left">
+                        <div class="text-[9px] uppercase font-black tracking-widest text-amber-400">CHAMPIONS</div>
+                        <div class="text-xs font-black text-white">{{ result.winner }}</div>
+                      </div>
+                    </div>
+                    @if (result.runnerUp) {
+                    <div class="text-right border-l border-white/10 pl-3">
+                      <div class="text-[9px] uppercase font-bold tracking-widest text-slate-400">RUNNER-UP</div>
+                      <div class="text-[11px] font-bold text-white/90">{{ result.runnerUp }}</div>
+                    </div>
+                    }
+                  </div>
+                  }
+
+                  <!-- Points Config Preview -->
+                  @if (comp.pointsConfig && comp.pointsConfig.length > 0) {
+                  <div class="flex flex-wrap gap-1.5 mt-2">
+                    @for (pt of comp.pointsConfig.slice(0, 4); track pt.position) {
+                    <div
+                      class="flex items-center gap-1 text-[10px] bg-amber-500/10 border border-amber-500/20 text-amber-300 rounded-md px-2 py-0.5 font-bold">
+                      <span class="text-amber-500">#{{ pt.position }}</span>
+                      <span>{{ pt.label }}</span>
+                      <span class="text-slate-400">·</span>
+                      <span>{{ pt.points }}pts</span>
+                    </div>
+                    }
+                    @if (comp.pointsConfig.length > 4) {
+                    <span class="text-[10px] text-slate-500 px-1.5 py-0.5 self-center">+{{ comp.pointsConfig.length - 4 }}
+                      more</span>
+                    }
+                  </div>
+                  }
+
+                  <button (click)="onSelectCompetition(comp)"
+                    class="w-full py-2 bg-violet-600/10 hover:bg-violet-600 text-violet-300 hover:text-white border border-violet-500/20 hover:border-transparent text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 mt-2">
+                    Manage Stages & Matches →
+                  </button>
+                </div>
+
+                <!-- Actions -->
+                @if (canManageMembers()) {
+                <div
+                  class="flex items-center justify-end gap-2 pt-3 border-t border-white/5 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button (click)="onEditCompetition(comp)"
+                    class="px-2.5 py-1.5 text-[11px] font-bold text-violet-400 hover:text-white hover:bg-violet-600/20 border border-violet-500/10 hover:border-violet-500/30 rounded-lg transition-all cursor-pointer">
+                    Edit
+                  </button>
+                  <button (click)="onDeleteCompetition(comp)"
+                    class="px-2.5 py-1.5 text-[11px] font-bold text-rose-400 hover:text-white hover:bg-rose-600/20 border border-rose-500/10 hover:border-rose-500/30 rounded-lg transition-all cursor-pointer">
+                    Delete
+                  </button>
+                </div>
+                }
               </div>
               }
             </div>
             }
           </div>
-          }
+
+          <!-- Right Column (1/4 width): Participants -->
+          <div class="lg:col-span-1">
+            <div class="bg-slate-900 border border-white/10 rounded-2xl p-6 shadow-xl flex flex-col gap-4">
+              <h3 class="text-sm font-bold text-white flex items-center gap-2 border-b border-white/5 pb-3">
+                <i class="fi fi-rr-users-alt text-violet-400"></i> Participating Teams
+              </h3>
+
+              @let eventTeams = event.teams || [];
+              @if (eventTeams.length === 0) {
+              <div class="text-xs text-slate-500 text-center py-6">
+                No teams mapped to this event yet.
+              </div>
+              } @else {
+              <div class="flex flex-col gap-3 max-h-[450px] overflow-y-auto pr-1 custom-scrollbar">
+                @for (team of eventTeams; track team.id) {
+                <div class="flex items-center gap-3 bg-slate-950/40 border border-white/5 rounded-xl p-3 hover:border-violet-500/30 transition-all">
+                  @if (team.logoUrl) {
+                  <div class="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    <img [src]="team.logoUrl" alt="{{ team.name }} Logo" class="w-full h-full object-cover" />
+                  </div>
+                  } @else {
+                  <div class="w-8 h-8 rounded-lg flex items-center justify-center text-white text-[10px] font-extrabold shadow-inner flex-shrink-0"
+                    [style.background]="avatarColor(team.name)">
+                    {{ initials(team.name) }}
+                  </div>
+                  }
+                  <div class="flex-1 min-w-0 text-left">
+                    <span class="text-xs font-bold text-white block truncate">{{ team.name }}</span>
+                    <span class="text-[10px] text-slate-500 font-medium block mt-0.5">{{ team.code }}</span>
+                  </div>
+                </div>
+                }
+              </div>
+              }
+            </div>
+          </div>
         </div>
 
         } @else {
@@ -1763,13 +1803,13 @@
                         <div class="flex-1 text-right flex items-center justify-end gap-3">
                           <span class="text-sm font-bold text-white">{{ match.homeTeam?.name || 'Home' }}</span>
                           <div
-                            class="w-6 h-6 rounded-md overflow-hidden bg-slate-950 border border-white/10 flex items-center justify-center flex-shrink-0">
+                            class="w-6 h-6 rounded-md overflow-hidden bg-slate-950 border border-white/10 flex items-center justify-center flex-shrink-0"
+                            [style.background]="match.homeTeam?.logoUrl ? 'transparent' : (match.homeTeam ? avatarColor(match.homeTeam.name) : 'transparent')">
                             @if (match.homeTeam; as homeTeam) {
                             @if (homeTeam.logoUrl) {
                             <img [src]="homeTeam.logoUrl" alt="Logo" class="w-full h-full object-cover" />
                             } @else {
-                            <span class="text-[9px] font-bold text-slate-500">{{ (homeTeam.name || 'Home').substring(0,
-                              2).toUpperCase() }}</span>
+                            <span class="text-[9px] font-bold text-white">{{ initials(homeTeam.name) }}</span>
                             }
                             } @else {
                             <span class="text-[9px] font-bold text-slate-500">HM</span>
@@ -1796,13 +1836,13 @@
                         <!-- Away Team -->
                         <div class="flex-1 text-left flex items-center justify-start gap-3">
                           <div
-                            class="w-6 h-6 rounded-md overflow-hidden bg-slate-950 border border-white/10 flex items-center justify-center flex-shrink-0">
+                            class="w-6 h-6 rounded-md overflow-hidden bg-slate-950 border border-white/10 flex items-center justify-center flex-shrink-0"
+                            [style.background]="match.awayTeam?.logoUrl ? 'transparent' : (match.awayTeam ? avatarColor(match.awayTeam.name) : 'transparent')">
                             @if (match.awayTeam; as awayTeam) {
                             @if (awayTeam.logoUrl) {
                             <img [src]="awayTeam.logoUrl" alt="Logo" class="w-full h-full object-cover" />
                             } @else {
-                            <span class="text-[9px] font-bold text-slate-500">{{ (awayTeam.name || 'Away').substring(0,
-                              2).toUpperCase() }}</span>
+                            <span class="text-[9px] font-bold text-white">{{ initials(awayTeam.name) }}</span>
                             }
                             } @else {
                             <span class="text-[9px] font-bold text-slate-500">AW</span>
@@ -1937,12 +1977,12 @@
                           <td class="py-3 font-medium text-white pl-2">
                             <div class="flex items-center gap-2">
                               <div
-                                class="w-5 h-5 rounded overflow-hidden bg-slate-950 border border-white/10 flex items-center justify-center flex-shrink-0">
+                                class="w-5 h-5 rounded overflow-hidden bg-slate-950 border border-white/10 flex items-center justify-center flex-shrink-0"
+                                [style.background]="row.teamLogoUrl ? 'transparent' : avatarColor(row.teamName)">
                                 @if (row.teamLogoUrl) {
                                 <img [src]="row.teamLogoUrl" alt="Logo" class="w-full h-full object-cover" />
                                 } @else {
-                                <span class="text-[8px] font-bold text-slate-500">{{ row.teamName.substring(0,
-                                  2).toUpperCase() }}</span>
+                                <span class="text-[8px] font-bold text-white">{{ initials(row.teamName) }}</span>
                                 }
                               </div>
                               <span class="truncate max-w-[100px]" [title]="row.teamName">{{ row.teamName }}</span>
@@ -2041,13 +2081,13 @@
                           <div class="flex items-center justify-between">
                             <div class="flex items-center gap-1.5">
                               <div
-                                class="w-4 h-4 rounded overflow-hidden bg-slate-900 border border-white/10 flex items-center justify-center flex-shrink-0">
+                                class="w-4 h-4 rounded overflow-hidden bg-slate-900 border border-white/10 flex items-center justify-center flex-shrink-0"
+                                [style.background]="m.homeTeam?.logoUrl ? 'transparent' : (m.homeTeam ? avatarColor(m.homeTeam.name) : 'transparent')">
                                 @if (m.homeTeam; as homeTeam) {
                                 @if (homeTeam.logoUrl) {
                                 <img [src]="homeTeam.logoUrl" alt="Logo" class="w-full h-full object-cover" />
                                 } @else {
-                                <span class="text-[7px] font-bold text-slate-500">{{ homeTeam.name.substring(0,
-                                  2).toUpperCase() }}</span>
+                                <span class="text-[7px] font-bold text-white">{{ initials(homeTeam.name) }}</span>
                                 }
                                 } @else {
                                 <span class="text-[7px] font-bold text-slate-500">TB</span>
@@ -2066,13 +2106,13 @@
                           <div class="flex items-center justify-between">
                             <div class="flex items-center gap-1.5">
                               <div
-                                class="w-4 h-4 rounded overflow-hidden bg-slate-900 border border-white/10 flex items-center justify-center flex-shrink-0">
+                                class="w-4 h-4 rounded overflow-hidden bg-slate-900 border border-white/10 flex items-center justify-center flex-shrink-0"
+                                [style.background]="m.awayTeam?.logoUrl ? 'transparent' : (m.awayTeam ? avatarColor(m.awayTeam.name) : 'transparent')">
                                 @if (m.awayTeam; as awayTeam) {
                                 @if (awayTeam.logoUrl) {
-                                <img [src]="awayTeam.logoUrl" alt="Logo" class="w-full h-full object-cover" />
+                                <img [src]="m.awayTeam.logoUrl" alt="Logo" class="w-full h-full object-cover" />
                                 } @else {
-                                <span class="text-[7px] font-bold text-slate-500">{{ awayTeam.name.substring(0,
-                                  2).toUpperCase() }}</span>
+                                <span class="text-[7px] font-bold text-white">{{ initials(m.awayTeam.name) }}</span>
                                 }
                                 } @else {
                                 <span class="text-[7px] font-bold text-slate-500">TB</span>
@@ -3002,13 +3042,16 @@
                             : 'border-white/5 bg-slate-950/40'"
                     class="border hover:border-violet-500/30 rounded-xl px-3 py-2 flex items-center justify-between gap-3 cursor-pointer transition-all select-none">
                     <div class="flex items-center gap-2">
-                      <div class="w-6 h-6 rounded-lg bg-violet-500/10 flex items-center justify-center flex-shrink-0">
-                        @if (team.logoUrl) {
-                        <img [src]="team.logoUrl" alt="Logo Preview" class="w-full h-full object-contain rounded" />
-                        } @else {
-                        <i class="fi fi-rr-shield text-violet-400 text-xs"></i>
-                        }
+                      @if (team.logoUrl) {
+                      <div class="w-6 h-6 rounded-lg bg-violet-500/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                        <img [src]="team.logoUrl" alt="Logo Preview" class="w-full h-full object-cover" />
                       </div>
+                      } @else {
+                      <div class="w-6 h-6 rounded-lg flex items-center justify-center text-white text-[8px] font-extrabold shadow-inner flex-shrink-0"
+                        [style.background]="avatarColor(team.name)">
+                        {{ initials(team.name) }}
+                      </div>
+                      }
                       <span class="text-xs font-semibold text-white truncate max-w-[150px]">{{ team.name }}</span>
                     </div>
                     <div class="w-4 h-4 rounded border flex items-center justify-center transition-all" [class]="selectedEventTeamIds().includes(team.id)
@@ -3177,20 +3220,23 @@
                   No teams found in this workspace. Please create teams first.
                 </div>
                 } @else {
-                <div class="grid grid-cols-1 gap-2 max-h-[320px] overflow-y-auto pr-1 custom-scrollbar">
+                <div class="grid grid-cols-1 gap-2 overflow-y-auto pr-1 custom-scrollbar">
                   @for (team of teams(); track team.id) {
                   <div (click)="toggleEventTeam(team.id)" [class]="selectedEventTeamIds().includes(team.id) 
                             ? 'border-violet-500/40 bg-violet-500/5' 
                             : 'border-white/5 bg-slate-950/40'"
                     class="border hover:border-violet-500/30 rounded-xl px-3 py-2 flex items-center justify-between gap-3 cursor-pointer transition-all select-none">
                     <div class="flex items-center gap-2">
-                      <div class="w-6 h-6 rounded-lg bg-violet-500/10 flex items-center justify-center flex-shrink-0">
-                        @if (team.logoUrl) {
-                        <img [src]="team.logoUrl" alt="Logo Preview" class="w-full h-full object-contain rounded" />
-                        } @else {
-                        <i class="fi fi-rr-shield text-violet-400 text-xs"></i>
-                        }
+                      @if (team.logoUrl) {
+                      <div class="w-6 h-6 rounded-lg bg-violet-500/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                        <img [src]="team.logoUrl" alt="Logo Preview" class="w-full h-full object-cover" />
                       </div>
+                      } @else {
+                      <div class="w-6 h-6 rounded-lg flex items-center justify-center text-white text-[8px] font-extrabold shadow-inner flex-shrink-0"
+                        [style.background]="avatarColor(team.name)">
+                        {{ initials(team.name) }}
+                      </div>
+                      }
                       <span class="text-xs font-semibold text-white truncate max-w-[150px]">{{ team.name }}</span>
                     </div>
                     <div class="w-4 h-4 rounded border flex items-center justify-center transition-all" [class]="selectedEventTeamIds().includes(team.id)
@@ -4049,13 +4095,16 @@
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[180px] overflow-y-auto pr-1 custom-scrollbar">
             @for (team of selectedEvent()?.teams; track team.id) {
             <div class="border border-white/5 bg-slate-950/40 rounded-xl px-4 py-3 flex items-center gap-3">
-              <div class="w-7 h-7 rounded-lg bg-violet-500/10 flex items-center justify-center flex-shrink-0">
-                @if (team.logoUrl) {
-                <img [src]="team.logoUrl" alt="Logo" class="w-5 h-5 object-contain rounded" />
-                } @else {
-                <i class="fi fi-rr-shield text-violet-400 text-xs"></i>
-                }
+              @if (team.logoUrl) {
+              <div class="w-7 h-7 rounded-lg bg-violet-500/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                <img [src]="team.logoUrl" alt="Logo" class="w-full h-full object-cover" />
               </div>
+              } @else {
+              <div class="w-7 h-7 rounded-lg flex items-center justify-center text-white text-[9px] font-extrabold shadow-inner flex-shrink-0"
+                [style.background]="avatarColor(team.name)">
+                {{ initials(team.name) }}
+              </div>
+              }
               <span class="text-xs font-semibold text-white truncate max-w-[180px]">{{ team.name }}</span>
             </div>
             }

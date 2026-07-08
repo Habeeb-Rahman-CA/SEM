@@ -2895,9 +2895,10 @@ export class WorkspaceDetailComponent implements OnInit {
     live.inningsData[inningsIndex] = innings;
 
     // Update main scores
-    const isHomeBatting = innings.battingTeamId === match.homeTeamId;
-    const homeScore = isHomeBatting ? innings.runs : (live.inningsData[0]?.runs ?? 0);
-    const awayScore = !isHomeBatting ? innings.runs : (live.inningsData[0]?.runs ?? 0);
+    const homeInnings = live.inningsData.find((i: any) => i.battingTeamId === match.homeTeamId);
+    const homeScore = homeInnings ? homeInnings.runs : 0;
+    const awayInnings = live.inningsData.find((i: any) => i.battingTeamId === match.awayTeamId);
+    const awayScore = awayInnings ? awayInnings.runs : 0;
 
     // Check if innings completed (e.g. 10 wickets down, or overs reached)
     const targetOvers = match.config.overs ?? 20;
