@@ -2542,91 +2542,129 @@
                   }
 
                   <!-- Batter & Bowler Inputs -->
-                  <div class="bg-slate-950/40 border border-white/5 rounded-2xl p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <!-- Bowler Selection -->
-                    <div class="flex flex-col gap-2">
-                      <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Bowler</label>
-                      <div class="flex flex-col gap-1.5">
-                        <select [ngModel]="cricketBowler()" (ngModelChange)="cricketBowler.set($event)" 
-                          class="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:border-violet-500 focus:outline-none transition-colors">
-                          <option value="">-- Select Roster Bowler --</option>
-                          @for (p of getPlayersForTeam(innings?.bowlingTeamId); track p.id) {
-                            <option [value]="p.user?.username">{{ p.user?.username }}</option>
-                          }
-                        </select>
-                        <input type="text" [ngModel]="cricketBowler()" (ngModelChange)="cricketBowler.set($event)" 
-                          placeholder="Or type custom bowler name" 
-                          class="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 focus:border-violet-500 focus:outline-none transition-colors" />
+                  <div class="bg-slate-950/40 border border-white/5 rounded-2xl p-4 flex flex-col gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <!-- Bowler Selection -->
+                      <div class="flex flex-col gap-2">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Bowler</label>
+                        <div class="flex flex-col gap-1.5">
+                          <select [ngModel]="cricketBowler()" (ngModelChange)="cricketBowler.set($event)" 
+                            class="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:border-violet-500 focus:outline-none transition-colors">
+                            <option value="">-- Select Roster Bowler --</option>
+                            @for (p of getPlayersForTeam(innings?.bowlingTeamId); track p.id) {
+                              <option [value]="p.user?.username">{{ p.user?.username }}</option>
+                            }
+                          </select>
+                          <input type="text" [ngModel]="cricketBowler()" (ngModelChange)="cricketBowler.set($event)" 
+                            placeholder="Or type custom bowler name" 
+                            class="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 focus:border-violet-500 focus:outline-none transition-colors" />
+                        </div>
+                      </div>
+
+                      <!-- Striker Selection -->
+                      <div class="flex flex-col gap-2">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Striker (On Strike)</label>
+                        <div class="flex flex-col gap-1.5">
+                          <select [ngModel]="cricketStriker()" (ngModelChange)="cricketStriker.set($event)" 
+                            class="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:border-violet-500 focus:outline-none transition-colors">
+                            <option value="">-- Select Roster Batter --</option>
+                            @for (p of getPlayersForTeam(innings?.battingTeamId); track p.id) {
+                              <option [value]="p.user?.username">{{ p.user?.username }}</option>
+                            }
+                          </select>
+                          <input type="text" [ngModel]="cricketStriker()" (ngModelChange)="cricketStriker.set($event)" 
+                            placeholder="Or type striker name" 
+                            class="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 focus:border-violet-500 focus:outline-none transition-colors" />
+                        </div>
+                      </div>
+
+                      <!-- Non-Striker Selection -->
+                      <div class="flex flex-col gap-2">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Non-Striker</label>
+                        <div class="flex flex-col gap-1.5">
+                          <select [ngModel]="cricketNonStriker()" (ngModelChange)="cricketNonStriker.set($event)" 
+                            class="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:border-violet-500 focus:outline-none transition-colors">
+                            <option value="">-- Select Roster Batter --</option>
+                            @for (p of getPlayersForTeam(innings?.battingTeamId); track p.id) {
+                              <option [value]="p.user?.username">{{ p.user?.username }}</option>
+                            }
+                          </select>
+                          <input type="text" [ngModel]="cricketNonStriker()" (ngModelChange)="cricketNonStriker.set($event)" 
+                            placeholder="Or type non-striker name" 
+                            class="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 focus:border-violet-500 focus:outline-none transition-colors" />
+                        </div>
                       </div>
                     </div>
 
-                    <!-- Striker Selection -->
-                    <div class="flex flex-col gap-2">
-                      <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Striker (On Strike)</label>
-                      <div class="flex flex-col gap-1.5">
-                        <select [ngModel]="cricketStriker()" (ngModelChange)="cricketStriker.set($event)" 
-                          class="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:border-violet-500 focus:outline-none transition-colors">
-                          <option value="">-- Select Roster Batter --</option>
-                          @for (p of getPlayersForTeam(innings?.battingTeamId); track p.id) {
-                            <option [value]="p.user?.username">{{ p.user?.username }}</option>
-                          }
-                        </select>
-                        <input type="text" [ngModel]="cricketStriker()" (ngModelChange)="cricketStriker.set($event)" 
-                          placeholder="Or type striker name" 
-                          class="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 focus:border-violet-500 focus:outline-none transition-colors" />
-                      </div>
-                    </div>
-
-                    <!-- Non-Striker Selection -->
-                    <div class="flex flex-col gap-2">
-                      <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Non-Striker</label>
-                      <div class="flex flex-col gap-1.5">
-                        <select [ngModel]="cricketNonStriker()" (ngModelChange)="cricketNonStriker.set($event)" 
-                          class="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:border-violet-500 focus:outline-none transition-colors">
-                          <option value="">-- Select Roster Batter --</option>
-                          @for (p of getPlayersForTeam(innings?.battingTeamId); track p.id) {
-                            <option [value]="p.user?.username">{{ p.user?.username }}</option>
-                          }
-                        </select>
-                        <input type="text" [ngModel]="cricketNonStriker()" (ngModelChange)="cricketNonStriker.set($event)" 
-                          placeholder="Or type non-striker name" 
-                          class="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 focus:border-violet-500 focus:outline-none transition-colors" />
-                      </div>
+                    <!-- Switch Strike / Swap Batters Button -->
+                    <div class="flex justify-end border-t border-white/5 pt-2">
+                      <button (click)="onSwitchCricketStrikers()"
+                        class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-white/10 hover:border-white/20 text-slate-300 hover:text-white text-xs font-bold rounded-xl cursor-pointer transition-all">
+                        <i class="fi fi-rr-shuffle"></i> Switch Strike / Swap Batters
+                      </button>
                     </div>
                   </div>
 
                   <!-- Quick Scoring Console -->
+                  @let isScoringDisabled = !cricketBowler() || !cricketStriker() || !cricketNonStriker();
                   <div class="flex flex-col gap-4 bg-slate-900 border border-white/10 rounded-2xl p-5">
+                    @if (isScoringDisabled) {
+                    <div class="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 flex items-center gap-2.5">
+                      <span class="text-amber-400 text-sm flex-shrink-0"><i class="fi fi-rr-exclamation"></i></span>
+                      <span class="text-xs font-medium text-amber-300">
+                        Please select <strong>Bowler</strong>, <strong>Striker</strong>, and <strong>Non-Striker</strong> to enable scoring buttons.
+                      </span>
+                    </div>
+                    }
+
                     <!-- Runs off Bat Section -->
                     <div class="flex flex-col gap-2">
                       <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Runs (off Bat)</span>
                       <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">
                         <button (click)="onRecordCricketBall(0, 0, false, 'dot')"
+                          [disabled]="isScoringDisabled"
+                          [class.opacity-40]="isScoringDisabled"
+                          [class.cursor-not-allowed]="isScoringDisabled"
                           class="py-2.5 bg-slate-950 hover:bg-violet-600 border border-white/10 hover:border-transparent text-xs text-white font-bold rounded-xl cursor-pointer transition-all flex flex-col items-center justify-center gap-0.5">
                           <span class="text-white">Dot</span>
                           <span class="text-[9px] text-slate-500 font-semibold group-hover:text-white/80">0 runs</span>
                         </button>
                         <button (click)="onRecordCricketBall(1, 0, false, 'runs')"
+                          [disabled]="isScoringDisabled"
+                          [class.opacity-40]="isScoringDisabled"
+                          [class.cursor-not-allowed]="isScoringDisabled"
                           class="py-2.5 bg-slate-950 hover:bg-violet-600 border border-white/10 hover:border-transparent text-xs text-white font-bold rounded-xl cursor-pointer transition-all flex flex-col items-center justify-center gap-0.5">
                           <span>1 Run</span>
                           <span class="text-[9px] text-slate-500 font-semibold">Single</span>
                         </button>
                         <button (click)="onRecordCricketBall(2, 0, false, 'runs')"
+                          [disabled]="isScoringDisabled"
+                          [class.opacity-40]="isScoringDisabled"
+                          [class.cursor-not-allowed]="isScoringDisabled"
                           class="py-2.5 bg-slate-950 hover:bg-violet-600 border border-white/10 hover:border-transparent text-xs text-white font-bold rounded-xl cursor-pointer transition-all flex flex-col items-center justify-center gap-0.5">
                           <span>2 Runs</span>
                           <span class="text-[9px] text-slate-500 font-semibold">Double</span>
                         </button>
                         <button (click)="onRecordCricketBall(3, 0, false, 'runs')"
+                          [disabled]="isScoringDisabled"
+                          [class.opacity-40]="isScoringDisabled"
+                          [class.cursor-not-allowed]="isScoringDisabled"
                           class="py-2.5 bg-slate-950 hover:bg-violet-600 border border-white/10 hover:border-transparent text-xs text-white font-bold rounded-xl cursor-pointer transition-all flex flex-col items-center justify-center gap-0.5">
                           <span>3 Runs</span>
                           <span class="text-[9px] text-slate-500 font-semibold">Triple</span>
                         </button>
                         <button (click)="onRecordCricketBall(4, 0, false, 'runs')"
+                          [disabled]="isScoringDisabled"
+                          [class.opacity-40]="isScoringDisabled"
+                          [class.cursor-not-allowed]="isScoringDisabled"
                           class="py-2.5 bg-emerald-600/10 hover:bg-emerald-600 border border-emerald-500/20 hover:border-transparent text-xs text-emerald-400 hover:text-white font-bold rounded-xl cursor-pointer transition-all flex flex-col items-center justify-center gap-0.5">
                           <span>Four (4)</span>
                           <span class="text-[9px] text-emerald-500/60 font-semibold">Boundary</span>
                         </button>
                         <button (click)="onRecordCricketBall(6, 0, false, 'runs')"
+                          [disabled]="isScoringDisabled"
+                          [class.opacity-40]="isScoringDisabled"
+                          [class.cursor-not-allowed]="isScoringDisabled"
                           class="py-2.5 bg-violet-600/20 hover:bg-violet-600 border border-violet-500/30 hover:border-transparent text-xs text-violet-400 hover:text-white font-bold rounded-xl cursor-pointer transition-all flex flex-col items-center justify-center gap-0.5">
                           <span>Six (6)</span>
                           <span class="text-[9px] text-violet-500/60 font-semibold">Maximum</span>
@@ -2639,21 +2677,30 @@
                       <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Extras & Events</span>
                       <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
                         <button (click)="onRecordCricketBall(0, 1, false, 'wide')"
+                          [disabled]="isScoringDisabled"
+                          [class.opacity-40]="isScoringDisabled"
+                          [class.cursor-not-allowed]="isScoringDisabled"
                           class="py-2.5 bg-slate-950 hover:bg-amber-600 border border-white/10 hover:border-transparent text-xs text-white font-semibold rounded-xl cursor-pointer transition-all">
                           Wide Ball (+1)
                         </button>
                         <button (click)="onRecordCricketBall(0, 1, false, 'no-ball')"
+                          [disabled]="isScoringDisabled"
+                          [class.opacity-40]="isScoringDisabled"
+                          [class.cursor-not-allowed]="isScoringDisabled"
                           class="py-2.5 bg-slate-950 hover:bg-amber-600 border border-white/10 hover:border-transparent text-xs text-white font-semibold rounded-xl cursor-pointer transition-all">
                           No Ball (+1)
                         </button>
                         <button (click)="onRecordCricketBall(6, 1, false, 'no-ball')"
+                          [disabled]="isScoringDisabled"
+                          [class.opacity-40]="isScoringDisabled"
+                          [class.cursor-not-allowed]="isScoringDisabled"
                           class="py-2.5 bg-slate-950 hover:bg-amber-600 border border-white/10 hover:border-transparent text-xs text-white font-semibold rounded-xl cursor-pointer transition-all">
                           No Ball + Six (+7)
                         </button>
                         <button (click)="onRecordCricketBall(0, 0, false, 'free-hit')"
-                          [disabled]="!isFreeHitActive(innings)"
-                          [class.opacity-50]="!isFreeHitActive(innings)"
-                          [class.cursor-not-allowed]="!isFreeHitActive(innings)"
+                          [disabled]="isScoringDisabled || !isFreeHitActive(innings)"
+                          [class.opacity-50]="isScoringDisabled || !isFreeHitActive(innings)"
+                          [class.cursor-not-allowed]="isScoringDisabled || !isFreeHitActive(innings)"
                           class="py-2.5 bg-violet-600/20 hover:bg-violet-600 border border-violet-500/20 hover:border-transparent text-xs text-violet-300 hover:text-white font-bold rounded-xl cursor-pointer transition-all">
                           Free Hit Delivery
                         </button>
@@ -2663,6 +2710,9 @@
                     <!-- Wickets & Controls -->
                     <div class="flex items-center justify-between border-t border-white/5 pt-3">
                       <button (click)="onRecordCricketBall(0, 0, true, 'wicket')"
+                        [disabled]="isScoringDisabled"
+                        [class.opacity-40]="isScoringDisabled"
+                        [class.cursor-not-allowed]="isScoringDisabled"
                         class="px-5 py-2.5 bg-rose-600/20 hover:bg-rose-600 border border-rose-500/20 hover:border-transparent text-rose-400 hover:text-white text-xs font-bold rounded-xl cursor-pointer transition-all flex items-center gap-1.5">
                         <i class="fi fi-rr-circle-xmark"></i> OUT / Wicket
                       </button>

@@ -82,3 +82,29 @@ body {
   background-color: var(--color-canvas);
   color: var(--color-text-main);
 }
+
+/* Global Thin Custom Scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #00ADB5 rgba(34, 40, 49, 0.5);
+}
+
+/* Chrome, Edge, and Safari */
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: rgba(34, 40, 49, 0.4);
+  border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: #00ADB5;
+  border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: #008f96;
+}

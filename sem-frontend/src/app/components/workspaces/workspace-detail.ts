@@ -2906,6 +2906,11 @@ export class WorkspaceDetailComponent implements OnInit {
     const stage = this.selectedStage();
     if (!match || !ws || !event || !comp || !stage) return;
 
+    if (!this.cricketBowler() || !this.cricketStriker() || !this.cricketNonStriker()) {
+      this.uiService.error('Please select Bowler, Striker, and Non-Striker before recording a ball.');
+      return;
+    }
+
     const live = { ...match.liveData };
     const inningsIndex = (live.currentInnings ?? 1) - 1;
     if (!live.inningsData || !live.inningsData[inningsIndex]) return;
@@ -2919,6 +2924,7 @@ export class WorkspaceDetailComponent implements OnInit {
     // Update wickets
     if (wicket) {
       innings.wickets += 1;
+      this.cricketStriker.set('');
     }
 
     // Update valid balls/overs count
@@ -3128,6 +3134,13 @@ export class WorkspaceDetailComponent implements OnInit {
         this.matches.update(prev => prev.map(m => m.id === updated.id ? updated : m));
       }
     });
+  }
+
+  onSwitchCricketStrikers() {
+    const s = this.cricketStriker();
+    const ns = this.cricketNonStriker();
+    this.cricketStriker.set(ns);
+    this.cricketNonStriker.set(s);
   }
 
   // ─── Badminton Live Actions ────────────────────────────────────────────────
