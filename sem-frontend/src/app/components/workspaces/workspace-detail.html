@@ -2478,10 +2478,9 @@
                 @if (!match.liveData?.tossWinnerId) {
                 <!-- Toss Choice Panel -->
                 <div class="flex flex-col gap-4">
-                  <h4 class="text-sm font-bold text-white uppercase tracking-wider border-b border-white/5 pb-2">Toss
-                    Configuration</h4>
-                  <div class="flex flex-col sm:flex-row gap-4">
-                    <div class="flex-1 flex flex-col gap-1.5 text-left">
+                  <h4 class="text-sm font-bold text-white uppercase tracking-wider border-b border-white/5 pb-2">Toss & Match Configuration</h4>
+                  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="flex flex-col gap-1.5 text-left">
                       <label class="text-[10px] font-bold text-slate-400 uppercase">Toss Winner</label>
                       <select #tossWinner
                         class="bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none">
@@ -2489,7 +2488,7 @@
                         <option [value]="match.awayTeamId">{{ match.awayTeam?.name }}</option>
                       </select>
                     </div>
-                    <div class="flex-1 flex flex-col gap-1.5 text-left">
+                    <div class="flex flex-col gap-1.5 text-left">
                       <label class="text-[10px] font-bold text-slate-400 uppercase">Elected to</label>
                       <select #tossChoice
                         class="bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none">
@@ -2497,8 +2496,13 @@
                         <option value="bowl">Bowl</option>
                       </select>
                     </div>
+                    <div class="flex flex-col gap-1.5 text-left">
+                      <label class="text-[10px] font-bold text-slate-400 uppercase">Overs Limit</label>
+                      <input #matchOvers type="number" [value]="match.config?.overs || 20" min="1" max="100"
+                        class="bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 outline-none" />
+                    </div>
                   </div>
-                  <button (click)="onRecordCricketToss(tossWinner.value, tossChoice.value === 'bowl' ? 'bowl' : 'bat')"
+                  <button (click)="onRecordCricketToss(tossWinner.value, tossChoice.value === 'bowl' ? 'bowl' : 'bat', +matchOvers.value)"
                     class="w-full py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-xl cursor-pointer transition-all">
                     Start Match & Record Toss
                   </button>
@@ -2708,14 +2712,29 @@
                     </div>
 
                     <!-- Wickets & Controls -->
-                    <div class="flex items-center justify-between border-t border-white/5 pt-3">
-                      <button (click)="onRecordCricketBall(0, 0, true, 'wicket')"
-                        [disabled]="isScoringDisabled"
-                        [class.opacity-40]="isScoringDisabled"
-                        [class.cursor-not-allowed]="isScoringDisabled"
-                        class="px-5 py-2.5 bg-rose-600/20 hover:bg-rose-600 border border-rose-500/20 hover:border-transparent text-rose-400 hover:text-white text-xs font-bold rounded-xl cursor-pointer transition-all flex items-center gap-1.5">
-                        <i class="fi fi-rr-circle-xmark"></i> OUT / Wicket
-                      </button>
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between border-t border-white/5 pt-3 gap-3">
+                      <div class="flex items-center gap-2">
+                        <select [ngModel]="cricketWicketType()" (ngModelChange)="cricketWicketType.set($event)"
+                          [disabled]="isScoringDisabled"
+                          [class.opacity-40]="isScoringDisabled"
+                          [class.cursor-not-allowed]="isScoringDisabled"
+                          class="bg-slate-950 border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white focus:border-rose-500 focus:outline-none transition-colors">
+                          <option value="Bowled">Bowled</option>
+                          <option value="Caught">Caught</option>
+                          <option value="LBW">LBW</option>
+                          <option value="Run Out">Run Out</option>
+                          <option value="Stumped">Stumped</option>
+                          <option value="Hit Wicket">Hit Wicket</option>
+                          <option value="Retired Hurt">Retired Hurt</option>
+                        </select>
+                        <button (click)="onRecordCricketWicket()"
+                          [disabled]="isScoringDisabled"
+                          [class.opacity-40]="isScoringDisabled"
+                          [class.cursor-not-allowed]="isScoringDisabled"
+                          class="px-5 py-2.5 bg-rose-600/20 hover:bg-rose-600 border border-rose-500/20 hover:border-transparent text-rose-400 hover:text-white text-xs font-bold rounded-xl cursor-pointer transition-all flex items-center gap-1.5">
+                          <i class="fi fi-rr-circle-xmark"></i> OUT / Wicket
+                        </button>
+                      </div>
 
                       <button (click)="onUndoCricketBall()"
                         [disabled]="!innings?.ballsHistory?.length"
@@ -2889,7 +2908,9 @@
                             </span>
                             <!-- Event outcome badge -->
                             @if (ball.wicket) {
-                            <span class="px-1 py-0.5 rounded bg-rose-500/25 border border-rose-500/30 text-rose-400 font-bold text-[8px] uppercase tracking-wider">WKT</span>
+                            <span class="px-1 py-0.5 rounded bg-rose-500/25 border border-rose-500/30 text-rose-400 font-bold text-[8px] uppercase tracking-wider">
+                              WKT@if (ball.wicketType) { ({{ ball.wicketType }}) }
+                            </span>
                             } @else if (ball.ballType === 'wide') {
                             <span class="px-1 py-0.5 rounded bg-amber-500/20 border border-amber-500/30 text-amber-400 font-bold text-[8px] uppercase">WD</span>
                             } @else if (ball.ballType === 'no-ball') {

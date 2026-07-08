@@ -197,6 +197,7 @@ export class WorkspaceDetailComponent implements OnInit {
   cricketStriker = signal<string>('');
   cricketNonStriker = signal<string>('');
   cricketStatsTab = signal<'batting' | 'bowling'>('batting');
+  cricketWicketType = signal<string>('Bowled');
 
   isStageCompleted = computed(() => {
     const stage = this.selectedStage();
@@ -2828,7 +2829,7 @@ export class WorkspaceDetailComponent implements OnInit {
   }
 
   // ─── Cricket Live Actions ──────────────────────────────────────────────────
-  onRecordCricketToss(tossWinnerId: string, tossChoice: 'bat' | 'bowl') {
+  onRecordCricketToss(tossWinnerId: string, tossChoice: 'bat' | 'bowl', overs: number) {
     const match = this.selectedMatch();
     const ws = this.workspace();
     const event = this.selectedEvent();
@@ -2856,13 +2857,19 @@ export class WorkspaceDetailComponent implements OnInit {
         bowlerStats: {},
         extraRuns: 0,
         completed: false,
+        ballsHistory: []
       }
     ];
     live.currentInnings = 1;
 
+    // Update match config.overs
+    const updatedConfig = { ...match.config, overs };
+    match.config = updatedConfig;
+
     this.workspaceService.updateMatch(ws.id, event.id, comp.id, stage.id, match.id, {
       liveData: live,
       status: 'live',
+      config: updatedConfig
     }).subscribe({
       next: (updated) => {
         this.selectedMatch.set(updated);
@@ -2898,7 +2905,7 @@ export class WorkspaceDetailComponent implements OnInit {
     return obj ? Object.keys(obj) : [];
   }
 
-  onRecordCricketBall(runs: number, extraRuns: number, wicket: boolean, ballType: string) {
+  onRecordCricketBall(runs: number, extraRuns: number, wicket: boolean, ballType: string, wicketType?: string) {
     const match = this.selectedMatch();
     const ws = this.workspace();
     const event = this.selectedEvent();
@@ -2921,9 +2928,11 @@ export class WorkspaceDetailComponent implements OnInit {
     innings.runs += runs + extraRuns;
     innings.extraRuns = (innings.extraRuns ?? 0) + extraRuns;
 
-    // Update wickets
+    // Update wickets (Retired Hurt does not increment the team's wickets down)
     if (wicket) {
-      innings.wickets += 1;
+      if (wicketType !== 'Retired Hurt') {
+        innings.wickets += 1;
+      }
       this.cricketStriker.set('');
     }
 
@@ -2950,6 +2959,7 @@ export class WorkspaceDetailComponent implements OnInit {
       extras: extraRuns,
       wicket,
       ballType,
+      wicketType,
       timestamp: new Date().toISOString()
     });
 
@@ -2975,7 +2985,11 @@ export class WorkspaceDetailComponent implements OnInit {
     innings.bowlerStats[bowler].runsConceded += runs + extraRuns;
     innings.bowlerStats[bowler].extraRuns += extraRuns;
     if (wicket) {
-      innings.bowlerStats[bowler].wickets += 1;
+      // Bowler gets wickets for all types except Run Out and Retired Hurt
+      const bowlerGetsWicket = wicketType !== 'Run Out' && wicketType !== 'Retired Hurt';
+      if (bowlerGetsWicket) {
+        innings.bowlerStats[bowler].wickets += 1;
+      }
     }
     if (ballType !== 'wide' && ballType !== 'no-ball') {
       innings.bowlerStats[bowler].balls += 1;
@@ -3032,6 +3046,11 @@ export class WorkspaceDetailComponent implements OnInit {
     });
   }
 
+  onRecordCricketWicket() {
+    const type = this.cricketWicketType();
+    this.onRecordCricketBall(0, 0, true, 'wicket', type);
+  }
+
   onUndoCricketBall() {
     const match = this.selectedMatch();
     const ws = this.workspace();
@@ -3066,7 +3085,7 @@ export class WorkspaceDetailComponent implements OnInit {
     for (const ball of history) {
       innings.runs += ball.runs + ball.extras;
       innings.extraRuns += ball.extras;
-      if (ball.wicket) {
+      if (ball.wicket && ball.wicketType !== 'Retired Hurt') {
         innings.wickets += 1;
       }
       if (ball.ballType !== 'wide' && ball.ballType !== 'no-ball') {
@@ -3097,7 +3116,10 @@ export class WorkspaceDetailComponent implements OnInit {
       innings.bowlerStats[bwName].runsConceded += ball.runs + ball.extras;
       innings.bowlerStats[bwName].extraRuns += ball.extras;
       if (ball.wicket) {
-        innings.bowlerStats[bwName].wickets += 1;
+        const bowlerGetsWicket = ball.wicketType !== 'Run Out' && ball.wicketType !== 'Retired Hurt';
+        if (bowlerGetsWicket) {
+          innings.bowlerStats[bwName].wickets += 1;
+        }
       }
       if (ball.ballType !== 'wide' && ball.ballType !== 'no-ball') {
         innings.bowlerStats[bwName].balls += 1;

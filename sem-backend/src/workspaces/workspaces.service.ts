@@ -1203,10 +1203,140 @@ export class WorkspacesService implements OnModuleInit {
     }
 
     const saved = await this.matchRepo.save(match);
+
+    // If match was completed, run knockout advancement
+    if (saved.status === 'completed') {
+      const stage = await this.stageRepo.findOne({ where: { id: stageId } });
+      if (stage && (stage.type === 'knockout' || stage.type === 'group_knockout')) {
+        await this.advanceKnockoutWinner(saved, stage);
+      }
+    }
+
     return (await this.matchRepo.findOne({
       where: { id: saved.id },
       relations: { homeTeam: true, awayTeam: true, venue: true },
     }))!;
+  }
+
+  private async advanceKnockoutWinner(completedMatch: Match, stage: CompetitionStage): Promise<void> {
+    const roundName = (completedMatch.config as any)?.round;
+    if (!roundName || roundName.toLowerCase() === 'final') return;
+
+    // Fetch all matches in this stage
+    const allMatches = await this.matchRepo.find({
+      where: { stageId: stage.id },
+      order: { id: 'ASC', createdAt: 'ASC' }
+    });
+
+    // Group unique matches per round (using leg 1 or leg-less matches to count unique matches per round)
+    // We sort rounds by their unique matches count in descending order
+    const roundCounts: { [round: string]: number } = {};
+    for (const m of allMatches) {
+      const rName = (m.config as any)?.round;
+      if (!rName) continue;
+      const isLeg1OrNone = (m.config as any)?.leg === undefined || (m.config as any)?.leg === 1;
+      if (isLeg1OrNone) {
+        roundCounts[rName] = (roundCounts[rName] || 0) + 1;
+      }
+    }
+
+    const sortedRounds = Object.keys(roundCounts).sort((a, b) => roundCounts[b] - roundCounts[a]);
+    const currRoundIdx = sortedRounds.indexOf(roundName);
+    if (currRoundIdx === -1 || currRoundIdx === sortedRounds.length - 1) return;
+
+    const nextRoundName = sortedRounds[currRoundIdx + 1];
+
+    // Find winner of the completed match/tie
+    let winnerId: string | null = null;
+    const homeScore = completedMatch.homeScore ?? 0;
+    const awayScore = completedMatch.awayScore ?? 0;
+
+    if ((completedMatch.config as any)?.leg === 1) {
+      // Leg 1 complete: wait for leg 2 to finish
+      return;
+    }
+
+    if ((completedMatch.config as any)?.leg === 2) {
+      // Aggregate two legs
+      const leg1 = allMatches.find(m => 
+        (m.config as any)?.round === roundName && 
+        (m.config as any)?.leg === 1 && 
+        m.homeTeamId === completedMatch.awayTeamId && 
+        m.awayTeamId === completedMatch.homeTeamId
+      );
+      if (leg1) {
+        const teamAScore = (leg1.homeScore ?? 0) + (completedMatch.awayScore ?? 0);
+        const teamBScore = (leg1.awayScore ?? 0) + (completedMatch.homeScore ?? 0);
+        if (teamAScore > teamBScore) {
+          winnerId = leg1.homeTeamId;
+        } else if (teamBScore > teamAScore) {
+          winnerId = leg1.awayTeamId;
+        } else {
+          // Tie-breaker: default to leg 2 winner
+          winnerId = homeScore > awayScore ? completedMatch.homeTeamId : completedMatch.awayTeamId;
+        }
+      } else {
+        winnerId = homeScore > awayScore ? completedMatch.homeTeamId : completedMatch.awayTeamId;
+      }
+    } else {
+      // Single leg
+      if (homeScore > awayScore) {
+        winnerId = completedMatch.homeTeamId;
+      } else if (awayScore > homeScore) {
+        winnerId = completedMatch.awayTeamId;
+      }
+    }
+
+    if (!winnerId) return;
+
+    // Find index of this match in the current round
+    const currRoundMatches = allMatches.filter(m => 
+      (m.config as any)?.round === roundName && 
+      ((m.config as any)?.leg === undefined || (m.config as any)?.leg === 1)
+    );
+    const matchIndex = currRoundMatches.findIndex(m => 
+      m.id === completedMatch.id || 
+      ((completedMatch.config as any)?.leg === 2 && m.homeTeamId === completedMatch.awayTeamId && m.awayTeamId === completedMatch.homeTeamId)
+    );
+    if (matchIndex === -1) return;
+
+    // Next round details
+    const nextRoundMatches = allMatches.filter(m => 
+      (m.config as any)?.round === nextRoundName && 
+      ((m.config as any)?.leg === undefined || (m.config as any)?.leg === 1)
+    );
+
+    const nextMatchIndex = Math.floor(matchIndex / 2);
+    const targetLeg1Match = nextRoundMatches[nextMatchIndex];
+    if (!targetLeg1Match) return;
+
+    const isHomeSlot = matchIndex % 2 === 0;
+
+    // Update Leg 1 match
+    if (isHomeSlot) {
+      targetLeg1Match.homeTeamId = winnerId;
+    } else {
+      targetLeg1Match.awayTeamId = winnerId;
+    }
+    await this.matchRepo.save(targetLeg1Match);
+
+    // If next round is two-legged, also update Leg 2 match with swapped roles
+    const twoLegged = (stage.config as any)?.twoLegged || (stage.config as any)?.legs === 2;
+    if (twoLegged) {
+      const nextRoundLeg2Matches = allMatches.filter(m => 
+        (m.config as any)?.round === nextRoundName && 
+        (m.config as any)?.leg === 2
+      );
+      const targetLeg2MatchSec = nextRoundLeg2Matches[nextMatchIndex];
+      if (targetLeg2MatchSec) {
+        if (isHomeSlot) {
+          targetLeg2MatchSec.awayTeamId = winnerId;
+        } else {
+          targetLeg2MatchSec.homeTeamId = winnerId;
+        }
+        await this.matchRepo.save(targetLeg2MatchSec);
+      }
+    }
   }
 
   async removeMatch(
