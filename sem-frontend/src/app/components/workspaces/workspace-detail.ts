@@ -33,6 +33,8 @@ export class WorkspaceDetailComponent implements OnInit {
   error = signal('');
   activeTab = signal<'overview' | 'members' | 'settings' | 'teams' | 'players' | 'events' | 'venues'>('overview');
   isSidebarOpen = signal(false);
+  enableExtraTime = signal(true);
+  enablePenaltyShootout = signal(true);
 
   // Image Upload Loading States
   isUploadingAvatar = signal(false);
@@ -2690,7 +2692,28 @@ export class WorkspaceDetailComponent implements OnInit {
 
   getPlayersForTeam(teamId: string | null): Player[] {
     if (!teamId) return [];
-    return this.players().filter(p => p.teamId === teamId);
+    const match = this.selectedMatch();
+    const inactiveIds = new Set<string>();
+    if (match?.liveData?.events) {
+      for (const ev of match.liveData.events) {
+        if (ev.type === 'card' && (ev.cardType === 'red' || ev.cardType === 'second_yellow')) {
+          if (ev.playerUserId) {
+            inactiveIds.add(ev.playerUserId);
+          }
+        }
+        if (ev.type === 'substitution') {
+          if (ev.playerOutId) {
+            inactiveIds.add(ev.playerOutId);
+          }
+        }
+        if (ev.type === 'injury' && ev.substituted) {
+          if (ev.playerUserId) {
+            inactiveIds.add(ev.playerUserId);
+          }
+        }
+      }
+    }
+    return this.players().filter(p => p.teamId === teamId && !inactiveIds.has(p.userId));
   }
 
   // ─── Football Live Actions ─────────────────────────────────────────────────
@@ -2700,6 +2723,45 @@ export class WorkspaceDetailComponent implements OnInit {
       const match = this.selectedMatch();
       if (match && match.status === 'live' && match.liveData?.timerRunning) {
         const live = { ...match.liveData };
+        const halfDurationMinutes = live.halfDurationMinutes || 45;
+        const halfSecs = halfDurationMinutes * 60;
+        
+        if (live.currentHalf === 1) {
+          if ((live.elapsedSeconds ?? 0) >= halfSecs) {
+            live.timerRunning = false;
+            live.elapsedSeconds = halfSecs;
+            this.stopFootballTimer();
+            this.saveFootballLiveData(live);
+            return;
+          }
+        } else if (live.currentHalf === 2) {
+          if ((live.elapsedSeconds ?? 0) >= halfSecs * 2) {
+            live.timerRunning = false;
+            live.elapsedSeconds = halfSecs * 2;
+            this.stopFootballTimer();
+            this.saveFootballLiveData(live);
+            return;
+          }
+        } else if (live.currentHalf === 3) {
+          const extra1Limit = halfSecs * 2 + 15 * 60;
+          if ((live.elapsedSeconds ?? 0) >= extra1Limit) {
+            live.timerRunning = false;
+            live.elapsedSeconds = extra1Limit;
+            this.stopFootballTimer();
+            this.saveFootballLiveData(live);
+            return;
+          }
+        } else if (live.currentHalf === 4) {
+          const extra2Limit = halfSecs * 2 + 30 * 60;
+          if ((live.elapsedSeconds ?? 0) >= extra2Limit) {
+            live.timerRunning = false;
+            live.elapsedSeconds = extra2Limit;
+            this.stopFootballTimer();
+            this.saveFootballLiveData(live);
+            return;
+          }
+        }
+        
         live.elapsedSeconds = (live.elapsedSeconds ?? 0) + 1;
         this.selectedMatch.update(m => m ? { ...m, liveData: live } : null);
       }
@@ -2735,6 +2797,168 @@ export class WorkspaceDetailComponent implements OnInit {
         else this.stopFootballTimer();
       }
     });
+  }
+
+  onStartFootballMatch(halfDurationMinutes: number, enableExtraTime: boolean = false, enablePenaltyShootout: boolean = false) {
+    const match = this.selectedMatch();
+    const ws = this.workspace();
+    const event = this.selectedEvent();
+    const comp = this.selectedCompetition();
+    const stage = this.selectedStage();
+    if (!match || !ws || !event || !comp || !stage) return;
+
+    const live = {
+      started: true,
+      halfDurationMinutes,
+      enableExtraTime,
+      enablePenaltyShootout,
+      currentHalf: 1,
+      elapsedSeconds: 0,
+      timerRunning: true,
+      events: []
+    };
+
+    this.workspaceService.updateMatch(ws.id, event.id, comp.id, stage.id, match.id, {
+      liveData: live,
+      status: 'live',
+    }).subscribe({
+      next: (updated) => {
+        this.selectedMatch.set(updated);
+        this.matches.update(prev => prev.map(m => m.id === updated.id ? updated : m));
+        this.startFootballTimer();
+      }
+    });
+  }
+
+  onStartSecondHalf() {
+    const match = this.selectedMatch();
+    const ws = this.workspace();
+    const event = this.selectedEvent();
+    const comp = this.selectedCompetition();
+    const stage = this.selectedStage();
+    if (!match || !ws || !event || !comp || !stage) return;
+
+    const live = { ...match.liveData };
+    const halfDurationMinutes = live.halfDurationMinutes || 45;
+    live.currentHalf = 2;
+    live.elapsedSeconds = halfDurationMinutes * 60;
+    live.timerRunning = true;
+
+    this.workspaceService.updateMatch(ws.id, event.id, comp.id, stage.id, match.id, {
+      liveData: live,
+    }).subscribe({
+      next: (updated) => {
+        this.selectedMatch.set(updated);
+        this.matches.update(prev => prev.map(m => m.id === updated.id ? updated : m));
+        this.startFootballTimer();
+      }
+    });
+  }
+
+  saveFootballLiveData(live: any) {
+    const match = this.selectedMatch();
+    const ws = this.workspace();
+    const event = this.selectedEvent();
+    const comp = this.selectedCompetition();
+    const stage = this.selectedStage();
+    if (!match || !ws || !event || !comp || !stage) return;
+
+    this.workspaceService.updateMatch(ws.id, event.id, comp.id, stage.id, match.id, {
+      liveData: live,
+    }).subscribe({
+      next: (updated) => {
+        this.selectedMatch.set(updated);
+        this.matches.update(prev => prev.map(m => m.id === updated.id ? updated : m));
+      }
+    });
+  }
+
+  formatFootballTime(seconds: number | undefined | null): string {
+    if (seconds == null) return '00:00';
+    const mm = Math.floor(seconds / 60);
+    const ss = seconds % 60;
+    const mmStr = mm < 10 ? '0' + mm : '' + mm;
+    const ssStr = ss < 10 ? '0' + ss : '' + ss;
+    return `${mmStr}:${ssStr}`;
+  }
+
+  getFootballPeriodStatus(match: Match | null): string {
+    if (!match || !match.liveData?.started) return 'Not Started';
+    const live = match.liveData;
+    const halfSecs = (live.halfDurationMinutes || 45) * 60;
+    if (live.currentHalf === 1) {
+      if ((live.elapsedSeconds ?? 0) >= halfSecs) return 'Half Time';
+      return '1st Half';
+    } else if (live.currentHalf === 2) {
+      if ((live.elapsedSeconds ?? 0) >= halfSecs * 2) {
+        if (live.enableExtraTime && match.homeScore === match.awayScore) {
+          return 'Extra Time Pending';
+        }
+        return 'Full Time';
+      }
+      return '2nd Half';
+    } else if (live.currentHalf === 3) {
+      const extra1Limit = halfSecs * 2 + 15 * 60;
+      if ((live.elapsedSeconds ?? 0) >= extra1Limit) return 'Extra Half Time';
+      return '1st Extra Half';
+    } else if (live.currentHalf === 4) {
+      const extra2Limit = halfSecs * 2 + 30 * 60;
+      if ((live.elapsedSeconds ?? 0) >= extra2Limit) {
+        if (live.enablePenaltyShootout && match.homeScore === match.awayScore) {
+          return 'Penalty Shootout Pending';
+        }
+        return 'Extra Full Time';
+      }
+      return '2nd Extra Half';
+    } else if (live.currentHalf === 5) {
+      return 'Penalty Shootout';
+    }
+    return '';
+  }
+
+  isFootballHalfTime(match: Match | null): boolean {
+    if (!match || !match.liveData?.started) return false;
+    const live = match.liveData;
+    const halfSecs = (live.halfDurationMinutes || 45) * 60;
+    return live.currentHalf === 1 && (live.elapsedSeconds ?? 0) >= halfSecs;
+  }
+
+  isFootballFullTime(match: Match | null): boolean {
+    if (!match || !match.liveData?.started) return false;
+    const live = match.liveData;
+    const halfSecs = (live.halfDurationMinutes || 45) * 60;
+    return live.currentHalf === 2 && (live.elapsedSeconds ?? 0) >= halfSecs * 2;
+  }
+
+  isFootballExtra1Pending(match: Match | null): boolean {
+    if (!match || !match.liveData?.started) return false;
+    const live = match.liveData;
+    const halfSecs = (live.halfDurationMinutes || 45) * 60;
+    return live.currentHalf === 2 && (live.elapsedSeconds ?? 0) >= halfSecs * 2 && live.enableExtraTime && match.homeScore === match.awayScore;
+  }
+
+  isFootballExtra1Time(match: Match | null): boolean {
+    if (!match || !match.liveData?.started) return false;
+    const live = match.liveData;
+    const halfSecs = (live.halfDurationMinutes || 45) * 60;
+    const extra1Limit = halfSecs * 2 + 15 * 60;
+    return live.currentHalf === 3 && (live.elapsedSeconds ?? 0) >= extra1Limit;
+  }
+
+  isFootballExtra2Time(match: Match | null): boolean {
+    if (!match || !match.liveData?.started) return false;
+    const live = match.liveData;
+    const halfSecs = (live.halfDurationMinutes || 45) * 60;
+    const extra2Limit = halfSecs * 2 + 30 * 60;
+    return live.currentHalf === 4 && (live.elapsedSeconds ?? 0) >= extra2Limit;
+  }
+
+  isFootballShootoutPending(match: Match | null): boolean {
+    if (!match || !match.liveData?.started) return false;
+    const live = match.liveData;
+    const halfSecs = (live.halfDurationMinutes || 45) * 60;
+    const extra2Limit = halfSecs * 2 + 30 * 60;
+    return live.currentHalf === 4 && (live.elapsedSeconds ?? 0) >= extra2Limit && live.enablePenaltyShootout && match.homeScore === match.awayScore;
   }
 
   onRecordFootballGoal(options: {
@@ -2810,11 +3034,22 @@ export class WorkspaceDetailComponent implements OnInit {
     const currentMin = Math.floor((live.elapsedSeconds ?? 0) / 60) + 1;
 
     if (!live.events) live.events = [];
+    
+    let finalCardType: 'yellow' | 'red' | 'second_yellow' = cardType;
+    if (cardType === 'yellow') {
+      const yellowCount = live.events.filter(
+        (e: any) => e.type === 'card' && e.playerUserId === playerId && e.cardType === 'yellow'
+      ).length;
+      if (yellowCount >= 1) {
+        finalCardType = 'second_yellow';
+      }
+    }
+
     live.events.push({
       type: 'card',
       teamId,
       playerUserId: playerId,
-      cardType,
+      cardType: finalCardType,
       minute: currentMin,
     });
 
@@ -2824,6 +3059,461 @@ export class WorkspaceDetailComponent implements OnInit {
       next: (updated) => {
         this.selectedMatch.set(updated);
         this.matches.update(prev => prev.map(m => m.id === updated.id ? updated : m));
+      }
+    });
+  }
+
+  onRecordFootballPenalty(teamId: string, kickerId: string, outcome: 'scored' | 'missed' | 'saved' | 'hit_post') {
+    const match = this.selectedMatch();
+    const ws = this.workspace();
+    const event = this.selectedEvent();
+    const comp = this.selectedCompetition();
+    const stage = this.selectedStage();
+    if (!match || !ws || !event || !comp || !stage) return;
+
+    const live = { ...match.liveData };
+    const currentMin = Math.floor((live.elapsedSeconds ?? 0) / 60) + 1;
+
+    if (!live.events) live.events = [];
+    
+    // Log the penalty attempt
+    live.events.push({
+      type: 'penalty',
+      teamId,
+      playerUserId: kickerId,
+      outcome,
+      minute: currentMin,
+    });
+
+    let newHomeScore = match.homeScore;
+    let newAwayScore = match.awayScore;
+
+    if (outcome === 'scored') {
+      // Also log as a goal event so it increments score and displays in goals list
+      live.events.push({
+        type: 'goal',
+        goalType: 'penalty',
+        teamId,
+        playerUserId: kickerId,
+        minute: currentMin,
+      });
+
+      if (teamId === match.homeTeamId) {
+        newHomeScore += 1;
+      } else {
+        newAwayScore += 1;
+      }
+    }
+
+    this.workspaceService.updateMatch(ws.id, event.id, comp.id, stage.id, match.id, {
+      homeScore: newHomeScore,
+      awayScore: newAwayScore,
+      liveData: live,
+    }).subscribe({
+      next: (updated) => {
+        this.selectedMatch.set(updated);
+        this.matches.update(prev => prev.map(m => m.id === updated.id ? updated : m));
+      }
+    });
+  }
+
+  onRecordFootballSubstitution(teamId: string, playerOutId: string, playerInId: string, reason: string) {
+    const match = this.selectedMatch();
+    const ws = this.workspace();
+    const event = this.selectedEvent();
+    const comp = this.selectedCompetition();
+    const stage = this.selectedStage();
+    if (!match || !ws || !event || !comp || !stage) return;
+
+    const live = { ...match.liveData };
+    const currentMin = Math.floor((live.elapsedSeconds ?? 0) / 60) + 1;
+
+    if (!live.events) live.events = [];
+    live.events.push({
+      type: 'substitution',
+      teamId,
+      playerOutId,
+      playerInId,
+      reason,
+      minute: currentMin
+    });
+
+    this.workspaceService.updateMatch(ws.id, event.id, comp.id, stage.id, match.id, {
+      liveData: live
+    }).subscribe({
+      next: (updated) => {
+        this.selectedMatch.set(updated);
+        this.matches.update(prev => prev.map(m => m.id === updated.id ? updated : m));
+      }
+    });
+  }
+
+  onRecordFootballOffside(teamId: string, playerId: string) {
+    const match = this.selectedMatch();
+    const ws = this.workspace();
+    const event = this.selectedEvent();
+    const comp = this.selectedCompetition();
+    const stage = this.selectedStage();
+    if (!match || !ws || !event || !comp || !stage) return;
+
+    const live = { ...match.liveData };
+    const currentMin = Math.floor((live.elapsedSeconds ?? 0) / 60) + 1;
+
+    if (!live.events) live.events = [];
+    live.events.push({
+      type: 'offside',
+      teamId,
+      playerUserId: playerId,
+      minute: currentMin
+    });
+
+    this.workspaceService.updateMatch(ws.id, event.id, comp.id, stage.id, match.id, {
+      liveData: live
+    }).subscribe({
+      next: (updated) => {
+        this.selectedMatch.set(updated);
+        this.matches.update(prev => prev.map(m => m.id === updated.id ? updated : m));
+      }
+    });
+  }
+
+  onRecordFootballFoul(teamId: string, committedById: string, againstId: string, foulType: string) {
+    const match = this.selectedMatch();
+    const ws = this.workspace();
+    const event = this.selectedEvent();
+    const comp = this.selectedCompetition();
+    const stage = this.selectedStage();
+    if (!match || !ws || !event || !comp || !stage) return;
+
+    const live = { ...match.liveData };
+    const currentMin = Math.floor((live.elapsedSeconds ?? 0) / 60) + 1;
+
+    if (!live.events) live.events = [];
+    live.events.push({
+      type: 'foul',
+      teamId,
+      playerUserId: committedById,
+      opponentPlayerUserId: againstId,
+      foulType,
+      minute: currentMin
+    });
+
+    this.workspaceService.updateMatch(ws.id, event.id, comp.id, stage.id, match.id, {
+      liveData: live
+    }).subscribe({
+      next: (updated) => {
+        this.selectedMatch.set(updated);
+        this.matches.update(prev => prev.map(m => m.id === updated.id ? updated : m));
+      }
+    });
+  }
+
+  onRecordFootballFreeKick(teamId: string, takenById: string, freeKickType: 'direct' | 'indirect', result: string) {
+    const match = this.selectedMatch();
+    const ws = this.workspace();
+    const event = this.selectedEvent();
+    const comp = this.selectedCompetition();
+    const stage = this.selectedStage();
+    if (!match || !ws || !event || !comp || !stage) return;
+
+    const live = { ...match.liveData };
+    const currentMin = Math.floor((live.elapsedSeconds ?? 0) / 60) + 1;
+
+    if (!live.events) live.events = [];
+    live.events.push({
+      type: 'free_kick',
+      teamId,
+      playerUserId: takenById,
+      freeKickType,
+      result,
+      minute: currentMin
+    });
+
+    let newHomeScore = match.homeScore;
+    let newAwayScore = match.awayScore;
+
+    if (result === 'scored') {
+      live.events.push({
+        type: 'goal',
+        goalType: 'free_kick',
+        teamId,
+        playerUserId: takenById,
+        minute: currentMin
+      });
+
+      if (teamId === match.homeTeamId) {
+        newHomeScore += 1;
+      } else {
+        newAwayScore += 1;
+      }
+    }
+
+    this.workspaceService.updateMatch(ws.id, event.id, comp.id, stage.id, match.id, {
+      homeScore: newHomeScore,
+      awayScore: newAwayScore,
+      liveData: live
+    }).subscribe({
+      next: (updated) => {
+        this.selectedMatch.set(updated);
+        this.matches.update(prev => prev.map(m => m.id === updated.id ? updated : m));
+      }
+    });
+  }
+
+  onRecordFootballCornerKick(teamId: string, takenById: string, side: 'left' | 'right') {
+    const match = this.selectedMatch();
+    const ws = this.workspace();
+    const event = this.selectedEvent();
+    const comp = this.selectedCompetition();
+    const stage = this.selectedStage();
+    if (!match || !ws || !event || !comp || !stage) return;
+
+    const live = { ...match.liveData };
+    const currentMin = Math.floor((live.elapsedSeconds ?? 0) / 60) + 1;
+
+    if (!live.events) live.events = [];
+    live.events.push({
+      type: 'corner_kick',
+      teamId,
+      playerUserId: takenById,
+      side,
+      minute: currentMin
+    });
+
+    this.workspaceService.updateMatch(ws.id, event.id, comp.id, stage.id, match.id, {
+      liveData: live
+    }).subscribe({
+      next: (updated) => {
+        this.selectedMatch.set(updated);
+        this.matches.update(prev => prev.map(m => m.id === updated.id ? updated : m));
+      }
+    });
+  }
+
+  onRecordFootballThrowIn(teamId: string, playerId: string) {
+    const match = this.selectedMatch();
+    const ws = this.workspace();
+    const event = this.selectedEvent();
+    const comp = this.selectedCompetition();
+    const stage = this.selectedStage();
+    if (!match || !ws || !event || !comp || !stage) return;
+
+    const live = { ...match.liveData };
+    const currentMin = Math.floor((live.elapsedSeconds ?? 0) / 60) + 1;
+
+    if (!live.events) live.events = [];
+    live.events.push({
+      type: 'throw_in',
+      teamId,
+      playerUserId: playerId,
+      minute: currentMin
+    });
+
+    this.workspaceService.updateMatch(ws.id, event.id, comp.id, stage.id, match.id, {
+      liveData: live
+    }).subscribe({
+      next: (updated) => {
+        this.selectedMatch.set(updated);
+        this.matches.update(prev => prev.map(m => m.id === updated.id ? updated : m));
+      }
+    });
+  }
+
+  onRecordFootballGoalKick(teamId: string, goalkeeperId: string) {
+    const match = this.selectedMatch();
+    const ws = this.workspace();
+    const event = this.selectedEvent();
+    const comp = this.selectedCompetition();
+    const stage = this.selectedStage();
+    if (!match || !ws || !event || !comp || !stage) return;
+
+    const live = { ...match.liveData };
+    const currentMin = Math.floor((live.elapsedSeconds ?? 0) / 60) + 1;
+
+    if (!live.events) live.events = [];
+    live.events.push({
+      type: 'goal_kick',
+      teamId,
+      playerUserId: goalkeeperId,
+      minute: currentMin
+    });
+
+    this.workspaceService.updateMatch(ws.id, event.id, comp.id, stage.id, match.id, {
+      liveData: live
+    }).subscribe({
+      next: (updated) => {
+        this.selectedMatch.set(updated);
+        this.matches.update(prev => prev.map(m => m.id === updated.id ? updated : m));
+      }
+    });
+  }
+
+  onRecordFootballInjury(teamId: string, playerUserId: string, severity: string, substituted: boolean) {
+    const match = this.selectedMatch();
+    const ws = this.workspace();
+    const event = this.selectedEvent();
+    const comp = this.selectedCompetition();
+    const stage = this.selectedStage();
+    if (!match || !ws || !event || !comp || !stage) return;
+
+    const live = { ...match.liveData };
+    const currentMin = Math.floor((live.elapsedSeconds ?? 0) / 60) + 1;
+
+    if (!live.events) live.events = [];
+    live.events.push({
+      type: 'injury',
+      teamId,
+      playerUserId,
+      severity,
+      substituted,
+      minute: currentMin
+    });
+
+    this.workspaceService.updateMatch(ws.id, event.id, comp.id, stage.id, match.id, {
+      liveData: live
+    }).subscribe({
+      next: (updated) => {
+        this.selectedMatch.set(updated);
+        this.matches.update(prev => prev.map(m => m.id === updated.id ? updated : m));
+      }
+    });
+  }
+
+  onStartFirstExtraHalf() {
+    const match = this.selectedMatch();
+    const ws = this.workspace();
+    const event = this.selectedEvent();
+    const comp = this.selectedCompetition();
+    const stage = this.selectedStage();
+    if (!match || !ws || !event || !comp || !stage) return;
+
+    const live = { ...match.liveData };
+    const halfDurationMinutes = live.halfDurationMinutes || 45;
+    live.currentHalf = 3;
+    live.elapsedSeconds = halfDurationMinutes * 2 * 60;
+    live.timerRunning = true;
+
+    this.workspaceService.updateMatch(ws.id, event.id, comp.id, stage.id, match.id, {
+      liveData: live,
+    }).subscribe({
+      next: (updated) => {
+        this.selectedMatch.set(updated);
+        this.matches.update(prev => prev.map(m => m.id === updated.id ? updated : m));
+        this.startFootballTimer();
+      }
+    });
+  }
+
+  onStartSecondExtraHalf() {
+    const match = this.selectedMatch();
+    const ws = this.workspace();
+    const event = this.selectedEvent();
+    const comp = this.selectedCompetition();
+    const stage = this.selectedStage();
+    if (!match || !ws || !event || !comp || !stage) return;
+
+    const live = { ...match.liveData };
+    const halfDurationMinutes = live.halfDurationMinutes || 45;
+    live.currentHalf = 4;
+    live.elapsedSeconds = halfDurationMinutes * 2 * 60 + 15 * 60;
+    live.timerRunning = true;
+
+    this.workspaceService.updateMatch(ws.id, event.id, comp.id, stage.id, match.id, {
+      liveData: live,
+    }).subscribe({
+      next: (updated) => {
+        this.selectedMatch.set(updated);
+        this.matches.update(prev => prev.map(m => m.id === updated.id ? updated : m));
+        this.startFootballTimer();
+      }
+    });
+  }
+
+  onStartPenaltyShootout() {
+    const match = this.selectedMatch();
+    const ws = this.workspace();
+    const event = this.selectedEvent();
+    const comp = this.selectedCompetition();
+    const stage = this.selectedStage();
+    if (!match || !ws || !event || !comp || !stage) return;
+
+    const live = { ...match.liveData };
+    live.currentHalf = 5;
+    live.timerRunning = false;
+
+    this.workspaceService.updateMatch(ws.id, event.id, comp.id, stage.id, match.id, {
+      liveData: live,
+    }).subscribe({
+      next: (updated) => {
+        this.selectedMatch.set(updated);
+        this.matches.update(prev => prev.map(m => m.id === updated.id ? updated : m));
+      }
+    });
+  }
+
+  onRecordFootballShootoutPenalty(teamId: string, playerUserId: string, outcome: 'scored' | 'missed' | 'saved' | 'hit_post') {
+    const match = this.selectedMatch();
+    const ws = this.workspace();
+    const event = this.selectedEvent();
+    const comp = this.selectedCompetition();
+    const stage = this.selectedStage();
+    if (!match || !ws || !event || !comp || !stage) return;
+
+    const live = { ...match.liveData };
+    if (!live.events) live.events = [];
+
+    const shootoutEvents = live.events.filter((e: any) => e.type === 'shootout_penalty');
+    const order = shootoutEvents.length + 1;
+
+    live.events.push({
+      type: 'shootout_penalty',
+      teamId,
+      playerUserId,
+      outcome,
+      order,
+      minute: 120
+    });
+
+    if (!live.shootoutHomeScore) live.shootoutHomeScore = 0;
+    if (!live.shootoutAwayScore) live.shootoutAwayScore = 0;
+
+    if (outcome === 'scored') {
+      if (teamId === match.homeTeamId) {
+        live.shootoutHomeScore += 1;
+      } else {
+        live.shootoutAwayScore += 1;
+      }
+    }
+
+    this.workspaceService.updateMatch(ws.id, event.id, comp.id, stage.id, match.id, {
+      liveData: live
+    }).subscribe({
+      next: (updated) => {
+        this.selectedMatch.set(updated);
+        this.matches.update(prev => prev.map(m => m.id === updated.id ? updated : m));
+      }
+    });
+  }
+
+  onEndMatchWithResult(result: string) {
+    const match = this.selectedMatch();
+    const ws = this.workspace();
+    const event = this.selectedEvent();
+    const comp = this.selectedCompetition();
+    const stage = this.selectedStage();
+    if (!match || !ws || !event || !comp || !stage) return;
+
+    const live = match.liveData ? { ...match.liveData } : {};
+    live.result = result;
+
+    this.workspaceService.updateMatch(ws.id, event.id, comp.id, stage.id, match.id, {
+      status: 'completed',
+      liveData: live,
+    }).subscribe({
+      next: (updated) => {
+        this.selectedMatch.set(updated);
+        this.matches.update(prev => prev.map(m => m.id === updated.id ? updated : m));
+        this.stopFootballTimer();
       }
     });
   }

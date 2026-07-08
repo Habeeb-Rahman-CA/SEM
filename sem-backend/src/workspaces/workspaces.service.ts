@@ -1272,18 +1272,51 @@ export class WorkspacesService implements OnModuleInit {
         } else if (teamBScore > teamAScore) {
           winnerId = leg1.awayTeamId;
         } else {
-          // Tie-breaker: default to leg 2 winner
-          winnerId = homeScore > awayScore ? completedMatch.homeTeamId : completedMatch.awayTeamId;
+          // Tie-breaker: check shootout score or default to leg 2 winner
+          const live = completedMatch.liveData || {};
+          const shHome = live.shootoutHomeScore ?? 0;
+          const shAway = live.shootoutAwayScore ?? 0;
+          if (shHome > shAway) {
+            winnerId = completedMatch.homeTeamId;
+          } else if (shAway > shHome) {
+            winnerId = completedMatch.awayTeamId;
+          } else {
+            winnerId = homeScore > awayScore ? completedMatch.homeTeamId : completedMatch.awayTeamId;
+          }
         }
       } else {
-        winnerId = homeScore > awayScore ? completedMatch.homeTeamId : completedMatch.awayTeamId;
+        const live = completedMatch.liveData || {};
+        const shHome = live.shootoutHomeScore ?? 0;
+        const shAway = live.shootoutAwayScore ?? 0;
+        if (shHome > shAway) {
+          winnerId = completedMatch.homeTeamId;
+        } else if (shAway > shHome) {
+          winnerId = completedMatch.awayTeamId;
+        } else {
+          winnerId = homeScore > awayScore ? completedMatch.homeTeamId : completedMatch.awayTeamId;
+        }
       }
     } else {
       // Single leg
-      if (homeScore > awayScore) {
+      const live = completedMatch.liveData || {};
+      const result = live.result;
+      if (result === 'Home Win' || result === 'Walkover (Home Win)') {
+        winnerId = completedMatch.homeTeamId;
+      } else if (result === 'Away Win' || result === 'Walkover (Away Win)') {
+        winnerId = completedMatch.awayTeamId;
+      } else if (homeScore > awayScore) {
         winnerId = completedMatch.homeTeamId;
       } else if (awayScore > homeScore) {
         winnerId = completedMatch.awayTeamId;
+      } else {
+        // Check shootout
+        const shHome = live.shootoutHomeScore ?? 0;
+        const shAway = live.shootoutAwayScore ?? 0;
+        if (shHome > shAway) {
+          winnerId = completedMatch.homeTeamId;
+        } else if (shAway > shHome) {
+          winnerId = completedMatch.awayTeamId;
+        }
       }
     }
 
