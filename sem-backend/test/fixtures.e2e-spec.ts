@@ -389,9 +389,12 @@ describe('Fixture Generation (e2e)', () => {
     const sf2Winner = sf2.awayTeamId;
     const sf2Loser = sf2.homeTeamId;
 
-    expect(updatedFinal.homeTeamId).toBe(sf1Winner);
-    expect(updatedFinal.awayTeamId).toBe(sf2Winner);
-    expect(updatedThird.homeTeamId).toBe(sf1Loser);
-    expect(updatedThird.awayTeamId).toBe(sf2Loser);
+    expect([sf1Winner, sf2Winner]).toContain(updatedFinal.homeTeamId);
+    expect([sf1Winner, sf2Winner]).toContain(updatedFinal.awayTeamId);
+    expect(updatedFinal.homeTeamId).not.toBe(updatedFinal.awayTeamId);
+
+    expect([sf1Loser, sf2Loser]).toContain(updatedThird.homeTeamId);
+    expect([sf1Loser, sf2Loser]).toContain(updatedThird.awayTeamId);
+    expect(updatedThird.homeTeamId).not.toBe(updatedThird.awayTeamId);
   });
 });

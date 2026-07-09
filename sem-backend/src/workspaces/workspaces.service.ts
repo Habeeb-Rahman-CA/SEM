@@ -256,7 +256,7 @@ export class WorkspacesService implements OnModuleInit {
   // ─── Update ───────────────────────────────────────────────────────────────
 
   async update(id: string, dto: UpdateWorkspaceDto, userId: string): Promise<Workspace> {
-    await this.ensureAdminOrOwner(id, userId);
+    await this.ensurePermission(id, userId, 'workspace.update');
 
     const workspace = await this.workspaceRepo.findOne({ where: { id } });
     if (!workspace) throw new NotFoundException('Workspace not found');
@@ -279,7 +279,7 @@ export class WorkspacesService implements OnModuleInit {
   // ─── Delete ───────────────────────────────────────────────────────────────
 
   async remove(id: string, userId: string): Promise<void> {
-    await this.ensureOwner(id, userId);
+    await this.ensurePermission(id, userId, 'workspace.delete');
     const workspace = await this.workspaceRepo.findOne({ where: { id } });
     if (!workspace) throw new NotFoundException('Workspace not found');
     await this.workspaceRepo.remove(workspace);
@@ -291,7 +291,7 @@ export class WorkspacesService implements OnModuleInit {
     await this.ensureMember(workspaceId, userId);
     return this.memberRepo.find({
       where: { workspaceId },
-      relations: { user: true },
+      relations: { user: true, role: { permissions: true } },
       order: { joinedAt: 'ASC' },
     });
   }
@@ -301,7 +301,7 @@ export class WorkspacesService implements OnModuleInit {
     dto: InviteMemberDto,
     requesterId: string,
   ): Promise<WorkspaceMember> {
-    await this.ensureAdminOrOwner(workspaceId, requesterId);
+    await this.ensurePermission(workspaceId, requesterId, 'member.invite');
 
     const user = await this.usersService.findOneByUsername(dto.username);
     if (!user) {
@@ -370,7 +370,7 @@ export class WorkspacesService implements OnModuleInit {
     dto: UpdateMemberRoleDto,
     requesterId: string,
   ): Promise<WorkspaceMember> {
-    await this.ensureAdminOrOwner(workspaceId, requesterId);
+    await this.ensurePermission(workspaceId, requesterId, 'member.update');
 
     const member = await this.memberRepo.findOne({
       where: { workspaceId, userId: targetUserId },
@@ -399,7 +399,7 @@ export class WorkspacesService implements OnModuleInit {
     targetUserId: string,
     requesterId: string,
   ): Promise<void> {
-    await this.ensureAdminOrOwner(workspaceId, requesterId);
+    await this.ensurePermission(workspaceId, requesterId, 'member.remove');
 
     const member = await this.memberRepo.findOne({
       where: { workspaceId, userId: targetUserId },
@@ -431,7 +431,7 @@ export class WorkspacesService implements OnModuleInit {
   }
 
   async createRole(workspaceId: string, dto: CreateRoleDto, userId: string): Promise<Role> {
-    await this.ensureAdminOrOwner(workspaceId, userId);
+    await this.ensurePermission(workspaceId, userId, 'role.manage');
     const slug = this.generateSlug(dto.name);
 
     // check slug conflict
@@ -456,7 +456,7 @@ export class WorkspacesService implements OnModuleInit {
   }
 
   async removeRole(workspaceId: string, roleId: string, userId: string): Promise<void> {
-    await this.ensureAdminOrOwner(workspaceId, userId);
+    await this.ensurePermission(workspaceId, userId, 'role.manage');
     const role = await this.roleRepo.findOne({ where: { id: roleId, workspaceId } });
     if (!role) {
       throw new NotFoundException('Role not found or is a system role');
@@ -570,6 +570,18 @@ export class WorkspacesService implements OnModuleInit {
     }
   }
 
+  private async ensurePermission(workspaceId: string, userId: string, permissionSlug: string): Promise<void> {
+    const member = await this.memberRepo.findOne({
+      where: { workspaceId, userId },
+      relations: { role: { permissions: true } },
+    });
+    if (!member) throw new ForbiddenException('You are not a member of this workspace');
+    const hasPerm = member.role?.permissions?.some(p => p.slug === permissionSlug) ?? false;
+    if (!hasPerm) {
+      throw new ForbiddenException(`Permission denied: requires '${permissionSlug}'`);
+    }
+  }
+
   // ─── Teams Management ──────────────────────────────────────────────────────
 
   async getTeams(workspaceId: string, userId: string): Promise<Team[]> {
@@ -581,7 +593,7 @@ export class WorkspacesService implements OnModuleInit {
   }
 
   async createTeam(workspaceId: string, dto: CreateTeamDto, userId: string): Promise<Team> {
-    await this.ensureMember(workspaceId, userId);
+    await this.ensurePermission(workspaceId, userId, 'team.manage');
 
     let code = dto.code;
     if (!code) {
@@ -618,7 +630,7 @@ export class WorkspacesService implements OnModuleInit {
     dto: UpdateTeamDto,
     userId: string,
   ): Promise<Team> {
-    await this.ensureMember(workspaceId, userId);
+    await this.ensurePermission(workspaceId, userId, 'team.manage');
     const team = await this.teamRepo.findOne({ where: { id: teamId, workspaceId } });
     if (!team) {
       throw new NotFoundException('Team not found in this workspace');
@@ -643,7 +655,7 @@ export class WorkspacesService implements OnModuleInit {
   }
 
   async removeTeam(workspaceId: string, teamId: string, userId: string): Promise<void> {
-    await this.ensureAdminOrOwner(workspaceId, userId);
+    await this.ensurePermission(workspaceId, userId, 'team.manage');
     const team = await this.teamRepo.findOne({ where: { id: teamId, workspaceId } });
     if (!team) {
       throw new NotFoundException('Team not found in this workspace');
@@ -661,7 +673,7 @@ export class WorkspacesService implements OnModuleInit {
   }
 
   async createPlayer(workspaceId: string, dto: CreatePlayerDto, userId: string): Promise<Player> {
-    await this.ensureMember(workspaceId, userId);
+    await this.ensurePermission(workspaceId, userId, 'player.manage');
     const team = await this.teamRepo.findOne({ where: { id: dto.teamId, workspaceId } });
     if (!team) {
       throw new NotFoundException('Team not found in this workspace');
@@ -695,7 +707,7 @@ export class WorkspacesService implements OnModuleInit {
     dto: UpdatePlayerDto,
     userId: string,
   ): Promise<Player> {
-    await this.ensureMember(workspaceId, userId);
+    await this.ensurePermission(workspaceId, userId, 'player.manage');
     const player = await this.playerRepo.findOne({ where: { id: playerId, workspaceId }, relations: { team: true, user: true } });
     if (!player) {
       throw new NotFoundException('Player not found in this workspace');
@@ -724,7 +736,7 @@ export class WorkspacesService implements OnModuleInit {
   }
 
   async removePlayer(workspaceId: string, playerId: string, userId: string): Promise<void> {
-    await this.ensureAdminOrOwner(workspaceId, userId);
+    await this.ensurePermission(workspaceId, userId, 'player.manage');
     const player = await this.playerRepo.findOne({ where: { id: playerId, workspaceId } });
     if (!player) {
       throw new NotFoundException('Player not found in this workspace');
@@ -744,7 +756,7 @@ export class WorkspacesService implements OnModuleInit {
   }
 
   async createEvent(workspaceId: string, dto: CreateEventDto, userId: string): Promise<Event> {
-    await this.ensureAdminOrOwner(workspaceId, userId);
+    await this.ensurePermission(workspaceId, userId, 'event.manage');
     let teams: Team[] = [];
     if (dto.teamIds && dto.teamIds.length > 0) {
       teams = await this.teamRepo.findBy({ id: In(dto.teamIds) });
@@ -768,7 +780,7 @@ export class WorkspacesService implements OnModuleInit {
     dto: UpdateEventDto,
     userId: string,
   ): Promise<Event> {
-    await this.ensureAdminOrOwner(workspaceId, userId);
+    await this.ensurePermission(workspaceId, userId, 'event.manage');
     const event = await this.eventRepo.findOne({
       where: { id: eventId, workspaceId },
       relations: { teams: true },
@@ -798,7 +810,7 @@ export class WorkspacesService implements OnModuleInit {
   }
 
   async removeEvent(workspaceId: string, eventId: string, userId: string): Promise<void> {
-    await this.ensureAdminOrOwner(workspaceId, userId);
+    await this.ensurePermission(workspaceId, userId, 'event.manage');
     const event = await this.eventRepo.findOne({ where: { id: eventId, workspaceId } });
     if (!event) {
       throw new NotFoundException('Event not found in this workspace');
@@ -1190,7 +1202,7 @@ export class WorkspacesService implements OnModuleInit {
     dto: CreateCompetitionDto,
     userId: string,
   ): Promise<Competition> {
-    await this.ensureAdminOrOwner(workspaceId, userId);
+    await this.ensurePermission(workspaceId, userId, 'competition.manage');
     const event = await this.eventRepo.findOne({ where: { id: eventId, workspaceId } });
     if (!event) {
       throw new NotFoundException(`Event "${eventId}" not found in workspace`);
@@ -1224,7 +1236,7 @@ export class WorkspacesService implements OnModuleInit {
     dto: UpdateCompetitionDto,
     userId: string,
   ): Promise<Competition> {
-    await this.ensureAdminOrOwner(workspaceId, userId);
+    await this.ensurePermission(workspaceId, userId, 'competition.manage');
     const event = await this.eventRepo.findOne({ where: { id: eventId, workspaceId } });
     if (!event) {
       throw new NotFoundException(`Event "${eventId}" not found in workspace`);
@@ -1256,7 +1268,7 @@ export class WorkspacesService implements OnModuleInit {
   }
 
   async removeCompetition(workspaceId: string, eventId: string, competitionId: string, userId: string): Promise<void> {
-    await this.ensureAdminOrOwner(workspaceId, userId);
+    await this.ensurePermission(workspaceId, userId, 'competition.manage');
     const event = await this.eventRepo.findOne({ where: { id: eventId, workspaceId } });
     if (!event) {
       throw new NotFoundException(`Event "${eventId}" not found in workspace`);
@@ -1301,7 +1313,7 @@ export class WorkspacesService implements OnModuleInit {
     dto: CreateStageDto,
     userId: string,
   ): Promise<CompetitionStage> {
-    await this.ensureAdminOrOwner(workspaceId, userId);
+    await this.ensurePermission(workspaceId, userId, 'competition.manage');
     const event = await this.eventRepo.findOne({ where: { id: eventId, workspaceId } });
     if (!event) {
       throw new NotFoundException(`Event "${eventId}" not found in workspace`);
@@ -1332,7 +1344,7 @@ export class WorkspacesService implements OnModuleInit {
     dto: UpdateStageDto,
     userId: string,
   ): Promise<CompetitionStage> {
-    await this.ensureAdminOrOwner(workspaceId, userId);
+    await this.ensurePermission(workspaceId, userId, 'competition.manage');
     const event = await this.eventRepo.findOne({ where: { id: eventId, workspaceId } });
     if (!event) {
       throw new NotFoundException(`Event "${eventId}" not found in workspace`);
@@ -1364,7 +1376,7 @@ export class WorkspacesService implements OnModuleInit {
     stageId: string,
     userId: string,
   ): Promise<void> {
-    await this.ensureAdminOrOwner(workspaceId, userId);
+    await this.ensurePermission(workspaceId, userId, 'competition.manage');
     const event = await this.eventRepo.findOne({ where: { id: eventId, workspaceId } });
     if (!event) {
       throw new NotFoundException(`Event "${eventId}" not found in workspace`);
@@ -1388,7 +1400,7 @@ export class WorkspacesService implements OnModuleInit {
     competitionId: string,
     userId: string,
   ): Promise<void> {
-    await this.ensureAdminOrOwner(workspaceId, userId);
+    await this.ensurePermission(workspaceId, userId, 'competition.manage');
     const event = await this.eventRepo.findOne({ where: { id: eventId, workspaceId } });
     if (!event) {
       throw new NotFoundException(`Event "${eventId}" not found in workspace`);
@@ -1434,7 +1446,7 @@ export class WorkspacesService implements OnModuleInit {
     dto: CreateMatchDto,
     userId: string,
   ): Promise<Match> {
-    await this.ensureAdminOrOwner(workspaceId, userId);
+    await this.ensurePermission(workspaceId, userId, 'competition.manage');
     const stage = await this.stageRepo.findOne({ where: { id: stageId, competitionId } });
     if (!stage) {
       throw new NotFoundException(`Stage "${stageId}" not found in competition`);
@@ -1523,7 +1535,7 @@ export class WorkspacesService implements OnModuleInit {
     dto: UpdateMatchDto,
     userId: string,
   ): Promise<Match> {
-    await this.ensureAdminOrOwner(workspaceId, userId);
+    await this.ensurePermission(workspaceId, userId, 'match.score');
     const match = await this.matchRepo.findOne({ where: { id: matchId, stageId } });
     if (!match) {
       throw new NotFoundException(`Match "${matchId}" not found in stage`);
@@ -2020,7 +2032,7 @@ export class WorkspacesService implements OnModuleInit {
     matchId: string,
     userId: string,
   ): Promise<void> {
-    await this.ensureAdminOrOwner(workspaceId, userId);
+    await this.ensurePermission(workspaceId, userId, 'competition.manage');
     const match = await this.matchRepo.findOne({ where: { id: matchId, stageId } });
     if (!match) {
       throw new NotFoundException(`Match "${matchId}" not found in stage`);
@@ -2063,7 +2075,7 @@ export class WorkspacesService implements OnModuleInit {
     teamId: string,
     userId: string,
   ): Promise<CompetitionTeam> {
-    await this.ensureAdminOrOwner(workspaceId, userId);
+    await this.ensurePermission(workspaceId, userId, 'competition.manage');
     const competition = await this.competitionRepo.findOne({ where: { id: competitionId, eventId } });
     if (!competition) throw new NotFoundException(`Competition "${competitionId}" not found`);
     const team = await this.teamRepo.findOne({ where: { id: teamId, workspaceId } });
@@ -2082,7 +2094,7 @@ export class WorkspacesService implements OnModuleInit {
     teamId: string,
     userId: string,
   ): Promise<void> {
-    await this.ensureAdminOrOwner(workspaceId, userId);
+    await this.ensurePermission(workspaceId, userId, 'competition.manage');
     const entry = await this.competitionTeamRepo.findOne({ where: { competitionId, teamId } });
     if (!entry) throw new NotFoundException(`Team is not enrolled in this competition`);
     await this.competitionTeamRepo.remove(entry);
@@ -2096,7 +2108,7 @@ export class WorkspacesService implements OnModuleInit {
     competitionId: string,
     userId: string,
   ): Promise<{ stagesGenerated: number; matchesCreated: number }> {
-    await this.ensureAdminOrOwner(workspaceId, userId);
+    await this.ensurePermission(workspaceId, userId, 'competition.manage');
 
     const event = await this.eventRepo.findOne({
       where: { id: eventId, workspaceId },
@@ -2382,7 +2394,7 @@ export class WorkspacesService implements OnModuleInit {
   }
 
   async createVenue(workspaceId: string, dto: CreateVenueDto, userId: string): Promise<Venue> {
-    await this.ensureMember(workspaceId, userId);
+    await this.ensurePermission(workspaceId, userId, 'workspace.update');
     const venue = this.venueRepo.create({
       name: dto.name,
       location: dto.location ?? null,
@@ -2398,7 +2410,7 @@ export class WorkspacesService implements OnModuleInit {
     dto: UpdateVenueDto,
     userId: string,
   ): Promise<Venue> {
-    await this.ensureMember(workspaceId, userId);
+    await this.ensurePermission(workspaceId, userId, 'workspace.update');
     const venue = await this.venueRepo.findOne({ where: { id: venueId, workspaceId } });
     if (!venue) {
       throw new NotFoundException('Venue not found in this workspace');
@@ -2414,7 +2426,7 @@ export class WorkspacesService implements OnModuleInit {
   }
 
   async removeVenue(workspaceId: string, venueId: string, userId: string): Promise<void> {
-    await this.ensureAdminOrOwner(workspaceId, userId);
+    await this.ensurePermission(workspaceId, userId, 'workspace.update');
     const venue = await this.venueRepo.findOne({ where: { id: venueId, workspaceId } });
     if (!venue) {
       throw new NotFoundException('Venue not found in this workspace');

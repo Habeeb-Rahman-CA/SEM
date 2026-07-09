@@ -14,6 +14,9 @@ export class User {
   @Column({ name: 'avatar_url', type: 'varchar', length: 500, nullable: true })
   avatarUrl: string | null;
 
+  @Column({ name: 'is_super_admin', type: 'boolean', default: false })
+  isSuperAdmin: boolean;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

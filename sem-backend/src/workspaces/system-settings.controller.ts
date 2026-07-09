@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { WorkspacesService } from './workspaces.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { SuperAdminGuard } from '../auth/guards/super-admin.guard';
 import { CreateRoleDto } from './dto/create-role.dto';
 
 @Controller('system-settings')
@@ -24,11 +25,13 @@ export class SystemSettingsController {
   }
 
   @Post('roles')
+  @UseGuards(SuperAdminGuard)
   createGlobalRole(@Body() dto: CreateRoleDto) {
     return this.workspacesService.createGlobalRole(dto);
   }
 
   @Delete('roles/:roleId')
+  @UseGuards(SuperAdminGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   removeGlobalRole(@Param('roleId') roleId: string) {
     return this.workspacesService.removeGlobalRole(roleId);
@@ -40,6 +43,7 @@ export class SystemSettingsController {
   }
 
   @Post('roles/:roleId/permissions')
+  @UseGuards(SuperAdminGuard)
   updateRolePermissions(
     @Param('roleId') roleId: string,
     @Body('permissionIds') permissionIds: string[],

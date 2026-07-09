@@ -602,6 +602,14 @@ export class WorkspaceDetailComponent implements OnInit {
     return slug === 'owner' || slug === 'administrator';
   }
 
+  hasPermission(permission: string): boolean {
+    const userId = this.authService.currentUser()?.id;
+    const member = this.members().find(m => m.userId === userId);
+    if (!member || !member.role) return false;
+    if (member.role.slug === 'owner') return true;
+    return member.role.permissions?.some(p => p.slug === permission) ?? false;
+  }
+
   onSignOut(): void {
     this.authService.logout();
     this.router.navigate(['/login']);
