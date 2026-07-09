@@ -419,6 +419,12 @@ export class WorkspaceService {
     });
   }
 
+  getEventStandings(workspaceId: string, eventId: string): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/${workspaceId}/events/${eventId}/standings`, {
+      headers: this.headers,
+    });
+  }
+
   // ─── Competitions ─────────────────────────────────────────────────────────
 
   getSports(): Observable<Sport[]> {

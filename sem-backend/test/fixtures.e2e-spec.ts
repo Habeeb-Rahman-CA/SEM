@@ -229,5 +229,55 @@ describe('Fixture Generation (e2e)', () => {
 
     expect(finalMatch.homeTeamId).toBe(winnerGroupA);
     expect(finalMatch.awayTeamId).toBe(winnerGroupB);
+
+    // 6. Set competition pointsConfig
+    await request(app.getHttpServer())
+      .patch(`/workspaces/${workspaceId}/events/${eventId}/competitions/${competitionId}`)
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .send({
+        pointsConfig: [
+          { position: 1, label: 'Winner', points: 10 },
+          { position: 2, label: 'Runner-up', points: 5 }
+        ]
+      })
+      .expect(200);
+
+    // 7. Complete the Final match (Group A winner wins, Group B winner loses)
+    await request(app.getHttpServer())
+      .patch(`/workspaces/${workspaceId}/events/${eventId}/competitions/${competitionId}/stages/${stageId}/matches/${finalMatch.id}`)
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .send({
+        status: 'completed',
+        homeScore: 2,
+        awayScore: 0
+      })
+      .expect(200);
+
+    // 8. Verify competition status is automatically set to 'completed'
+    const compRes = await request(app.getHttpServer())
+      .get(`/workspaces/${workspaceId}/events/${eventId}/competitions`)
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .expect(200);
+    const updatedComp = compRes.body.find((c: any) => c.id === competitionId);
+    expect(updatedComp.status).toBe('completed');
+
+    // 9. Fetch event standings and verify points calculation
+    const standingsRes = await request(app.getHttpServer())
+      .get(`/workspaces/${workspaceId}/events/${eventId}/standings`)
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .expect(200);
+
+    const standings = standingsRes.body;
+    expect(standings.length).toBe(4);
+
+    // WinnerGroupA (home team of Final, won 2-0) should be 1st with 10 points
+    const firstPlace = standings[0];
+    expect(firstPlace.teamId).toBe(winnerGroupA);
+    expect(firstPlace.points).toBe(10);
+
+    // WinnerGroupB (away team of Final, lost 2-0) should be 2nd with 5 points
+    const secondPlace = standings[1];
+    expect(secondPlace.teamId).toBe(winnerGroupB);
+    expect(secondPlace.points).toBe(5);
   });
 });

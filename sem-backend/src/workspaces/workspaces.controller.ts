@@ -292,6 +292,15 @@ export class WorkspacesController {
     return this.workspacesService.removeEvent(id, eventId, req.user.id);
   }
 
+  @Get(':id/events/:eventId/standings')
+  getEventStandings(
+    @Param('id') id: string,
+    @Param('eventId') eventId: string,
+    @Request() req: any,
+  ) {
+    return this.workspacesService.getEventStandings(id, eventId, req.user.id);
+  }
+
   // ─── Competitions ─────────────────────────────────────────────────────────
 
   @Get(':id/events/:eventId/competitions')

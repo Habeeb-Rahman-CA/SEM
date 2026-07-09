@@ -806,6 +806,343 @@ export class WorkspacesService implements OnModuleInit {
     await this.eventRepo.remove(event);
   }
 
+  async getEventStandings(workspaceId: string, eventId: string, userId: string): Promise<any> {
+    await this.ensureMember(workspaceId, userId);
+    const event = await this.eventRepo.findOne({
+      where: { id: eventId, workspaceId },
+      relations: { teams: true, competitions: { stages: true } }
+    });
+    if (!event) {
+      throw new NotFoundException(`Event "${eventId}" not found in this workspace`);
+    }
+
+    const teams = event.teams || [];
+    const competitions = event.competitions || [];
+    const completedCompetitions = competitions.filter(c => c.status === 'completed');
+
+    const teamPointsMap = new Map<string, { points: number; breakdown: any[] }>();
+
+    for (const team of teams) {
+      teamPointsMap.set(team.id, { points: 0, breakdown: [] });
+    }
+
+    for (const comp of completedCompetitions) {
+      const rankings = await this.getCompetitionRankings(comp.id);
+      const pointsConfig = comp.pointsConfig || [];
+
+      for (const team of teams) {
+        const pos = rankings.get(team.id) || null;
+        let pointsEarned = 0;
+        if (pos !== null) {
+          const configEntry = pointsConfig.find(entry => entry.position === pos);
+          if (configEntry) {
+            pointsEarned = configEntry.points;
+          }
+        }
+
+        const teamData = teamPointsMap.get(team.id);
+        if (teamData) {
+          teamData.points += pointsEarned;
+          teamData.breakdown.push({
+            competitionId: comp.id,
+            competitionName: comp.name,
+            position: pos,
+            points: pointsEarned,
+          });
+        }
+      }
+    }
+
+    return teams.map(team => {
+      const data = teamPointsMap.get(team.id) || { points: 0, breakdown: [] };
+      return {
+        teamId: team.id,
+        teamName: team.name,
+        teamLogoUrl: team.logoUrl || null,
+        points: data.points,
+        breakdown: data.breakdown,
+      };
+    }).sort((a, b) => b.points - a.points);
+  }
+
+  async getCompetitionRankings(competitionId: string): Promise<Map<string, number>> {
+    const rankings = new Map<string, number>();
+    const comp = await this.competitionRepo.findOne({
+      where: { id: competitionId },
+      relations: { stages: true }
+    });
+    if (!comp || comp.stages.length === 0) return rankings;
+
+    const sortedStages = [...comp.stages].sort((a, b) => a.sequence - b.sequence);
+    const lastStage = sortedStages[sortedStages.length - 1];
+    
+    const matches = await this.matchRepo.find({
+      where: { stageId: lastStage.id },
+      relations: { homeTeam: true, awayTeam: true }
+    });
+    if (matches.length === 0) return rankings;
+
+    if (lastStage.type === 'league' || lastStage.type === 'group') {
+      const winPoint = lastStage.config?.winPoint ?? 3;
+      const drawPoint = lastStage.config?.drawPoint ?? 1;
+
+      const teamStats = new Map<string, { teamId: string; group?: string; pts: number; gd: number; gf: number; ga: number }>();
+      for (const m of matches) {
+        if (!m.homeTeamId || !m.awayTeamId) continue;
+        const g = (m.config as any)?.round || 'Group Stage';
+        
+        if (!teamStats.has(m.homeTeamId)) {
+          teamStats.set(m.homeTeamId, { teamId: m.homeTeamId, group: g, pts: 0, gd: 0, gf: 0, ga: 0 });
+        }
+        if (!teamStats.has(m.awayTeamId)) {
+          teamStats.set(m.awayTeamId, { teamId: m.awayTeamId, group: g, pts: 0, gd: 0, gf: 0, ga: 0 });
+        }
+
+        if (m.status !== 'completed') continue;
+
+        const hStats = teamStats.get(m.homeTeamId)!;
+        const aStats = teamStats.get(m.awayTeamId)!;
+        const hScore = m.homeScore ?? 0;
+        const aScore = m.awayScore ?? 0;
+
+        hStats.gf += hScore;
+        hStats.ga += aScore;
+        aStats.gf += aScore;
+        aStats.ga += hScore;
+
+        if (hScore > aScore) {
+          hStats.pts += winPoint;
+        } else if (aScore > hScore) {
+          aStats.pts += winPoint;
+        } else {
+          hStats.pts += drawPoint;
+          aStats.pts += drawPoint;
+        }
+      }
+
+      for (const stats of teamStats.values()) {
+        stats.gd = stats.gf - stats.ga;
+      }
+
+      const groupTeams = new Map<string, string[]>();
+      const uniqueGroups = new Set<string>();
+      for (const stats of teamStats.values()) {
+        if (stats.group) uniqueGroups.add(stats.group);
+      }
+
+      for (const g of uniqueGroups) {
+        const teamsInGroup = Array.from(teamStats.values())
+          .filter(s => s.group === g)
+          .sort((a, b) => {
+            if (b.pts !== a.pts) return b.pts - a.pts;
+            if (b.gd !== a.gd) return b.gd - a.gd;
+            return b.gf - a.gf;
+          })
+          .map(s => s.teamId);
+        groupTeams.set(g, teamsInGroup);
+      }
+
+      const maxTeamsInGroup = Math.max(...Array.from(groupTeams.values()).map(arr => arr.length), 0);
+      const overallSorted: string[] = [];
+      for (let pos = 0; pos < maxTeamsInGroup; pos++) {
+        const posTeams: string[] = [];
+        for (const g of uniqueGroups) {
+          const arr = groupTeams.get(g)!;
+          if (pos < arr.length) {
+            posTeams.push(arr[pos]);
+          }
+        }
+        posTeams.sort((a, b) => {
+          const statsA = teamStats.get(a)!;
+          const statsB = teamStats.get(b)!;
+          if (statsB.pts !== statsA.pts) return statsB.pts - statsA.pts;
+          if (statsB.gd !== statsA.gd) return statsB.gd - statsA.gd;
+          return statsB.gf - statsA.gf;
+        });
+        overallSorted.push(...posTeams);
+      }
+
+      overallSorted.forEach((teamId, index) => {
+        rankings.set(teamId, index + 1);
+      });
+
+    } else if (lastStage.type === 'knockout' || lastStage.type === 'group_knockout') {
+      const groupMatches = matches.filter((m: any) => {
+        const r = (m.config as any)?.round || '';
+        return r.toLowerCase().includes('group') || r.toLowerCase().includes('league');
+      });
+      const knockoutMatches = matches.filter((m: any) => {
+        const r = (m.config as any)?.round || '';
+        return !r.toLowerCase().includes('group') && !r.toLowerCase().includes('league');
+      });
+
+      const teamHighestRound = new Map<string, string>();
+      const teamFinalStatus = new Map<string, 'won_final' | 'lost_final' | 'won_third' | 'lost_third' | 'lost'>();
+
+      const allTeamIds = new Set<string>();
+      for (const m of matches) {
+        if (m.homeTeamId) allTeamIds.add(m.homeTeamId);
+        if (m.awayTeamId) allTeamIds.add(m.awayTeamId);
+      }
+
+      const finalMatch = knockoutMatches.find((m: any) => (m.config as any)?.round?.toLowerCase() === 'final');
+      if (finalMatch && finalMatch.status === 'completed') {
+        const hScore = finalMatch.homeScore ?? 0;
+        const aScore = finalMatch.awayScore ?? 0;
+        if (hScore > aScore) {
+          teamFinalStatus.set(finalMatch.homeTeamId!, 'won_final');
+          teamFinalStatus.set(finalMatch.awayTeamId!, 'lost_final');
+        } else if (aScore > hScore) {
+          teamFinalStatus.set(finalMatch.awayTeamId!, 'won_final');
+          teamFinalStatus.set(finalMatch.homeTeamId!, 'lost_final');
+        }
+      }
+
+      const thirdPlaceMatch = knockoutMatches.find((m: any) => {
+        const r = (m.config as any)?.round?.toLowerCase() || '';
+        return r.includes('third') || r.includes('3rd') || r.includes('bronze');
+      });
+      if (thirdPlaceMatch && thirdPlaceMatch.status === 'completed') {
+        const hScore = thirdPlaceMatch.homeScore ?? 0;
+        const aScore = thirdPlaceMatch.awayScore ?? 0;
+        if (hScore > aScore) {
+          teamFinalStatus.set(thirdPlaceMatch.homeTeamId!, 'won_third');
+          teamFinalStatus.set(thirdPlaceMatch.awayTeamId!, 'lost_third');
+        } else if (aScore > hScore) {
+          teamFinalStatus.set(thirdPlaceMatch.awayTeamId!, 'won_third');
+          teamFinalStatus.set(thirdPlaceMatch.homeTeamId!, 'lost_third');
+        }
+      }
+
+      const getRoundRankWeight = (roundName: string): number => {
+        const r = roundName.toLowerCase();
+        if (r === 'final') return 10;
+        if (r.includes('third') || r.includes('3rd') || r.includes('bronze')) return 9;
+        if (r.includes('semi')) return 8;
+        if (r.includes('quarter')) return 7;
+        if (r.includes('round of 16') || r.includes('1/8')) return 6;
+        if (r.includes('round of 32') || r.includes('1/16')) return 5;
+        return 1;
+      };
+
+      for (const m of knockoutMatches) {
+        const r = (m.config as any)?.round || '';
+        if (m.homeTeamId) {
+          const prev = teamHighestRound.get(m.homeTeamId);
+          if (!prev || getRoundRankWeight(r) > getRoundRankWeight(prev)) {
+            teamHighestRound.set(m.homeTeamId, r);
+          }
+        }
+        if (m.awayTeamId) {
+          const prev = teamHighestRound.get(m.awayTeamId);
+          if (!prev || getRoundRankWeight(r) > getRoundRankWeight(prev)) {
+            teamHighestRound.set(m.awayTeamId, r);
+          }
+        }
+      }
+
+      const winner = Array.from(allTeamIds).find(id => teamFinalStatus.get(id) === 'won_final');
+      const runner = Array.from(allTeamIds).find(id => teamFinalStatus.get(id) === 'lost_final');
+      const third = Array.from(allTeamIds).find(id => teamFinalStatus.get(id) === 'won_third');
+      const fourth = Array.from(allTeamIds).find(id => teamFinalStatus.get(id) === 'lost_third');
+
+      if (winner) rankings.set(winner, 1);
+      if (runner) rankings.set(runner, 2);
+      if (third) rankings.set(third, 3);
+      if (fourth) rankings.set(fourth, 4);
+
+      const semiLosers = Array.from(allTeamIds).filter(id => {
+        const hr = teamHighestRound.get(id)?.toLowerCase() || '';
+        return hr.includes('semi') && id !== winner && id !== runner && id !== third && id !== fourth;
+      });
+      const semiPos = third ? 4 : 3;
+      semiLosers.forEach(id => rankings.set(id, semiPos));
+
+      const quarterLosers = Array.from(allTeamIds).filter(id => {
+        const hr = teamHighestRound.get(id)?.toLowerCase() || '';
+        return hr.includes('quarter');
+      });
+      quarterLosers.forEach(id => rankings.set(id, 5));
+
+      const r16Losers = Array.from(allTeamIds).filter(id => {
+        const hr = teamHighestRound.get(id)?.toLowerCase() || '';
+        return hr.includes('round of 16') || hr.includes('1/8');
+      });
+      r16Losers.forEach(id => rankings.set(id, 9));
+
+      const groupOnlyTeams = Array.from(allTeamIds).filter(id => !teamHighestRound.has(id));
+      if (groupOnlyTeams.length > 0 && groupMatches.length > 0) {
+        const winPoint = lastStage.config?.winPoint ?? 3;
+        const drawPoint = lastStage.config?.drawPoint ?? 1;
+
+        const groupStats = new Map<string, { teamId: string; pts: number; gd: number; gf: number; ga: number }>();
+        for (const id of groupOnlyTeams) {
+          groupStats.set(id, { teamId: id, pts: 0, gd: 0, gf: 0, ga: 0 });
+        }
+
+        for (const m of groupMatches) {
+          if (!m.homeTeamId || !m.awayTeamId) continue;
+          if (m.status !== 'completed') continue;
+
+          const hStats = groupStats.get(m.homeTeamId);
+          const aStats = groupStats.get(m.awayTeamId);
+          const hScore = m.homeScore ?? 0;
+          const aScore = m.awayScore ?? 0;
+
+          if (hStats) {
+            hStats.gf += hScore;
+            hStats.ga += aScore;
+            if (hScore > aScore) hStats.pts += winPoint;
+            else if (hScore === aScore) hStats.pts += drawPoint;
+          }
+          if (aStats) {
+            aStats.gf += aScore;
+            aStats.ga += hScore;
+            if (aScore > hScore) aStats.pts += winPoint;
+            else if (hScore === aScore) aStats.pts += drawPoint;
+          }
+        }
+
+        for (const stats of groupStats.values()) {
+          stats.gd = stats.gf - stats.ga;
+        }
+
+        const sortedGroupOnly = Array.from(groupStats.values()).sort((a, b) => {
+          if (b.pts !== a.pts) return b.pts - a.pts;
+          if (b.gd !== a.gd) return b.gd - a.gd;
+          return b.gf - a.gf;
+        });
+
+        const startPos = 17;
+        sortedGroupOnly.forEach((s, idx) => {
+          rankings.set(s.teamId, startPos + idx);
+        });
+      }
+    }
+
+    return rankings;
+  }
+
+  private async checkAndAutoCompleteCompetition(competitionId: string): Promise<void> {
+    const comp = await this.competitionRepo.findOne({
+      where: { id: competitionId },
+      relations: { stages: true }
+    });
+    if (!comp || comp.stages.length === 0) return;
+
+    const sortedStages = [...comp.stages].sort((a, b) => a.sequence - b.sequence);
+    const lastStage = sortedStages[sortedStages.length - 1];
+
+    const matches = await this.matchRepo.find({ where: { stageId: lastStage.id } });
+    if (matches && matches.length > 0) {
+      const allCompleted = matches.every((m: any) => m.status === 'completed');
+      if (allCompleted) {
+        comp.status = 'completed';
+        await this.competitionRepo.save(comp);
+      }
+    }
+  }
+
   // ─── Sports Master Data ───────────────────────────────────────────────────
 
   async getSports(): Promise<Sport[]> {
@@ -1217,6 +1554,7 @@ export class WorkspacesService implements OnModuleInit {
         if (stage.type === 'group_knockout') {
           await this.advanceGroupStageWinners(stage);
         }
+        await this.checkAndAutoCompleteCompetition(stage.competitionId);
       }
     }
 

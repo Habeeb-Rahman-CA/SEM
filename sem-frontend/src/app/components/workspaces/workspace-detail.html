@@ -1663,6 +1663,109 @@
               }
             </div>
             }
+
+            <!-- Overall Event Standings Points Table -->
+            <div class="bg-slate-900 border border-white/10 rounded-2xl p-6 shadow-xl flex flex-col gap-4">
+              <div class="flex items-center justify-between border-b border-white/5 pb-3">
+                <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                  <i class="fi fi-rr-trophy text-amber-400 text-lg"></i>
+                  🏆 Overall Event Leaderboard
+                </h3>
+                <span class="text-[10px] bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-full px-2.5 py-0.5 font-bold uppercase tracking-wider">
+                  Event Champion
+                </span>
+              </div>
+
+              @if (eventStandings().length === 0) {
+                <div class="text-xs text-slate-500 text-center py-8">
+                  Standings will be updated once competitions are completed.
+                </div>
+              } @else {
+                <!-- Top Champion Banner -->
+                @let leader = eventStandings()[0];
+                <div class="bg-gradient-to-r from-amber-500/20 via-yellow-500/10 to-transparent border border-amber-500/30 rounded-2xl p-5 flex items-center justify-between shadow-lg shadow-amber-500/5 mb-2">
+                  <div class="flex items-center gap-4 text-left">
+                    <span class="text-3xl">👑</span>
+                    <div>
+                      <div class="text-[10px] uppercase font-black tracking-widest text-amber-400">Current Leader / Champion</div>
+                      <div class="text-lg font-black text-white mt-0.5">{{ leader.teamName }}</div>
+                      <div class="text-xs text-slate-400 mt-0.5">Leading the event with <span class="text-amber-400 font-bold">{{ leader.points }} points</span></div>
+                    </div>
+                  </div>
+                  @if (leader.teamLogoUrl) {
+                    <img [src]="leader.teamLogoUrl" alt="Leader Logo" class="w-12 h-12 rounded-xl border border-amber-500/20 object-cover" />
+                  } @else {
+                    <div class="w-12 h-12 rounded-xl flex items-center justify-center text-white text-base font-extrabold shadow-inner"
+                      [style.background]="avatarColor(leader.teamName)">
+                      {{ initials(leader.teamName) }}
+                    </div>
+                  }
+                </div>
+
+                <!-- Standings Table -->
+                <div class="overflow-x-auto">
+                  <table class="w-full border-collapse text-left">
+                    <thead>
+                      <tr class="border-b border-white/5 text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                        <th class="py-3 px-4 w-12 text-center">Rank</th>
+                        <th class="py-3 px-4">Team</th>
+                        <th class="py-3 px-4 text-center">Points</th>
+                        <th class="py-3 px-4">Points Breakdown</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-white/5 text-xs text-slate-300">
+                      @for (row of eventStandings(); track row.teamId; let idx = $index) {
+                        <tr class="hover:bg-white/5 transition-all">
+                          <td class="py-3 px-4 text-center font-bold">
+                            @if (idx === 0) {
+                              <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-500 text-slate-950 font-extrabold text-[11px]">1</span>
+                            } @else if (idx === 1) {
+                              <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-300 text-slate-950 font-extrabold text-[11px]">2</span>
+                            } @else if (idx === 2) {
+                              <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-700 text-slate-950 font-extrabold text-[11px]">3</span>
+                            } @else {
+                              <span class="text-slate-500">{{ idx + 1 }}</span>
+                            }
+                          </td>
+                          <td class="py-3 px-4">
+                            <div class="flex items-center gap-3">
+                              @if (row.teamLogoUrl) {
+                                <img [src]="row.teamLogoUrl" alt="Team Logo" class="w-7 h-7 rounded-lg object-cover" />
+                              } @else {
+                                <div class="w-7 h-7 rounded-lg flex items-center justify-center text-white text-[9px] font-black"
+                                  [style.background]="avatarColor(row.teamName)">
+                                  {{ initials(row.teamName) }}
+                                </div>
+                              }
+                              <span class="font-bold text-white">{{ row.teamName }}</span>
+                            </div>
+                          </td>
+                          <td class="py-3 px-4 text-center font-extrabold text-white text-sm">
+                            {{ row.points }}
+                          </td>
+                          <td class="py-3 px-4">
+                            <div class="flex flex-wrap gap-1.5">
+                              @for (b of row.breakdown; track b.competitionId) {
+                                <span class="inline-flex items-center gap-1 text-[10px] bg-slate-800 border border-white/5 text-slate-300 rounded-md px-2 py-0.5">
+                                  <span class="text-slate-400 font-medium">{{ b.competitionName }}:</span>
+                                  <span class="font-bold text-violet-400">{{ b.points }} pts</span>
+                                  @if (b.position) {
+                                    <span class="text-[9px] text-slate-500 font-medium">(Rank #{{ b.position }})</span>
+                                  }
+                                </span>
+                              }
+                              @if (row.breakdown.length === 0) {
+                                <span class="text-[10px] text-slate-500 italic">No points earned yet</span>
+                              }
+                            </div>
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              }
+            </div>
           </div>
 
           <!-- Right Column (1/4 width): Participants -->

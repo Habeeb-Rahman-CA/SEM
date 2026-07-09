@@ -127,6 +127,7 @@ export class WorkspaceDetailComponent implements OnInit {
   // ── Competitions State ───────────────────────────────────────────────────────
   sports = signal<Sport[]>([]);
   selectedEvent = signal<WorkspaceEvent | null>(null);
+  eventStandings = signal<any[]>([]);
   competitions = signal<Competition[]>([]);
   isLoadingCompetitions = signal(false);
   isCompetitionModalOpen = signal(false);
@@ -1970,11 +1971,13 @@ export class WorkspaceDetailComponent implements OnInit {
     this.competitionCreateError.set('');
     this.competitionCreateSuccess.set('');
     this.loadCompetitions(event.id);
+    this.loadEventStandings(event.id);
   }
 
   onDeselectEvent() {
     this.selectedEvent.set(null);
     this.competitions.set([]);
+    this.eventStandings.set([]);
   }
 
   loadCompetitions(eventId: string) {
@@ -1989,6 +1992,19 @@ export class WorkspaceDetailComponent implements OnInit {
       error: (err) => {
         console.error('Failed to load competitions', err);
         this.isLoadingCompetitions.set(false);
+      }
+    });
+  }
+
+  loadEventStandings(eventId: string) {
+    const ws = this.workspace();
+    if (!ws) return;
+    this.workspaceService.getEventStandings(ws.id, eventId).subscribe({
+      next: (data) => {
+        this.eventStandings.set(data);
+      },
+      error: (err) => {
+        console.error('Failed to load event standings', err);
       }
     });
   }
@@ -3588,6 +3604,8 @@ export class WorkspaceDetailComponent implements OnInit {
         this.selectedMatch.set(updated);
         this.matches.update(prev => prev.map(m => m.id === updated.id ? updated : m));
         this.stopFootballTimer();
+        this.loadCompetitions(event.id);
+        this.loadEventStandings(event.id);
       }
     });
   }
@@ -4739,6 +4757,8 @@ export class WorkspaceDetailComponent implements OnInit {
         this.selectedMatch.set(updated);
         this.matches.update(prev => prev.map(m => m.id === updated.id ? updated : m));
         this.stopFootballTimer();
+        this.loadCompetitions(event.id);
+        this.loadEventStandings(event.id);
       }
     });
   }
