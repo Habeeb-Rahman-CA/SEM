@@ -392,8 +392,8 @@ export class WorkspaceDetailComponent implements OnInit {
       }
     }
     
-    // Sort rounds so that they display from earliest to latest: Round of X -> Quarter-Final -> Semi-Final -> Final
-    const roundOrder = ['round of 32', 'round of 16', 'round of 8', 'quarter-final', 'semi-final', 'final'];
+    // Sort rounds so that they display from earliest to latest: Round of X -> Quarter-Final -> Semi-Final -> Final -> Third Place Match
+    const roundOrder = ['round of 32', 'round of 16', 'round of 8', 'quarter-final', 'semi-final', 'final', 'third place match', '3rd place match'];
     return Array.from(roundsSet).sort((a, b) => {
       const aLower = a.toLowerCase();
       const bLower = b.toLowerCase();

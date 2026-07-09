@@ -230,6 +230,11 @@ describe('Fixture Generation (e2e)', () => {
     expect(finalMatch.homeTeamId).toBe(winnerGroupA);
     expect(finalMatch.awayTeamId).toBe(winnerGroupB);
 
+    const thirdMatch = finalRes.body.find((m: any) => m.config?.round === 'Third Place Match');
+    expect(thirdMatch).toBeDefined();
+    expect(thirdMatch.homeTeamId).toBe(groupAMatch.awayTeamId); // Group A runner-up (Team 4)
+    expect(thirdMatch.awayTeamId).toBe(groupBMatch.homeTeamId); // Group B runner-up (Team 1)
+
     // 6. Set competition pointsConfig
     await request(app.getHttpServer())
       .patch(`/workspaces/${workspaceId}/events/${eventId}/competitions/${competitionId}`)
@@ -239,6 +244,17 @@ describe('Fixture Generation (e2e)', () => {
           { position: 1, label: 'Winner', points: 10 },
           { position: 2, label: 'Runner-up', points: 5 }
         ]
+      })
+      .expect(200);
+
+    // Complete Third Place Match
+    await request(app.getHttpServer())
+      .patch(`/workspaces/${workspaceId}/events/${eventId}/competitions/${competitionId}/stages/${stageId}/matches/${thirdMatch.id}`)
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .send({
+        status: 'completed',
+        homeScore: 1,
+        awayScore: 0
       })
       .expect(200);
 
@@ -279,5 +295,103 @@ describe('Fixture Generation (e2e)', () => {
     const secondPlace = standings[1];
     expect(secondPlace.teamId).toBe(winnerGroupB);
     expect(secondPlace.points).toBe(5);
+  });
+
+  it('should generate fixtures for knockout stage with 4 teams and handle third-place playoff', async () => {
+    // 1. Create a new competition for knockout
+    const koCompRes = await request(app.getHttpServer())
+      .post(`/workspaces/${workspaceId}/events/${eventId}/competitions`)
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .send({
+        name: 'Knockout Competition',
+        sportId: sportId,
+        status: 'upcoming',
+      })
+      .expect(201);
+    const koCompId = koCompRes.body.id;
+
+    // 2. Create a stage of type knockout
+    const koStageRes = await request(app.getHttpServer())
+      .post(`/workspaces/${workspaceId}/events/${eventId}/competitions/${koCompId}/stages`)
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .send({
+        name: 'Knockout Stage',
+        type: 'knockout',
+        sequence: 1,
+        config: {
+          twoLegged: false,
+          legs: 1,
+        },
+      })
+      .expect(201);
+    const koStageId = koStageRes.body.id;
+
+    // 3. Generate fixtures
+    await request(app.getHttpServer())
+      .post(`/workspaces/${workspaceId}/events/${eventId}/competitions/${koCompId}/generate-fixtures`)
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .expect(201);
+
+    // 4. Retrieve matches
+    const matchesRes = await request(app.getHttpServer())
+      .get(`/workspaces/${workspaceId}/events/${eventId}/competitions/${koCompId}/stages/${koStageId}/matches`)
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .expect(200);
+
+    const matches = matchesRes.body;
+    
+    // There should be 2 Semi-Finals, 1 Final, and 1 Third Place Match
+    const semiFinals = matches.filter((m: any) => m.config?.round === 'Semi-Final');
+    const finalMatch = matches.find((m: any) => m.config?.round === 'Final');
+    const thirdMatch = matches.find((m: any) => m.config?.round === 'Third Place Match');
+
+    expect(semiFinals.length).toBe(2);
+    expect(finalMatch).toBeDefined();
+    expect(thirdMatch).toBeDefined();
+
+    // 5. Complete Semi-Final 1 (Team 1 vs Team 2 -> Team 1 wins, Team 2 loses)
+    const sf1 = semiFinals[0];
+    await request(app.getHttpServer())
+      .patch(`/workspaces/${workspaceId}/events/${eventId}/competitions/${koCompId}/stages/${koStageId}/matches/${sf1.id}`)
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .send({
+        status: 'completed',
+        homeScore: 3,
+        awayScore: 1,
+        liveData: { result: 'Home Win' }
+      })
+      .expect(200);
+
+    // 6. Complete Semi-Final 2 (Team 3 vs Team 4 -> Team 4 wins, Team 3 loses)
+    const sf2 = semiFinals[1];
+    await request(app.getHttpServer())
+      .patch(`/workspaces/${workspaceId}/events/${eventId}/competitions/${koCompId}/stages/${koStageId}/matches/${sf2.id}`)
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .send({
+        status: 'completed',
+        homeScore: 1,
+        awayScore: 2,
+        liveData: { result: 'Away Win' }
+      })
+      .expect(200);
+
+    // 7. Verify the winners advanced to the Final, and losers to the Third Place Match
+    const matchesAfterSFRes = await request(app.getHttpServer())
+      .get(`/workspaces/${workspaceId}/events/${eventId}/competitions/${koCompId}/stages/${koStageId}/matches`)
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .expect(200);
+
+    const updatedFinal = matchesAfterSFRes.body.find((m: any) => m.id === finalMatch.id);
+    const updatedThird = matchesAfterSFRes.body.find((m: any) => m.id === thirdMatch.id);
+
+    const sf1Winner = sf1.homeTeamId;
+    const sf1Loser = sf1.awayTeamId;
+    const sf2Winner = sf2.awayTeamId;
+    const sf2Loser = sf2.homeTeamId;
+
+    expect(updatedFinal.homeTeamId).toBe(sf1Winner);
+    expect(updatedFinal.awayTeamId).toBe(sf2Winner);
+    expect(updatedThird.homeTeamId).toBe(sf1Loser);
+    expect(updatedThird.awayTeamId).toBe(sf2Loser);
   });
 });

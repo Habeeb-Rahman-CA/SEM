@@ -1566,7 +1566,7 @@ export class WorkspacesService implements OnModuleInit {
 
   private async advanceKnockoutWinner(completedMatch: Match, stage: CompetitionStage): Promise<void> {
     const roundName = (completedMatch.config as any)?.round;
-    if (!roundName || roundName.toLowerCase() === 'final') return;
+    if (!roundName || roundName.toLowerCase() === 'final' || roundName.toLowerCase().includes('third') || roundName.toLowerCase().includes('3rd')) return;
 
     // Ignore group and league stage matches for knockout advancement
     const roundLower = roundName.toLowerCase();
@@ -1578,12 +1578,12 @@ export class WorkspacesService implements OnModuleInit {
       order: { id: 'ASC', createdAt: 'ASC' }
     });
 
-    // Group unique matches per round (using leg 1 or leg-less matches to count unique matches per round)
-    // We sort rounds by their unique matches count in descending order
+    // Group unique matches per round (excluding Third Place Match)
     const roundCounts: { [round: string]: number } = {};
     for (const m of allMatches) {
       const rName = (m.config as any)?.round;
       if (!rName) continue;
+      if (rName.toLowerCase().includes('third') || rName.toLowerCase().includes('3rd')) continue;
       const isLeg1OrNone = (m.config as any)?.leg === undefined || (m.config as any)?.leg === 1;
       if (isLeg1OrNone) {
         roundCounts[rName] = (roundCounts[rName] || 0) + 1;
@@ -1720,6 +1720,46 @@ export class WorkspacesService implements OnModuleInit {
         await this.matchRepo.save(targetLeg2MatchSec);
       }
     }
+
+    // Place loser in the Third Place Match if current round is Semi-Final
+    let loserId: string | null = null;
+    if (completedMatch.homeTeamId === winnerId) {
+      loserId = completedMatch.awayTeamId;
+    } else {
+      loserId = completedMatch.homeTeamId;
+    }
+
+    if (loserId && roundName.toLowerCase() === 'semi-final') {
+      const thirdPlaceMatches = allMatches.filter(m => 
+        (m.config as any)?.round === 'Third Place Match' && 
+        ((m.config as any)?.leg === undefined || (m.config as any)?.leg === 1)
+      );
+      const targetThirdPlaceMatch = thirdPlaceMatches[0];
+      if (targetThirdPlaceMatch) {
+        if (isHomeSlot) {
+          targetThirdPlaceMatch.homeTeamId = loserId;
+        } else {
+          targetThirdPlaceMatch.awayTeamId = loserId;
+        }
+        await this.matchRepo.save(targetThirdPlaceMatch);
+
+        if (twoLegged) {
+          const thirdPlaceLeg2Matches = allMatches.filter(m => 
+            (m.config as any)?.round === 'Third Place Match' && 
+            (m.config as any)?.leg === 2
+          );
+          const targetThirdPlaceLeg2Match = thirdPlaceLeg2Matches[0];
+          if (targetThirdPlaceLeg2Match) {
+            if (isHomeSlot) {
+              targetThirdPlaceLeg2Match.awayTeamId = loserId;
+            } else {
+              targetThirdPlaceLeg2Match.homeTeamId = loserId;
+            }
+            await this.matchRepo.save(targetThirdPlaceLeg2Match);
+          }
+        }
+      }
+    }
   }
 
   private async advanceGroupStageWinners(stage: CompetitionStage): Promise<void> {
@@ -1808,11 +1848,12 @@ export class WorkspacesService implements OnModuleInit {
       roundRankings.set(r, sorted);
     }
 
-    // Determine the first knockout round matches
+    // Determine the first knockout round matches (excluding Third Place Match)
     const koRoundCounts: { [round: string]: number } = {};
     for (const m of knockoutMatches) {
       const rName = (m.config as any)?.round;
       if (!rName) continue;
+      if (rName.toLowerCase().includes('third') || rName.toLowerCase().includes('3rd')) continue;
       const isLeg1OrNone = (m.config as any)?.leg === undefined || (m.config as any)?.leg === 1;
       if (isLeg1OrNone) {
         koRoundCounts[rName] = (koRoundCounts[rName] || 0) + 1;
@@ -1830,6 +1871,7 @@ export class WorkspacesService implements OnModuleInit {
     const isSingleGroup = stage.config?.groupKnockoutSubtype === 'single_group';
     const advancingType = stage.config?.advancingType || 'winner';
     const groupsCount = stage.config?.groupsCount ?? 2;
+    const twoLegged = (stage.config as any)?.twoLegged || (stage.config as any)?.legs === 2;
 
     const promotedTeams: { home: string; away: string }[] = [];
 
@@ -1838,6 +1880,30 @@ export class WorkspacesService implements OnModuleInit {
       if (firstKoRoundMatches.length === 1) {
         if (sortedTeams.length >= 2) {
           promotedTeams.push({ home: sortedTeams[0], away: sortedTeams[1] });
+        }
+        // Populate Third Place Match with 3rd and 4th place teams if they exist
+        if (sortedTeams.length >= 4) {
+          const thirdPlaceLeg1Match = knockoutMatches.find(m => 
+            (m.config as any)?.round === 'Third Place Match' && 
+            ((m.config as any)?.leg === undefined || (m.config as any)?.leg === 1)
+          );
+          if (thirdPlaceLeg1Match) {
+            thirdPlaceLeg1Match.homeTeamId = sortedTeams[2];
+            thirdPlaceLeg1Match.awayTeamId = sortedTeams[3];
+            await this.matchRepo.save(thirdPlaceLeg1Match);
+
+            if (twoLegged) {
+              const thirdPlaceLeg2Match = knockoutMatches.find(m => 
+                (m.config as any)?.round === 'Third Place Match' && 
+                (m.config as any)?.leg === 2
+              );
+              if (thirdPlaceLeg2Match) {
+                thirdPlaceLeg2Match.homeTeamId = sortedTeams[3];
+                thirdPlaceLeg2Match.awayTeamId = sortedTeams[2];
+                await this.matchRepo.save(thirdPlaceLeg2Match);
+              }
+            }
+          }
         }
       } else if (firstKoRoundMatches.length === 2) {
         if (sortedTeams.length >= 4) {
@@ -1863,6 +1929,32 @@ export class WorkspacesService implements OnModuleInit {
           const wB = getWinner(1);
           if (wA && wB) {
             promotedTeams.push({ home: wA, away: wB });
+          }
+          // Populate Third Place Match with runners-up
+          const rA = getRunner(0);
+          const rB = getRunner(1);
+          if (rA && rB) {
+            const thirdPlaceLeg1Match = knockoutMatches.find(m => 
+              (m.config as any)?.round === 'Third Place Match' && 
+              ((m.config as any)?.leg === undefined || (m.config as any)?.leg === 1)
+            );
+            if (thirdPlaceLeg1Match) {
+              thirdPlaceLeg1Match.homeTeamId = rA;
+              thirdPlaceLeg1Match.awayTeamId = rB;
+              await this.matchRepo.save(thirdPlaceLeg1Match);
+
+              if (twoLegged) {
+                const thirdPlaceLeg2Match = knockoutMatches.find(m => 
+                  (m.config as any)?.round === 'Third Place Match' && 
+                  (m.config as any)?.leg === 2
+                );
+                if (thirdPlaceLeg2Match) {
+                  thirdPlaceLeg2Match.homeTeamId = rB;
+                  thirdPlaceLeg2Match.awayTeamId = rA;
+                  await this.matchRepo.save(thirdPlaceLeg2Match);
+                }
+              }
+            }
           }
         } else if (advancingType === 'winner_and_runner') {
           const wA = getWinner(0);
@@ -1896,8 +1988,6 @@ export class WorkspacesService implements OnModuleInit {
         }
       }
     }
-
-    const twoLegged = (stage.config as any)?.twoLegged || (stage.config as any)?.legs === 2;
 
     for (let i = 0; i < promotedTeams.length; i++) {
       const targetMatch = firstKoRoundMatches[i];
@@ -2076,7 +2166,7 @@ export class WorkspacesService implements OnModuleInit {
           fixtures.push({
             homeTeamId: home,
             awayTeamId: away,
-            config: { round: roundLabel, leg: 1 },
+            config: twoLegged ? { round: roundLabel, leg: 1 } : { round: roundLabel },
           });
           if (twoLegged && home !== null && away !== null) {
             fixtures.push({
@@ -2096,13 +2186,28 @@ export class WorkspacesService implements OnModuleInit {
             fixtures.push({
               homeTeamId: null,
               awayTeamId: null,
-              config: { round: subRoundLabel, leg: 1 },
+              config: twoLegged ? { round: subRoundLabel, leg: 1 } : { round: subRoundLabel },
             });
             if (twoLegged) {
               fixtures.push({
                 homeTeamId: null,
                 awayTeamId: null,
                 config: { round: subRoundLabel, leg: 2 },
+              });
+            }
+          }
+          if (remainingTeams === 2) {
+            // Also generate Third Place Match
+            fixtures.push({
+              homeTeamId: null,
+              awayTeamId: null,
+              config: twoLegged ? { round: 'Third Place Match', leg: 1 } : { round: 'Third Place Match' },
+            });
+            if (twoLegged) {
+              fixtures.push({
+                homeTeamId: null,
+                awayTeamId: null,
+                config: { round: 'Third Place Match', leg: 2 },
               });
             }
           }
@@ -2168,13 +2273,28 @@ export class WorkspacesService implements OnModuleInit {
             fixtures.push({
               homeTeamId: null,
               awayTeamId: null,
-              config: { round: koRoundLabel, leg: 1 },
+              config: twoLeggedKO ? { round: koRoundLabel, leg: 1 } : { round: koRoundLabel },
             });
             if (twoLeggedKO) {
               fixtures.push({
                 homeTeamId: null,
                 awayTeamId: null,
                 config: { round: koRoundLabel, leg: 2 },
+              });
+            }
+          }
+          if (remainingTeams === 2) {
+            // Also generate Third Place Match
+            fixtures.push({
+              homeTeamId: null,
+              awayTeamId: null,
+              config: twoLeggedKO ? { round: 'Third Place Match', leg: 1 } : { round: 'Third Place Match' },
+            });
+            if (twoLeggedKO) {
+              fixtures.push({
+                homeTeamId: null,
+                awayTeamId: null,
+                config: { round: 'Third Place Match', leg: 2 },
               });
             }
           }
