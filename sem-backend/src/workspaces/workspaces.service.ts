@@ -21,6 +21,7 @@ import { CompetitionStage } from './entities/competition-stage.entity';
 import { Match, MatchType } from './entities/match.entity';
 import { CompetitionTeam } from './entities/competition-team.entity';
 import { Venue } from './entities/venue.entity';
+import { Notification } from './entities/notification.entity';
 import { CreateWorkspaceDto } from './dto/create-workspace.dto';
 import { UpdateWorkspaceDto } from './dto/update-workspace.dto';
 import { UsersService } from '../users/users.service';
@@ -41,6 +42,7 @@ import { CreateMatchDto } from './dto/create-match.dto';
 import { UpdateMatchDto } from './dto/update-match.dto';
 import { CreateVenueDto } from './dto/create-venue.dto';
 import { UpdateVenueDto } from './dto/update-venue.dto';
+import { BulkImportMembersDto } from './dto/bulk-import-members.dto';
 
 @Injectable()
 export class WorkspacesService implements OnModuleInit {
@@ -71,6 +73,8 @@ export class WorkspacesService implements OnModuleInit {
     private readonly competitionTeamRepo: Repository<CompetitionTeam>,
     @InjectRepository(Venue)
     private readonly venueRepo: Repository<Venue>,
+    @InjectRepository(Notification)
+    private readonly notificationRepo: Repository<Notification>,
     private readonly usersService: UsersService,
   ) {}
 
@@ -225,7 +229,7 @@ export class WorkspacesService implements OnModuleInit {
 
   async findAllForUser(userId: string): Promise<Workspace[]> {
     const memberships = await this.memberRepo.find({
-      where: { userId },
+      where: { userId, status: 'joined' },
       relations: { workspace: true },
     });
     return memberships.map((m) => m.workspace);
@@ -290,7 +294,7 @@ export class WorkspacesService implements OnModuleInit {
   async getMembers(workspaceId: string, userId: string): Promise<WorkspaceMember[]> {
     await this.ensureMember(workspaceId, userId);
     return this.memberRepo.find({
-      where: { workspaceId },
+      where: { workspaceId, status: 'joined' },
       relations: { user: true, role: { permissions: true } },
       order: { joinedAt: 'ASC' },
     });
@@ -312,6 +316,9 @@ export class WorkspacesService implements OnModuleInit {
       where: { workspaceId, userId: user.id },
     });
     if (existing) {
+      if (existing.status === 'pending') {
+        throw new ConflictException('User already has a pending invitation');
+      }
       throw new ConflictException('User is already a member of this workspace');
     }
 
@@ -324,11 +331,80 @@ export class WorkspacesService implements OnModuleInit {
       workspaceId,
       userId: user.id,
       roleId: role.id,
+      status: 'pending',
+      invitedById: requesterId,
     });
     const saved = await this.memberRepo.save(member);
     saved.user = user;
     saved.role = role;
     return saved;
+  }
+
+  async bulkImportMembers(
+    workspaceId: string,
+    dto: BulkImportMembersDto,
+    requesterId: string,
+  ): Promise<{ success: any[]; failed: any[] }> {
+    await this.ensurePermission(workspaceId, requesterId, 'member.invite');
+
+    const success = [];
+    const failed = [];
+
+    for (const item of dto.members) {
+      try {
+        let user = await this.usersService.findOneByUsername(item.username);
+        let isNew = false;
+        if (!user) {
+          user = await this.usersService.create(item.username, dto.password);
+          isNew = true;
+        }
+
+        const existing = await this.memberRepo.findOne({
+          where: { workspaceId, userId: user.id },
+        });
+
+        if (existing) {
+          failed.push({
+            username: item.username,
+            error: 'User is already a member of this workspace',
+          });
+          continue;
+        }
+
+        const roleSlug = item.role || 'viewer';
+        const role = await this.findRoleBySlug(roleSlug, workspaceId);
+        if (role.slug === WorkspaceRole.OWNER) {
+          failed.push({
+            username: item.username,
+            error: 'Cannot import a user as Owner',
+          });
+          continue;
+        }
+
+        const member = this.memberRepo.create({
+          workspaceId,
+          userId: user.id,
+          roleId: role.id,
+          status: 'joined',
+          invitedById: requesterId,
+        });
+
+        const saved = await this.memberRepo.save(member);
+        success.push({
+          username: item.username,
+          isNew,
+          memberId: saved.id,
+          role: role.name,
+        });
+      } catch (err) {
+        failed.push({
+          username: item.username,
+          error: err.message || 'Import failed',
+        });
+      }
+    }
+
+    return { success, failed };
   }
 
   async joinWorkspace(
@@ -345,6 +421,10 @@ export class WorkspacesService implements OnModuleInit {
       relations: { user: true, role: true },
     });
     if (existing) {
+      if (existing.status === 'pending') {
+        existing.status = 'joined';
+        return this.memberRepo.save(existing);
+      }
       return existing;
     }
 
@@ -354,6 +434,7 @@ export class WorkspacesService implements OnModuleInit {
       workspaceId,
       userId,
       roleId: role.id,
+      status: 'joined',
     });
     const saved = await this.memberRepo.save(member);
     
@@ -362,6 +443,75 @@ export class WorkspacesService implements OnModuleInit {
       relations: { user: true, role: true },
     });
     return fullMember!;
+  }
+
+  async getPendingInvitations(userId: string): Promise<WorkspaceMember[]> {
+    return this.memberRepo.find({
+      where: { userId, status: 'pending' },
+      relations: { workspace: true },
+    });
+  }
+
+  async acceptInvitation(workspaceId: string, userId: string): Promise<WorkspaceMember> {
+    const member = await this.memberRepo.findOne({
+      where: { workspaceId, userId, status: 'pending' },
+      relations: { user: true, role: true, workspace: true },
+    });
+    if (!member) {
+      throw new NotFoundException('Invitation not found or already accepted/rejected');
+    }
+    member.status = 'joined';
+    const saved = await this.memberRepo.save(member);
+
+    // Create notification for joining user
+    const userNotification = this.notificationRepo.create({
+      userId: userId,
+      message: `You joined the ${member.workspace.name} workspace`,
+    });
+    await this.notificationRepo.save(userNotification);
+
+    // Create notification for inviter
+    if (member.invitedById) {
+      const inviterNotification = this.notificationRepo.create({
+        userId: member.invitedById,
+        message: `${member.user.username} accepted your invitation to the ${member.workspace.name} workspace`,
+      });
+      await this.notificationRepo.save(inviterNotification);
+    }
+
+    return saved;
+  }
+
+  async rejectInvitation(workspaceId: string, userId: string): Promise<void> {
+    const member = await this.memberRepo.findOne({
+      where: { workspaceId, userId, status: 'pending' },
+      relations: { user: true, workspace: true },
+    });
+    if (!member) {
+      throw new NotFoundException('Invitation not found or already accepted/rejected');
+    }
+
+    // Create notification for inviter
+    if (member.invitedById) {
+      const inviterNotification = this.notificationRepo.create({
+        userId: member.invitedById,
+        message: `${member.user.username} rejected your invitation to the ${member.workspace.name} workspace`,
+      });
+      await this.notificationRepo.save(inviterNotification);
+    }
+
+    await this.memberRepo.remove(member);
+  }
+
+  async getNotifications(userId: string): Promise<Notification[]> {
+    return this.notificationRepo.find({
+      where: { userId },
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  async markNotificationsRead(userId: string): Promise<void> {
+    await this.notificationRepo.update({ userId, isRead: false }, { isRead: true });
   }
 
   async updateMemberRole(
@@ -549,7 +699,7 @@ export class WorkspacesService implements OnModuleInit {
 
   async ensureMember(workspaceId: string, userId: string): Promise<WorkspaceMember> {
     const member = await this.memberRepo.findOne({
-      where: { workspaceId, userId },
+      where: { workspaceId, userId, status: 'joined' },
       relations: { role: true },
     });
     if (!member) throw new ForbiddenException('You are not a member of this workspace');
@@ -572,7 +722,7 @@ export class WorkspacesService implements OnModuleInit {
 
   private async ensurePermission(workspaceId: string, userId: string, permissionSlug: string): Promise<void> {
     const member = await this.memberRepo.findOne({
-      where: { workspaceId, userId },
+      where: { workspaceId, userId, status: 'joined' },
       relations: { role: { permissions: true } },
     });
     if (!member) throw new ForbiddenException('You are not a member of this workspace');

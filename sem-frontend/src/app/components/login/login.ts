@@ -17,6 +17,7 @@ export class LoginComponent {
 
   username = signal<string>('');
   password = signal<string>('');
+  showPassword = signal<boolean>(false);
   errorMessage = signal<string>('');
   isLoading = signal<boolean>(false);
 

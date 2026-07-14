@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -25,8 +26,24 @@ async function bootstrap() {
   );
 
   const port = process.env.PORT ?? 3000;
+
+  // Set up Swagger API Documentation (only in non-production environments)
+  if (process.env.NODE_ENV !== 'production') {
+    const config = new DocumentBuilder()
+      .setTitle('SEM API')
+      .setDescription('Sports Event Manager API Documentation')
+      .setVersion('1.0')
+      .addBearerAuth()
+      .build();
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api/docs', app, document);
+  }
+
   await app.listen(port);
   console.log(`Application is running on: http://localhost:${port}/api`);
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`Swagger documentation is available at: http://localhost:${port}/api/docs`);
+  }
 }
 // Trigger reload 2
 bootstrap();

@@ -3,7 +3,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { WorkspaceService, Workspace, WorkspaceMember, Role, Team, Player, WorkspaceEvent, Sport, Competition, CompetitionStage, CompetitionTeam, Match, Venue, PointsConfigEntry } from '../../services/workspace.service';
+import { WorkspaceService, Workspace, WorkspaceMember, AppNotification, Role, Team, Player, WorkspaceEvent, Sport, Competition, CompetitionStage, CompetitionTeam, Match, Venue, PointsConfigEntry } from '../../services/workspace.service';
 import { AuthService } from '../../services/auth.service';
 import { UiService } from '../../services/ui.service';
 
@@ -32,7 +32,16 @@ export class WorkspaceDetailComponent implements OnInit {
   isLoading = signal(true);
   error = signal('');
   activeTab = signal<'overview' | 'members' | 'settings' | 'teams' | 'players' | 'events' | 'venues'>('overview');
-  isSidebarOpen = signal(false);
+  isSidebarOpen = signal(true);
+
+  // Invitation & Notification signals
+  pendingInvitations = signal<WorkspaceMember[]>([]);
+  notifications = signal<AppNotification[]>([]);
+  isNotificationOpen = signal(false);
+  isProcessingInvitation = signal(false);
+
+  unreadNotificationsCount = computed(() => this.notifications().filter(n => !n.isRead).length);
+  totalBadgeCount = computed(() => this.pendingInvitations().length + this.unreadNotificationsCount());
   enableExtraTime = signal(true);
   enablePenaltyShootout = signal(true);
   extraTimeHalfDuration = signal(15);
@@ -89,6 +98,16 @@ export class WorkspaceDetailComponent implements OnInit {
   bulkImportPlayers = signal<any[]>([]);
   playerBulkImportError = signal('');
   playerBulkImportSuccess = signal('');
+
+  // Bulk Import Members State
+  isMemberBulkModalOpen = signal(false);
+  isImportingMemberBulk = signal(false);
+  memberBulkImportProgress = signal(0);
+  bulkImportMembersList = signal<any[]>([]);
+  memberBulkImportPassword = signal('');
+  memberBulkImportError = signal('');
+  memberBulkImportSuccess = signal('');
+  showBulkImportPassword = signal(false);
 
   // Editing state for Players
   editingPlayer = signal<Player | null>(null);
@@ -503,7 +522,14 @@ export class WorkspaceDetailComponent implements OnInit {
     return this.roles().filter(r => r.slug !== 'owner');
   }
 
+  closeSidebarOnMobile() {
+    if (window.innerWidth < 1024) {
+      this.isSidebarOpen.set(false);
+    }
+  }
+
   ngOnInit() {
+    this.loadInvitationsAndNotifications();
     const id = this.route.snapshot.paramMap.get('id')!;
     this.workspaceService.getOne(id).subscribe({
       next: (ws) => {
@@ -668,7 +694,6 @@ export class WorkspaceDetailComponent implements OnInit {
         this.isInviting.set(false);
         this.inviteSuccess.set(`${username} has been invited successfully!`);
         this.inviteUsername.set('');
-        this.members.update(prev => [...prev, newMember]);
       },
       error: (err) => {
         this.isInviting.set(false);
@@ -1518,6 +1543,180 @@ export class WorkspaceDetailComponent implements OnInit {
       error: (err) => {
         this.isUpdatingPlayer.set(false);
         this.playerUpdateError.set(err.error?.message ?? 'Failed to update player.');
+      }
+    });
+  }
+
+  openMemberBulkModal() {
+    this.bulkImportMembersList.set([]);
+    this.memberBulkImportProgress.set(0);
+    this.memberBulkImportPassword.set('');
+    this.memberBulkImportError.set('');
+    this.memberBulkImportSuccess.set('');
+    this.showBulkImportPassword.set(false);
+    this.isMemberBulkModalOpen.set(true);
+  }
+
+  closeMemberBulkModal() {
+    this.isMemberBulkModalOpen.set(false);
+  }
+
+  async downloadMemberTemplate() {
+    try {
+      const XLSX = await import('xlsx-js-style') as any;
+      const ws: any = {
+        '!ref': 'A1:B3',
+        'A1': { v: 'Username', t: 's', s: { font: { bold: true } } },
+        'B1': { v: 'Role', t: 's', s: { font: { bold: true } } },
+        'A2': { v: '#Required', t: 's', s: { font: { color: { rgb: '4B525D' } } } },
+        'B2': { v: '#Optional (defaults to viewer)', t: 's', s: { font: { color: { rgb: '4B525D' } } } },
+        'A3': { v: 'eg. john_doe', t: 's', s: { font: { italic: true } } },
+        'B3': { v: 'eg. referee', t: 's', s: { font: { italic: true } } }
+      };
+      ws['!cols'] = [
+        { wch: 32 },
+        { wch: 25 }
+      ];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Members Template');
+      XLSX.writeFile(wb, 'members_import_template.xlsx');
+    } catch (err) {
+      console.error('Failed to generate template', err);
+    }
+  }
+
+  onMemberExcelUpload(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+    const file = input.files[0];
+    const reader = new FileReader();
+    reader.onload = async (e: any) => {
+      try {
+        const XLSX = await import('xlsx');
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const json: any[] = XLSX.utils.sheet_to_json(worksheet);
+
+        const parsedMembers = json.map((row: any) => {
+          const usernameKey = Object.keys(row).find(k => k.toLowerCase() === 'username') || 'Username';
+          const roleKey = Object.keys(row).find(k => k.toLowerCase() === 'role') || 'Role';
+
+          const username = (row[usernameKey] || '').toString().trim();
+          const role = (row[roleKey] || '').toString().trim();
+
+          let status = 'pending';
+          let error = '';
+
+          if (!username) {
+            status = 'failed';
+            error = 'Username is missing';
+          } else {
+            const lowerUser = username.toLowerCase();
+            if (lowerUser.startsWith('#required') || lowerUser === 'required') {
+              return null;
+            }
+            if (lowerUser.startsWith('eg.')) {
+              return null;
+            }
+            const alreadyExists = this.members().some(m => m.user.username.toLowerCase() === lowerUser);
+            if (alreadyExists) {
+              status = 'exist';
+              error = 'Already a member';
+            }
+          }
+
+          return {
+            username,
+            role: role || undefined,
+            status,
+            error
+          };
+        }).filter(Boolean);
+
+        this.bulkImportMembersList.set(parsedMembers);
+        this.memberBulkImportError.set('');
+        if (parsedMembers.length === 0) {
+          this.memberBulkImportError.set('No valid members found in the spreadsheet. Make sure you have a "Username" column.');
+        }
+      } catch (err) {
+        console.error('Failed to parse file', err);
+        this.memberBulkImportError.set('Failed to parse spreadsheet. Please ensure it is a valid format.');
+      }
+    };
+    reader.readAsArrayBuffer(file);
+    input.value = '';
+  }
+
+  onConfirmMemberBulkImport() {
+    const ws = this.workspace();
+    const membersToImport = [...this.bulkImportMembersList()];
+    const password = this.memberBulkImportPassword();
+
+    if (!ws || membersToImport.length === 0) return;
+    if (!password) {
+      this.memberBulkImportError.set('Common password is required for registering new accounts.');
+      return;
+    }
+    if (password.length < 6) {
+      this.memberBulkImportError.set('Password must be at least 6 characters long.');
+      return;
+    }
+    if (!/^(?=.*[A-Z])(?=.*\d).+$/.test(password)) {
+      this.memberBulkImportError.set('Password must contain at least one uppercase letter and one number.');
+      return;
+    }
+
+    this.isImportingMemberBulk.set(true);
+    this.memberBulkImportProgress.set(0);
+    this.memberBulkImportError.set('');
+    this.memberBulkImportSuccess.set('');
+
+    const payload = {
+      password,
+      members: membersToImport.map(m => ({
+        username: m.username,
+        role: m.role
+      }))
+    };
+
+    this.workspaceService.bulkImportMembers(ws.id, payload).subscribe({
+      next: (res) => {
+        this.isImportingMemberBulk.set(false);
+        this.memberBulkImportProgress.set(100);
+
+        let successCount = 0;
+        let failCount = 0;
+
+        membersToImport.forEach(item => {
+          const successItem = res.success.find((s: any) => s.username.toLowerCase() === item.username.toLowerCase());
+          const failedItem = res.failed.find((f: any) => f.username.toLowerCase() === item.username.toLowerCase());
+
+          if (successItem) {
+            item.status = 'success';
+            item.error = '';
+            successCount++;
+          } else if (failedItem) {
+            item.status = 'failed';
+            item.error = failedItem.error;
+            failCount++;
+          }
+        });
+
+        this.bulkImportMembersList.set([...membersToImport]);
+
+        if (failCount === 0) {
+          this.memberBulkImportSuccess.set(`Successfully imported all ${successCount} members!`);
+        } else {
+          this.memberBulkImportSuccess.set(`Import finished: ${successCount} successful, ${failCount} failed.`);
+        }
+
+        this.loadMembers(ws.id);
+      },
+      error: (err) => {
+        this.isImportingMemberBulk.set(false);
+        this.memberBulkImportError.set(err.error?.message ?? 'Bulk import failed.');
       }
     });
   }
@@ -5073,5 +5272,71 @@ export class WorkspaceDetailComponent implements OnInit {
     } finally {
       this.isResettingStages.set(false);
     }
+  }
+
+  loadInvitationsAndNotifications() {
+    this.workspaceService.getPendingInvitations().subscribe({
+      next: (data) => {
+        this.pendingInvitations.set(data);
+      },
+      error: (err) => {
+        console.error('Failed to load invitations', err);
+      }
+    });
+
+    this.workspaceService.getNotifications().subscribe({
+      next: (data) => {
+        this.notifications.set(data);
+      },
+      error: (err) => {
+        console.error('Failed to load notifications', err);
+      }
+    });
+  }
+
+  acceptInvite(workspaceId: string, workspaceName: string) {
+    this.isProcessingInvitation.set(true);
+    this.workspaceService.acceptInvitation(workspaceId).subscribe({
+      next: () => {
+        this.isProcessingInvitation.set(false);
+        this.isNotificationOpen.set(false);
+        this.uiService.success(`You joined the ${workspaceName} workspace!`);
+        this.loadInvitationsAndNotifications();
+      },
+      error: (err) => {
+        this.isProcessingInvitation.set(false);
+        console.error(err);
+        this.uiService.error(err.error?.message ?? 'Failed to accept invitation.');
+      }
+    });
+  }
+
+  rejectInvite(workspaceId: string, workspaceName: string) {
+    this.isProcessingInvitation.set(true);
+    this.workspaceService.rejectInvitation(workspaceId).subscribe({
+      next: () => {
+        this.isProcessingInvitation.set(false);
+        this.isNotificationOpen.set(false);
+        this.uiService.success(`Rejected invitation to "${workspaceName}".`);
+        this.loadInvitationsAndNotifications();
+      },
+      error: (err) => {
+        this.isProcessingInvitation.set(false);
+        console.error(err);
+        this.uiService.error(err.error?.message ?? 'Failed to reject invitation.');
+      }
+    });
+  }
+
+  markNotificationsAsRead() {
+    if (this.unreadNotificationsCount() === 0) return;
+    this.workspaceService.markNotificationsRead().subscribe({
+      next: () => {
+        this.loadInvitationsAndNotifications();
+      },
+      error: (err) => {
+        console.error('Failed to mark notifications as read', err);
+      }
+    });
   }
 }

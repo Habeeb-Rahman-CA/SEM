@@ -174,6 +174,16 @@ export interface WorkspaceMember {
   role: Role;
   joinedAt: string;
   user: { id: string; username: string; avatarUrl?: string | null };
+  status?: string;
+  workspace?: Workspace;
+}
+
+export interface AppNotification {
+  id: string;
+  userId: string;
+  message: string;
+  isRead: boolean;
+  createdAt: string;
 }
 
 export interface CreateWorkspacePayload {
@@ -235,12 +245,54 @@ export class WorkspaceService {
     );
   }
 
+  bulkImportMembers(workspaceId: string, payload: { members: { username: string; role?: string }[]; password: string }): Observable<{ success: any[]; failed: any[] }> {
+    return this.http.post<{ success: any[]; failed: any[] }>(
+      `${this.apiUrl}/${workspaceId}/members/bulk`,
+      payload,
+      { headers: this.headers }
+    );
+  }
+
   joinWorkspace(workspaceId: string): Observable<WorkspaceMember> {
     return this.http.post<WorkspaceMember>(
       `${this.apiUrl}/${workspaceId}/join`,
       {},
       { headers: this.headers }
     );
+  }
+
+  getPendingInvitations(): Observable<WorkspaceMember[]> {
+    return this.http.get<WorkspaceMember[]>(`${this.apiUrl}/invitations/pending`, {
+      headers: this.headers,
+    });
+  }
+
+  acceptInvitation(workspaceId: string): Observable<WorkspaceMember> {
+    return this.http.post<WorkspaceMember>(
+      `${this.apiUrl}/invitations/${workspaceId}/accept`,
+      {},
+      { headers: this.headers },
+    );
+  }
+
+  rejectInvitation(workspaceId: string): Observable<void> {
+    return this.http.post<void>(
+      `${this.apiUrl}/invitations/${workspaceId}/reject`,
+      {},
+      { headers: this.headers },
+    );
+  }
+
+  getNotifications(): Observable<AppNotification[]> {
+    return this.http.get<AppNotification[]>(`${this.apiUrl}/notifications`, {
+      headers: this.headers,
+    });
+  }
+
+  markNotificationsRead(): Observable<void> {
+    return this.http.post<void>(`${this.apiUrl}/notifications/read`, {}, {
+      headers: this.headers,
+    });
   }
 
   updateMemberRole(workspaceId: string, userId: string, role: string): Observable<WorkspaceMember> {

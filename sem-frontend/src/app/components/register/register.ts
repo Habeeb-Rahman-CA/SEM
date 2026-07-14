@@ -17,6 +17,8 @@ export class RegisterComponent {
   username = signal<string>('');
   password = signal<string>('');
   confirmPassword = signal<string>('');
+  showPassword = signal<boolean>(false);
+  showConfirmPassword = signal<boolean>(false);
   errorMessage = signal<string>('');
   successMessage = signal<string>('');
   isLoading = signal<boolean>(false);
@@ -33,6 +35,13 @@ export class RegisterComponent {
 
     if (pass.length < 6) {
       this.errorMessage.set('Password must be at least 6 characters long.');
+      return;
+    }
+
+    const hasUppercase = /[A-Z]/.test(pass);
+    const hasNumber = /[0-9]/.test(pass);
+    if (!hasUppercase || !hasNumber) {
+      this.errorMessage.set('Password must contain at least one uppercase letter and one number.');
       return;
     }
 
