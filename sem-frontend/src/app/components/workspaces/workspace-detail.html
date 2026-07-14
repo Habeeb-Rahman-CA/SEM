@@ -38,7 +38,7 @@
       class="lg:hidden flex items-center justify-between px-6 h-16 border-b border-white/10 bg-slate-900 sticky top-0 z-40">
       <div class="flex items-center gap-3">
         <button (click)="isSidebarOpen.set(!isSidebarOpen())" class="text-white text-xl p-1 cursor-pointer">
-          <i class="fi fi-rr-menu-burger"></i>
+          <i class="fi text-sm" [class.fi-rr-cross]="isSidebarOpen()" [class.fi-rr-menu-burger]="!isSidebarOpen()"></i>
         </button>
         <span class="font-extrabold text-sm text-white truncate">{{ workspace()!.name }}</span>
       </div>
@@ -54,14 +54,18 @@
     }
 
     <!-- Sidebar -->
-    <aside [class]="isSidebarOpen() ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
-      class="fixed inset-y-0 left-0 w-64 bg-slate-900 border-r border-white/10 flex flex-col z-50 lg:z-10 lg:static lg:h-screen transition-transform duration-300 ease-in-out shrink-0">
+    <aside [class.w-64]="isSidebarOpen()" [class.translate-x-0]="isSidebarOpen()" [class.w-0]="!isSidebarOpen()"
+      [class.-translate-x-full]="!isSidebarOpen()" [class.lg:w-64]="isSidebarOpen()" [class.lg:w-20]="!isSidebarOpen()"
+      [class.lg:translate-x-0]="true"
+      class="fixed inset-y-0 left-0 bg-slate-900 border-r border-white/10 flex flex-col z-50 lg:z-10 lg:static lg:h-screen transition-all duration-300 ease-in-out shrink-0 overflow-hidden">
 
       <!-- Sidebar Workspace Header -->
-      <div class="p-6 border-b border-white/5 flex flex-col gap-4">
-        <div class="flex items-center gap-3">
-          <div
-            class="w-10 h-10 rounded-xl flex items-center justify-center text-white text-base font-extrabold shadow-md shrink-0 overflow-hidden"
+      <div [class.lg:px-0]="!isSidebarOpen()"
+        class="p-6 border-b border-white/5 flex items-center justify-between gap-3">
+        <div [class.lg:flex-col]="!isSidebarOpen()" [class.lg:mx-auto]="!isSidebarOpen()"
+          class="flex items-center gap-3 min-w-0">
+          <div (click)="isSidebarOpen.set(!isSidebarOpen())"
+            class="w-10 h-10 rounded-xl flex items-center justify-center text-white text-base font-extrabold shadow-md shrink-0 overflow-hidden cursor-pointer hover:scale-105 transition-all"
             [style.background]="workspace()?.logoUrl ? 'transparent' : avatarColor(workspace()!.name)">
             @if (workspace()?.logoUrl) {
             <img [src]="workspace()?.logoUrl" alt="Logo" class="w-full h-full object-cover" />
@@ -69,7 +73,7 @@
             {{ initials(workspace()!.name) }}
             }
           </div>
-          <div class="min-w-0">
+          <div [class.lg:hidden]="!isSidebarOpen()" class="min-w-0">
             <h2 class="text-sm font-extrabold text-white truncate">{{ workspace()!.name }}</h2>
             <p class="text-[10px] text-slate-500 font-mono truncate">/{{ workspace()!.slug }}</p>
           </div>
@@ -77,77 +81,107 @@
       </div>
 
       <!-- Navigation Menu -->
-      <div class="flex-1 overflow-y-auto px-4 py-6 flex flex-col gap-1">
-        <button (click)="activeTab.set('overview'); isSidebarOpen.set(false)"
+      <div [class.lg:px-2.5]="!isSidebarOpen()" class="flex-1 overflow-y-auto px-4 py-6 flex flex-col gap-1">
+        <button (click)="activeTab.set('overview'); closeSidebarOnMobile()"
           [class]="activeTab() === 'overview' ? 'bg-violet-600/10 text-violet-400 border border-violet-500/20' : 'text-slate-400 hover:text-white border border-transparent hover:bg-white/5'"
+          [class.lg:justify-center]="!isSidebarOpen()" [class.lg:px-0]="!isSidebarOpen()"
           class="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold rounded-xl transition-all cursor-pointer">
-          <i class="fi fi-rr-apps text-base"></i> Overview
+          <i class="fi fi-rr-apps text-base shrink-0"></i>
+          <span [class.lg:hidden]="!isSidebarOpen()">Overview</span>
         </button>
 
-        <button (click)="activeTab.set('members'); isSidebarOpen.set(false)"
+        <button (click)="activeTab.set('members'); closeSidebarOnMobile()"
           [class]="activeTab() === 'members' ? 'bg-violet-600/10 text-violet-400 border border-violet-500/20' : 'text-slate-400 hover:text-white border border-transparent hover:bg-white/5'"
+          [class.lg:justify-center]="!isSidebarOpen()" [class.lg:px-0]="!isSidebarOpen()"
           class="w-full flex items-center justify-between px-4 py-3 text-xs font-bold rounded-xl transition-all cursor-pointer">
-          <span class="flex items-center gap-3">
-            <i class="fi fi-rr-users text-base"></i> Members
+          <span class="flex items-center gap-3 min-w-0" [class.lg:justify-center]="!isSidebarOpen()"
+            [class.w-full]="!isSidebarOpen()">
+            <i class="fi fi-rr-users text-base shrink-0"></i>
+            <span [class.lg:hidden]="!isSidebarOpen()">Members</span>
           </span>
+          @if (isSidebarOpen()) {
           <span class="px-2 py-0.5 text-[10px] bg-slate-800 text-slate-400 rounded-md border border-white/5">{{
             members().length }}</span>
+          }
         </button>
 
-        <button (click)="activeTab.set('teams'); isSidebarOpen.set(false)"
+        <button (click)="activeTab.set('teams'); closeSidebarOnMobile()"
           [class]="activeTab() === 'teams' ? 'bg-violet-600/10 text-violet-400 border border-violet-500/20' : 'text-slate-400 hover:text-white border border-transparent hover:bg-white/5'"
+          [class.lg:justify-center]="!isSidebarOpen()" [class.lg:px-0]="!isSidebarOpen()"
           class="w-full flex items-center justify-between px-4 py-3 text-xs font-bold rounded-xl transition-all cursor-pointer">
-          <span class="flex items-center gap-3">
-            <i class="fi fi-rr-users-alt text-base"></i> Teams
+          <span class="flex items-center gap-3 min-w-0" [class.lg:justify-center]="!isSidebarOpen()"
+            [class.w-full]="!isSidebarOpen()">
+            <i class="fi fi-rr-users-alt text-base shrink-0"></i>
+            <span [class.lg:hidden]="!isSidebarOpen()">Teams</span>
           </span>
+          @if (isSidebarOpen()) {
           <span class="px-2 py-0.5 text-[10px] bg-slate-800 text-slate-400 rounded-md border border-white/5">{{
             teams().length }}</span>
+          }
         </button>
 
-        <button (click)="activeTab.set('players'); isSidebarOpen.set(false)"
+        <button (click)="activeTab.set('players'); closeSidebarOnMobile()"
           [class]="activeTab() === 'players' ? 'bg-violet-600/10 text-violet-400 border border-violet-500/20' : 'text-slate-400 hover:text-white border border-transparent hover:bg-white/5'"
+          [class.lg:justify-center]="!isSidebarOpen()" [class.lg:px-0]="!isSidebarOpen()"
           class="w-full flex items-center justify-between px-4 py-3 text-xs font-bold rounded-xl transition-all cursor-pointer">
-          <span class="flex items-center gap-3">
-            <i class="fi fi-rr-running text-base"></i> Players
+          <span class="flex items-center gap-3 min-w-0" [class.lg:justify-center]="!isSidebarOpen()"
+            [class.w-full]="!isSidebarOpen()">
+            <i class="fi fi-rr-running text-base shrink-0"></i>
+            <span [class.lg:hidden]="!isSidebarOpen()">Players</span>
           </span>
+          @if (isSidebarOpen()) {
           <span class="px-2 py-0.5 text-[10px] bg-slate-800 text-slate-400 rounded-md border border-white/5">{{
             players().length }}</span>
+          }
         </button>
 
-        <button (click)="activeTab.set('events'); isSidebarOpen.set(false)"
+        <button (click)="activeTab.set('events'); closeSidebarOnMobile()"
           [class]="activeTab() === 'events' ? 'bg-violet-600/10 text-violet-400 border border-violet-500/20' : 'text-slate-400 hover:text-white border border-transparent hover:bg-white/5'"
+          [class.lg:justify-center]="!isSidebarOpen()" [class.lg:px-0]="!isSidebarOpen()"
           class="w-full flex items-center justify-between px-4 py-3 text-xs font-bold rounded-xl transition-all cursor-pointer">
-          <span class="flex items-center gap-3">
-            <i class="fi fi-rr-trophy text-base"></i> Events
+          <span class="flex items-center gap-3 min-w-0" [class.lg:justify-center]="!isSidebarOpen()"
+            [class.w-full]="!isSidebarOpen()">
+            <i class="fi fi-rr-trophy text-base shrink-0"></i>
+            <span [class.lg:hidden]="!isSidebarOpen()">Events</span>
           </span>
+          @if (isSidebarOpen()) {
           <span class="px-2 py-0.5 text-[10px] bg-slate-800 text-slate-400 rounded-md border border-white/5">{{
             events().length }}</span>
+          }
         </button>
 
-        <button (click)="activeTab.set('venues'); isSidebarOpen.set(false)"
+        <button (click)="activeTab.set('venues'); closeSidebarOnMobile()"
           [class]="activeTab() === 'venues' ? 'bg-violet-600/10 text-violet-400 border border-violet-500/20' : 'text-slate-400 hover:text-white border border-transparent hover:bg-white/5'"
+          [class.lg:justify-center]="!isSidebarOpen()" [class.lg:px-0]="!isSidebarOpen()"
           class="w-full flex items-center justify-between px-4 py-3 text-xs font-bold rounded-xl transition-all cursor-pointer">
-          <span class="flex items-center gap-3">
-            <i class="fi fi-rr-marker text-base"></i> Venues
+          <span class="flex items-center gap-3 min-w-0" [class.lg:justify-center]="!isSidebarOpen()"
+            [class.w-full]="!isSidebarOpen()">
+            <i class="fi fi-rr-marker text-base shrink-0"></i>
+            <span [class.lg:hidden]="!isSidebarOpen()">Venues</span>
           </span>
+          @if (isSidebarOpen()) {
           <span class="px-2 py-0.5 text-[10px] bg-slate-800 text-slate-400 rounded-md border border-white/5">{{
             venues().length }}</span>
+          }
         </button>
 
         @if (hasPermission('workspace.update')) {
-        <button (click)="activeTab.set('settings'); isSidebarOpen.set(false)"
+        <button (click)="activeTab.set('settings'); closeSidebarOnMobile()"
           [class]="activeTab() === 'settings' ? 'bg-violet-600/10 text-violet-400 border border-violet-500/20' : 'text-slate-400 hover:text-white border border-transparent hover:bg-white/5'"
+          [class.lg:justify-center]="!isSidebarOpen()" [class.lg:px-0]="!isSidebarOpen()"
           class="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold rounded-xl transition-all cursor-pointer">
-          <i class="fi fi-rr-settings text-base"></i> Settings
+          <i class="fi fi-rr-settings text-base shrink-0"></i>
+          <span [class.lg:hidden]="!isSidebarOpen()">Settings</span>
         </button>
         }
       </div>
 
       <!-- Sidebar Footer -->
-      <div class="p-4 border-t border-white/5 flex flex-col gap-1">
-        <a routerLink="/workspaces"
+      <div [class.lg:px-2.5]="!isSidebarOpen()" class="p-4 border-t border-white/5 flex flex-col gap-1">
+        <a routerLink="/workspaces" [class.lg:justify-center]="!isSidebarOpen()" [class.lg:px-0]="!isSidebarOpen()"
           class="flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-white transition cursor-pointer px-4 py-2.5 hover:bg-white/5 rounded-xl">
-          <i class="fi fi-rr-angle-small-left text-base"></i> Back to Workspaces
+          <i class="fi fi-rr-angle-small-left text-base shrink-0"></i>
+          <span [class.lg:hidden]="!isSidebarOpen()">Back to Workspaces</span>
         </a>
       </div>
     </aside>
@@ -157,26 +191,17 @@
 
       <!-- Top Bar -->
       <header class="flex items-center justify-between border-b border-white/5 pb-5 mb-8">
-        <div>
-          <h1 class="text-base font-extrabold text-white tracking-tight flex items-center gap-2">
-            @if (workspace()?.logoUrl) {
-            <img [src]="workspace()?.logoUrl" alt="Logo" class="w-6 h-6 rounded-md object-cover" />
-            } @else {
-            <span class="w-2.5 h-2.5 rounded-full bg-violet-500"></span>
-            }
-            {{ workspace()!.name }}
-          </h1>
-        </div>
-
-        <!-- Global Search Bar Mockup -->
-        <div class="hidden md:flex items-center flex-1 max-w-md mx-8 relative">
-          <span class="absolute left-4 text-slate-500 text-sm">
-            <i class="fi fi-rr-search"></i>
-          </span>
-          <input type="text" placeholder="Search matches, teams, players..." readonly
-            class="w-full bg-slate-900 border border-white/5 focus:border-violet-500/50 rounded-xl pl-11 pr-10 py-2.5 text-xs text-slate-400 placeholder-slate-500 outline-none transition-all cursor-not-allowed select-none animate-pulse" />
-          <span
-            class="absolute right-4 px-1.5 py-0.5 text-[9px] font-bold bg-slate-800 text-slate-500 rounded border border-white/5 font-mono select-none">⌘K</span>
+        <div class="flex items-center gap-3">
+          <!-- Global Search Bar Mockup (Left-aligned) -->
+          <div class="hidden md:flex items-center w-80 relative">
+            <span class="absolute left-4 text-slate-500 text-sm">
+              <i class="fi fi-rr-search"></i>
+            </span>
+            <input type="text" placeholder="Search matches, teams, players..." readonly
+              class="w-full bg-slate-900 border border-white/5 focus:border-violet-500/50 rounded-xl pl-11 pr-10 py-2.5 text-xs text-slate-400 placeholder-slate-500 outline-none transition-all cursor-not-allowed select-none animate-pulse" />
+            <span
+              class="absolute right-4 px-1.5 py-0.5 text-[9px] font-bold bg-slate-800 text-slate-500 rounded border border-white/5 font-mono select-none">⌘K</span>
+          </div>
         </div>
 
         <div class="flex items-center gap-4">
@@ -186,82 +211,90 @@
               class="w-10 h-10 rounded-xl bg-slate-900 hover:bg-slate-800/80 border border-white/5 flex items-center justify-center text-slate-400 hover:text-white transition-all cursor-pointer relative">
               <i class="fi fi-rr-bell text-base"></i>
               @if (totalBadgeCount() > 0) {
-                <span class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-rose-500 text-white rounded-full text-[10px] font-extrabold flex items-center justify-center animate-pulse border-2 border-slate-950">
-                  {{ totalBadgeCount() }}
-                </span>
+              <span
+                class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-rose-500 text-white rounded-full text-[10px] font-extrabold flex items-center justify-center animate-pulse border-2 border-slate-950">
+                {{ totalBadgeCount() }}
+              </span>
               }
             </button>
 
             <!-- Dropdown Panel -->
             @if (isNotificationOpen()) {
-              <!-- Backdrop to close -->
-              <div class="fixed inset-0 z-30 bg-black/0 cursor-default" (click)="isNotificationOpen.set(false)"></div>
+            <!-- Backdrop to close -->
+            <div class="fixed inset-0 z-30 bg-black/0 cursor-default" (click)="isNotificationOpen.set(false)"></div>
 
-              <div class="absolute right-0 mt-2 w-80 bg-slate-900 border border-white/10 rounded-2xl shadow-2xl py-3 px-4 z-40 animate-fadeIn shrink-0 flex flex-col gap-3">
-                <div class="border-b border-white/5 pb-2 flex items-center justify-between">
-                  <h4 class="text-xs font-bold text-white uppercase tracking-wider">Notifications</h4>
-                  @if (unreadNotificationsCount() > 0) {
-                    <button (click)="markNotificationsAsRead(); $event.stopPropagation()"
-                      class="text-[10px] text-indigo-400 hover:text-indigo-300 font-bold transition cursor-pointer">
-                      Mark all as read
-                    </button>
+            <div
+              class="absolute right-0 mt-2 w-80 bg-slate-900 border border-white/10 rounded-2xl shadow-2xl py-3 px-4 z-40 animate-fadeIn shrink-0 flex flex-col gap-3">
+              <div class="border-b border-white/5 pb-2 flex items-center justify-between">
+                <h4 class="text-xs font-bold text-white uppercase tracking-wider">Notifications</h4>
+                @if (unreadNotificationsCount() > 0) {
+                <button (click)="markNotificationsAsRead(); $event.stopPropagation()"
+                  class="text-[10px] text-indigo-400 hover:text-indigo-300 font-bold transition cursor-pointer">
+                  Mark all as read
+                </button>
+                }
+              </div>
+
+              <!-- Invitations Section -->
+              <div class="flex flex-col gap-2">
+                <div class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Invitations ({{
+                  pendingInvitations().length }})</div>
+                <div class="max-h-40 overflow-y-auto flex flex-col gap-2">
+                  @if (pendingInvitations().length === 0) {
+                  <div class="py-2 text-center text-[10px] text-slate-600 italic">No pending invitations</div>
+                  } @else {
+                  @for (invite of pendingInvitations(); track invite.id) {
+                  <div class="bg-slate-950/40 border border-white/5 rounded-xl p-2.5 flex flex-col gap-2">
+                    <div class="flex items-start gap-2.5">
+                      <div
+                        class="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
+                        {{ initials(invite.workspace?.name || 'W') }}
+                      </div>
+                      <div class="min-w-0">
+                        <p class="text-xs font-bold text-white truncate">{{ invite.workspace?.name }}</p>
+                        <p class="text-[9px] text-slate-400 mt-0.5 capitalize">
+                          Role: {{ invite.role?.name || 'Viewer' }}
+                        </p>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <button (click)="acceptInvite(invite.workspaceId, invite.workspace?.name || 'Workspace')"
+                        [disabled]="isProcessingInvitation()"
+                        class="flex-1 py-1 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-[10px] font-bold rounded-lg transition-all cursor-pointer text-center">
+                        Accept
+                      </button>
+                      <button (click)="rejectInvite(invite.workspaceId, invite.workspace?.name || 'Workspace')"
+                        [disabled]="isProcessingInvitation()"
+                        class="flex-1 py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-rose-400 text-[10px] font-bold rounded-lg transition-all cursor-pointer text-center">
+                        Reject
+                      </button>
+                    </div>
+                  </div>
+                  }
                   }
                 </div>
+              </div>
 
-                <!-- Invitations Section -->
-                <div class="flex flex-col gap-2">
-                  <div class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Invitations ({{ pendingInvitations().length }})</div>
-                  <div class="max-h-40 overflow-y-auto flex flex-col gap-2">
-                    @if (pendingInvitations().length === 0) {
-                      <div class="py-2 text-center text-[10px] text-slate-600 italic">No pending invitations</div>
-                    } @else {
-                      @for (invite of pendingInvitations(); track invite.id) {
-                        <div class="bg-slate-950/40 border border-white/5 rounded-xl p-2.5 flex flex-col gap-2">
-                          <div class="flex items-start gap-2.5">
-                            <div class="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
-                              {{ initials(invite.workspace?.name || 'W') }}
-                            </div>
-                            <div class="min-w-0">
-                              <p class="text-xs font-bold text-white truncate">{{ invite.workspace?.name }}</p>
-                              <p class="text-[9px] text-slate-400 mt-0.5 capitalize">
-                                Role: {{ invite.role?.name || 'Viewer' }}
-                              </p>
-                            </div>
-                          </div>
-                          <div class="flex items-center gap-2">
-                            <button (click)="acceptInvite(invite.workspaceId, invite.workspace?.name || 'Workspace')" [disabled]="isProcessingInvitation()"
-                              class="flex-1 py-1 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-[10px] font-bold rounded-lg transition-all cursor-pointer text-center">
-                              Accept
-                            </button>
-                            <button (click)="rejectInvite(invite.workspaceId, invite.workspace?.name || 'Workspace')" [disabled]="isProcessingInvitation()"
-                              class="flex-1 py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-rose-400 text-[10px] font-bold rounded-lg transition-all cursor-pointer text-center">
-                              Reject
-                            </button>
-                          </div>
-                        </div>
-                      }
-                    }
+              <!-- General Notifications Section -->
+              <div class="flex flex-col gap-2 pt-2 border-t border-white/5">
+                <div class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Recent Activity ({{
+                  notifications().length }})</div>
+                <div class="max-h-44 overflow-y-auto flex flex-col gap-2">
+                  @if (notifications().length === 0) {
+                  <div class="py-2 text-center text-[10px] text-slate-600 italic">No notifications</div>
+                  } @else {
+                  @for (notification of notifications(); track notification.id) {
+                  <div [class.bg-indigo-950/20]="!notification.isRead"
+                    class="bg-slate-950/40 border border-white/5 hover:border-white/10 rounded-xl p-2.5 flex flex-col gap-1 transition-all">
+                    <p class="text-[10px] text-white leading-relaxed">{{ notification.message }}</p>
+                    <span class="text-[8px] text-slate-500 text-right">{{ notification.createdAt | date: 'shortTime'
+                      }}</span>
                   </div>
-                </div>
-
-                <!-- General Notifications Section -->
-                <div class="flex flex-col gap-2 pt-2 border-t border-white/5">
-                  <div class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Recent Activity ({{ notifications().length }})</div>
-                  <div class="max-h-44 overflow-y-auto flex flex-col gap-2">
-                    @if (notifications().length === 0) {
-                      <div class="py-2 text-center text-[10px] text-slate-600 italic">No notifications</div>
-                    } @else {
-                      @for (notification of notifications(); track notification.id) {
-                        <div [class.bg-indigo-950/20]="!notification.isRead"
-                          class="bg-slate-950/40 border border-white/5 hover:border-white/10 rounded-xl p-2.5 flex flex-col gap-1 transition-all">
-                          <p class="text-[10px] text-white leading-relaxed">{{ notification.message }}</p>
-                          <span class="text-[8px] text-slate-500 text-right">{{ notification.createdAt | date: 'shortTime' }}</span>
-                        </div>
-                      }
-                    }
-                  </div>
+                  }
+                  }
                 </div>
               </div>
+            </div>
             }
           </div>
 
@@ -599,50 +632,51 @@
                 </div>
               </div>
               <!-- Role + Actions -->
-                @if ((hasPermission('member.update') || hasPermission('member.remove')) && member.role.slug !== 'owner' && member.userId !==
-                authService.currentUser()?.id) {
-                
-                @if (hasPermission('member.update')) {
-                <div class="relative">
-                  <select (change)="onUpdateRole(member, $event)"
-                    class="bg-slate-800 border border-white/10 focus:border-violet-500 rounded-lg pl-3 pr-8 py-1.5 text-xs text-white outline-none cursor-pointer appearance-none font-semibold">
-                    @for (r of assignableRoles; track r.id) {
-                    <option [value]="r.slug" [selected]="member.role.slug === r.slug" class="bg-slate-900">{{ r.name }}
-                    </option>
-                    }
-                  </select>
-                  <div class="absolute inset-y-0 right-2 flex items-center pointer-events-none text-slate-400">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </div>
-                } @else {
-                <span class="text-xs font-semibold px-2.5 py-1 rounded-lg border"
-                  [class]="roleBadgeClass(member.role.slug)">
-                  {{ member.role.name }}
-                </span>
-                }
+              @if ((hasPermission('member.update') || hasPermission('member.remove')) && member.role.slug !== 'owner' &&
+              member.userId !==
+              authService.currentUser()?.id) {
 
-                @if (hasPermission('member.remove')) {
-                <button (click)="onRemoveMember(member)" title="Remove Member"
-                  class="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all cursor-pointer">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="3 6 5 6 21 6"></polyline>
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                    <line x1="10" y1="11" x2="10" y2="17"></line>
-                    <line x1="14" y1="11" x2="14" y2="17"></line>
+              @if (hasPermission('member.update')) {
+              <div class="relative">
+                <select (change)="onUpdateRole(member, $event)"
+                  class="bg-slate-800 border border-white/10 focus:border-violet-500 rounded-lg pl-3 pr-8 py-1.5 text-xs text-white outline-none cursor-pointer appearance-none font-semibold">
+                  @for (r of assignableRoles; track r.id) {
+                  <option [value]="r.slug" [selected]="member.role.slug === r.slug" class="bg-slate-900">{{ r.name }}
+                  </option>
+                  }
+                </select>
+                <div class="absolute inset-y-0 right-2 flex items-center pointer-events-none text-slate-400">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                   </svg>
-                </button>
-                }
+                </div>
+              </div>
+              } @else {
+              <span class="text-xs font-semibold px-2.5 py-1 rounded-lg border"
+                [class]="roleBadgeClass(member.role.slug)">
+                {{ member.role.name }}
+              </span>
+              }
 
-                } @else {
-                <span class="text-xs font-semibold px-2.5 py-1 rounded-lg border"
-                  [class]="roleBadgeClass(member.role.slug)">
-                  {{ member.role.name }}
-                </span>
-                }
+              @if (hasPermission('member.remove')) {
+              <button (click)="onRemoveMember(member)" title="Remove Member"
+                class="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all cursor-pointer">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  <line x1="10" y1="11" x2="10" y2="17"></line>
+                  <line x1="14" y1="11" x2="14" y2="17"></line>
+                </svg>
+              </button>
+              }
+
+              } @else {
+              <span class="text-xs font-semibold px-2.5 py-1 rounded-lg border"
+                [class]="roleBadgeClass(member.role.slug)">
+                {{ member.role.name }}
+              </span>
+              }
             </div>
             }
           </div>
@@ -1728,7 +1762,8 @@
                     </div>
                     }
                     @if (comp.pointsConfig.length > 4) {
-                    <span class="text-[10px] text-slate-500 px-1.5 py-0.5 self-center">+{{ comp.pointsConfig.length - 4 }}
+                    <span class="text-[10px] text-slate-500 px-1.5 py-0.5 self-center">+{{ comp.pointsConfig.length - 4
+                      }}
                       more</span>
                     }
                   </div>
@@ -1769,100 +1804,110 @@
                   <i class="fi fi-rr-trophy text-amber-400 text-lg"></i>
                   🏆 Overall Leaderboard
                 </h3>
-                <span class="text-[9px] bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-full px-2 py-0.5 font-bold uppercase tracking-wider">
+                <span
+                  class="text-[9px] bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-full px-2 py-0.5 font-bold uppercase tracking-wider">
                   Standings
                 </span>
               </div>
 
               @if (eventStandings().length === 0) {
-                <div class="text-xs text-slate-500 text-center py-8">
-                  No teams mapped to this event yet.
-                </div>
+              <div class="text-xs text-slate-500 text-center py-8">
+                No teams mapped to this event yet.
+              </div>
               } @else {
-                <!-- Top Champion Banner -->
-                @let leader = eventStandings()[0];
-                <div class="bg-gradient-to-r from-amber-500/20 via-yellow-500/10 to-transparent border border-amber-500/30 rounded-2xl p-4 flex items-center justify-between shadow-lg shadow-amber-500/5 mb-1">
-                  <div class="flex items-center gap-3 text-left min-w-0">
-                    <span class="text-2xl flex-shrink-0">👑</span>
-                    <div class="min-w-0">
-                      <div class="text-[9px] uppercase font-black tracking-widest text-amber-400">Current Leader</div>
-                      <div class="text-sm font-black text-white mt-0.5 truncate">{{ leader.teamName }}</div>
-                      <div class="text-[10px] text-slate-400 mt-0.5">
-                        <span class="text-amber-400 font-bold">{{ leader.points }} points</span>
-                      </div>
+              <!-- Top Champion Banner -->
+              @let leader = eventStandings()[0];
+              <div
+                class="bg-gradient-to-r from-amber-500/20 via-yellow-500/10 to-transparent border border-amber-500/30 rounded-2xl p-4 flex items-center justify-between shadow-lg shadow-amber-500/5 mb-1">
+                <div class="flex items-center gap-3 text-left min-w-0">
+                  <span class="text-2xl flex-shrink-0">👑</span>
+                  <div class="min-w-0">
+                    <div class="text-[9px] uppercase font-black tracking-widest text-amber-400">Current Leader</div>
+                    <div class="text-sm font-black text-white mt-0.5 truncate">{{ leader.teamName }}</div>
+                    <div class="text-[10px] text-slate-400 mt-0.5">
+                      <span class="text-amber-400 font-bold">{{ leader.points }} points</span>
                     </div>
                   </div>
-                  @if (leader.teamLogoUrl) {
-                    <img [src]="leader.teamLogoUrl" alt="Leader Logo" class="w-10 h-10 rounded-lg border border-amber-500/20 object-cover flex-shrink-0" />
-                  } @else {
-                    <div class="w-10 h-10 rounded-lg flex items-center justify-center text-white text-xs font-extrabold shadow-inner flex-shrink-0"
-                      [style.background]="avatarColor(leader.teamName)">
-                      {{ initials(leader.teamName) }}
-                    </div>
-                  }
                 </div>
+                @if (leader.teamLogoUrl) {
+                <img [src]="leader.teamLogoUrl" alt="Leader Logo"
+                  class="w-10 h-10 rounded-lg border border-amber-500/20 object-cover flex-shrink-0" />
+                } @else {
+                <div
+                  class="w-10 h-10 rounded-lg flex items-center justify-center text-white text-xs font-extrabold shadow-inner flex-shrink-0"
+                  [style.background]="avatarColor(leader.teamName)">
+                  {{ initials(leader.teamName) }}
+                </div>
+                }
+              </div>
 
-                <!-- Standings Table -->
-                <div class="overflow-x-auto">
-                  <table class="w-full border-collapse text-left">
-                    <thead>
-                      <tr class="border-b border-white/5 text-[9px] uppercase font-bold text-slate-400 tracking-wider">
-                        <th class="py-2.5 px-2 w-8 text-center">#</th>
-                        <th class="py-2.5 px-2">Team</th>
-                        <th class="py-2.5 px-2 text-right pr-3">Pts</th>
-                      </tr>
-                    </thead>
-                    <tbody class="divide-y divide-white/5 text-xs text-slate-300">
-                      @for (row of eventStandings(); track row.teamId; let idx = $index) {
-                        <tr class="hover:bg-white/5 transition-all">
-                          <td class="py-3 px-2 text-center font-bold">
-                            @if (idx === 0) {
-                              <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-500 text-slate-950 font-extrabold text-[10px]">1</span>
-                            } @else if (idx === 1) {
-                              <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-slate-300 text-slate-950 font-extrabold text-[10px]">2</span>
-                            } @else if (idx === 2) {
-                              <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-700 text-slate-950 font-extrabold text-[10px]">3</span>
-                            } @else {
-                              <span class="text-slate-500">{{ idx + 1 }}</span>
-                            }
-                          </td>
-                          <td class="py-3 px-2 min-w-0">
-                            <div class="flex items-center gap-2.5 min-w-0">
-                              @if (row.teamLogoUrl) {
-                                <img [src]="row.teamLogoUrl" alt="Team Logo" class="w-6 h-6 rounded-md object-cover flex-shrink-0" />
-                              } @else {
-                                <div class="w-6 h-6 rounded-md flex items-center justify-center text-white text-[8px] font-black flex-shrink-0"
-                                  [style.background]="avatarColor(row.teamName)">
-                                  {{ initials(row.teamName) }}
-                                </div>
+              <!-- Standings Table -->
+              <div class="overflow-x-auto">
+                <table class="w-full border-collapse text-left">
+                  <thead>
+                    <tr class="border-b border-white/5 text-[9px] uppercase font-bold text-slate-400 tracking-wider">
+                      <th class="py-2.5 px-2 w-8 text-center">#</th>
+                      <th class="py-2.5 px-2">Team</th>
+                      <th class="py-2.5 px-2 text-right pr-3">Pts</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-white/5 text-xs text-slate-300">
+                    @for (row of eventStandings(); track row.teamId; let idx = $index) {
+                    <tr class="hover:bg-white/5 transition-all">
+                      <td class="py-3 px-2 text-center font-bold">
+                        @if (idx === 0) {
+                        <span
+                          class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-500 text-slate-950 font-extrabold text-[10px]">1</span>
+                        } @else if (idx === 1) {
+                        <span
+                          class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-slate-300 text-slate-950 font-extrabold text-[10px]">2</span>
+                        } @else if (idx === 2) {
+                        <span
+                          class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-700 text-slate-950 font-extrabold text-[10px]">3</span>
+                        } @else {
+                        <span class="text-slate-500">{{ idx + 1 }}</span>
+                        }
+                      </td>
+                      <td class="py-3 px-2 min-w-0">
+                        <div class="flex items-center gap-2.5 min-w-0">
+                          @if (row.teamLogoUrl) {
+                          <img [src]="row.teamLogoUrl" alt="Team Logo"
+                            class="w-6 h-6 rounded-md object-cover flex-shrink-0" />
+                          } @else {
+                          <div
+                            class="w-6 h-6 rounded-md flex items-center justify-center text-white text-[8px] font-black flex-shrink-0"
+                            [style.background]="avatarColor(row.teamName)">
+                            {{ initials(row.teamName) }}
+                          </div>
+                          }
+                          <div class="flex flex-col min-w-0 text-left">
+                            <span class="font-bold text-white text-xs truncate">{{ row.teamName }}</span>
+                            @if (row.points > 0) {
+                            <div class="flex flex-wrap gap-1 mt-0.5">
+                              @for (b of row.breakdown; track b.competitionId) {
+                              @if (b.points > 0) {
+                              <span
+                                class="inline-flex items-center text-[8px] bg-violet-500/10 border border-violet-500/20 text-violet-300 rounded px-1 py-0.2"
+                                [title]="b.competitionName + ' - Rank #' + b.position">
+                                {{ initials(b.competitionName) }}: {{ b.points }}p
+                              </span>
                               }
-                              <div class="flex flex-col min-w-0 text-left">
-                                <span class="font-bold text-white text-xs truncate">{{ row.teamName }}</span>
-                                @if (row.points > 0) {
-                                  <div class="flex flex-wrap gap-1 mt-0.5">
-                                    @for (b of row.breakdown; track b.competitionId) {
-                                      @if (b.points > 0) {
-                                        <span class="inline-flex items-center text-[8px] bg-violet-500/10 border border-violet-500/20 text-violet-300 rounded px-1 py-0.2"
-                                              [title]="b.competitionName + ' - Rank #' + b.position">
-                                          {{ initials(b.competitionName) }}: {{ b.points }}p
-                                        </span>
-                                      }
-                                    }
-                                  </div>
-                                } @else {
-                                  <span class="text-[9px] text-slate-500 italic mt-0.5">No points earned</span>
-                                }
-                              </div>
+                              }
                             </div>
-                          </td>
-                          <td class="py-3 px-2 text-right font-extrabold text-white text-sm pr-3">
-                            {{ row.points }}
-                          </td>
-                        </tr>
-                      }
-                    </tbody>
-                  </table>
-                </div>
+                            } @else {
+                            <span class="text-[9px] text-slate-500 italic mt-0.5">No points earned</span>
+                            }
+                          </div>
+                        </div>
+                      </td>
+                      <td class="py-3 px-2 text-right font-extrabold text-white text-sm pr-3">
+                        {{ row.points }}
+                      </td>
+                    </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
               }
             </div>
           </div>
@@ -2071,7 +2116,8 @@
               <div class="flex flex-col gap-6">
                 <!-- Points Table (Only for League / Group stages) -->
                 @if (selectedStage()?.type !== 'knockout') {
-                @if ((selectedStage()?.type === 'league' || selectedStage()?.type === 'group') && isStageCompleted() && leagueTable().length > 0) {
+                @if ((selectedStage()?.type === 'league' || selectedStage()?.type === 'group') && isStageCompleted() &&
+                leagueTable().length > 0) {
                 <div
                   class="bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-transparent border border-amber-500/30 rounded-2xl p-5 flex items-center justify-between shadow-lg shadow-amber-500/5 animate-pulse">
                   <div class="flex items-center gap-3">
@@ -2151,10 +2197,12 @@
                                 }
                               </div>
                               <span class="truncate max-w-[100px]" [title]="row.teamName">{{ row.teamName }}</span>
-                              @if ((selectedStage()?.type === 'league' || selectedStage()?.type === 'group') && isStageCompleted() && idx === 0) {
+                              @if ((selectedStage()?.type === 'league' || selectedStage()?.type === 'group') &&
+                              isStageCompleted() && idx === 0) {
                               <span
                                 class="text-[9px] px-1.5 py-0.5 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded font-black tracking-wider uppercase flex-shrink-0 ml-1.5">CHAMPION</span>
-                              } @else if ((selectedStage()?.type === 'league' || selectedStage()?.type === 'group') && isStageCompleted() && idx === 1) {
+                              } @else if ((selectedStage()?.type === 'league' || selectedStage()?.type === 'group') &&
+                              isStageCompleted() && idx === 1) {
                               <span
                                 class="text-[9px] px-1.5 py-0.5 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded font-black tracking-wider uppercase flex-shrink-0 ml-1.5">RUNNER-UP</span>
                               }
@@ -2361,8 +2409,10 @@
                       <span class="text-sm font-bold text-slate-500">:</span>
                       <span class="text-3xl font-black text-white tracking-wider">{{ match.awayScore }}</span>
                     </div>
-                    @if (sport === 'football' && (match.liveData?.shootoutHomeScore || match.liveData?.shootoutAwayScore || match.liveData?.currentHalf === 5)) {
-                    <span class="text-[10px] font-extrabold text-violet-400 uppercase tracking-widest bg-violet-500/10 px-2 py-0.5 rounded-md border border-violet-500/20">
+                    @if (sport === 'football' && (match.liveData?.shootoutHomeScore || match.liveData?.shootoutAwayScore
+                    || match.liveData?.currentHalf === 5)) {
+                    <span
+                      class="text-[10px] font-extrabold text-violet-400 uppercase tracking-widest bg-violet-500/10 px-2 py-0.5 rounded-md border border-violet-500/20">
                       Pen: {{ match.liveData?.shootoutHomeScore || 0 }} - {{ match.liveData?.shootoutAwayScore || 0 }}
                     </span>
                     }
@@ -2452,11 +2502,13 @@
                 @if (!match.liveData?.started) {
                 <!-- Football Match Configuration Panel -->
                 <div class="flex flex-col gap-4">
-                  <h4 class="text-sm font-bold text-white uppercase tracking-wider border-b border-white/5 pb-2">Football Match Settings</h4>
+                  <h4 class="text-sm font-bold text-white uppercase tracking-wider border-b border-white/5 pb-2">
+                    Football Match Settings</h4>
                   <div class="flex flex-col gap-3">
                     <div class="flex flex-col gap-1.5 text-left max-w-xs">
                       <label class="text-[10px] font-bold text-slate-400 uppercase">Half Duration (Minutes)</label>
-                      <input #halfDuration type="number" [value]="$any(match).config?.halfDuration || 45" min="1" max="90"
+                      <input #halfDuration type="number" [value]="$any(match).config?.halfDuration || 45" min="1"
+                        max="90"
                         class="bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 outline-none" />
                     </div>
 
@@ -2465,25 +2517,33 @@
                       <label class="text-[10px] font-bold text-slate-400 uppercase">Knockout Options</label>
                       <div class="flex flex-col gap-2">
                         <label class="text-xs text-white flex items-center gap-2 cursor-pointer">
-                          <input type="checkbox" [checked]="enableExtraTime()" (change)="enableExtraTime.set($any($event.target).checked)" class="accent-violet-500 rounded border-white/10" />
+                          <input type="checkbox" [checked]="enableExtraTime()"
+                            (change)="enableExtraTime.set($any($event.target).checked)"
+                            class="accent-violet-500 rounded border-white/10" />
                           Enable Extra Time
                         </label>
                         @if (enableExtraTime()) {
                         <div class="flex flex-col gap-1 text-left pl-6 mt-1">
-                          <label class="text-[9px] font-bold text-slate-400 uppercase">Extra Time Half Duration (Mins)</label>
-                          <input #extraTimeHalfDurationInput type="number" [value]="extraTimeHalfDuration()" (input)="extraTimeHalfDuration.set(+extraTimeHalfDurationInput.value || 15)" min="1" max="45"
+                          <label class="text-[9px] font-bold text-slate-400 uppercase">Extra Time Half Duration
+                            (Mins)</label>
+                          <input #extraTimeHalfDurationInput type="number" [value]="extraTimeHalfDuration()"
+                            (input)="extraTimeHalfDuration.set(+extraTimeHalfDurationInput.value || 15)" min="1"
+                            max="45"
                             class="bg-slate-950 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white placeholder-slate-600 outline-none w-32" />
                         </div>
                         }
                         <label class="text-xs text-white flex items-center gap-2 cursor-pointer">
-                          <input type="checkbox" [checked]="enablePenaltyShootout()" (change)="enablePenaltyShootout.set($any($event.target).checked)" class="accent-violet-500 rounded border-white/10" />
+                          <input type="checkbox" [checked]="enablePenaltyShootout()"
+                            (change)="enablePenaltyShootout.set($any($event.target).checked)"
+                            class="accent-violet-500 rounded border-white/10" />
                           Enable Penalty Shootout
                         </label>
                       </div>
                     </div>
                     }
                   </div>
-                  <button (click)="onStartFootballMatch(+halfDuration.value, enableExtraTime(), enablePenaltyShootout(), extraTimeHalfDuration())"
+                  <button
+                    (click)="onStartFootballMatch(+halfDuration.value, enableExtraTime(), enablePenaltyShootout(), extraTimeHalfDuration())"
                     class="w-full py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-xl cursor-pointer transition-all">
                     Start Match
                   </button>
@@ -2672,7 +2732,8 @@
                             class="flex-1 bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white outline-none">
                             <option value="">Player In</option>
                             @for (p of getPlayersForTeam(match.homeTeamId); track p.id) {
-                            <option [value]="p.userId" [class.hidden]="p.userId === homeSubOut.value">{{ p.user.username || p.id }}</option>
+                            <option [value]="p.userId" [class.hidden]="p.userId === homeSubOut.value">{{ p.user.username
+                              || p.id }}</option>
                             }
                           </select>
                         </div>
@@ -2857,7 +2918,8 @@
                         </div>
                         <div class="flex items-center justify-between mt-1">
                           <label class="text-[10px] text-slate-400 flex items-center gap-1.5 cursor-pointer">
-                            <input #homeInjurySubbed type="checkbox" class="accent-violet-500 rounded border-white/10" />
+                            <input #homeInjurySubbed type="checkbox"
+                              class="accent-violet-500 rounded border-white/10" />
                             Substituted?
                           </label>
                           <button
@@ -3006,7 +3068,8 @@
                             class="flex-1 bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white outline-none">
                             <option value="">Player In</option>
                             @for (p of getPlayersForTeam(match.awayTeamId); track p.id) {
-                            <option [value]="p.userId" [class.hidden]="p.userId === awaySubOut.value">{{ p.user.username || p.id }}</option>
+                            <option [value]="p.userId" [class.hidden]="p.userId === awaySubOut.value">{{ p.user.username
+                              || p.id }}</option>
                             }
                           </select>
                         </div>
@@ -3191,7 +3254,8 @@
                         </div>
                         <div class="flex items-center justify-between mt-1">
                           <label class="text-[10px] text-slate-400 flex items-center gap-1.5 cursor-pointer">
-                            <input #awayInjurySubbed type="checkbox" class="accent-violet-500 rounded border-white/10" />
+                            <input #awayInjurySubbed type="checkbox"
+                              class="accent-violet-500 rounded border-white/10" />
                             Substituted?
                           </label>
                           <button
@@ -3217,13 +3281,17 @@
                     </div>
                     <div class="flex items-center gap-4 bg-slate-900 px-4 py-2 rounded-xl border border-white/5">
                       <div class="text-center">
-                        <span class="text-[9px] font-bold text-slate-400 block uppercase">{{ match.homeTeam?.name }}</span>
-                        <span class="text-lg font-extrabold text-white">{{ match.liveData?.shootoutHomeScore || 0 }}</span>
+                        <span class="text-[9px] font-bold text-slate-400 block uppercase">{{ match.homeTeam?.name
+                          }}</span>
+                        <span class="text-lg font-extrabold text-white">{{ match.liveData?.shootoutHomeScore || 0
+                          }}</span>
                       </div>
                       <div class="text-slate-600 font-bold text-xs">PK</div>
                       <div class="text-center">
-                        <span class="text-[9px] font-bold text-slate-400 block uppercase">{{ match.awayTeam?.name }}</span>
-                        <span class="text-lg font-extrabold text-white">{{ match.liveData?.shootoutAwayScore || 0 }}</span>
+                        <span class="text-[9px] font-bold text-slate-400 block uppercase">{{ match.awayTeam?.name
+                          }}</span>
+                        <span class="text-lg font-extrabold text-white">{{ match.liveData?.shootoutAwayScore || 0
+                          }}</span>
                       </div>
                     </div>
                   </div>
@@ -3231,7 +3299,8 @@
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- Home Team PK -->
                     <div class="bg-slate-900/40 p-4 rounded-xl border border-white/5 flex flex-col gap-3">
-                      <h5 class="text-xs font-bold text-violet-400 uppercase tracking-wider">{{ match.homeTeam?.name }} Penalty</h5>
+                      <h5 class="text-xs font-bold text-violet-400 uppercase tracking-wider">{{ match.homeTeam?.name }}
+                        Penalty</h5>
                       <div class="flex flex-col gap-2">
                         <select #homePKPlayer
                           class="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none">
@@ -3258,7 +3327,8 @@
 
                     <!-- Away Team PK -->
                     <div class="bg-slate-900/40 p-4 rounded-xl border border-white/5 flex flex-col gap-3">
-                      <h5 class="text-xs font-bold text-violet-400 uppercase tracking-wider">{{ match.awayTeam?.name }} Penalty</h5>
+                      <h5 class="text-xs font-bold text-violet-400 uppercase tracking-wider">{{ match.awayTeam?.name }}
+                        Penalty</h5>
                       <div class="flex flex-col gap-2">
                         <select #awayPKPlayer
                           class="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none">
@@ -3301,8 +3371,7 @@
                       <option value="Abandoned">Abandoned</option>
                       <option value="Cancelled">Cancelled</option>
                     </select>
-                    <button
-                      (click)="onEndMatchWithResult(matchResultSelect.value); matchResultSelect.value=''"
+                    <button (click)="onEndMatchWithResult(matchResultSelect.value); matchResultSelect.value=''"
                       [disabled]="!matchResultSelect.value"
                       class="px-4 py-2 bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl cursor-pointer transition-all flex items-center gap-1.5 animate-pulse">
                       <i class="fi fi-rr-flag-checkered"></i> Complete Match
@@ -3320,7 +3389,8 @@
                 @if (!match.liveData?.tossWinnerId) {
                 <!-- Toss Choice Panel -->
                 <div class="flex flex-col gap-4">
-                  <h4 class="text-sm font-bold text-white uppercase tracking-wider border-b border-white/5 pb-2">Toss & Match Configuration</h4>
+                  <h4 class="text-sm font-bold text-white uppercase tracking-wider border-b border-white/5 pb-2">Toss &
+                    Match Configuration</h4>
                   <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div class="flex flex-col gap-1.5 text-left">
                       <label class="text-[10px] font-bold text-slate-400 uppercase">Toss Winner</label>
@@ -3344,7 +3414,8 @@
                         class="bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 outline-none" />
                     </div>
                   </div>
-                  <button (click)="onRecordCricketToss(tossWinner.value, tossChoice.value === 'bowl' ? 'bowl' : 'bat', +matchOvers.value)"
+                  <button
+                    (click)="onRecordCricketToss(tossWinner.value, tossChoice.value === 'bowl' ? 'bowl' : 'bat', +matchOvers.value)"
                     class="w-full py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-xl cursor-pointer transition-all">
                     Start Match & Record Toss
                   </button>
@@ -3357,10 +3428,12 @@
                 <div class="flex flex-col gap-6 text-left">
                   <!-- Match Completed Banner -->
                   @if ($any(match).status === 'completed') {
-                  <div class="bg-gradient-to-r from-emerald-500/20 to-emerald-500/5 border border-emerald-500/25 rounded-xl p-3.5 flex flex-col gap-1">
+                  <div
+                    class="bg-gradient-to-r from-emerald-500/20 to-emerald-500/5 border border-emerald-500/25 rounded-xl p-3.5 flex flex-col gap-1">
                     <div class="flex items-center gap-2">
                       <span class="text-emerald-400 text-sm"><i class="fi fi-rr-trophy"></i></span>
-                      <h4 class="text-[10px] font-extrabold text-emerald-400 uppercase tracking-widest">Match Completed</h4>
+                      <h4 class="text-[10px] font-extrabold text-emerald-400 uppercase tracking-widest">Match Completed
+                      </h4>
                     </div>
                     <p class="text-xs font-semibold text-white mt-1">
                       {{ getCricketMatchResult(match) }}
@@ -3376,8 +3449,10 @@
                         Active Innings: {{ currentInningsNum === 1 ? '1st' : '2nd' }} Innings
                       </h4>
                       <p class="text-[10px] text-slate-400 mt-1">
-                        Batting: <span class="font-bold text-white">{{ innings?.battingTeamId === match.homeTeamId ? match.homeTeam?.name : match.awayTeam?.name }}</span> |
-                        Bowling: <span class="text-slate-300">{{ innings?.bowlingTeamId === match.homeTeamId ? match.homeTeam?.name : match.awayTeam?.name }}</span>
+                        Batting: <span class="font-bold text-white">{{ innings?.battingTeamId === match.homeTeamId ?
+                          match.homeTeam?.name : match.awayTeam?.name }}</span> |
+                        Bowling: <span class="text-slate-300">{{ innings?.bowlingTeamId === match.homeTeamId ?
+                          match.homeTeam?.name : match.awayTeam?.name }}</span>
                       </p>
                     </div>
                     <div class="text-right flex flex-col items-end gap-1">
@@ -3389,16 +3464,18 @@
                       </div>
                       @let powerplay = getPowerplayStatus(innings, match.config?.overs || 20);
                       @if (powerplay) {
-                        <span class="px-1.5 py-0.5 rounded bg-violet-600/10 border border-violet-500/20 text-[8px] font-extrabold text-violet-300 uppercase tracking-wider mt-0.5">
-                          {{ powerplay }}
-                        </span>
+                      <span
+                        class="px-1.5 py-0.5 rounded bg-violet-600/10 border border-violet-500/20 text-[8px] font-extrabold text-violet-300 uppercase tracking-wider mt-0.5">
+                        {{ powerplay }}
+                      </span>
                       }
                     </div>
                   </div>
 
                   <!-- Free Hit Banner -->
                   @if (isFreeHitActive(innings)) {
-                  <div class="bg-gradient-to-r from-amber-500/25 to-yellow-500/10 border border-amber-500/30 rounded-xl p-3 flex items-center gap-2.5 animate-pulse">
+                  <div
+                    class="bg-gradient-to-r from-amber-500/25 to-yellow-500/10 border border-amber-500/30 rounded-xl p-3 flex items-center gap-2.5 animate-pulse">
                     <span class="text-base"><i class="fi fi-rr-exclamation text-amber-400"></i></span>
                     <div class="text-xs font-bold text-amber-300 uppercase tracking-wider">
                       Free Hit Active (Next ball is a free hit!)
@@ -3413,36 +3490,35 @@
                       <div class="flex flex-col gap-2">
                         <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Bowler</label>
                         <div class="flex flex-col gap-1.5">
-                          <select [ngModel]="cricketBowler()" (ngModelChange)="cricketBowler.set($event)" 
+                          <select [ngModel]="cricketBowler()" (ngModelChange)="cricketBowler.set($event)"
                             [disabled]="$any(match).status === 'completed'"
                             class="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:border-violet-500 focus:outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                             <option value="">-- Select Roster Bowler --</option>
                             @for (p of getPlayersForTeam(innings?.bowlingTeamId); track p.id) {
-                              <option [value]="p.user.username">{{ p.user.username }}</option>
+                            <option [value]="p.user.username">{{ p.user.username }}</option>
                             }
                           </select>
-                          <input type="text" [ngModel]="cricketBowler()" (ngModelChange)="cricketBowler.set($event)" 
-                            [disabled]="$any(match).status === 'completed'"
-                            placeholder="Or type custom bowler name" 
+                          <input type="text" [ngModel]="cricketBowler()" (ngModelChange)="cricketBowler.set($event)"
+                            [disabled]="$any(match).status === 'completed'" placeholder="Or type custom bowler name"
                             class="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 focus:border-violet-500 focus:outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed" />
                         </div>
                       </div>
 
                       <!-- Striker Selection -->
                       <div class="flex flex-col gap-2">
-                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Striker (On Strike)</label>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Striker (On
+                          Strike)</label>
                         <div class="flex flex-col gap-1.5">
-                          <select [ngModel]="cricketStriker()" (ngModelChange)="cricketStriker.set($event)" 
+                          <select [ngModel]="cricketStriker()" (ngModelChange)="cricketStriker.set($event)"
                             [disabled]="$any(match).status === 'completed'"
                             class="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:border-violet-500 focus:outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                             <option value="">-- Select Roster Batter --</option>
                             @for (p of getPlayersForTeam(innings?.battingTeamId); track p.id) {
-                              <option [value]="p.user.username">{{ p.user.username }}</option>
+                            <option [value]="p.user.username">{{ p.user.username }}</option>
                             }
                           </select>
-                          <input type="text" [ngModel]="cricketStriker()" (ngModelChange)="cricketStriker.set($event)" 
-                            [disabled]="$any(match).status === 'completed'"
-                            placeholder="Or type striker name" 
+                          <input type="text" [ngModel]="cricketStriker()" (ngModelChange)="cricketStriker.set($event)"
+                            [disabled]="$any(match).status === 'completed'" placeholder="Or type striker name"
                             class="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 focus:border-violet-500 focus:outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed" />
                         </div>
                       </div>
@@ -3451,17 +3527,17 @@
                       <div class="flex flex-col gap-2">
                         <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Non-Striker</label>
                         <div class="flex flex-col gap-1.5">
-                          <select [ngModel]="cricketNonStriker()" (ngModelChange)="cricketNonStriker.set($event)" 
+                          <select [ngModel]="cricketNonStriker()" (ngModelChange)="cricketNonStriker.set($event)"
                             [disabled]="$any(match).status === 'completed'"
                             class="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:border-violet-500 focus:outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                             <option value="">-- Select Roster Batter --</option>
                             @for (p of getPlayersForTeam(innings?.battingTeamId); track p.id) {
-                              <option [value]="p.user.username">{{ p.user.username }}</option>
+                            <option [value]="p.user.username">{{ p.user.username }}</option>
                             }
                           </select>
-                          <input type="text" [ngModel]="cricketNonStriker()" (ngModelChange)="cricketNonStriker.set($event)" 
-                            [disabled]="$any(match).status === 'completed'"
-                            placeholder="Or type non-striker name" 
+                          <input type="text" [ngModel]="cricketNonStriker()"
+                            (ngModelChange)="cricketNonStriker.set($event)"
+                            [disabled]="$any(match).status === 'completed'" placeholder="Or type non-striker name"
                             class="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 focus:border-violet-500 focus:outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed" />
                         </div>
                       </div>
@@ -3469,8 +3545,7 @@
 
                     <!-- Switch Strike / Swap Batters Button -->
                     <div class="flex justify-end border-t border-white/5 pt-2">
-                      <button (click)="onSwitchCricketStrikers()"
-                        [disabled]="$any(match).status === 'completed'"
+                      <button (click)="onSwitchCricketStrikers()" [disabled]="$any(match).status === 'completed'"
                         [class.opacity-40]="$any(match).status === 'completed'"
                         [class.cursor-not-allowed]="$any(match).status === 'completed'"
                         class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-white/10 hover:border-white/20 text-slate-300 hover:text-white text-xs font-bold rounded-xl cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed">
@@ -3480,10 +3555,12 @@
                   </div>
 
                   <!-- Quick Scoring Console -->
-                  @let isScoringDisabled = $any(match).status === 'completed' || !cricketBowler() || !cricketStriker() || !cricketNonStriker();
+                  @let isScoringDisabled = $any(match).status === 'completed' || !cricketBowler() || !cricketStriker()
+                  || !cricketNonStriker();
                   <div class="flex flex-col gap-4 bg-slate-900 border border-white/10 rounded-2xl p-5">
                     @if ($any(match).status === 'completed') {
-                    <div class="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 flex items-center gap-2.5">
+                    <div
+                      class="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 flex items-center gap-2.5">
                       <span class="text-emerald-400 text-sm flex-shrink-0"><i class="fi fi-rr-check-circle"></i></span>
                       <span class="text-xs font-medium text-emerald-300">
                         This match has ended. Scoring console is locked.
@@ -3493,7 +3570,8 @@
                     <div class="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 flex items-center gap-2.5">
                       <span class="text-amber-400 text-sm flex-shrink-0"><i class="fi fi-rr-exclamation"></i></span>
                       <span class="text-xs font-medium text-amber-300">
-                        Please select <strong>Bowler</strong>, <strong>Striker</strong>, and <strong>Non-Striker</strong> to enable scoring buttons.
+                        Please select <strong>Bowler</strong>, <strong>Striker</strong>, and
+                        <strong>Non-Striker</strong> to enable scoring buttons.
                       </span>
                     </div>
                     }
@@ -3502,50 +3580,38 @@
                     <div class="flex flex-col gap-2">
                       <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Runs (off Bat)</span>
                       <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                        <button (click)="onRecordCricketBall(0, 0, false, 'dot')"
-                          [disabled]="isScoringDisabled"
-                          [class.opacity-40]="isScoringDisabled"
-                          [class.cursor-not-allowed]="isScoringDisabled"
+                        <button (click)="onRecordCricketBall(0, 0, false, 'dot')" [disabled]="isScoringDisabled"
+                          [class.opacity-40]="isScoringDisabled" [class.cursor-not-allowed]="isScoringDisabled"
                           class="py-2.5 bg-slate-950 hover:bg-violet-600 border border-white/10 hover:border-transparent text-xs text-white font-bold rounded-xl cursor-pointer transition-all flex flex-col items-center justify-center gap-0.5">
                           <span class="text-white">Dot</span>
                           <span class="text-[9px] text-slate-500 font-semibold group-hover:text-white/80">0 runs</span>
                         </button>
-                        <button (click)="onRecordCricketBall(1, 0, false, 'runs')"
-                          [disabled]="isScoringDisabled"
-                          [class.opacity-40]="isScoringDisabled"
-                          [class.cursor-not-allowed]="isScoringDisabled"
+                        <button (click)="onRecordCricketBall(1, 0, false, 'runs')" [disabled]="isScoringDisabled"
+                          [class.opacity-40]="isScoringDisabled" [class.cursor-not-allowed]="isScoringDisabled"
                           class="py-2.5 bg-slate-950 hover:bg-violet-600 border border-white/10 hover:border-transparent text-xs text-white font-bold rounded-xl cursor-pointer transition-all flex flex-col items-center justify-center gap-0.5">
                           <span>1 Run</span>
                           <span class="text-[9px] text-slate-500 font-semibold">Single</span>
                         </button>
-                        <button (click)="onRecordCricketBall(2, 0, false, 'runs')"
-                          [disabled]="isScoringDisabled"
-                          [class.opacity-40]="isScoringDisabled"
-                          [class.cursor-not-allowed]="isScoringDisabled"
+                        <button (click)="onRecordCricketBall(2, 0, false, 'runs')" [disabled]="isScoringDisabled"
+                          [class.opacity-40]="isScoringDisabled" [class.cursor-not-allowed]="isScoringDisabled"
                           class="py-2.5 bg-slate-950 hover:bg-violet-600 border border-white/10 hover:border-transparent text-xs text-white font-bold rounded-xl cursor-pointer transition-all flex flex-col items-center justify-center gap-0.5">
                           <span>2 Runs</span>
                           <span class="text-[9px] text-slate-500 font-semibold">Double</span>
                         </button>
-                        <button (click)="onRecordCricketBall(3, 0, false, 'runs')"
-                          [disabled]="isScoringDisabled"
-                          [class.opacity-40]="isScoringDisabled"
-                          [class.cursor-not-allowed]="isScoringDisabled"
+                        <button (click)="onRecordCricketBall(3, 0, false, 'runs')" [disabled]="isScoringDisabled"
+                          [class.opacity-40]="isScoringDisabled" [class.cursor-not-allowed]="isScoringDisabled"
                           class="py-2.5 bg-slate-950 hover:bg-violet-600 border border-white/10 hover:border-transparent text-xs text-white font-bold rounded-xl cursor-pointer transition-all flex flex-col items-center justify-center gap-0.5">
                           <span>3 Runs</span>
                           <span class="text-[9px] text-slate-500 font-semibold">Triple</span>
                         </button>
-                        <button (click)="onRecordCricketBall(4, 0, false, 'runs')"
-                          [disabled]="isScoringDisabled"
-                          [class.opacity-40]="isScoringDisabled"
-                          [class.cursor-not-allowed]="isScoringDisabled"
+                        <button (click)="onRecordCricketBall(4, 0, false, 'runs')" [disabled]="isScoringDisabled"
+                          [class.opacity-40]="isScoringDisabled" [class.cursor-not-allowed]="isScoringDisabled"
                           class="py-2.5 bg-emerald-600/10 hover:bg-emerald-600 border border-emerald-500/20 hover:border-transparent text-xs text-emerald-400 hover:text-white font-bold rounded-xl cursor-pointer transition-all flex flex-col items-center justify-center gap-0.5">
                           <span>Four (4)</span>
                           <span class="text-[9px] text-emerald-500/60 font-semibold">Boundary</span>
                         </button>
-                        <button (click)="onRecordCricketBall(6, 0, false, 'runs')"
-                          [disabled]="isScoringDisabled"
-                          [class.opacity-40]="isScoringDisabled"
-                          [class.cursor-not-allowed]="isScoringDisabled"
+                        <button (click)="onRecordCricketBall(6, 0, false, 'runs')" [disabled]="isScoringDisabled"
+                          [class.opacity-40]="isScoringDisabled" [class.cursor-not-allowed]="isScoringDisabled"
                           class="py-2.5 bg-violet-600/20 hover:bg-violet-600 border border-violet-500/30 hover:border-transparent text-xs text-violet-400 hover:text-white font-bold rounded-xl cursor-pointer transition-all flex flex-col items-center justify-center gap-0.5">
                           <span>Six (6)</span>
                           <span class="text-[9px] text-violet-500/60 font-semibold">Maximum</span>
@@ -3557,24 +3623,18 @@
                     <div class="flex flex-col gap-2 border-t border-white/5 pt-3">
                       <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Extras & Events</span>
                       <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                        <button (click)="onRecordCricketBall(0, 1, false, 'wide')"
-                          [disabled]="isScoringDisabled"
-                          [class.opacity-40]="isScoringDisabled"
-                          [class.cursor-not-allowed]="isScoringDisabled"
+                        <button (click)="onRecordCricketBall(0, 1, false, 'wide')" [disabled]="isScoringDisabled"
+                          [class.opacity-40]="isScoringDisabled" [class.cursor-not-allowed]="isScoringDisabled"
                           class="py-2.5 bg-slate-950 hover:bg-amber-600 border border-white/10 hover:border-transparent text-xs text-white font-semibold rounded-xl cursor-pointer transition-all">
                           Wide Ball (+1)
                         </button>
-                        <button (click)="onRecordCricketBall(0, 1, false, 'no-ball')"
-                          [disabled]="isScoringDisabled"
-                          [class.opacity-40]="isScoringDisabled"
-                          [class.cursor-not-allowed]="isScoringDisabled"
+                        <button (click)="onRecordCricketBall(0, 1, false, 'no-ball')" [disabled]="isScoringDisabled"
+                          [class.opacity-40]="isScoringDisabled" [class.cursor-not-allowed]="isScoringDisabled"
                           class="py-2.5 bg-slate-950 hover:bg-amber-600 border border-white/10 hover:border-transparent text-xs text-white font-semibold rounded-xl cursor-pointer transition-all">
                           No Ball (+1)
                         </button>
-                        <button (click)="onRecordCricketBall(6, 1, false, 'no-ball')"
-                          [disabled]="isScoringDisabled"
-                          [class.opacity-40]="isScoringDisabled"
-                          [class.cursor-not-allowed]="isScoringDisabled"
+                        <button (click)="onRecordCricketBall(6, 1, false, 'no-ball')" [disabled]="isScoringDisabled"
+                          [class.opacity-40]="isScoringDisabled" [class.cursor-not-allowed]="isScoringDisabled"
                           class="py-2.5 bg-slate-950 hover:bg-amber-600 border border-white/10 hover:border-transparent text-xs text-white font-semibold rounded-xl cursor-pointer transition-all">
                           No Ball + Six (+7)
                         </button>
@@ -3592,31 +3652,23 @@
                     <div class="flex flex-col gap-2 border-t border-white/5 pt-3">
                       <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Byes & Leg Byes</span>
                       <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                        <button (click)="onRecordCricketBall(0, 1, false, 'bye')"
-                          [disabled]="isScoringDisabled"
-                          [class.opacity-40]="isScoringDisabled"
-                          [class.cursor-not-allowed]="isScoringDisabled"
+                        <button (click)="onRecordCricketBall(0, 1, false, 'bye')" [disabled]="isScoringDisabled"
+                          [class.opacity-40]="isScoringDisabled" [class.cursor-not-allowed]="isScoringDisabled"
                           class="py-2 bg-slate-950 hover:bg-slate-800 border border-white/10 text-xs text-slate-300 font-semibold rounded-xl cursor-pointer transition-all">
                           1 Bye
                         </button>
-                        <button (click)="onRecordCricketBall(0, 4, false, 'bye')"
-                          [disabled]="isScoringDisabled"
-                          [class.opacity-40]="isScoringDisabled"
-                          [class.cursor-not-allowed]="isScoringDisabled"
+                        <button (click)="onRecordCricketBall(0, 4, false, 'bye')" [disabled]="isScoringDisabled"
+                          [class.opacity-40]="isScoringDisabled" [class.cursor-not-allowed]="isScoringDisabled"
                           class="py-2 bg-slate-950 hover:bg-slate-800 border border-white/10 text-xs text-slate-300 font-semibold rounded-xl cursor-pointer transition-all">
                           4 Byes
                         </button>
-                        <button (click)="onRecordCricketBall(0, 1, false, 'leg-bye')"
-                          [disabled]="isScoringDisabled"
-                          [class.opacity-40]="isScoringDisabled"
-                          [class.cursor-not-allowed]="isScoringDisabled"
+                        <button (click)="onRecordCricketBall(0, 1, false, 'leg-bye')" [disabled]="isScoringDisabled"
+                          [class.opacity-40]="isScoringDisabled" [class.cursor-not-allowed]="isScoringDisabled"
                           class="py-2 bg-slate-950 hover:bg-slate-800 border border-white/10 text-xs text-slate-300 font-semibold rounded-xl cursor-pointer transition-all">
                           1 Leg Bye
                         </button>
-                        <button (click)="onRecordCricketBall(0, 4, false, 'leg-bye')"
-                          [disabled]="isScoringDisabled"
-                          [class.opacity-40]="isScoringDisabled"
-                          [class.cursor-not-allowed]="isScoringDisabled"
+                        <button (click)="onRecordCricketBall(0, 4, false, 'leg-bye')" [disabled]="isScoringDisabled"
+                          [class.opacity-40]="isScoringDisabled" [class.cursor-not-allowed]="isScoringDisabled"
                           class="py-2 bg-slate-950 hover:bg-slate-800 border border-white/10 text-xs text-slate-300 font-semibold rounded-xl cursor-pointer transition-all">
                           4 Leg Byes
                         </button>
@@ -3624,30 +3676,28 @@
                     </div>
 
                     <!-- Wickets & Controls -->
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between border-t border-white/5 pt-3 gap-3">
+                    <div
+                      class="flex flex-col sm:flex-row sm:items-center justify-between border-t border-white/5 pt-3 gap-3">
                       <div class="flex items-center gap-2">
                         <select [ngModel]="cricketWicketType()" (ngModelChange)="cricketWicketType.set($event)"
-                          [disabled]="isScoringDisabled"
-                          [class.opacity-40]="isScoringDisabled"
+                          [disabled]="isScoringDisabled" [class.opacity-40]="isScoringDisabled"
                           [class.cursor-not-allowed]="isScoringDisabled"
                           class="bg-slate-950 border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white focus:border-rose-500 focus:outline-none transition-colors">
                           @if (isFreeHitActive(innings)) {
-                            <option value="Run Out">Run Out</option>
-                            <option value="Retired Hurt">Retired Hurt</option>
+                          <option value="Run Out">Run Out</option>
+                          <option value="Retired Hurt">Retired Hurt</option>
                           } @else {
-                            <option value="Bowled">Bowled</option>
-                            <option value="Caught">Caught</option>
-                            <option value="LBW">LBW</option>
-                            <option value="Run Out">Run Out</option>
-                            <option value="Stumped">Stumped</option>
-                            <option value="Hit Wicket">Hit Wicket</option>
-                            <option value="Retired Hurt">Retired Hurt</option>
+                          <option value="Bowled">Bowled</option>
+                          <option value="Caught">Caught</option>
+                          <option value="LBW">LBW</option>
+                          <option value="Run Out">Run Out</option>
+                          <option value="Stumped">Stumped</option>
+                          <option value="Hit Wicket">Hit Wicket</option>
+                          <option value="Retired Hurt">Retired Hurt</option>
                           }
                         </select>
-                        <button (click)="onRecordCricketWicket()"
-                          [disabled]="isScoringDisabled"
-                          [class.opacity-40]="isScoringDisabled"
-                          [class.cursor-not-allowed]="isScoringDisabled"
+                        <button (click)="onRecordCricketWicket()" [disabled]="isScoringDisabled"
+                          [class.opacity-40]="isScoringDisabled" [class.cursor-not-allowed]="isScoringDisabled"
                           class="px-5 py-2.5 bg-rose-600/20 hover:bg-rose-600 border border-rose-500/20 hover:border-transparent text-rose-400 hover:text-white text-xs font-bold rounded-xl cursor-pointer transition-all flex items-center gap-1.5">
                           <i class="fi fi-rr-circle-xmark"></i> OUT / Wicket
                         </button>
@@ -3670,7 +3720,7 @@
               <!-- 🏸 BADMINTON live management panel -->
               @if (sport === 'badminton') {
               <div class="bg-slate-900 border border-white/10 rounded-2xl p-6 flex flex-col gap-6">
-                
+
                 <!-- Match Type and Status Configuration -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 border-b border-white/5 pb-4">
                   <!-- Match Type Select -->
@@ -3712,13 +3762,18 @@
                 @let isDoubles = (badmintonMatchType() || '').toLowerCase().includes('doubles');
 
                 <div class="flex flex-col gap-6">
-                  <div class="flex items-center justify-between bg-slate-950/60 p-4 border border-white/5 rounded-2xl text-center">
+                  <div
+                    class="flex items-center justify-between bg-slate-950/60 p-4 border border-white/5 rounded-2xl text-center">
                     <div class="flex-1">
-                      <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{{ match.homeTeam?.name || 'Home' }}</span>
-                      <div class="text-xs text-slate-500 mt-0.5">Sets Won: <span class="text-white font-extrabold">{{ match.liveData?.homeSetsWon ?? 0 }}</span></div>
+                      <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{{
+                        match.homeTeam?.name || 'Home' }}</span>
+                      <div class="text-xs text-slate-500 mt-0.5">Sets Won: <span class="text-white font-extrabold">{{
+                          match.liveData?.homeSetsWon ?? 0 }}</span></div>
                     </div>
                     <div class="flex-1 flex flex-col items-center">
-                      <span class="text-[9px] uppercase tracking-widest text-violet-400 font-bold bg-violet-500/10 px-2 py-0.5 rounded-full">Set {{ currentSetNum }}</span>
+                      <span
+                        class="text-[9px] uppercase tracking-widest text-violet-400 font-bold bg-violet-500/10 px-2 py-0.5 rounded-full">Set
+                        {{ currentSetNum }}</span>
                       @if (sets[currentSetNum - 1]; as cur) {
                       <div class="text-3xl font-black text-white mt-1.5">{{ cur.home }} - {{ cur.away }}</div>
                       } @else {
@@ -3726,27 +3781,39 @@
                       }
                     </div>
                     <div class="flex-1">
-                      <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{{ match.awayTeam?.name || 'Away' }}</span>
-                      <div class="text-xs text-slate-500 mt-0.5">Sets Won: <span class="text-white font-extrabold">{{ match.liveData?.awaySetsWon ?? 0 }}</span></div>
+                      <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{{
+                        match.awayTeam?.name || 'Away' }}</span>
+                      <div class="text-xs text-slate-500 mt-0.5">Sets Won: <span class="text-white font-extrabold">{{
+                          match.liveData?.awaySetsWon ?? 0 }}</span></div>
                     </div>
                   </div>
 
                   <!-- Doubles Positioning Swapping Controls -->
                   @if (isDoubles) {
                   <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
-                    <div class="flex items-center justify-between bg-slate-950 p-3 border border-white/5 rounded-xl text-xs">
+                    <div
+                      class="flex items-center justify-between bg-slate-950 p-3 border border-white/5 rounded-xl text-xs">
                       <div class="flex flex-col">
-                        <span class="text-[8px] font-bold text-slate-500 uppercase tracking-wider">Home Team Positions</span>
-                        <span class="text-white font-bold mt-0.5 truncate max-w-[150px]">{{ match.liveData?.homeLeftPlayer || 'Home L' }} (L) / {{ match.liveData?.homeRightPlayer || 'Home R' }} (R)</span>
+                        <span class="text-[8px] font-bold text-slate-500 uppercase tracking-wider">Home Team
+                          Positions</span>
+                        <span class="text-white font-bold mt-0.5 truncate max-w-[150px]">{{
+                          match.liveData?.homeLeftPlayer || 'Home L' }} (L) / {{ match.liveData?.homeRightPlayer ||
+                          'Home R' }} (R)</span>
                       </div>
-                      <button (click)="onSwapHomePositions()" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-[10px] font-bold text-white rounded-lg transition-colors cursor-pointer uppercase">Swap</button>
+                      <button (click)="onSwapHomePositions()"
+                        class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-[10px] font-bold text-white rounded-lg transition-colors cursor-pointer uppercase">Swap</button>
                     </div>
-                    <div class="flex items-center justify-between bg-slate-950 p-3 border border-white/5 rounded-xl text-xs">
+                    <div
+                      class="flex items-center justify-between bg-slate-950 p-3 border border-white/5 rounded-xl text-xs">
                       <div class="flex flex-col">
-                        <span class="text-[8px] font-bold text-slate-500 uppercase tracking-wider">Away Team Positions</span>
-                        <span class="text-white font-bold mt-0.5 truncate max-w-[150px]">{{ match.liveData?.awayLeftPlayer || 'Away L' }} (L) / {{ match.liveData?.awayRightPlayer || 'Away R' }} (R)</span>
+                        <span class="text-[8px] font-bold text-slate-500 uppercase tracking-wider">Away Team
+                          Positions</span>
+                        <span class="text-white font-bold mt-0.5 truncate max-w-[150px]">{{
+                          match.liveData?.awayLeftPlayer || 'Away L' }} (L) / {{ match.liveData?.awayRightPlayer ||
+                          'Away R' }} (R)</span>
                       </div>
-                      <button (click)="onSwapAwayPositions()" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-[10px] font-bold text-white rounded-lg transition-colors cursor-pointer uppercase">Swap</button>
+                      <button (click)="onSwapAwayPositions()"
+                        class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-[10px] font-bold text-white rounded-lg transition-colors cursor-pointer uppercase">Swap</button>
                     </div>
                   </div>
                   }
@@ -3754,15 +3821,17 @@
                   <!-- Rally Logger Interface -->
                   <div class="bg-slate-950 border border-white/5 rounded-2xl p-5 flex flex-col gap-4 text-left">
                     <div class="flex items-center justify-between">
-                      <h5 class="text-[10px] font-black text-violet-400 uppercase tracking-widest flex items-center gap-1.5">
+                      <h5
+                        class="text-[10px] font-black text-violet-400 uppercase tracking-widest flex items-center gap-1.5">
                         <i class="fi fi-rr-bolt"></i> Live Rally Logger
                       </h5>
                       <!-- Read-only Service State -->
-                      <div class="flex items-center gap-2 bg-violet-600/10 px-2.5 py-1 rounded-full border border-violet-500/20 text-[10px] font-bold text-violet-400">
+                      <div
+                        class="flex items-center gap-2 bg-violet-600/10 px-2.5 py-1 rounded-full border border-violet-500/20 text-[10px] font-bold text-violet-400">
                         <span>{{ badmintonServiceCourt() }} Court</span>
                         @if (isDoubles) {
-                          <span class="opacity-50">•</span>
-                          <span>Serve #{{ badmintonServiceNumber() }}</span>
+                        <span class="opacity-50">•</span>
+                        <span>Serve #{{ badmintonServiceNumber() }}</span>
                         }
                       </div>
                     </div>
@@ -3776,12 +3845,12 @@
                           <option value="">Select Server</option>
                           <optgroup [label]="match.homeTeam?.name || 'Home Team'">
                             @for (p of getPlayersForTeam(match.homeTeamId); track p.id) {
-                              <option [value]="p.user.username">{{ p.user.username }}</option>
+                            <option [value]="p.user.username">{{ p.user.username }}</option>
                             }
                           </optgroup>
                           <optgroup [label]="match.awayTeam?.name || 'Away Team'">
                             @for (p of getPlayersForTeam(match.awayTeamId); track p.id) {
-                              <option [value]="p.user.username">{{ p.user.username }}</option>
+                            <option [value]="p.user.username">{{ p.user.username }}</option>
                             }
                           </optgroup>
                         </select>
@@ -3795,12 +3864,12 @@
                           <option value="">Select Receiver</option>
                           <optgroup [label]="match.homeTeam?.name || 'Home Team'">
                             @for (p of getPlayersForTeam(match.homeTeamId); track p.id) {
-                              <option [value]="p.user.username">{{ p.user.username }}</option>
+                            <option [value]="p.user.username">{{ p.user.username }}</option>
                             }
                           </optgroup>
                           <optgroup [label]="match.awayTeam?.name || 'Away Team'">
                             @for (p of getPlayersForTeam(match.awayTeamId); track p.id) {
-                              <option [value]="p.user.username">{{ p.user.username }}</option>
+                            <option [value]="p.user.username">{{ p.user.username }}</option>
                             }
                           </optgroup>
                         </select>
@@ -3809,18 +3878,19 @@
 
                     <!-- Rally Reason Selection (Simplified outcomes) -->
                     <div class="flex flex-col gap-1.5 border-t border-white/5 pt-3">
-                      <label class="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Rally Result / Outcome</label>
+                      <label class="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Rally Result /
+                        Outcome</label>
                       <div class="flex flex-wrap gap-1.5">
-                        @for (res of ['Winner', 'ForcedError', 'UnforcedError', 'NetFault', 'Out', 'ServiceFault']; track res) {
-                          <button (click)="badmintonReason.set(res)"
-                            [class.bg-violet-600]="badmintonReason() === res"
-                            [class.text-white]="badmintonReason() === res"
-                            [class.bg-slate-900]="badmintonReason() !== res"
-                            [class.text-slate-400]="badmintonReason() !== res"
-                            [class.border-violet-500/30]="badmintonReason() === res"
-                            class="px-3 py-1.5 text-[10px] font-bold rounded-lg border border-white/5 cursor-pointer transition-all hover:bg-slate-800">
-                            {{ res }}
-                          </button>
+                        @for (res of ['Winner', 'ForcedError', 'UnforcedError', 'NetFault', 'Out', 'ServiceFault'];
+                        track res) {
+                        <button (click)="badmintonReason.set(res)" [class.bg-violet-600]="badmintonReason() === res"
+                          [class.text-white]="badmintonReason() === res"
+                          [class.bg-slate-900]="badmintonReason() !== res"
+                          [class.text-slate-400]="badmintonReason() !== res"
+                          [class.border-violet-500/30]="badmintonReason() === res"
+                          class="px-3 py-1.5 text-[10px] font-bold rounded-lg border border-white/5 cursor-pointer transition-all hover:bg-slate-800">
+                          {{ res }}
+                        </button>
                         }
                       </div>
                     </div>
@@ -3831,16 +3901,15 @@
                         <span class="text-[8px] uppercase tracking-wider text-slate-500 font-bold">Rally Duration</span>
                         <span class="text-sm font-black text-white mt-0.5">{{ badmintonDuration() }}s</span>
                       </div>
-                      
+
                       <!-- Timer Start/Pause Button -->
-                      <button (click)="toggleBadmintonTimer()"
-                        [class.bg-rose-600]="badmintonTimerRunning()"
+                      <button (click)="toggleBadmintonTimer()" [class.bg-rose-600]="badmintonTimerRunning()"
                         [class.bg-emerald-600]="!badmintonTimerRunning()"
                         class="ml-auto px-3 py-1.5 text-[10px] font-bold text-white rounded-lg cursor-pointer transition-all flex items-center gap-1 shadow-lg">
                         @if (badmintonTimerRunning()) {
-                          <i class="fi fi-rr-pause"></i> Pause
+                        <i class="fi fi-rr-pause"></i> Pause
                         } @else {
-                          <i class="fi fi-rr-play"></i> Start
+                        <i class="fi fi-rr-play"></i> Start
                         }
                       </button>
 
@@ -3869,16 +3938,22 @@
                     <div class="flex gap-4">
                       <!-- Home Override -->
                       <div class="flex items-center gap-1.5">
-                        <span class="text-[9px] font-bold text-slate-500 uppercase">{{ match.homeTeam?.code || 'Home' }}</span>
-                        <button (click)="onRecordBadmintonPoint('home', 1)" class="w-7 h-7 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold cursor-pointer transition-all flex items-center justify-center">+</button>
-                        <button (click)="onRecordBadmintonPoint('home', -1)" class="w-7 h-7 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold cursor-pointer transition-all flex items-center justify-center">-</button>
+                        <span class="text-[9px] font-bold text-slate-500 uppercase">{{ match.homeTeam?.code || 'Home'
+                          }}</span>
+                        <button (click)="onRecordBadmintonPoint('home', 1)"
+                          class="w-7 h-7 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold cursor-pointer transition-all flex items-center justify-center">+</button>
+                        <button (click)="onRecordBadmintonPoint('home', -1)"
+                          class="w-7 h-7 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold cursor-pointer transition-all flex items-center justify-center">-</button>
                       </div>
 
                       <!-- Away Override -->
                       <div class="flex items-center gap-1.5">
-                        <span class="text-[9px] font-bold text-slate-500 uppercase">{{ match.awayTeam?.code || 'Away' }}</span>
-                        <button (click)="onRecordBadmintonPoint('away', 1)" class="w-7 h-7 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold cursor-pointer transition-all flex items-center justify-center">+</button>
-                        <button (click)="onRecordBadmintonPoint('away', -1)" class="w-7 h-7 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold cursor-pointer transition-all flex items-center justify-center">-</button>
+                        <span class="text-[9px] font-bold text-slate-500 uppercase">{{ match.awayTeam?.code || 'Away'
+                          }}</span>
+                        <button (click)="onRecordBadmintonPoint('away', 1)"
+                          class="w-7 h-7 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold cursor-pointer transition-all flex items-center justify-center">+</button>
+                        <button (click)="onRecordBadmintonPoint('away', -1)"
+                          class="w-7 h-7 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold cursor-pointer transition-all flex items-center justify-center">-</button>
                       </div>
                     </div>
 
@@ -3906,8 +3981,7 @@
             <!-- Right Column: Live Feed / Statistics -->
             <div class="flex flex-col gap-6 sticky top-24">
               <!-- Live Feed & Log Card -->
-              <div
-                class="bg-slate-900 border border-white/10 rounded-2xl p-6 shadow-xl flex flex-col gap-5">
+              <div class="bg-slate-900 border border-white/10 rounded-2xl p-6 shadow-xl flex flex-col gap-5">
                 <h3 class="text-sm font-bold text-white border-b border-white/5 pb-3">Live Feed & Log</h3>
 
                 <div class="flex flex-col gap-4 max-h-[350px] overflow-y-auto pr-1 custom-scrollbar">
@@ -3952,7 +4026,8 @@
                       <span class="text-xs font-bold text-white flex items-center gap-1">
                         <i
                           [class]="e.cardType === 'yellow' ? 'fi fi-ss-square text-amber-400' : (e.cardType === 'second_yellow' ? 'fi fi-ss-square text-orange-500' : 'fi fi-ss-square text-rose-500')"></i>
-                        {{ e.cardType === 'yellow' ? 'Yellow Card' : (e.cardType === 'second_yellow' ? 'Second Yellow (Red)' : 'Red Card') }}
+                        {{ e.cardType === 'yellow' ? 'Yellow Card' : (e.cardType === 'second_yellow' ? 'Second Yellow
+                        (Red)' : 'Red Card') }}
                       </span>
                       <span class="text-[10px] text-slate-400">
                         Player: {{ getPlayersForTeam(e.teamId).find(p => p.userId === e.playerUserId)?.user?.username ||
@@ -3963,15 +4038,16 @@
                         <i class="fi fi-rr-referee text-violet-400"></i> Penalty Kicked
                       </span>
                       <span class="text-[10px] text-slate-400">
-                        Kicker: {{ players().find(p => p.userId === e.playerUserId)?.user?.username || 'Player' }} - Outcome: <strong class="text-amber-400 uppercase">{{ e.outcome }}</strong>
+                        Kicker: {{ players().find(p => p.userId === e.playerUserId)?.user?.username || 'Player' }} -
+                        Outcome: <strong class="text-amber-400 uppercase">{{ e.outcome }}</strong>
                       </span>
                       } @else if (e.type === 'substitution') {
                       <span class="text-xs font-bold text-white flex items-center gap-1">
                         <i class="fi fi-rr-arrows-repeat text-blue-400"></i> Substitution
                       </span>
                       <span class="text-[10px] text-slate-400">
-                        OUT: {{ players().find(p => p.userId === e.playerOutId)?.user?.username || 'Player' }} ➔ 
-                        IN: {{ players().find(p => p.userId === e.playerInId)?.user?.username || 'Player' }} 
+                        OUT: {{ players().find(p => p.userId === e.playerOutId)?.user?.username || 'Player' }} ➔
+                        IN: {{ players().find(p => p.userId === e.playerInId)?.user?.username || 'Player' }}
                         ({{ e.reason }})
                       </span>
                       } @else if (e.type === 'offside') {
@@ -3986,8 +4062,9 @@
                         <i class="fi fi-rr-shield-exclamation text-red-500"></i> Foul Committed
                       </span>
                       <span class="text-[10px] text-slate-400">
-                        By: {{ players().find(p => p.userId === e.playerUserId)?.user?.username || 'Player' }} 
-                        against {{ players().find(p => p.userId === e.opponentPlayerUserId)?.user?.username || 'Player' }} 
+                        By: {{ players().find(p => p.userId === e.playerUserId)?.user?.username || 'Player' }}
+                        against {{ players().find(p => p.userId === e.opponentPlayerUserId)?.user?.username || 'Player'
+                        }}
                         ({{ e.foulType }})
                       </span>
                       } @else if (e.type === 'free_kick') {
@@ -3995,15 +4072,16 @@
                         <i class="fi fi-rr-shoe text-indigo-400"></i> Free Kick Taken
                       </span>
                       <span class="text-[10px] text-slate-400">
-                        By: {{ players().find(p => p.userId === e.playerUserId)?.user?.username || 'Player' }} 
-                        ({{ e.freeKickType }} kick) - Result: <strong class="text-indigo-300 uppercase">{{ e.result }}</strong>
+                        By: {{ players().find(p => p.userId === e.playerUserId)?.user?.username || 'Player' }}
+                        ({{ e.freeKickType }} kick) - Result: <strong class="text-indigo-300 uppercase">{{ e.result
+                          }}</strong>
                       </span>
                       } @else if (e.type === 'corner_kick') {
                       <span class="text-xs font-bold text-white flex items-center gap-1">
                         <i class="fi fi-rr-corner text-teal-400"></i> Corner Kick
                       </span>
                       <span class="text-[10px] text-slate-400">
-                        By: {{ players().find(p => p.userId === e.playerUserId)?.user?.username || 'Player' }} 
+                        By: {{ players().find(p => p.userId === e.playerUserId)?.user?.username || 'Player' }}
                         from the <span class="capitalize">{{ e.side }} side</span>
                       </span>
                       } @else if (e.type === 'throw_in') {
@@ -4025,8 +4103,8 @@
                         <i class="fi fi-rr-heart-rate text-rose-400 animate-pulse"></i> Injury Timeout
                       </span>
                       <span class="text-[10px] text-slate-400">
-                        Player: {{ players().find(p => p.userId === e.playerUserId)?.user?.username || 'Player' }} 
-                        (Severity: <strong class="text-red-400">{{ e.severity }}</strong>) - 
+                        Player: {{ players().find(p => p.userId === e.playerUserId)?.user?.username || 'Player' }}
+                        (Severity: <strong class="text-red-400">{{ e.severity }}</strong>) -
                         {{ e.substituted ? 'Substituted Off' : 'Remains on Pitch' }}
                       </span>
                       } @else if (e.type === 'shootout_penalty') {
@@ -4034,9 +4112,12 @@
                         <i class="fi fi-rr-referee text-violet-400"></i> Shootout Penalty #{{ e.order }}
                       </span>
                       <span class="text-[10px] text-slate-400">
-                        Kicker: {{ players().find(p => p.userId === e.playerUserId)?.user?.username || 'Player' }} 
-                        (Team: <strong>{{ e.teamId === match.homeTeamId ? match.homeTeam?.name : match.awayTeam?.name }}</strong>) - 
-                        Outcome: <strong class="uppercase" [class]="e.outcome === 'scored' ? 'text-emerald-400' : 'text-rose-400'">{{ e.outcome }}</strong>
+                        Kicker: {{ players().find(p => p.userId === e.playerUserId)?.user?.username || 'Player' }}
+                        (Team: <strong>{{ e.teamId === match.homeTeamId ? match.homeTeam?.name : match.awayTeam?.name
+                          }}</strong>) -
+                        Outcome: <strong class="uppercase"
+                          [class]="e.outcome === 'scored' ? 'text-emerald-400' : 'text-rose-400'">{{ e.outcome
+                          }}</strong>
                       </span>
                       }
                     </div>
@@ -4056,145 +4137,169 @@
 
                   <!-- Completed/Active Innings Deliveries & Summaries -->
                   @for (inn of match.liveData?.inningsData || []; track inn.inningsNumber) {
-                    <!-- Innings Header -->
-                    <div class="text-[10px] font-extrabold text-violet-400 uppercase tracking-widest mt-3 border-b border-white/5 pb-1 flex justify-between items-center">
-                      <span>Innings {{ inn.inningsNumber }} Live Log</span>
-                      <span class="text-slate-500 font-semibold">{{ inn.runs }}/{{ inn.wickets }} ({{ inn.overs }}.{{ inn.balls }} Ov)</span>
-                    </div>
+                  <!-- Innings Header -->
+                  <div
+                    class="text-[10px] font-extrabold text-violet-400 uppercase tracking-widest mt-3 border-b border-white/5 pb-1 flex justify-between items-center">
+                    <span>Innings {{ inn.inningsNumber }} Live Log</span>
+                    <span class="text-slate-500 font-semibold">{{ inn.runs }}/{{ inn.wickets }} ({{ inn.overs }}.{{
+                      inn.balls }} Ov)</span>
+                  </div>
 
-                    <!-- Completed Innings summary -->
-                    @if (inn.completed) {
-                    <div class="flex flex-col gap-1 text-left border-l-2 border-rose-500 pl-2 py-1 bg-rose-500/5 my-1.5 rounded-r">
-                      <span class="text-[9px] font-bold text-rose-400 uppercase">Innings {{ inn.inningsNumber }} Completed</span>
-                      <span class="text-[11px] text-white">
-                        {{ inn.battingTeamId === match.homeTeamId ? match.homeTeam?.name : match.awayTeam?.name }}:
-                        <strong>{{ inn.runs }}/{{ inn.wickets }}</strong> in {{ inn.overs }} overs
-                      </span>
-                    </div>
-                    }
-
-                    <!-- Innings Ball-by-ball history -->
-                    @if (inn.ballsHistory && inn.ballsHistory.length > 0) {
-                      <div class="flex flex-col gap-1.5 mt-1.5">
-                        @for (ball of [...inn.ballsHistory].reverse(); track ball.ballNumber) {
-                        <div class="flex items-center justify-between bg-slate-950/40 border border-white/5 rounded-lg p-1.5 hover:border-white/10 transition-all text-xs">
-                          <div class="flex items-center gap-2">
-                            <!-- Ball badge indicator -->
-                            <span class="px-1.5 py-0.5 rounded bg-violet-600/10 border border-violet-500/20 text-violet-300 font-bold text-[9px]">
-                              {{ ball.ballNumber }}
-                            </span>
-                            <!-- Event outcome badge -->
-                            @if (ball.wicket) {
-                            <span class="px-1 py-0.5 rounded bg-rose-500/25 border border-rose-500/30 text-rose-400 font-bold text-[8px] uppercase tracking-wider">
-                              WKT@if (ball.wicketType) { ({{ ball.wicketType }}) }
-                            </span>
-                            } @else if (ball.ballType === 'wide') {
-                            <span class="px-1 py-0.5 rounded bg-amber-500/20 border border-amber-500/30 text-amber-400 font-bold text-[8px] uppercase">WD</span>
-                            } @else if (ball.ballType === 'no-ball') {
-                            <span class="px-1 py-0.5 rounded bg-amber-500/20 border border-amber-500/30 text-amber-400 font-bold text-[8px] uppercase">NB</span>
-                            } @else if (ball.ballType === 'free-hit') {
-                            <span class="px-1 py-0.5 rounded bg-blue-500/25 border border-blue-500/30 text-blue-400 font-bold text-[8px] uppercase">FH</span>
-                            } @else if (ball.ballType === 'bye') {
-                            <span class="px-1 py-0.5 rounded bg-slate-700/30 border border-slate-500/30 text-slate-300 font-bold text-[8px] uppercase">BYE (+{{ ball.extras }})</span>
-                            } @else if (ball.ballType === 'leg-bye') {
-                            <span class="px-1 py-0.5 rounded bg-slate-700/30 border border-slate-500/30 text-slate-300 font-bold text-[8px] uppercase">LBYE (+{{ ball.extras }})</span>
-                            } @else if (ball.runs === 0) {
-                            <span class="px-1 py-0.5 rounded bg-slate-800 border border-white/5 text-slate-400 font-semibold text-[8px] uppercase">DOT</span>
-                            } @else {
-                            <span class="px-1 py-0.5 rounded bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 font-extrabold text-[8px]">+{{ ball.runs }}</span>
-                            }
-                            <!-- Bowler & Batsman Details -->
-                            <div class="text-slate-300 font-medium text-[10px] truncate max-w-[150px]" [title]="ball.bowler + ' to ' + ball.striker">
-                              <span class="text-slate-400">{{ ball.bowler }}</span> → <span class="font-bold text-white">{{ ball.striker }}</span>
-                            </div>
-                          </div>
-                          @if (ball.timestamp) {
-                            <span class="text-[9px] text-slate-500">{{ ball.timestamp | date:'shortTime' }}</span>
-                          }
-                        </div>
-                        }
-                      </div>
-                    } @else {
-                      <p class="text-[10px] text-slate-500 text-center py-2">No deliveries recorded yet.</p>
-                    }
+                  <!-- Completed Innings summary -->
+                  @if (inn.completed) {
+                  <div
+                    class="flex flex-col gap-1 text-left border-l-2 border-rose-500 pl-2 py-1 bg-rose-500/5 my-1.5 rounded-r">
+                    <span class="text-[9px] font-bold text-rose-400 uppercase">Innings {{ inn.inningsNumber }}
+                      Completed</span>
+                    <span class="text-[11px] text-white">
+                      {{ inn.battingTeamId === match.homeTeamId ? match.homeTeam?.name : match.awayTeam?.name }}:
+                      <strong>{{ inn.runs }}/{{ inn.wickets }}</strong> in {{ inn.overs }} overs
+                    </span>
+                  </div>
                   }
-                  } @else if (sport === 'badminton') {
-                    <!-- Set Scores History -->
-                    @let sets = match.liveData?.setsScore || [];
-                    @if (sets.length > 0) {
-                      <div class="flex flex-col gap-2 border-b border-white/5 pb-3">
-                        <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest text-left">Set History</span>
-                        @for (s of sets; track s; let idx = $index) {
-                        <div class="flex justify-between items-center text-xs bg-slate-950/40 px-3 py-2 rounded-lg border border-white/5">
-                          <span class="text-slate-400 font-medium">Set {{ idx + 1 }}</span>
-                          <span class="font-extrabold text-white">{{ s.home }} - {{ s.away }}</span>
-                        </div>
+
+                  <!-- Innings Ball-by-ball history -->
+                  @if (inn.ballsHistory && inn.ballsHistory.length > 0) {
+                  <div class="flex flex-col gap-1.5 mt-1.5">
+                    @for (ball of [...inn.ballsHistory].reverse(); track ball.ballNumber) {
+                    <div
+                      class="flex items-center justify-between bg-slate-950/40 border border-white/5 rounded-lg p-1.5 hover:border-white/10 transition-all text-xs">
+                      <div class="flex items-center gap-2">
+                        <!-- Ball badge indicator -->
+                        <span
+                          class="px-1.5 py-0.5 rounded bg-violet-600/10 border border-violet-500/20 text-violet-300 font-bold text-[9px]">
+                          {{ ball.ballNumber }}
+                        </span>
+                        <!-- Event outcome badge -->
+                        @if (ball.wicket) {
+                        <span
+                          class="px-1 py-0.5 rounded bg-rose-500/25 border border-rose-500/30 text-rose-400 font-bold text-[8px] uppercase tracking-wider">
+                          WKT@if (ball.wicketType) { ({{ ball.wicketType }}) }
+                        </span>
+                        } @else if (ball.ballType === 'wide') {
+                        <span
+                          class="px-1 py-0.5 rounded bg-amber-500/20 border border-amber-500/30 text-amber-400 font-bold text-[8px] uppercase">WD</span>
+                        } @else if (ball.ballType === 'no-ball') {
+                        <span
+                          class="px-1 py-0.5 rounded bg-amber-500/20 border border-amber-500/30 text-amber-400 font-bold text-[8px] uppercase">NB</span>
+                        } @else if (ball.ballType === 'free-hit') {
+                        <span
+                          class="px-1 py-0.5 rounded bg-blue-500/25 border border-blue-500/30 text-blue-400 font-bold text-[8px] uppercase">FH</span>
+                        } @else if (ball.ballType === 'bye') {
+                        <span
+                          class="px-1 py-0.5 rounded bg-slate-700/30 border border-slate-500/30 text-slate-300 font-bold text-[8px] uppercase">BYE
+                          (+{{ ball.extras }})</span>
+                        } @else if (ball.ballType === 'leg-bye') {
+                        <span
+                          class="px-1 py-0.5 rounded bg-slate-700/30 border border-slate-500/30 text-slate-300 font-bold text-[8px] uppercase">LBYE
+                          (+{{ ball.extras }})</span>
+                        } @else if (ball.runs === 0) {
+                        <span
+                          class="px-1 py-0.5 rounded bg-slate-800 border border-white/5 text-slate-400 font-semibold text-[8px] uppercase">DOT</span>
+                        } @else {
+                        <span
+                          class="px-1 py-0.5 rounded bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 font-extrabold text-[8px]">+{{
+                          ball.runs }}</span>
                         }
-                      </div>
-                    }
-
-                    <!-- Rally Event Feed -->
-                    <div class="flex flex-col gap-3.5 mt-2">
-                      <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest text-left">Rally Event Feed</span>
-                      @let rallies = match.liveData?.rallies || [];
-                      @if (rallies.length === 0) {
-                        <p class="text-xs text-slate-500 text-center py-4">No rallies recorded yet.</p>
-                      } @else {
-                        <div class="flex flex-col gap-2.5">
-                          @for (r of rallies.slice().reverse(); track r; let idx = $index) {
-                            @let isLet = r.winnerSide === 'none';
-                            <div class="border rounded-xl p-3 flex flex-col gap-1.5 text-left text-xs transition-all"
-                              [class.bg-slate-950/50]="!isLet"
-                              [class.border-white/5]="!isLet"
-                              [class.bg-amber-500/[0.03]]="isLet"
-                              [class.border-amber-500/20]="isLet">
-                              
-                              <div class="flex items-center justify-between">
-                                <span class="text-[9px] font-bold uppercase" [class.text-violet-400]="!isLet" [class.text-amber-400]="isLet">
-                                  @if (isLet) {
-                                    <i class="fi fi-rr-refresh mr-1 text-[8px]"></i> Let Replay
-                                  } @else {
-                                    Set {{ r.set }} • Rally #{{ rallies.length - idx }}
-                                  }
-                                </span>
-                                <span class="text-[9px] text-slate-500">{{ r.duration }}s</span>
-                              </div>
-                              
-                              <div class="flex items-center gap-1.5 flex-wrap">
-                                @if (isLet) {
-                                  <span class="font-bold text-amber-300">No Point Awarded</span>
-                                  <span class="px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-400 font-extrabold text-[8px] uppercase tracking-wider">
-                                    {{ r.reason }}
-                                  </span>
-                                } @else {
-                                  <span class="font-bold text-white">{{ r.winner }}</span>
-                                  <span class="px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-extrabold text-[8px] uppercase tracking-wider">
-                                    {{ r.reason }}
-                                  </span>
-                                }
-                                <span class="ml-auto font-black text-slate-400">{{ r.scoreAfter.home }}-{{ r.scoreAfter.away }}</span>
-                              </div>
-
-                              <div class="text-[10px] text-slate-400 flex items-center gap-1.5 flex-wrap">
-                                <span class="font-medium text-slate-500">Serves:</span>
-                                <span class="font-semibold text-slate-300">{{ r.server }}</span> 
-                                <span class="text-[9px] text-violet-400 bg-violet-500/10 px-1 py-0.2 rounded font-medium">
-                                  {{ r.serviceCourt }} Court
-                                </span>
-                                @if (r.serviceNumber) {
-                                  <span class="text-[9px] text-slate-500 bg-slate-800 px-1 py-0.2 rounded font-medium">
-                                    Seq. #{{ r.serviceNumber }}
-                                  </span>
-                                }
-                                <span class="mx-0.5 text-slate-600">→</span>
-                                <span class="font-medium text-slate-500">Receives:</span>
-                                <span class="font-semibold text-slate-300">{{ r.receiver }}</span>
-                              </div>
-                            </div>
-                          }
+                        <!-- Bowler & Batsman Details -->
+                        <div class="text-slate-300 font-medium text-[10px] truncate max-w-[150px]"
+                          [title]="ball.bowler + ' to ' + ball.striker">
+                          <span class="text-slate-400">{{ ball.bowler }}</span> → <span class="font-bold text-white">{{
+                            ball.striker }}</span>
                         </div>
+                      </div>
+                      @if (ball.timestamp) {
+                      <span class="text-[9px] text-slate-500">{{ ball.timestamp | date:'shortTime' }}</span>
                       }
                     </div>
+                    }
+                  </div>
+                  } @else {
+                  <p class="text-[10px] text-slate-500 text-center py-2">No deliveries recorded yet.</p>
+                  }
+                  }
+                  } @else if (sport === 'badminton') {
+                  <!-- Set Scores History -->
+                  @let sets = match.liveData?.setsScore || [];
+                  @if (sets.length > 0) {
+                  <div class="flex flex-col gap-2 border-b border-white/5 pb-3">
+                    <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest text-left">Set
+                      History</span>
+                    @for (s of sets; track s; let idx = $index) {
+                    <div
+                      class="flex justify-between items-center text-xs bg-slate-950/40 px-3 py-2 rounded-lg border border-white/5">
+                      <span class="text-slate-400 font-medium">Set {{ idx + 1 }}</span>
+                      <span class="font-extrabold text-white">{{ s.home }} - {{ s.away }}</span>
+                    </div>
+                    }
+                  </div>
+                  }
+
+                  <!-- Rally Event Feed -->
+                  <div class="flex flex-col gap-3.5 mt-2">
+                    <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest text-left">Rally Event
+                      Feed</span>
+                    @let rallies = match.liveData?.rallies || [];
+                    @if (rallies.length === 0) {
+                    <p class="text-xs text-slate-500 text-center py-4">No rallies recorded yet.</p>
+                    } @else {
+                    <div class="flex flex-col gap-2.5">
+                      @for (r of rallies.slice().reverse(); track r; let idx = $index) {
+                      @let isLet = r.winnerSide === 'none';
+                      <div class="border rounded-xl p-3 flex flex-col gap-1.5 text-left text-xs transition-all"
+                        [class.bg-slate-950/50]="!isLet" [class.border-white/5]="!isLet"
+                        [class.bg-amber-500/[0.03]]="isLet" [class.border-amber-500/20]="isLet">
+
+                        <div class="flex items-center justify-between">
+                          <span class="text-[9px] font-bold uppercase" [class.text-violet-400]="!isLet"
+                            [class.text-amber-400]="isLet">
+                            @if (isLet) {
+                            <i class="fi fi-rr-refresh mr-1 text-[8px]"></i> Let Replay
+                            } @else {
+                            Set {{ r.set }} • Rally #{{ rallies.length - idx }}
+                            }
+                          </span>
+                          <span class="text-[9px] text-slate-500">{{ r.duration }}s</span>
+                        </div>
+
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                          @if (isLet) {
+                          <span class="font-bold text-amber-300">No Point Awarded</span>
+                          <span
+                            class="px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-400 font-extrabold text-[8px] uppercase tracking-wider">
+                            {{ r.reason }}
+                          </span>
+                          } @else {
+                          <span class="font-bold text-white">{{ r.winner }}</span>
+                          <span
+                            class="px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-extrabold text-[8px] uppercase tracking-wider">
+                            {{ r.reason }}
+                          </span>
+                          }
+                          <span class="ml-auto font-black text-slate-400">{{ r.scoreAfter.home }}-{{ r.scoreAfter.away
+                            }}</span>
+                        </div>
+
+                        <div class="text-[10px] text-slate-400 flex items-center gap-1.5 flex-wrap">
+                          <span class="font-medium text-slate-500">Serves:</span>
+                          <span class="font-semibold text-slate-300">{{ r.server }}</span>
+                          <span class="text-[9px] text-violet-400 bg-violet-500/10 px-1 py-0.2 rounded font-medium">
+                            {{ r.serviceCourt }} Court
+                          </span>
+                          @if (r.serviceNumber) {
+                          <span class="text-[9px] text-slate-500 bg-slate-800 px-1 py-0.2 rounded font-medium">
+                            Seq. #{{ r.serviceNumber }}
+                          </span>
+                          }
+                          <span class="mx-0.5 text-slate-600">→</span>
+                          <span class="font-medium text-slate-500">Receives:</span>
+                          <span class="font-semibold text-slate-300">{{ r.receiver }}</span>
+                        </div>
+                      </div>
+                      }
+                    </div>
+                    }
+                  </div>
                   } @else {
                   <p class="text-xs text-slate-500 text-center py-4">No feed data available.</p>
                   }
@@ -4203,104 +4308,104 @@
 
               <!-- Innings Stats Card (for Cricket only) -->
               @if (sport === 'cricket') {
-                @let currentInningsNum = match.liveData?.currentInnings ?? 1;
-                @let innings = match.liveData?.inningsData?.[currentInningsNum - 1];
-                <div class="border border-white/10 bg-slate-900 rounded-2xl p-6 shadow-xl flex flex-col gap-3">
-                  <div class="flex items-center justify-between border-b border-white/5 pb-2">
-                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Innings Stats</span>
-                    <div class="flex bg-slate-950 p-0.5 rounded-lg border border-white/5">
-                      <button (click)="cricketStatsTab.set('batting')" 
-                        [class.bg-violet-600]="cricketStatsTab() === 'batting'"
-                        [class.text-white]="cricketStatsTab() === 'batting'"
-                        [class.text-slate-400]="cricketStatsTab() !== 'batting'"
-                        class="px-2.5 py-1 text-[10px] font-bold rounded-md transition-all cursor-pointer">
-                        Batting
-                      </button>
-                      <button (click)="cricketStatsTab.set('bowling')"
-                        [class.bg-violet-600]="cricketStatsTab() === 'bowling'"
-                        [class.text-white]="cricketStatsTab() === 'bowling'"
-                        [class.text-slate-400]="cricketStatsTab() !== 'bowling'"
-                        class="px-2.5 py-1 text-[10px] font-bold rounded-md transition-all cursor-pointer">
-                        Bowling
-                      </button>
-                    </div>
+              @let currentInningsNum = match.liveData?.currentInnings ?? 1;
+              @let innings = match.liveData?.inningsData?.[currentInningsNum - 1];
+              <div class="border border-white/10 bg-slate-900 rounded-2xl p-6 shadow-xl flex flex-col gap-3">
+                <div class="flex items-center justify-between border-b border-white/5 pb-2">
+                  <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Innings Stats</span>
+                  <div class="flex bg-slate-950 p-0.5 rounded-lg border border-white/5">
+                    <button (click)="cricketStatsTab.set('batting')"
+                      [class.bg-violet-600]="cricketStatsTab() === 'batting'"
+                      [class.text-white]="cricketStatsTab() === 'batting'"
+                      [class.text-slate-400]="cricketStatsTab() !== 'batting'"
+                      class="px-2.5 py-1 text-[10px] font-bold rounded-md transition-all cursor-pointer">
+                      Batting
+                    </button>
+                    <button (click)="cricketStatsTab.set('bowling')"
+                      [class.bg-violet-600]="cricketStatsTab() === 'bowling'"
+                      [class.text-white]="cricketStatsTab() === 'bowling'"
+                      [class.text-slate-400]="cricketStatsTab() !== 'bowling'"
+                      class="px-2.5 py-1 text-[10px] font-bold rounded-md transition-all cursor-pointer">
+                      Bowling
+                    </button>
                   </div>
-
-                  <!-- Batting Stats Content -->
-                  @if (cricketStatsTab() === 'batting') {
-                    @if (innings?.batsmanStats && getObjectKeys(innings.batsmanStats).length > 0) {
-                    <div class="overflow-x-auto">
-                      <table class="w-full text-left text-xs">
-                        <thead>
-                          <tr class="text-[9px] text-slate-500 border-b border-white/5 uppercase">
-                            <th class="pb-1.5 font-bold">Batter</th>
-                            <th class="pb-1.5 font-bold text-center">R</th>
-                            <th class="pb-1.5 font-bold text-center">B</th>
-                            <th class="pb-1.5 font-bold text-center">4s/6s</th>
-                            <th class="pb-1.5 font-bold text-right">SR</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          @let batStats = innings?.batsmanStats || {};
-                          @for (entry of getObjectKeys(batStats); track entry) {
-                          @let stats = batStats[entry];
-                          <tr class="border-b border-white/5 last:border-b-0 text-white font-medium">
-                            <td class="py-1.5 truncate max-w-[80px]" [title]="entry">{{ entry }}</td>
-                            <td class="py-1.5 text-center font-bold">{{ stats.runs }}</td>
-                            <td class="py-1.5 text-center text-slate-400">{{ stats.balls }}</td>
-                            <td class="py-1.5 text-center text-slate-400">{{ stats.fours || 0 }}/{{ stats.sixes || 0 }}</td>
-                            <td class="py-1.5 text-right text-slate-500">
-                              {{ stats.balls > 0 ? ((stats.runs / stats.balls) * 100).toFixed(1) : '0.0' }}
-                            </td>
-                          </tr>
-                          }
-                        </tbody>
-                      </table>
-                    </div>
-                    } @else {
-                    <div class="text-center py-4 text-xs text-slate-500">No batting stats recorded yet.</div>
-                    }
-                  }
-
-                  <!-- Bowling Stats Content -->
-                  @if (cricketStatsTab() === 'bowling') {
-                    @if (innings?.bowlerStats && getObjectKeys(innings.bowlerStats).length > 0) {
-                    <div class="overflow-x-auto">
-                      <table class="w-full text-left text-xs">
-                        <thead>
-                          <tr class="text-[9px] text-slate-500 border-b border-white/5 uppercase">
-                            <th class="pb-1.5 font-bold">Bowler</th>
-                            <th class="pb-1.5 font-bold text-center">O</th>
-                            <th class="pb-1.5 font-bold text-center">M</th>
-                            <th class="pb-1.5 font-bold text-center">R</th>
-                            <th class="pb-1.5 font-bold text-center">W</th>
-                            <th class="pb-1.5 font-bold text-right">Econ</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          @let bowlStats = innings?.bowlerStats || {};
-                          @for (entry of getObjectKeys(bowlStats); track entry) {
-                          @let stats = bowlStats[entry];
-                          <tr class="border-b border-white/5 last:border-b-0 text-white font-medium">
-                            <td class="py-1.5 truncate max-w-[80px]" [title]="entry">{{ entry }}</td>
-                            <td class="py-1.5 text-center">{{ stats.overs }}.{{ stats.balls }}</td>
-                            <td class="py-1.5 text-center text-slate-400">{{ stats.maidens || 0 }}</td>
-                            <td class="py-1.5 text-center text-slate-400">{{ stats.runsConceded }}</td>
-                            <td class="py-1.5 text-center text-rose-400 font-extrabold">{{ stats.wickets }}</td>
-                            <td class="py-1.5 text-right text-slate-500">
-                              @let totalBalls = (stats.overs * 6) + stats.balls;
-                              {{ totalBalls > 0 ? ((stats.runsConceded / totalBalls) * 6).toFixed(2) : '0.00' }}
-                            </td>
-                          </tr>
-                          }
-                        </tbody>
-                      </table>
-                    </div>
-                    } @else {
-                    <div class="text-center py-4 text-xs text-slate-500">No bowling stats recorded yet.</div>
-                    }
-                  }
                 </div>
+
+                <!-- Batting Stats Content -->
+                @if (cricketStatsTab() === 'batting') {
+                @if (innings?.batsmanStats && getObjectKeys(innings.batsmanStats).length > 0) {
+                <div class="overflow-x-auto">
+                  <table class="w-full text-left text-xs">
+                    <thead>
+                      <tr class="text-[9px] text-slate-500 border-b border-white/5 uppercase">
+                        <th class="pb-1.5 font-bold">Batter</th>
+                        <th class="pb-1.5 font-bold text-center">R</th>
+                        <th class="pb-1.5 font-bold text-center">B</th>
+                        <th class="pb-1.5 font-bold text-center">4s/6s</th>
+                        <th class="pb-1.5 font-bold text-right">SR</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @let batStats = innings?.batsmanStats || {};
+                      @for (entry of getObjectKeys(batStats); track entry) {
+                      @let stats = batStats[entry];
+                      <tr class="border-b border-white/5 last:border-b-0 text-white font-medium">
+                        <td class="py-1.5 truncate max-w-[80px]" [title]="entry">{{ entry }}</td>
+                        <td class="py-1.5 text-center font-bold">{{ stats.runs }}</td>
+                        <td class="py-1.5 text-center text-slate-400">{{ stats.balls }}</td>
+                        <td class="py-1.5 text-center text-slate-400">{{ stats.fours || 0 }}/{{ stats.sixes || 0 }}</td>
+                        <td class="py-1.5 text-right text-slate-500">
+                          {{ stats.balls > 0 ? ((stats.runs / stats.balls) * 100).toFixed(1) : '0.0' }}
+                        </td>
+                      </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+                } @else {
+                <div class="text-center py-4 text-xs text-slate-500">No batting stats recorded yet.</div>
+                }
+                }
+
+                <!-- Bowling Stats Content -->
+                @if (cricketStatsTab() === 'bowling') {
+                @if (innings?.bowlerStats && getObjectKeys(innings.bowlerStats).length > 0) {
+                <div class="overflow-x-auto">
+                  <table class="w-full text-left text-xs">
+                    <thead>
+                      <tr class="text-[9px] text-slate-500 border-b border-white/5 uppercase">
+                        <th class="pb-1.5 font-bold">Bowler</th>
+                        <th class="pb-1.5 font-bold text-center">O</th>
+                        <th class="pb-1.5 font-bold text-center">M</th>
+                        <th class="pb-1.5 font-bold text-center">R</th>
+                        <th class="pb-1.5 font-bold text-center">W</th>
+                        <th class="pb-1.5 font-bold text-right">Econ</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @let bowlStats = innings?.bowlerStats || {};
+                      @for (entry of getObjectKeys(bowlStats); track entry) {
+                      @let stats = bowlStats[entry];
+                      <tr class="border-b border-white/5 last:border-b-0 text-white font-medium">
+                        <td class="py-1.5 truncate max-w-[80px]" [title]="entry">{{ entry }}</td>
+                        <td class="py-1.5 text-center">{{ stats.overs }}.{{ stats.balls }}</td>
+                        <td class="py-1.5 text-center text-slate-400">{{ stats.maidens || 0 }}</td>
+                        <td class="py-1.5 text-center text-slate-400">{{ stats.runsConceded }}</td>
+                        <td class="py-1.5 text-center text-rose-400 font-extrabold">{{ stats.wickets }}</td>
+                        <td class="py-1.5 text-right text-slate-500">
+                          @let totalBalls = (stats.overs * 6) + stats.balls;
+                          {{ totalBalls > 0 ? ((stats.runsConceded / totalBalls) * 6).toFixed(2) : '0.00' }}
+                        </td>
+                      </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+                } @else {
+                <div class="text-center py-4 text-xs text-slate-500">No bowling stats recorded yet.</div>
+                }
+                }
+              </div>
               }
             </div>
           </div>
@@ -4617,11 +4722,13 @@
                     class="border hover:border-violet-500/30 rounded-xl px-3 py-2 flex items-center justify-between gap-3 cursor-pointer transition-all select-none">
                     <div class="flex items-center gap-2">
                       @if (team.logoUrl) {
-                      <div class="w-6 h-6 rounded-lg bg-violet-500/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                      <div
+                        class="w-6 h-6 rounded-lg bg-violet-500/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
                         <img [src]="team.logoUrl" alt="Logo Preview" class="w-full h-full object-cover" />
                       </div>
                       } @else {
-                      <div class="w-6 h-6 rounded-lg flex items-center justify-center text-white text-[8px] font-extrabold shadow-inner flex-shrink-0"
+                      <div
+                        class="w-6 h-6 rounded-lg flex items-center justify-center text-white text-[8px] font-extrabold shadow-inner flex-shrink-0"
                         [style.background]="avatarColor(team.name)">
                         {{ initials(team.name) }}
                       </div>
@@ -4802,11 +4909,13 @@
                     class="border hover:border-violet-500/30 rounded-xl px-3 py-2 flex items-center justify-between gap-3 cursor-pointer transition-all select-none">
                     <div class="flex items-center gap-2">
                       @if (team.logoUrl) {
-                      <div class="w-6 h-6 rounded-lg bg-violet-500/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                      <div
+                        class="w-6 h-6 rounded-lg bg-violet-500/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
                         <img [src]="team.logoUrl" alt="Logo Preview" class="w-full h-full object-cover" />
                       </div>
                       } @else {
-                      <div class="w-6 h-6 rounded-lg flex items-center justify-center text-white text-[8px] font-extrabold shadow-inner flex-shrink-0"
+                      <div
+                        class="w-6 h-6 rounded-lg flex items-center justify-center text-white text-[8px] font-extrabold shadow-inner flex-shrink-0"
                         [style.background]="avatarColor(team.name)">
                         {{ initials(team.name) }}
                       </div>
@@ -5670,11 +5779,13 @@
             @for (team of selectedEvent()?.teams; track team.id) {
             <div class="border border-white/5 bg-slate-950/40 rounded-xl px-4 py-3 flex items-center gap-3">
               @if (team.logoUrl) {
-              <div class="w-7 h-7 rounded-lg bg-violet-500/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
+              <div
+                class="w-7 h-7 rounded-lg bg-violet-500/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
                 <img [src]="team.logoUrl" alt="Logo" class="w-full h-full object-cover" />
               </div>
               } @else {
-              <div class="w-7 h-7 rounded-lg flex items-center justify-center text-white text-[9px] font-extrabold shadow-inner flex-shrink-0"
+              <div
+                class="w-7 h-7 rounded-lg flex items-center justify-center text-white text-[9px] font-extrabold shadow-inner flex-shrink-0"
                 [style.background]="avatarColor(team.name)">
                 {{ initials(team.name) }}
               </div>

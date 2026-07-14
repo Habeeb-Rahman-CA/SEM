@@ -32,7 +32,7 @@ export class WorkspaceDetailComponent implements OnInit {
   isLoading = signal(true);
   error = signal('');
   activeTab = signal<'overview' | 'members' | 'settings' | 'teams' | 'players' | 'events' | 'venues'>('overview');
-  isSidebarOpen = signal(false);
+  isSidebarOpen = signal(true);
 
   // Invitation & Notification signals
   pendingInvitations = signal<WorkspaceMember[]>([]);
@@ -510,6 +510,12 @@ export class WorkspaceDetailComponent implements OnInit {
   // ── Assignable roles for invite/member dropdown (non-owner) ───────────────
   get assignableRoles(): Role[] {
     return this.roles().filter(r => r.slug !== 'owner');
+  }
+
+  closeSidebarOnMobile() {
+    if (window.innerWidth < 1024) {
+      this.isSidebarOpen.set(false);
+    }
   }
 
   ngOnInit() {
