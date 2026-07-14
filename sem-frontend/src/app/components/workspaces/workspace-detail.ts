@@ -3,7 +3,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { WorkspaceService, Workspace, WorkspaceMember, Role, Team, Player, WorkspaceEvent, Sport, Competition, CompetitionStage, CompetitionTeam, Match, Venue, PointsConfigEntry } from '../../services/workspace.service';
+import { WorkspaceService, Workspace, WorkspaceMember, AppNotification, Role, Team, Player, WorkspaceEvent, Sport, Competition, CompetitionStage, CompetitionTeam, Match, Venue, PointsConfigEntry } from '../../services/workspace.service';
 import { AuthService } from '../../services/auth.service';
 import { UiService } from '../../services/ui.service';
 
@@ -34,10 +34,14 @@ export class WorkspaceDetailComponent implements OnInit {
   activeTab = signal<'overview' | 'members' | 'settings' | 'teams' | 'players' | 'events' | 'venues'>('overview');
   isSidebarOpen = signal(false);
 
-  // Invitation signals
+  // Invitation & Notification signals
   pendingInvitations = signal<WorkspaceMember[]>([]);
+  notifications = signal<AppNotification[]>([]);
   isNotificationOpen = signal(false);
   isProcessingInvitation = signal(false);
+
+  unreadNotificationsCount = computed(() => this.notifications().filter(n => !n.isRead).length);
+  totalBadgeCount = computed(() => this.pendingInvitations().length + this.unreadNotificationsCount());
   enableExtraTime = signal(true);
   enablePenaltyShootout = signal(true);
   extraTimeHalfDuration = signal(15);
@@ -509,7 +513,7 @@ export class WorkspaceDetailComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.loadPendingInvitations();
+    this.loadInvitationsAndNotifications();
     const id = this.route.snapshot.paramMap.get('id')!;
     this.workspaceService.getOne(id).subscribe({
       next: (ws) => {
@@ -674,7 +678,6 @@ export class WorkspaceDetailComponent implements OnInit {
         this.isInviting.set(false);
         this.inviteSuccess.set(`${username} has been invited successfully!`);
         this.inviteUsername.set('');
-        this.members.update(prev => [...prev, newMember]);
       },
       error: (err) => {
         this.isInviting.set(false);
@@ -5081,13 +5084,22 @@ export class WorkspaceDetailComponent implements OnInit {
     }
   }
 
-  loadPendingInvitations() {
+  loadInvitationsAndNotifications() {
     this.workspaceService.getPendingInvitations().subscribe({
       next: (data) => {
         this.pendingInvitations.set(data);
       },
       error: (err) => {
         console.error('Failed to load invitations', err);
+      }
+    });
+
+    this.workspaceService.getNotifications().subscribe({
+      next: (data) => {
+        this.notifications.set(data);
+      },
+      error: (err) => {
+        console.error('Failed to load notifications', err);
       }
     });
   }
@@ -5097,8 +5109,9 @@ export class WorkspaceDetailComponent implements OnInit {
     this.workspaceService.acceptInvitation(workspaceId).subscribe({
       next: () => {
         this.isProcessingInvitation.set(false);
-        this.uiService.success(`Successfully joined "${workspaceName}"!`);
-        this.loadPendingInvitations();
+        this.isNotificationOpen.set(false);
+        this.uiService.success(`You joined the ${workspaceName} workspace!`);
+        this.loadInvitationsAndNotifications();
       },
       error: (err) => {
         this.isProcessingInvitation.set(false);
@@ -5113,13 +5126,26 @@ export class WorkspaceDetailComponent implements OnInit {
     this.workspaceService.rejectInvitation(workspaceId).subscribe({
       next: () => {
         this.isProcessingInvitation.set(false);
+        this.isNotificationOpen.set(false);
         this.uiService.success(`Rejected invitation to "${workspaceName}".`);
-        this.loadPendingInvitations();
+        this.loadInvitationsAndNotifications();
       },
       error: (err) => {
         this.isProcessingInvitation.set(false);
         console.error(err);
         this.uiService.error(err.error?.message ?? 'Failed to reject invitation.');
+      }
+    });
+  }
+
+  markNotificationsAsRead() {
+    if (this.unreadNotificationsCount() === 0) return;
+    this.workspaceService.markNotificationsRead().subscribe({
+      next: () => {
+        this.loadInvitationsAndNotifications();
+      },
+      error: (err) => {
+        console.error('Failed to mark notifications as read', err);
       }
     });
   }

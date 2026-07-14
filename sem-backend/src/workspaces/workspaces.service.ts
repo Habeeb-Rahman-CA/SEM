@@ -21,6 +21,7 @@ import { CompetitionStage } from './entities/competition-stage.entity';
 import { Match, MatchType } from './entities/match.entity';
 import { CompetitionTeam } from './entities/competition-team.entity';
 import { Venue } from './entities/venue.entity';
+import { Notification } from './entities/notification.entity';
 import { CreateWorkspaceDto } from './dto/create-workspace.dto';
 import { UpdateWorkspaceDto } from './dto/update-workspace.dto';
 import { UsersService } from '../users/users.service';
@@ -71,6 +72,8 @@ export class WorkspacesService implements OnModuleInit {
     private readonly competitionTeamRepo: Repository<CompetitionTeam>,
     @InjectRepository(Venue)
     private readonly venueRepo: Repository<Venue>,
+    @InjectRepository(Notification)
+    private readonly notificationRepo: Repository<Notification>,
     private readonly usersService: UsersService,
   ) {}
 
@@ -328,6 +331,7 @@ export class WorkspacesService implements OnModuleInit {
       userId: user.id,
       roleId: role.id,
       status: 'pending',
+      invitedById: requesterId,
     });
     const saved = await this.memberRepo.save(member);
     saved.user = user;
@@ -383,23 +387,63 @@ export class WorkspacesService implements OnModuleInit {
   async acceptInvitation(workspaceId: string, userId: string): Promise<WorkspaceMember> {
     const member = await this.memberRepo.findOne({
       where: { workspaceId, userId, status: 'pending' },
-      relations: { user: true, role: true },
+      relations: { user: true, role: true, workspace: true },
     });
     if (!member) {
       throw new NotFoundException('Invitation not found or already accepted/rejected');
     }
     member.status = 'joined';
-    return this.memberRepo.save(member);
+    const saved = await this.memberRepo.save(member);
+
+    // Create notification for joining user
+    const userNotification = this.notificationRepo.create({
+      userId: userId,
+      message: `You joined the ${member.workspace.name} workspace`,
+    });
+    await this.notificationRepo.save(userNotification);
+
+    // Create notification for inviter
+    if (member.invitedById) {
+      const inviterNotification = this.notificationRepo.create({
+        userId: member.invitedById,
+        message: `${member.user.username} accepted your invitation to the ${member.workspace.name} workspace`,
+      });
+      await this.notificationRepo.save(inviterNotification);
+    }
+
+    return saved;
   }
 
   async rejectInvitation(workspaceId: string, userId: string): Promise<void> {
     const member = await this.memberRepo.findOne({
       where: { workspaceId, userId, status: 'pending' },
+      relations: { user: true, workspace: true },
     });
     if (!member) {
       throw new NotFoundException('Invitation not found or already accepted/rejected');
     }
+
+    // Create notification for inviter
+    if (member.invitedById) {
+      const inviterNotification = this.notificationRepo.create({
+        userId: member.invitedById,
+        message: `${member.user.username} rejected your invitation to the ${member.workspace.name} workspace`,
+      });
+      await this.notificationRepo.save(inviterNotification);
+    }
+
     await this.memberRepo.remove(member);
+  }
+
+  async getNotifications(userId: string): Promise<Notification[]> {
+    return this.notificationRepo.find({
+      where: { userId },
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  async markNotificationsRead(userId: string): Promise<void> {
+    await this.notificationRepo.update({ userId, isRead: false }, { isRead: true });
   }
 
   async updateMemberRole(

@@ -187,9 +187,9 @@
               <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
               </svg>
-              @if (pendingInvitations().length > 0) {
+              @if (totalBadgeCount() > 0) {
                 <span class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-rose-500 text-white rounded-full text-[10px] font-extrabold flex items-center justify-center animate-pulse border-2 border-slate-950">
-                  {{ pendingInvitations().length }}
+                  {{ totalBadgeCount() }}
                 </span>
               }
             </button>
@@ -200,44 +200,68 @@
               <div class="fixed inset-0 z-30 bg-black/0 cursor-default" (click)="isNotificationOpen.set(false)"></div>
 
               <div class="absolute right-0 mt-2 w-80 bg-slate-900 border border-white/10 rounded-2xl shadow-2xl py-3 px-4 z-40 animate-fadeIn shrink-0 flex flex-col gap-3">
-                <div class="border-b border-white/5 pb-2">
-                  <h4 class="text-xs font-bold text-white uppercase tracking-wider">Invitations</h4>
+                <div class="border-b border-white/5 pb-2 flex items-center justify-between">
+                  <h4 class="text-xs font-bold text-white uppercase tracking-wider">Notifications</h4>
+                  @if (unreadNotificationsCount() > 0) {
+                    <button (click)="markNotificationsAsRead(); $event.stopPropagation()"
+                      class="text-[10px] text-indigo-400 hover:text-indigo-300 font-bold transition cursor-pointer">
+                      Mark all as read
+                    </button>
+                  }
                 </div>
 
-                <!-- Invitations list -->
-                <div class="max-h-60 overflow-y-auto flex flex-col gap-2.5">
-                  @if (pendingInvitations().length === 0) {
-                    <div class="py-4 text-center text-xs text-slate-500 italic">
-                      No pending invitations.
-                    </div>
-                  } @else {
-                    @for (invite of pendingInvitations(); track invite.id) {
-                      <div class="bg-slate-950/40 border border-white/5 hover:border-white/10 rounded-xl p-3 flex flex-col gap-2.5 transition-all">
-                        <div class="flex items-start gap-3">
-                          <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
-                            {{ initials(invite.workspace?.name || 'W') }}
+                <!-- Invitations Section -->
+                <div class="flex flex-col gap-2">
+                  <div class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Invitations ({{ pendingInvitations().length }})</div>
+                  <div class="max-h-40 overflow-y-auto flex flex-col gap-2">
+                    @if (pendingInvitations().length === 0) {
+                      <div class="py-2 text-center text-[10px] text-slate-600 italic">No pending invitations</div>
+                    } @else {
+                      @for (invite of pendingInvitations(); track invite.id) {
+                        <div class="bg-slate-950/40 border border-white/5 rounded-xl p-2.5 flex flex-col gap-2">
+                          <div class="flex items-start gap-2.5">
+                            <div class="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
+                              {{ initials(invite.workspace?.name || 'W') }}
+                            </div>
+                            <div class="min-w-0">
+                              <p class="text-xs font-bold text-white truncate">{{ invite.workspace?.name }}</p>
+                              <p class="text-[9px] text-slate-400 mt-0.5 capitalize">
+                                Role: {{ invite.role?.name || 'Viewer' }}
+                              </p>
+                            </div>
                           </div>
-                          <div class="min-w-0">
-                            <p class="text-xs font-bold text-white truncate">{{ invite.workspace?.name }}</p>
-                            <p class="text-[10px] text-slate-400 mt-0.5 leading-relaxed">
-                              Invited to join as <span class="text-indigo-300 font-mono capitalize">{{ invite.role?.name || 'Viewer' }}</span>.
-                            </p>
+                          <div class="flex items-center gap-2">
+                            <button (click)="acceptInvite(invite.workspaceId, invite.workspace?.name || 'Workspace')" [disabled]="isProcessingInvitation()"
+                              class="flex-1 py-1 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-[10px] font-bold rounded-lg transition-all cursor-pointer text-center">
+                              Accept
+                            </button>
+                            <button (click)="rejectInvite(invite.workspaceId, invite.workspace?.name || 'Workspace')" [disabled]="isProcessingInvitation()"
+                              class="flex-1 py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-rose-400 text-[10px] font-bold rounded-lg transition-all cursor-pointer text-center">
+                              Reject
+                            </button>
                           </div>
                         </div>
-
-                        <div class="flex items-center gap-2 mt-1">
-                          <button (click)="acceptInvite(invite.workspaceId, invite.workspace?.name || 'Workspace')" [disabled]="isProcessingInvitation()"
-                            class="flex-1 py-1.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-[10px] font-bold rounded-lg transition-all cursor-pointer text-center">
-                            Accept
-                          </button>
-                          <button (click)="rejectInvite(invite.workspaceId, invite.workspace?.name || 'Workspace')" [disabled]="isProcessingInvitation()"
-                            class="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-rose-400 text-[10px] font-bold rounded-lg transition-all cursor-pointer text-center">
-                            Reject
-                          </button>
-                        </div>
-                      </div>
+                      }
                     }
-                  }
+                  </div>
+                </div>
+
+                <!-- General Notifications Section -->
+                <div class="flex flex-col gap-2 pt-2 border-t border-white/5">
+                  <div class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Recent Activity ({{ notifications().length }})</div>
+                  <div class="max-h-44 overflow-y-auto flex flex-col gap-2">
+                    @if (notifications().length === 0) {
+                      <div class="py-2 text-center text-[10px] text-slate-600 italic">No notifications</div>
+                    } @else {
+                      @for (notification of notifications(); track notification.id) {
+                        <div [class.bg-indigo-950/20]="!notification.isRead"
+                          class="bg-slate-950/40 border border-white/5 hover:border-white/10 rounded-xl p-2.5 flex flex-col gap-1 transition-all">
+                          <p class="text-[10px] text-white leading-relaxed">{{ notification.message }}</p>
+                          <span class="text-[8px] text-slate-500 text-right">{{ notification.createdAt | date: 'shortTime' }}</span>
+                        </div>
+                      }
+                    }
+                  </div>
                 </div>
               </div>
             }

@@ -178,6 +178,14 @@ export interface WorkspaceMember {
   workspace?: Workspace;
 }
 
+export interface AppNotification {
+  id: string;
+  userId: string;
+  message: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
 export interface CreateWorkspacePayload {
   name: string;
   slug?: string;
@@ -265,6 +273,18 @@ export class WorkspaceService {
       {},
       { headers: this.headers },
     );
+  }
+
+  getNotifications(): Observable<AppNotification[]> {
+    return this.http.get<AppNotification[]>(`${this.apiUrl}/notifications`, {
+      headers: this.headers,
+    });
+  }
+
+  markNotificationsRead(): Observable<void> {
+    return this.http.post<void>(`${this.apiUrl}/notifications/read`, {}, {
+      headers: this.headers,
+    });
   }
 
   updateMemberRole(workspaceId: string, userId: string, role: string): Observable<WorkspaceMember> {

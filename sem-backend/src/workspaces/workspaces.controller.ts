@@ -73,6 +73,16 @@ export class WorkspacesController {
     return this.workspacesService.rejectInvitation(workspaceId, req.user.id);
   }
 
+  @Get('notifications')
+  getNotifications(@Request() req: any) {
+    return this.workspacesService.getNotifications(req.user.id);
+  }
+
+  @Post('notifications/read')
+  markNotificationsRead(@Request() req: any) {
+    return this.workspacesService.markNotificationsRead(req.user.id);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string, @Request() req: any) {
     return this.workspacesService.findOne(id, req.user.id);
