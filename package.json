@@ -1,0 +1,10 @@
+{
+  "name": "sem",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start:backend": "npm run start:dev --prefix sem-backend",
+    "start:frontend": "npm run start --prefix sem-frontend",
+    "start": "npx -y concurrently -n \"backend,frontend\" -c \"blue,green\" \"npm run start:backend\" \"npm run start:frontend\""
+  }
+}
