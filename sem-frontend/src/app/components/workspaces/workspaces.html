@@ -92,13 +92,13 @@
         <h1 class="text-4xl font-extrabold text-white tracking-tight">Your Workspaces</h1>
         <p class="text-slate-400 mt-2 text-sm">Select a workspace to manage events, teams, and players — or create a new one.</p>
       </div>
-      <a routerLink="/workspaces/new"
+      <button (click)="openCreateModal()"
         class="flex items-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold rounded-xl shadow-lg shadow-violet-900/40 transition-all cursor-pointer">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
           <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
         </svg>
         New Workspace
-      </a>
+      </button>
     </div>
 
     <!-- Loading -->
@@ -140,10 +140,10 @@
         </div>
         <h2 class="text-xl font-bold text-white mb-2">No workspaces yet</h2>
         <p class="text-slate-400 text-sm mb-8 max-w-sm">Create your first workspace to start managing sports events for your organization.</p>
-        <a routerLink="/workspaces/new"
+        <button (click)="openCreateModal()"
           class="px-6 py-3 bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold rounded-xl shadow-lg shadow-violet-900/40 transition-all cursor-pointer">
           Create your first workspace
-        </a>
+        </button>
       </div>
     }
 
@@ -198,4 +198,109 @@
       </div>
     }
   </div>
+
+  <!-- Create Workspace Modal -->
+  @if (isCreateModalOpen()) {
+  <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+    (click)="closeCreateModal()">
+    <div
+      class="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col shadow-2xl relative overflow-hidden"
+      (click)="$event.stopPropagation()">
+      <!-- Gradient top line -->
+      <div class="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-violet-500 to-indigo-500"></div>
+
+      <!-- Header -->
+      <div class="px-6 py-5 border-b border-white/5 flex items-center justify-between">
+        <div>
+          <h3 class="text-base font-bold text-white flex items-center gap-2">
+            Create a Workspace
+          </h3>
+          <p class="text-xs text-slate-400 mt-1">
+            A workspace represents your organization — college, club, or association.
+          </p>
+        </div>
+        <button (click)="closeCreateModal()" class="text-slate-400 hover:text-white transition cursor-pointer">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+            <path
+              d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Form Content -->
+      <div class="p-6 overflow-y-auto flex-1">
+        @if (createError()) {
+        <div
+          class="mb-4 rounded-xl bg-rose-500/10 border border-rose-500/30 p-3 text-rose-300 text-xs flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+            <path
+              d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
+          </svg>
+          {{ createError() }}
+        </div>
+        }
+
+        <form (submit)="onCreateWorkspace(); $event.preventDefault()" class="flex flex-col gap-4">
+          <!-- Workspace Name -->
+          <div class="flex flex-col gap-1.5">
+            <label for="ws-name" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Workspace Name <span
+                class="text-rose-400">*</span></label>
+            <input id="ws-name" type="text" placeholder="e.g. ABC College, Kerala Sports Association" autocomplete="off"
+              class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition-all w-full"
+              [ngModel]="name()" (ngModelChange)="name.set($event)" name="name" required />
+          </div>
+
+          <!-- Slug Preview -->
+          <div class="flex flex-col gap-1.5">
+            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">URL Slug</label>
+            <div class="flex items-center bg-slate-950 border border-white/5 rounded-xl px-4 py-2.5 gap-2">
+              <span class="text-slate-500 text-xs">/workspaces/</span>
+              <span class="text-xs text-violet-400 font-mono font-semibold">{{ slugPreview() }}</span>
+            </div>
+            <p class="text-[10px] text-slate-500">Auto-generated from the workspace name.</p>
+          </div>
+
+          <!-- Description -->
+          <div class="flex flex-col gap-1.5">
+            <label for="ws-desc" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Description <span class="text-slate-500 font-normal normal-case">(optional)</span></label>
+            <textarea id="ws-desc" placeholder="Brief description of this organization or club..."
+              class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition-all w-full resize-none h-20"
+              [ngModel]="description()" (ngModelChange)="description.set($event)" name="description"></textarea>
+          </div>
+
+          <!-- Info Box -->
+          <div class="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-4 flex items-start gap-2.5">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-indigo-400 flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+            </svg>
+            <p class="text-[10px] text-indigo-300 leading-relaxed">
+              You will be the <strong class="text-indigo-200">owner</strong> of this workspace. You can invite members, create events, and manage teams after creation.
+            </p>
+          </div>
+
+          <!-- Footer Buttons -->
+          <div class="flex items-center justify-end gap-3 pt-4 border-t border-white/5 mt-4">
+            <button type="button" (click)="closeCreateModal()"
+              class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-xl transition cursor-pointer">
+              Cancel
+            </button>
+            <button type="submit" [disabled]="isCreating() || !name().trim()"
+              class="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-xl transition cursor-pointer shadow-lg shadow-violet-900/20">
+              @if (isCreating()) {
+              <svg class="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span>Creating...</span>
+              } @else {
+              <span>Create Workspace</span>
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  }
 </div>

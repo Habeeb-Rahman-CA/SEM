@@ -1,6 +1,7 @@
-import { Component, OnInit, signal, inject } from '@angular/core';
+import { Component, OnInit, signal, inject, computed } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { WorkspaceService, Workspace } from '../../services/workspace.service';
 import { AuthService } from '../../services/auth.service';
 import { UiService } from '../../services/ui.service';
@@ -8,7 +9,7 @@ import { UiService } from '../../services/ui.service';
 @Component({
   selector: 'app-workspaces',
   standalone: true,
-  imports: [RouterLink, DatePipe],
+  imports: [RouterLink, DatePipe, FormsModule],
   templateUrl: './workspaces.html',
   styleUrl: './workspaces.css',
 })
@@ -94,5 +95,64 @@ export class WorkspacesComponent implements OnInit {
     let hash = 0;
     for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
     return colors[Math.abs(hash) % colors.length];
+  }
+
+  // Workspace creation modal signals & logic
+  isCreateModalOpen = signal(false);
+  name = signal('');
+  description = signal('');
+  isCreating = signal(false);
+  createError = signal('');
+
+  slugPreview = computed(() =>
+    this.name()
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .slice(0, 60) || 'your-workspace'
+  );
+
+  openCreateModal() {
+    this.name.set('');
+    this.description.set('');
+    this.createError.set('');
+    this.isCreating.set(false);
+    this.isCreateModalOpen.set(true);
+  }
+
+  closeCreateModal() {
+    this.isCreateModalOpen.set(false);
+  }
+
+  onCreateWorkspace() {
+    const name = this.name().trim();
+    if (!name) {
+      this.createError.set('Workspace name is required.');
+      return;
+    }
+
+    this.isCreating.set(true);
+    this.createError.set('');
+
+    this.workspaceService.create({ name, description: this.description().trim() || undefined }).subscribe({
+      next: (ws) => {
+        this.isCreating.set(false);
+        this.closeCreateModal();
+        this.router.navigate(['/workspaces', ws.id]);
+      },
+      error: (err) => {
+        this.isCreating.set(false);
+        console.error(err);
+        if (err.status === 409) {
+          this.createError.set('A workspace with that name/slug already exists.');
+        } else if (err.error?.message) {
+          this.createError.set(Array.isArray(err.error.message) ? err.error.message.join(', ') : err.error.message);
+        } else {
+          this.createError.set('Failed to create workspace. Please try again.');
+        }
+      },
+    });
   }
 }
