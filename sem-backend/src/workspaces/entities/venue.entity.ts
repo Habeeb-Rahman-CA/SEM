@@ -25,6 +25,9 @@ export class Venue extends AuditableEntity {
   @Column({ type: 'int', nullable: true })
   capacity: number | null;
 
+  @Column({ name: 'image_url', type: 'varchar', length: 500, nullable: true })
+  imageUrl: string | null;
+
   @Column({ name: 'workspace_id', type: 'uuid' })
   workspaceId: string;
 

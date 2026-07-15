@@ -26,7 +26,7 @@ export class UploadController {
       throw new BadRequestException('No file uploaded');
     }
 
-    const validTypes = ['workspace', 'team', 'user', 'event'];
+    const validTypes = ['workspace', 'team', 'user', 'event', 'venue'];
     if (!type || !validTypes.includes(type)) {
       throw new BadRequestException(
         `Invalid upload type. Must be one of: ${validTypes.join(', ')}`,
@@ -42,6 +42,8 @@ export class UploadController {
       folder = 'sem/users/profiles';
     } else if (type === 'event') {
       folder = 'sem/events/logos';
+    } else if (type === 'venue') {
+      folder = 'sem/venues';
     }
 
     try {

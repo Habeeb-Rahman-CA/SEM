@@ -2553,6 +2553,7 @@ export class WorkspacesService implements OnModuleInit {
       name: dto.name,
       location: dto.location ?? null,
       capacity: dto.capacity ?? null,
+      imageUrl: dto.imageUrl ?? null,
       workspaceId,
     });
     return this.venueRepo.save(venue);
@@ -2574,6 +2575,7 @@ export class WorkspacesService implements OnModuleInit {
       ...(dto.name !== undefined && { name: dto.name }),
       ...(dto.location !== undefined && { location: dto.location }),
       ...(dto.capacity !== undefined && { capacity: dto.capacity }),
+      ...(dto.imageUrl !== undefined && { imageUrl: dto.imageUrl }),
     });
 
     return this.venueRepo.save(venue);

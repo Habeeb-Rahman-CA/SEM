@@ -20,6 +20,7 @@ export interface Venue {
   name: string;
   location: string | null;
   capacity: number | null;
+  imageUrl?: string | null;
   workspaceId: string;
   createdAt: string;
   updatedAt: string;
@@ -711,7 +712,7 @@ export class WorkspaceService {
     );
   }
 
-  uploadImage(file: File, type: 'workspace' | 'team' | 'user' | 'event'): Observable<{ url: string; publicId: string }> {
+  uploadImage(file: File, type: 'workspace' | 'team' | 'user' | 'event' | 'venue'): Observable<{ url: string; publicId: string }> {
     const formData = new FormData();
     formData.append('file', file);
     return this.http.post<{ url: string; publicId: string }>(

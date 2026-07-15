@@ -1,7 +1,7 @@
 import { Component, OnInit, signal, inject, computed } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { WorkspaceService, Workspace, WorkspaceMember, AppNotification, Role, Team, Player, WorkspaceEvent, Sport, Competition, CompetitionStage, CompetitionTeam, Match, Venue, PointsConfigEntry } from '../../services/workspace.service';
 import { AuthService } from '../../services/auth.service';
@@ -12,7 +12,7 @@ declare const L: any;
 @Component({
   selector: 'app-workspace-detail',
   standalone: true,
-  imports: [RouterLink, DatePipe, DecimalPipe, FormsModule],
+  imports: [RouterLink, DatePipe, FormsModule],
   templateUrl: './workspace-detail.html',
   styleUrl: './workspace-detail.css',
 })
@@ -471,6 +471,7 @@ export class WorkspaceDetailComponent implements OnInit {
   newVenueName = signal('');
   newVenueLocation = signal('');
   newVenueCapacity = signal<number | null>(null);
+  newVenueImageUrl = signal('');
   isCreatingVenue = signal(false);
   venueCreateError = signal('');
   venueCreateSuccess = signal('');
@@ -480,9 +481,11 @@ export class WorkspaceDetailComponent implements OnInit {
   editVenueName = signal('');
   editVenueLocation = signal('');
   editVenueCapacity = signal<number | null>(null);
+  editVenueImageUrl = signal('');
   isUpdatingVenue = signal(false);
   venueUpdateError = signal('');
   venueUpdateSuccess = signal('');
+  isUploadingVenueImage = signal(false);
 
   newMatchVenueId = signal('');
 
@@ -811,6 +814,7 @@ export class WorkspaceDetailComponent implements OnInit {
     this.newVenueName.set('');
     this.newVenueLocation.set('');
     this.newVenueCapacity.set(null);
+    this.newVenueImageUrl.set('');
     this.venueCreateError.set('');
     this.venueCreateSuccess.set('');
     this.isVenueModalOpen.set(true);
@@ -833,6 +837,7 @@ export class WorkspaceDetailComponent implements OnInit {
     const name = this.newVenueName().trim();
     const location = this.newVenueLocation().trim();
     const capacity = this.newVenueCapacity();
+    const imageUrl = this.newVenueImageUrl().trim();
     const ws = this.workspace();
     if (!ws || !name) return;
 
@@ -843,6 +848,7 @@ export class WorkspaceDetailComponent implements OnInit {
     const payload: any = { name };
     if (location) payload.location = location;
     if (capacity !== null && capacity !== undefined) payload.capacity = capacity;
+    if (imageUrl) payload.imageUrl = imageUrl;
 
     this.workspaceService.createVenue(ws.id, payload).subscribe({
       next: (venue) => {
@@ -851,6 +857,7 @@ export class WorkspaceDetailComponent implements OnInit {
         this.newVenueName.set('');
         this.newVenueLocation.set('');
         this.newVenueCapacity.set(null);
+        this.newVenueImageUrl.set('');
         this.venues.update(prev => [...prev, venue]);
         setTimeout(() => this.closeVenueModal(), 1000);
       },
@@ -866,6 +873,7 @@ export class WorkspaceDetailComponent implements OnInit {
     this.editVenueName.set(venue.name);
     this.editVenueLocation.set(venue.location ?? '');
     this.editVenueCapacity.set(venue.capacity);
+    this.editVenueImageUrl.set(venue.imageUrl ?? '');
     this.venueUpdateError.set('');
     this.venueUpdateSuccess.set('');
     this.isVenueModalOpen.set(true);
@@ -893,6 +901,8 @@ export class WorkspaceDetailComponent implements OnInit {
     this.venueCreateSuccess.set('');
     this.venueUpdateError.set('');
     this.venueUpdateSuccess.set('');
+    this.newVenueImageUrl.set('');
+    this.editVenueImageUrl.set('');
     if (this.map) {
       try {
         this.map.remove();
@@ -1061,6 +1071,7 @@ export class WorkspaceDetailComponent implements OnInit {
     const name = this.editVenueName().trim();
     const location = this.editVenueLocation().trim();
     const capacity = this.editVenueCapacity();
+    const imageUrl = this.editVenueImageUrl().trim();
     const ws = this.workspace();
     const venue = this.editingVenue();
     if (!ws || !venue || !name) return;
@@ -1072,6 +1083,7 @@ export class WorkspaceDetailComponent implements OnInit {
     const payload: any = { name };
     payload.location = location || null;
     payload.capacity = capacity !== null && capacity !== undefined ? capacity : null;
+    payload.imageUrl = imageUrl || null;
 
     this.workspaceService.updateVenue(ws.id, venue.id, payload).subscribe({
       next: (updated) => {
@@ -4060,7 +4072,7 @@ export class WorkspaceDetailComponent implements OnInit {
             return b.wicket && b.wicketType !== 'Run Out' && b.wicketType !== 'Retired Hurt';
           });
           if (isHatTrick) {
-            this.uiService.success(`🎓 HAT-TRICK! ${bowler} has taken 3 wickets in 3 consecutive deliveries!`);
+            this.uiService.success(`HAT-TRICK! ${bowler} has taken 3 wickets in 3 consecutive deliveries!`);
           }
         }
       }
@@ -5072,6 +5084,29 @@ export class WorkspaceDetailComponent implements OnInit {
         this.isUploadingEventLogo.set(false);
         console.error(err);
         this.uiService.error('Event logo upload failed.');
+      }
+    });
+  }
+
+  onVenueImageUpload(event: any, isEdit: boolean) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    this.isUploadingVenueImage.set(true);
+    this.workspaceService.uploadImage(file, 'venue').subscribe({
+      next: (res) => {
+        this.isUploadingVenueImage.set(false);
+        if (isEdit) {
+          this.editVenueImageUrl.set(res.url);
+        } else {
+          this.newVenueImageUrl.set(res.url);
+        }
+        this.uiService.success('Venue image uploaded successfully.');
+      },
+      error: (err) => {
+        this.isUploadingVenueImage.set(false);
+        console.error(err);
+        this.uiService.error('Venue image upload failed.');
       }
     });
   }
