@@ -46,4 +46,19 @@ export class MatchPlayer extends AuditableEntity {
 
   @Column({ name: 'is_goalkeeper', type: 'boolean', default: false })
   isGoalkeeper: boolean;
+
+  /**
+   * Per-match player rating (5.0–10.0).
+   * NULL = not yet rated (match not completed or auto-rating not run).
+   * Set automatically when match status transitions to 'completed',
+   * or manually overridden by an admin.
+   */
+  @Column({
+    type: 'decimal',
+    precision: 4,
+    scale: 2,
+    nullable: true,
+    default: null,
+  })
+  rating: number | null;
 }

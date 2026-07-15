@@ -4131,7 +4131,8 @@
                       <span class="text-[10px] text-slate-500 italic">No players registered.</span>
                       } @else {
                         @for (mp of homeLineup; track mp.id) {
-                        <div class="flex items-center justify-between p-1.5 rounded-lg bg-slate-950/40 border border-white/5">
+                        <div class="flex items-center justify-between p-1.5 rounded-lg border transition-all"
+                          [class]="mp.isCurrentlyPlaying ? 'bg-slate-950/60 border-white/8' : 'bg-slate-950/20 border-white/3 opacity-60'">
                           <div class="flex items-center gap-2 min-w-0">
                             <span class="text-[10px] font-mono font-extrabold text-violet-400">
                               {{ mp.player?.jerseyNumber ? '#' + mp.player?.jerseyNumber : '--' }}
@@ -4140,9 +4141,44 @@
                             @if (mp.isGoalkeeper) {
                             <span class="text-[8px] bg-amber-500/15 border border-amber-500/30 text-amber-400 rounded px-1 font-bold">GK</span>
                             }
+                            
+                            <!-- Sub indicators -->
+                            @if (mp.subStatus === 'in') {
+                            <span class="text-[9px] text-emerald-400 flex items-center font-bold" title="Subbed In">
+                              <i class="fi fi-rr-arrow-small-up"></i> In
+                            </span>
+                            }
+                            @if (mp.subStatus === 'out') {
+                            <span class="text-[9px] text-orange-400 flex items-center font-bold" title="Subbed Out">
+                              <i class="fi fi-rr-arrow-small-down"></i> Out
+                            </span>
+                            }
+                            @if (mp.isRedCarded) {
+                            <span class="w-1.5 h-2.5 bg-rose-500 rounded-sm inline-block border border-rose-600 shadow-sm shrink-0" title="Sent Off (Red Card)"></span>
+                            }
                           </div>
-                          <span [class]="mp.isPlaying ? 'w-2 h-2 rounded-full bg-emerald-500' : 'w-2 h-2 rounded-full bg-slate-600'" 
-                                [title]="mp.isPlaying ? 'Playing' : 'Bench'"></span>
+                          <div class="flex items-center gap-1.5 shrink-0">
+                            @if (mp.rating !== null && mp.rating !== undefined) {
+                            <!-- Rating badge -->
+                            <span class="text-[9px] font-extrabold px-1.5 py-0.5 rounded border"
+                              [ngClass]="getPlayerRatingColor(mp.rating)"
+                              title="Match rating">
+                              {{ (+mp.rating).toFixed(1) }}
+                            </span>
+                            }
+                            <span [class]="
+                              mp.isRedCarded ? 'w-2 h-2 rounded-full bg-rose-500' :
+                              mp.subStatus === 'out' ? 'w-2 h-2 rounded-full bg-orange-500' :
+                              mp.subStatus === 'in' ? 'w-2 h-2 rounded-full bg-amber-500' :
+                              mp.isCurrentlyPlaying ? 'w-2 h-2 rounded-full bg-emerald-500' :
+                              'w-2 h-2 rounded-full bg-slate-600'"
+                              [title]="
+                              mp.isRedCarded ? 'Red Carded / Sent Off' :
+                              mp.subStatus === 'out' ? 'Substituted Out' :
+                              mp.subStatus === 'in' ? 'Subbed In (Playing)' :
+                              mp.isCurrentlyPlaying ? 'Playing' : 'Bench'">
+                            </span>
+                          </div>
                         </div>
                         }
                       }
@@ -4169,7 +4205,8 @@
                       <span class="text-[10px] text-slate-500 italic">No players registered.</span>
                       } @else {
                         @for (mp of awayLineup; track mp.id) {
-                        <div class="flex items-center justify-between p-1.5 rounded-lg bg-slate-950/40 border border-white/5">
+                        <div class="flex items-center justify-between p-1.5 rounded-lg border transition-all"
+                          [class]="mp.isCurrentlyPlaying ? 'bg-slate-950/60 border-white/8' : 'bg-slate-950/20 border-white/3 opacity-60'">
                           <div class="flex items-center gap-2 min-w-0">
                             <span class="text-[10px] font-mono font-extrabold text-violet-400">
                               {{ mp.player?.jerseyNumber ? '#' + mp.player?.jerseyNumber : '--' }}
@@ -4178,13 +4215,49 @@
                             @if (mp.isGoalkeeper) {
                             <span class="text-[8px] bg-amber-500/15 border border-amber-500/30 text-amber-400 rounded px-1 font-bold">GK</span>
                             }
+                            
+                            <!-- Sub indicators -->
+                            @if (mp.subStatus === 'in') {
+                            <span class="text-[9px] text-emerald-400 flex items-center font-bold" title="Subbed In">
+                              <i class="fi fi-rr-arrow-small-up"></i> In
+                            </span>
+                            }
+                            @if (mp.subStatus === 'out') {
+                            <span class="text-[9px] text-orange-400 flex items-center font-bold" title="Subbed Out">
+                              <i class="fi fi-rr-arrow-small-down"></i> Out
+                            </span>
+                            }
+                            @if (mp.isRedCarded) {
+                            <span class="w-1.5 h-2.5 bg-rose-500 rounded-sm inline-block border border-rose-600 shadow-sm shrink-0" title="Sent Off (Red Card)"></span>
+                            }
                           </div>
-                          <span [class]="mp.isPlaying ? 'w-2 h-2 rounded-full bg-emerald-500' : 'w-2 h-2 rounded-full bg-slate-600'" 
-                                [title]="mp.isPlaying ? 'Playing' : 'Bench'"></span>
+                          <div class="flex items-center gap-1.5 shrink-0">
+                            @if (mp.rating !== null && mp.rating !== undefined) {
+                            <!-- Rating badge -->
+                            <span class="text-[9px] font-extrabold px-1.5 py-0.5 rounded border"
+                              [ngClass]="getPlayerRatingColor(mp.rating)"
+                              title="Match rating">
+                              {{ (+mp.rating).toFixed(1) }}
+                            </span>
+                            }
+                            <span [class]="
+                              mp.isRedCarded ? 'w-2 h-2 rounded-full bg-rose-500' :
+                              mp.subStatus === 'out' ? 'w-2 h-2 rounded-full bg-orange-500' :
+                              mp.subStatus === 'in' ? 'w-2 h-2 rounded-full bg-amber-500' :
+                              mp.isCurrentlyPlaying ? 'w-2 h-2 rounded-full bg-emerald-500' :
+                              'w-2 h-2 rounded-full bg-slate-600'"
+                              [title]="
+                              mp.isRedCarded ? 'Red Carded / Sent Off' :
+                              mp.subStatus === 'out' ? 'Substituted Out' :
+                              mp.subStatus === 'in' ? 'Subbed In (Playing)' :
+                              mp.isCurrentlyPlaying ? 'Playing' : 'Bench'">
+                            </span>
+                          </div>
                         </div>
                         }
                       }
                     </div>
+
                   </div>
                 </div>
               </div>

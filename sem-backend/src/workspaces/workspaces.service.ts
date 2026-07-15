@@ -44,6 +44,7 @@ import { UpdateMatchDto } from './dto/update-match.dto';
 import { CreateVenueDto } from './dto/create-venue.dto';
 import { UpdateVenueDto } from './dto/update-venue.dto';
 import { BulkImportMembersDto } from './dto/bulk-import-members.dto';
+import { RateMatchPlayerItemDto } from './dto/rate-match-players.dto';
 
 @Injectable()
 export class WorkspacesService implements OnModuleInit {
@@ -1713,7 +1714,7 @@ export class WorkspacesService implements OnModuleInit {
 
     const saved = await this.matchRepo.save(match);
 
-    // If match was completed, run knockout advancement
+    // If match was completed, run knockout advancement and auto-rate players
     if (saved.status === 'completed') {
       const stage = await this.stageRepo.findOne({ where: { id: stageId } });
       if (stage) {
@@ -1725,6 +1726,8 @@ export class WorkspacesService implements OnModuleInit {
         }
         await this.checkAndAutoCompleteCompetition(stage.competitionId);
       }
+      // Auto-calculate player ratings based on match events
+      await this.autoRateMatchPlayers(saved);
     }
 
     return (await this.matchRepo.findOne({
@@ -2743,6 +2746,421 @@ export class WorkspacesService implements OnModuleInit {
         team: true,
       },
     });
+  }
+
+  // ─── Player Ratings ────────────────────────────────────────────────────────
+
+  /**
+   * Returns all MatchPlayer entries for a match, including the rating field.
+   */
+  async getMatchRatings(
+    workspaceId: string,
+    eventId: string,
+    competitionId: string,
+    stageId: string,
+    matchId: string,
+    userId: string,
+  ): Promise<MatchPlayer[]> {
+    await this.ensureMember(workspaceId, userId);
+
+    const match = await this.matchRepo.findOne({ where: { id: matchId, stageId } });
+    if (!match) throw new NotFoundException('Match not found');
+
+    return this.matchPlayerRepo.find({
+      where: { matchId, isPlaying: true },
+      relations: { player: { user: true }, team: true },
+      order: { rating: 'DESC' },
+    });
+  }
+
+  /**
+   * Manually set / override per-player ratings for a match.
+   * Only players with isPlaying=true can be rated.
+   * Ratings are clamped to 5.0–10.0 by the DTO validator.
+   */
+  async setMatchPlayerRatings(
+    workspaceId: string,
+    eventId: string,
+    competitionId: string,
+    stageId: string,
+    matchId: string,
+    ratings: RateMatchPlayerItemDto[],
+    userId: string,
+  ): Promise<MatchPlayer[]> {
+    await this.ensurePermission(workspaceId, userId, 'match.score');
+
+    const match = await this.matchRepo.findOne({ where: { id: matchId, stageId } });
+    if (!match) throw new NotFoundException('Match not found');
+
+    const players = await this.matchPlayerRepo.find({ where: { matchId } });
+    const playerMap = new Map(players.map((p) => [p.playerId, p]));
+
+    const toSave: MatchPlayer[] = [];
+    for (const item of ratings) {
+      const entry = playerMap.get(item.playerId);
+      if (!entry) continue; // silently skip players not in this match
+      entry.rating = Math.min(10.0, Math.max(5.0, item.rating));
+      toSave.push(entry);
+    }
+
+    await this.matchPlayerRepo.save(toSave);
+
+    return this.matchPlayerRepo.find({
+      where: { matchId, isPlaying: true },
+      relations: { player: { user: true }, team: true },
+      order: { rating: 'DESC' },
+    });
+  }
+
+  /**
+   * Returns the "Best Player" for a competition based on:
+   * - Average rating across all matches they played
+   * - Minimum appearance threshold: must have played in >= 50% of the
+   *   competition's total completed matches to be eligible.
+   */
+  async getCompetitionBestPlayer(
+    workspaceId: string,
+    eventId: string,
+    competitionId: string,
+    userId: string,
+  ): Promise<{
+    bestPlayer: MatchPlayer | null;
+    allRankings: Array<{
+      playerId: string;
+      playerName: string;
+      teamName: string;
+      avgRating: number;
+      appearances: number;
+      eligible: boolean;
+    }>;
+    totalMatches: number;
+    minAppearancesRequired: number;
+  }> {
+    await this.ensureMember(workspaceId, userId);
+
+    const competition = await this.competitionRepo.findOne({
+      where: { id: competitionId, eventId },
+    });
+    if (!competition) throw new NotFoundException('Competition not found');
+
+    // Gather all stage IDs for this competition
+    const stages = await this.stageRepo.find({ where: { competitionId } });
+    const stageIds = stages.map((s) => s.id);
+    if (stageIds.length === 0) {
+      return { bestPlayer: null, allRankings: [], totalMatches: 0, minAppearancesRequired: 0 };
+    }
+
+    // Count total completed matches in the competition
+    const allMatches = await this.matchRepo.find({
+      where: { stageId: In(stageIds), status: 'completed' },
+    });
+    const totalMatches = allMatches.length;
+    if (totalMatches === 0) {
+      return { bestPlayer: null, allRankings: [], totalMatches: 0, minAppearancesRequired: 0 };
+    }
+
+    const matchIds = allMatches.map((m) => m.id);
+    const minAppearancesRequired = Math.ceil(totalMatches * 0.5);
+
+    // Fetch all rated match-player entries across all competition matches
+    const allMatchPlayers = await this.matchPlayerRepo.find({
+      where: { matchId: In(matchIds), isPlaying: true },
+      relations: { player: { user: true }, team: true },
+    });
+
+    // Aggregate per player
+    const playerStats = new Map<
+      string,
+      { entry: MatchPlayer; ratings: number[]; teamName: string; playerName: string }
+    >();
+
+    for (const mp of allMatchPlayers) {
+      if (mp.rating === null) continue; // skip unrated
+      const existing = playerStats.get(mp.playerId);
+      const playerName =
+        mp.player?.user?.username ?? mp.player?.jerseyNumber?.toString() ?? mp.playerId;
+      const teamName = mp.team?.name ?? 'Unknown';
+      if (existing) {
+        existing.ratings.push(Number(mp.rating));
+      } else {
+        playerStats.set(mp.playerId, {
+          entry: mp,
+          ratings: [Number(mp.rating)],
+          playerName,
+          teamName,
+        });
+      }
+    }
+
+    // Build rankings
+    const rankings: Array<{
+      playerId: string;
+      playerName: string;
+      teamName: string;
+      avgRating: number;
+      appearances: number;
+      eligible: boolean;
+    }> = [];
+
+    for (const [playerId, stats] of playerStats.entries()) {
+      const appearances = stats.ratings.length;
+      const avgRating =
+        Math.round((stats.ratings.reduce((a, b) => a + b, 0) / appearances) * 100) / 100;
+      rankings.push({
+        playerId,
+        playerName: stats.playerName,
+        teamName: stats.teamName,
+        avgRating,
+        appearances,
+        eligible: appearances >= minAppearancesRequired,
+      });
+    }
+
+    // Sort eligible first, then by avgRating descending
+    rankings.sort((a, b) => {
+      if (a.eligible !== b.eligible) return a.eligible ? -1 : 1;
+      return b.avgRating - a.avgRating;
+    });
+
+    const topEligible = rankings.find((r) => r.eligible) ?? null;
+    let bestPlayer: MatchPlayer | null = null;
+    if (topEligible) {
+      bestPlayer =
+        playerStats.get(topEligible.playerId)?.entry ?? null;
+    }
+
+    return { bestPlayer, allRankings: rankings, totalMatches, minAppearancesRequired };
+  }
+
+  /**
+   * Auto-calculates and saves per-player ratings for a completed football match.
+   * Reads liveData.events[] to tally goals, assists, own goals, and cards.
+   * Only players with isPlaying=true are rated.
+   *
+   * Football liveData event shape:
+   * { type: 'goal'|'own_goal'|'assist'|'yellow_card'|'red_card', playerId, teamId, minute }
+   */
+  private async autoRateMatchPlayers(match: Match): Promise<void> {
+    const liveData = match.liveData as any;
+    if (!liveData) return;
+
+    // Fetch sport code
+    const stage = await this.stageRepo.findOne({
+      where: { id: match.stageId },
+      relations: { competition: { sport: true } },
+    });
+    const sportCode = stage?.competition?.sport?.code ?? 'football';
+
+    const matchPlayers = await this.matchPlayerRepo.find({
+      where: { matchId: match.id },
+      relations: { player: { user: true } },
+    });
+    if (matchPlayers.length === 0) return;
+
+    const toSave: MatchPlayer[] = [];
+
+    const homeScore = match.homeScore ?? 0;
+    const awayScore = match.awayScore ?? 0;
+    const winnerTeamId =
+      homeScore > awayScore
+        ? match.homeTeamId
+        : awayScore > homeScore
+        ? match.awayTeamId
+        : null;
+    const loserTeamId =
+      winnerTeamId === match.homeTeamId
+        ? match.awayTeamId
+        : winnerTeamId === match.awayTeamId
+        ? match.homeTeamId
+        : null;
+
+    if (sportCode === 'football') {
+      if (!Array.isArray(liveData.events)) return;
+      const playingStarters = matchPlayers.filter(mp => mp.isPlaying);
+      if (playingStarters.length === 0) return;
+
+      type PlayerTally = {
+        goals: number;
+        assists: number;
+        ownGoals: number;
+        yellowCards: number;
+        redCards: number;
+      };
+      const tallies = new Map<string, PlayerTally>();
+      for (const mp of playingStarters) {
+        tallies.set(mp.playerId, { goals: 0, assists: 0, ownGoals: 0, yellowCards: 0, redCards: 0 });
+      }
+
+      for (const event of liveData.events as any[]) {
+        const t = tallies.get(event.playerId);
+        if (!t) continue;
+        switch (event.type) {
+          case 'goal':        t.goals++;        break;
+          case 'own_goal':    t.ownGoals++;     break;
+          case 'assist':      t.assists++;      break;
+          case 'yellow_card': t.yellowCards++;  break;
+          case 'red_card':    t.redCards++;     break;
+        }
+      }
+
+      const homeGoalsAgainst = awayScore;
+      const awayGoalsAgainst = homeScore;
+
+      for (const mp of playingStarters) {
+        if (mp.rating !== null) continue;
+
+        const tally = tallies.get(mp.playerId) ?? { goals: 0, assists: 0, ownGoals: 0, yellowCards: 0, redCards: 0 };
+        let rating = 5.0;
+
+        const goalBonus = mp.isGoalkeeper ? 0.3 : 0.5;
+        rating += tally.goals * goalBonus;
+        rating += tally.assists * 0.3;
+        rating -= tally.ownGoals * 0.5;
+
+        if (winnerTeamId && mp.teamId === winnerTeamId) {
+          rating += 0.5;
+        } else if (loserTeamId && mp.teamId === loserTeamId) {
+          rating -= 0.3;
+        }
+
+        if (mp.isGoalkeeper) {
+          const goalsConceded =
+            mp.teamId === match.homeTeamId ? homeGoalsAgainst : awayGoalsAgainst;
+          if (goalsConceded === 0) {
+            rating += 0.5;
+          }
+        }
+
+        rating -= tally.yellowCards * 0.3;
+        rating -= tally.redCards * 0.8;
+
+        mp.rating = Math.min(10.0, Math.max(5.0, Math.round(rating * 100) / 100));
+        toSave.push(mp);
+      }
+    } else if (sportCode === 'cricket') {
+      const inningsList = liveData.inningsData || [];
+
+      for (const mp of matchPlayers) {
+        if (mp.rating !== null) continue;
+
+        const username = mp.player?.user?.username;
+        if (!username) continue;
+
+        // Check if player participated in lineup or statistics
+        const hasStats = inningsList.some((inn: any) => inn.batsmanStats?.[username] || inn.bowlerStats?.[username]);
+        if (!mp.isPlaying && !hasStats) continue;
+
+        let rating = 5.0;
+
+        let batRuns = 0, batBalls = 0, batFours = 0, batSixes = 0;
+        let bowledOut = false;
+
+        let bowlOvers = 0, bowlBalls = 0, bowlRunsConceded = 0, bowlWickets = 0, bowlMaidens = 0;
+
+        for (const inn of inningsList) {
+          const bStats = inn.batsmanStats?.[username];
+          if (bStats) {
+            batRuns += bStats.runs ?? 0;
+            batBalls += bStats.balls ?? 0;
+            batFours += bStats.fours ?? 0;
+            batSixes += bStats.sixes ?? 0;
+          }
+          const bwStats = inn.bowlerStats?.[username];
+          if (bwStats) {
+            bowlOvers += bwStats.overs ?? 0;
+            bowlBalls += bwStats.balls ?? 0;
+            bowlRunsConceded += bwStats.runsConceded ?? 0;
+            bowlWickets += bwStats.wickets ?? 0;
+            bowlMaidens += bwStats.maidens ?? 0;
+          }
+          if (inn.ballsHistory) {
+            for (const ball of inn.ballsHistory) {
+              if (ball.wicket && ball.striker === username && ball.wicketType !== 'Retired Hurt') {
+                bowledOut = true;
+              }
+            }
+          }
+        }
+
+        // Batting calculations
+        rating += batRuns * 0.05;
+        rating += batFours * 0.1;
+        rating += batSixes * 0.2;
+
+        if (batBalls > 5) {
+          const sr = (batRuns / batBalls) * 100;
+          if (sr > 150) rating += 0.5;
+          else if (sr > 120) rating += 0.3;
+          else if (sr < 80) rating -= 0.3;
+        }
+
+        if (bowledOut && batRuns === 0 && batBalls > 0) {
+          rating -= 0.5; // Duck penalty
+        }
+
+        // Bowling calculations
+        rating += bowlWickets * 0.8;
+        rating += bowlMaidens * 0.5;
+        rating -= bowlRunsConceded * 0.02;
+
+        const totalOvers = bowlOvers + (bowlBalls / 6);
+        if (totalOvers > 1.0) {
+          const econ = bowlRunsConceded / totalOvers;
+          if (econ < 6.0) rating += 0.5;
+          else if (econ < 8.0) rating += 0.2;
+          else if (econ > 10.0) rating -= 0.4;
+        }
+
+        // Win/loss points
+        if (winnerTeamId && mp.teamId === winnerTeamId) {
+          rating += 0.5;
+        } else if (loserTeamId && mp.teamId === loserTeamId) {
+          rating -= 0.3;
+        }
+
+        mp.rating = Math.min(10.0, Math.max(5.0, Math.round(rating * 100) / 100));
+        toSave.push(mp);
+      }
+    } else if (sportCode === 'badminton') {
+      const rallies = liveData.rallies || [];
+      const starters = matchPlayers.filter(mp => mp.isPlaying);
+
+      for (const mp of starters) {
+        if (mp.rating !== null) continue;
+
+        let rating = 5.0;
+        let wonRallies = 0, lostRallies = 0;
+
+        const isHomeTeam = mp.teamId === match.homeTeamId;
+
+        for (const r of rallies) {
+          if (r.winnerSide === 'none') continue;
+          if (isHomeTeam) {
+            if (r.winnerSide === 'home') wonRallies++;
+            else lostRallies++;
+          } else {
+            if (r.winnerSide === 'away') wonRallies++;
+            else lostRallies++;
+          }
+        }
+
+        rating += wonRallies * 0.1;
+        rating -= lostRallies * 0.05;
+
+        if (winnerTeamId && mp.teamId === winnerTeamId) {
+          rating += 0.5;
+        } else if (loserTeamId && mp.teamId === loserTeamId) {
+          rating -= 0.3;
+        }
+
+        mp.rating = Math.min(10.0, Math.max(5.0, Math.round(rating * 100) / 100));
+        toSave.push(mp);
+      }
+    }
+
+    if (toSave.length > 0) {
+      await this.matchPlayerRepo.save(toSave);
+    }
   }
 }
 

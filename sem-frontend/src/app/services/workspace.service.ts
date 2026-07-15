@@ -179,6 +179,8 @@ export interface MatchPlayer {
   team?: Team;
   isPlaying: boolean;
   isGoalkeeper?: boolean;
+  /** Per-match player rating (5.0–10.0, null = not yet rated) */
+  rating?: number | null;
   createdAt: string;
   updatedAt: string;
 }

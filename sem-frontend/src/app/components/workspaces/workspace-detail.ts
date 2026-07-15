@@ -1,7 +1,7 @@
 import { Component, OnInit, signal, inject, computed } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
-import { DatePipe } from '@angular/common';
+import { DatePipe, NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { WorkspaceService, Workspace, WorkspaceMember, AppNotification, Role, Team, Player, WorkspaceEvent, Sport, Competition, CompetitionStage, CompetitionTeam, Match, Venue, PointsConfigEntry, MatchPlayer } from '../../services/workspace.service';
 import { AuthService } from '../../services/auth.service';
@@ -12,7 +12,7 @@ declare const L: any;
 @Component({
   selector: 'app-workspace-detail',
   standalone: true,
-  imports: [RouterLink, DatePipe, FormsModule],
+  imports: [RouterLink, DatePipe, FormsModule, NgClass],
   templateUrl: './workspace-detail.html',
   styleUrl: './workspace-detail.css',
 })
@@ -3148,27 +3148,177 @@ export class WorkspaceDetailComponent implements OnInit {
 
   getSortedMatchLineup(teamId: string | null): any[] {
     if (!teamId) return [];
+    const match = this.selectedMatch();
     const teamPlayers = this.players().filter(p => p.teamId === teamId);
     const lineup = this.matchLineup();
+    const events = match?.liveData?.events || [];
     
+    // Find all substitution and red card statuses
+    const subbedOutUserIds = new Set<string>();
+    const subbedInUserIds = new Set<string>();
+    const redCardedUserIds = new Set<string>();
+    
+    for (const ev of events) {
+      if (ev.type === 'substitution') {
+        if (ev.playerOutId) subbedOutUserIds.add(ev.playerOutId);
+        if (ev.playerInId) subbedInUserIds.add(ev.playerInId);
+      }
+      if (ev.type === 'card' && (ev.cardType === 'red' || ev.cardType === 'second_yellow')) {
+        if (ev.playerUserId) redCardedUserIds.add(ev.playerUserId);
+      }
+    }
+
     return teamPlayers.map(p => {
       const matchEntry = lineup.find(le => le.playerId === p.id);
+      const isOriginalStarter = matchEntry ? matchEntry.isPlaying : false;
+      const isGoalkeeper = matchEntry ? !!matchEntry.isGoalkeeper : false;
+      
+      let subStatus: 'in' | 'out' | null = null;
+      if (subbedOutUserIds.has(p.userId)) {
+        subStatus = 'out';
+      } else if (subbedInUserIds.has(p.userId)) {
+        subStatus = 'in';
+      }
+      
+      const isRedCarded = redCardedUserIds.has(p.userId);
+      
+      // A player has participated if they started or were subbed in
+      const participated = isOriginalStarter || subStatus === 'in';
+      
+      // A player is currently playing if they started or were subbed in, AND not subbed out, AND not red carded
+      const isCurrentlyPlaying = participated && subStatus !== 'out' && !isRedCarded;
+      
+      // Calculate live rating
+      const rating = this.calculatePlayerLiveRating(p, matchEntry?.rating ?? null);
+
       return {
         id: p.id,
         player: p,
-        isPlaying: matchEntry ? matchEntry.isPlaying : false,
-        isGoalkeeper: matchEntry ? !!matchEntry.isGoalkeeper : false
+        isPlaying: isOriginalStarter,
+        isGoalkeeper,
+        subStatus,
+        isRedCarded,
+        isCurrentlyPlaying,
+        participated,
+        rating,
       };
     }).sort((a, b) => {
-      if (a.isPlaying && !b.isPlaying) return -1;
-      if (!a.isPlaying && b.isPlaying) return 1;
-      if (a.isGoalkeeper && !b.isGoalkeeper) return -1;
-      if (!a.isGoalkeeper && b.isGoalkeeper) return 1;
+      // Sort: currently playing first, then by rating desc, then starters, then GK first among playing
+      if (a.isCurrentlyPlaying && !b.isCurrentlyPlaying) return -1;
+      if (!a.isCurrentlyPlaying && b.isCurrentlyPlaying) return 1;
+      
+      if (a.isCurrentlyPlaying && b.isCurrentlyPlaying) {
+        if (a.isGoalkeeper && !b.isGoalkeeper) return -1;
+        if (!a.isGoalkeeper && b.isGoalkeeper) return 1;
+        // Sort by rating descending
+        const ra = a.rating ?? -1;
+        const rb = b.rating ?? -1;
+        if (ra !== rb) return rb - ra;
+      } else {
+        if (a.participated && !b.participated) return -1;
+        if (!a.participated && b.participated) return 1;
+      }
+      
       const nameA = a.player?.user?.username || '';
       const nameB = b.player?.user?.username || '';
       return nameA.localeCompare(nameB);
     });
   }
+
+  /**
+   * Calculates player's live rating during football matches.
+   * Starts at 5.0 and increments/decrements based on live match events.
+   */
+  calculatePlayerLiveRating(player: Player, dbRating: number | null): number | null {
+    const match = this.selectedMatch();
+    if (!match) return null;
+    
+    // If match hasn't started, don't show any ratings
+    if (match.status === 'scheduled') return null;
+    
+    // If rating is already finalized/saved in the DB, prioritize it
+    if (dbRating !== null) return dbRating;
+    
+    const events = match.liveData?.events || [];
+    const lineup = this.matchLineup();
+    const matchEntry = lineup.find(le => le.playerId === player.id);
+    const isOriginalStarter = matchEntry ? matchEntry.isPlaying : false;
+    const isGoalkeeper = matchEntry ? !!matchEntry.isGoalkeeper : false;
+    
+    // Check if player participated (starter or subbed in)
+    const subbedIn = events.some((ev: any) => ev.type === 'substitution' && ev.playerInId === player.userId);
+    if (!isOriginalStarter && !subbedIn) {
+      return null;
+    }
+    
+    let rating = 5.0; // Everyone starts at 5.0
+    
+    // Tally events
+    let goals = 0;
+    let assists = 0;
+    let ownGoals = 0;
+    let yellowCards = 0;
+    let redCards = 0;
+    
+    for (const ev of events) {
+      if (ev.playerUserId === player.userId) {
+        if (ev.type === 'goal') goals++;
+        if (ev.type === 'own_goal') ownGoals++;
+        if (ev.type === 'card' && ev.cardType === 'yellow') yellowCards++;
+        if (ev.type === 'card' && (ev.cardType === 'red' || ev.cardType === 'second_yellow')) redCards++;
+      }
+      if (ev.type === 'goal' && ev.assistPlayerUserId === player.userId) {
+        assists++;
+      }
+    }
+    
+    // Goal bonus
+    rating += goals * (isGoalkeeper ? 0.3 : 0.5);
+    
+    // Assist bonus
+    rating += assists * 0.3;
+    
+    // Own goal penalty
+    rating -= ownGoals * 0.5;
+    
+    // Cards penalty
+    rating -= yellowCards * 0.3;
+    rating -= redCards * 0.8;
+    
+    // GK clean sheet bonus
+    if (isGoalkeeper) {
+      const isHomeTeam = player.teamId === match.homeTeamId;
+      const goalsConceded = isHomeTeam ? (match.awayScore ?? 0) : (match.homeScore ?? 0);
+      if (goalsConceded === 0) {
+        rating += 0.5;
+      }
+    }
+    
+    // Win / Loss points if completed
+    if (match.status === 'completed') {
+      const isHomeTeam = player.teamId === match.homeTeamId;
+      const homeScore = match.homeScore ?? 0;
+      const awayScore = match.awayScore ?? 0;
+      
+      if (homeScore > awayScore) {
+        rating += isHomeTeam ? 0.5 : -0.3;
+      } else if (awayScore > homeScore) {
+        rating += isHomeTeam ? -0.3 : 0.5;
+      }
+    }
+    
+    return Math.min(10.0, Math.max(5.0, Math.round(rating * 10) / 10));
+  }
+
+  /** Returns a Tailwind-compatible color string for a player rating badge. */
+  getPlayerRatingColor(rating: number | null): string {
+    if (rating === null || rating === undefined) return 'text-slate-500 bg-slate-800/60 border-slate-700/40';
+    if (rating >= 9.0) return 'text-emerald-300 bg-emerald-500/20 border-emerald-500/30';
+    if (rating >= 7.5) return 'text-violet-300 bg-violet-500/20 border-violet-500/30';
+    if (rating >= 6.5) return 'text-amber-300 bg-amber-500/20 border-amber-500/30';
+    return 'text-rose-300 bg-rose-500/20 border-rose-500/30';
+  }
+
 
   getHomePlayersInForm(): any[] {
     const match = this.selectedMatch();

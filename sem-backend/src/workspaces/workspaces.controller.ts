@@ -35,7 +35,7 @@ import { CreateVenueDto } from './dto/create-venue.dto';
 import { UpdateVenueDto } from './dto/update-venue.dto';
 import { BulkImportMembersDto } from './dto/bulk-import-members.dto';
 import { UpdateMatchLineupDto } from './dto/update-match-lineup.dto';
-
+import { RateMatchPlayersDto } from './dto/rate-match-players.dto';
 
 @Controller('workspaces')
 @UseGuards(JwtAuthGuard)
@@ -559,5 +559,51 @@ export class WorkspacesController {
     @Request() req: any,
   ) {
     return this.workspacesService.saveMatchLineup(id, eventId, competitionId, stageId, matchId, dto.lineups, req.user.id);
+  }
+
+  // ─── Player Ratings ──────────────────────────────────────────────────────
+
+  /** GET all per-player ratings for a match (ordered by rating DESC) */
+  @Get(':id/events/:eventId/competitions/:competitionId/stages/:stageId/matches/:matchId/ratings')
+  getMatchRatings(
+    @Param('id') id: string,
+    @Param('eventId') eventId: string,
+    @Param('competitionId') competitionId: string,
+    @Param('stageId') stageId: string,
+    @Param('matchId') matchId: string,
+    @Request() req: any,
+  ) {
+    return this.workspacesService.getMatchRatings(id, eventId, competitionId, stageId, matchId, req.user.id);
+  }
+
+  /** POST manually set / override player ratings for a match */
+  @Post(':id/events/:eventId/competitions/:competitionId/stages/:stageId/matches/:matchId/ratings')
+  setMatchPlayerRatings(
+    @Param('id') id: string,
+    @Param('eventId') eventId: string,
+    @Param('competitionId') competitionId: string,
+    @Param('stageId') stageId: string,
+    @Param('matchId') matchId: string,
+    @Body() dto: RateMatchPlayersDto,
+    @Request() req: any,
+  ) {
+    return this.workspacesService.setMatchPlayerRatings(
+      id, eventId, competitionId, stageId, matchId, dto.ratings, req.user.id,
+    );
+  }
+
+  /**
+   * GET best player for a competition.
+   * Returns the player with the highest average rating who has played in
+   * at least 50% of the competition's completed matches.
+   */
+  @Get(':id/events/:eventId/competitions/:competitionId/best-player')
+  getCompetitionBestPlayer(
+    @Param('id') id: string,
+    @Param('eventId') eventId: string,
+    @Param('competitionId') competitionId: string,
+    @Request() req: any,
+  ) {
+    return this.workspacesService.getCompetitionBestPlayer(id, eventId, competitionId, req.user.id);
   }
 }
