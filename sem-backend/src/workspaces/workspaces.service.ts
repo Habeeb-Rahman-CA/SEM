@@ -769,6 +769,8 @@ export class WorkspacesService implements OnModuleInit {
       code,
       description: dto.description ?? null,
       logoUrl: dto.logoUrl ?? null,
+      primaryColor: dto.primaryColor ?? null,
+      secondaryColor: dto.secondaryColor ?? null,
       workspaceId,
     });
     return this.teamRepo.save(team);
@@ -799,6 +801,8 @@ export class WorkspacesService implements OnModuleInit {
       ...(dto.code !== undefined && { code: dto.code }),
       ...(dto.description !== undefined && { description: dto.description }),
       ...(dto.logoUrl !== undefined && { logoUrl: dto.logoUrl }),
+      ...(dto.primaryColor !== undefined && { primaryColor: dto.primaryColor }),
+      ...(dto.secondaryColor !== undefined && { secondaryColor: dto.secondaryColor }),
     });
 
     return this.teamRepo.save(team);

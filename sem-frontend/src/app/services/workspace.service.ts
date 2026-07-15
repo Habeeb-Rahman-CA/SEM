@@ -48,6 +48,8 @@ export interface Team {
   code: string;
   description: string | null;
   logoUrl: string | null;
+  primaryColor?: string | null;
+  secondaryColor?: string | null;
   workspaceId: string;
   createdAt: string;
   updatedAt: string;
@@ -376,18 +378,18 @@ export class WorkspaceService {
     });
   }
 
-  createTeam(workspaceId: string, name: string, code: string, description?: string, logoUrl?: string): Observable<Team> {
+  createTeam(workspaceId: string, name: string, code: string, description?: string, logoUrl?: string, primaryColor?: string, secondaryColor?: string): Observable<Team> {
     return this.http.post<Team>(
       `${this.apiUrl}/${workspaceId}/teams`,
-      { name, code, description, logoUrl },
+      { name, code, description, logoUrl, primaryColor, secondaryColor },
       { headers: this.headers },
     );
   }
 
-  updateTeam(workspaceId: string, teamId: string, name?: string, code?: string, description?: string, logoUrl?: string): Observable<Team> {
+  updateTeam(workspaceId: string, teamId: string, name?: string, code?: string, description?: string, logoUrl?: string, primaryColor?: string, secondaryColor?: string): Observable<Team> {
     return this.http.patch<Team>(
       `${this.apiUrl}/${workspaceId}/teams/${teamId}`,
-      { name, code, description, logoUrl },
+      { name, code, description, logoUrl, primaryColor, secondaryColor },
       { headers: this.headers },
     );
   }

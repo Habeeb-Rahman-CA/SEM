@@ -29,6 +29,12 @@ export class Team extends AuditableEntity {
   @Column({ name: 'logo_url', type: 'varchar', length: 500, nullable: true })
   logoUrl: string | null;
 
+  @Column({ name: 'primary_color', type: 'varchar', length: 50, nullable: true })
+  primaryColor: string | null;
+
+  @Column({ name: 'secondary_color', type: 'varchar', length: 50, nullable: true })
+  secondaryColor: string | null;
+
   @Column({ name: 'workspace_id', type: 'uuid' })
   workspaceId: string;
 

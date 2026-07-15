@@ -59,6 +59,8 @@ export class WorkspaceDetailComponent implements OnInit {
   newTeamCode = signal('');
   newTeamDescription = signal('');
   newTeamLogoUrl = signal('');
+  newTeamPrimaryColor = signal('#7c3aed');
+  newTeamSecondaryColor = signal('#4f46e5');
   isCreatingTeam = signal(false);
   teamCreateError = signal('');
   teamCreateSuccess = signal('');
@@ -77,6 +79,8 @@ export class WorkspaceDetailComponent implements OnInit {
   editTeamCode = signal('');
   editTeamDescription = signal('');
   editTeamLogoUrl = signal('');
+  editTeamPrimaryColor = signal('');
+  editTeamSecondaryColor = signal('');
   isUpdatingTeam = signal(false);
   teamUpdateError = signal('');
   teamUpdateSuccess = signal('');
@@ -1120,6 +1124,8 @@ export class WorkspaceDetailComponent implements OnInit {
     this.newTeamCode.set('');
     this.newTeamDescription.set('');
     this.newTeamLogoUrl.set('');
+    this.newTeamPrimaryColor.set('#7c3aed');
+    this.newTeamSecondaryColor.set('#4f46e5');
     this.teamCreateError.set('');
     this.teamCreateSuccess.set('');
     this.isTeamModalOpen.set(true);
@@ -1130,6 +1136,8 @@ export class WorkspaceDetailComponent implements OnInit {
     const code = this.newTeamCode().trim().toUpperCase();
     const description = this.newTeamDescription().trim();
     const logoUrl = this.newTeamLogoUrl().trim();
+    const primaryColor = this.newTeamPrimaryColor().trim();
+    const secondaryColor = this.newTeamSecondaryColor().trim();
     const ws = this.workspace();
     if (!ws || !name || !code) return;
 
@@ -1137,7 +1145,7 @@ export class WorkspaceDetailComponent implements OnInit {
     this.teamCreateError.set('');
     this.teamCreateSuccess.set('');
 
-    this.workspaceService.createTeam(ws.id, name, code, description || undefined, logoUrl || undefined).subscribe({
+    this.workspaceService.createTeam(ws.id, name, code, description || undefined, logoUrl || undefined, primaryColor || undefined, secondaryColor || undefined).subscribe({
       next: (team) => {
         this.isCreatingTeam.set(false);
         this.teamCreateSuccess.set(`Team "${team.name}" registered successfully!`);
@@ -1145,6 +1153,8 @@ export class WorkspaceDetailComponent implements OnInit {
         this.newTeamCode.set('');
         this.newTeamDescription.set('');
         this.newTeamLogoUrl.set('');
+        this.newTeamPrimaryColor.set('#7c3aed');
+        this.newTeamSecondaryColor.set('#4f46e5');
         this.teams.update(prev => [...prev, team]);
         setTimeout(() => this.closeTeamModal(), 1000);
       },
@@ -1161,6 +1171,8 @@ export class WorkspaceDetailComponent implements OnInit {
     this.editTeamCode.set(team.code ?? '');
     this.editTeamDescription.set(team.description ?? '');
     this.editTeamLogoUrl.set(team.logoUrl ?? '');
+    this.editTeamPrimaryColor.set(team.primaryColor ?? '#7c3aed');
+    this.editTeamSecondaryColor.set(team.secondaryColor ?? '#4f46e5');
     this.teamUpdateError.set('');
     this.teamUpdateSuccess.set('');
     this.isTeamModalOpen.set(true);
@@ -1184,6 +1196,8 @@ export class WorkspaceDetailComponent implements OnInit {
     const code = this.editTeamCode().trim().toUpperCase();
     const description = this.editTeamDescription().trim();
     const logoUrl = this.editTeamLogoUrl().trim();
+    const primaryColor = this.editTeamPrimaryColor().trim();
+    const secondaryColor = this.editTeamSecondaryColor().trim();
     const ws = this.workspace();
     const team = this.editingTeam();
     if (!ws || !team || !name || !code) return;
@@ -1192,7 +1206,7 @@ export class WorkspaceDetailComponent implements OnInit {
     this.teamUpdateError.set('');
     this.teamUpdateSuccess.set('');
 
-    this.workspaceService.updateTeam(ws.id, team.id, name, code, description || undefined, logoUrl || undefined).subscribe({
+    this.workspaceService.updateTeam(ws.id, team.id, name, code, description || undefined, logoUrl || undefined, primaryColor || undefined, secondaryColor || undefined).subscribe({
       next: (updated) => {
         this.isUpdatingTeam.set(false);
         this.teamUpdateSuccess.set(`Team updated successfully!`);
