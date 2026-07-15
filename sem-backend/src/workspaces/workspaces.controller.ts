@@ -606,4 +606,14 @@ export class WorkspacesController {
   ) {
     return this.workspacesService.getCompetitionBestPlayer(id, eventId, competitionId, req.user.id);
   }
+
+  @Get(':id/events/:eventId/competitions/:competitionId/stats')
+  getCompetitionStats(
+    @Param('id') id: string,
+    @Param('eventId') eventId: string,
+    @Param('competitionId') competitionId: string,
+    @Request() req: any,
+  ) {
+    return this.workspacesService.getCompetitionStats(id, eventId, competitionId, req.user.id);
+  }
 }

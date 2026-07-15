@@ -1288,6 +1288,24 @@ export class WorkspacesService implements OnModuleInit {
           rankings.set(s.teamId, startPos + idx);
         });
       }
+
+      // Rank remaining teams who only played in previous stage (Stage 1)
+      if (lastStage.type === 'knockout') {
+        const prevStage = sortedStages[sortedStages.indexOf(lastStage) - 1];
+        if (prevStage && (prevStage.type === 'group' || prevStage.type === 'league')) {
+          const prevRankings = await this.getStageRankings(prevStage);
+          const groupOnlyTeams = prevRankings.filter(id => !allTeamIds.has(id));
+
+          let nextRank = 5;
+          for (const r of rankings.values()) {
+            if (r >= nextRank) nextRank = r + 1;
+          }
+
+          groupOnlyTeams.forEach(id => {
+            rankings.set(id, nextRank++);
+          });
+        }
+      }
     }
 
     return rankings;
@@ -1589,10 +1607,44 @@ export class WorkspacesService implements OnModuleInit {
       throw new NotFoundException(`Stage "${stageId}" not found in competition`);
     }
 
-    return this.matchRepo.find({
+    // Self-healing progression checks
+    try {
+      if (stage.type === 'knockout') {
+        const stages = await this.stageRepo.find({
+          where: { competitionId },
+          order: { sequence: 'ASC', createdAt: 'ASC' }
+        });
+        const idx = stages.findIndex(s => s.id === stageId);
+        if (idx > 0) {
+          const prevStage = stages[idx - 1];
+          await this.advanceTeamsBetweenStages(prevStage);
+        }
+      } else if (stage.type === 'group_knockout') {
+        await this.advanceGroupStageWinners(stage);
+      }
+    } catch (err) {
+      console.error('Self-healing stage advancement failed:', err);
+    }
+
+    const matches = await this.matchRepo.find({
       where: { stageId },
       relations: { homeTeam: true, awayTeam: true, venue: true },
       order: { createdAt: 'ASC' },
+    });
+
+    const statusWeight = {
+      'live': 1,
+      'scheduled': 2,
+      'completed': 3,
+    };
+
+    return matches.sort((a, b) => {
+      const wA = statusWeight[a.status] || 99;
+      const wB = statusWeight[b.status] || 99;
+      if (wA !== wB) return wA - wB;
+      const timeA = a.createdAt?.getTime() || 0;
+      const timeB = b.createdAt?.getTime() || 0;
+      return timeA - timeB;
     });
   }
 
@@ -1704,7 +1756,24 @@ export class WorkspacesService implements OnModuleInit {
     if (dto.venueId !== undefined) match.venueId = dto.venueId ?? null;
     if (dto.homeScore !== undefined) match.homeScore = dto.homeScore;
     if (dto.awayScore !== undefined) match.awayScore = dto.awayScore;
-    if (dto.status !== undefined) match.status = dto.status;
+    if (dto.status !== undefined) {
+      if (dto.status === 'live' && match.status !== 'live') {
+        const players = await this.matchPlayerRepo.find({
+          where: { matchId: match.id, isPlaying: true },
+        });
+
+        const homeTeamPlayers = players.filter((p) => p.teamId === match.homeTeamId);
+        const awayTeamPlayers = players.filter((p) => p.teamId === match.awayTeamId);
+
+        if (match.homeTeamId && homeTeamPlayers.length === 0) {
+          throw new BadRequestException('Cannot start the match: home team lineup has not been set.');
+        }
+        if (match.awayTeamId && awayTeamPlayers.length === 0) {
+          throw new BadRequestException('Cannot start the match: away team lineup has not been set.');
+        }
+      }
+      match.status = dto.status;
+    }
     if (dto.config !== undefined) {
       match.config = { ...match.config, ...dto.config };
     }
@@ -1724,6 +1793,7 @@ export class WorkspacesService implements OnModuleInit {
         if (stage.type === 'group_knockout') {
           await this.advanceGroupStageWinners(stage);
         }
+        await this.advanceTeamsBetweenStages(stage);
         await this.checkAndAutoCompleteCompetition(stage.competitionId);
       }
       // Auto-calculate player ratings based on match events
@@ -2184,6 +2254,297 @@ export class WorkspacesService implements OnModuleInit {
     }
   }
 
+  private async getStageRankings(stage: CompetitionStage): Promise<string[]> {
+    const matches = await this.matchRepo.find({
+      where: { stageId: stage.id },
+    });
+
+    const winPoint = stage.config?.winPoint ?? 3;
+    const drawPoint = stage.config?.drawPoint ?? 1;
+
+    // Gather all unique team IDs that participated in this stage
+    const teamIds = new Set<string>();
+    for (const m of matches) {
+      if (m.homeTeamId) teamIds.add(m.homeTeamId);
+      if (m.awayTeamId) teamIds.add(m.awayTeamId);
+    }
+
+    const standings = new Map<string, { teamId: string; pts: number; gd: number; gf: number }>();
+    for (const teamId of teamIds) {
+      standings.set(teamId, { teamId, pts: 0, gd: 0, gf: 0 });
+    }
+
+    for (const m of matches) {
+      if (m.status !== 'completed' || !m.homeTeamId || !m.awayTeamId) continue;
+
+      const homeStats = standings.get(m.homeTeamId);
+      const awayStats = standings.get(m.awayTeamId);
+      if (!homeStats || !awayStats) continue;
+
+      const hScore = m.homeScore ?? 0;
+      const aScore = m.awayScore ?? 0;
+
+      homeStats.gf += hScore;
+      awayStats.gf += aScore;
+      homeStats.gd += (hScore - aScore);
+      awayStats.gd += (aScore - hScore);
+
+      if (hScore > aScore) {
+        homeStats.pts += winPoint;
+      } else if (aScore > hScore) {
+        awayStats.pts += winPoint;
+      } else {
+        homeStats.pts += drawPoint;
+        awayStats.pts += drawPoint;
+      }
+    }
+
+    return Array.from(teamIds).sort((a, b) => {
+      const statsA = standings.get(a)!;
+      const statsB = standings.get(b)!;
+      if (statsB.pts !== statsA.pts) return statsB.pts - statsA.pts;
+      if (statsB.gd !== statsA.gd) return statsB.gd - statsA.gd;
+      return statsB.gf - statsA.gf;
+    });
+  }
+
+  private async generateKnockoutStageMatches(stage: CompetitionStage, teamIds: string[]): Promise<void> {
+    const twoLegged = stage.config?.twoLegged || stage.config?.legs === 2;
+    // Determine number of teams to advance
+    const prevStages = await this.stageRepo.find({
+      where: { competitionId: stage.competitionId },
+      order: { sequence: 'ASC', createdAt: 'ASC' },
+    });
+    const prevStage = prevStages[prevStages.indexOf(stage) - 1];
+    
+    let koTeamsCount = teamIds.length;
+    if (prevStage) {
+      if (prevStage.type === 'group' || prevStage.type === 'league') {
+        koTeamsCount = prevStage.config?.advancingCount ?? (prevStage.config?.groupsCount ? prevStage.config.groupsCount * 2 : 4);
+      }
+    }
+
+    const bracketSize = Math.pow(2, Math.ceil(Math.log2(Math.max(koTeamsCount, 2))));
+    const advancingTeams = teamIds.slice(0, bracketSize);
+
+    const padded: (string | null)[] = [...advancingTeams, ...Array(bracketSize - advancingTeams.length).fill(null)];
+
+    const fixtures: Array<{ homeTeamId: string | null; awayTeamId: string | null; config: any }> = [];
+
+    const roundLabel = bracketSize === 2 ? 'Final' : bracketSize === 4 ? 'Semi-Final' : bracketSize === 8 ? 'Quarter-Final' : `Round of ${bracketSize}`;
+    
+    const firstRoundPairs: [string | null, string | null][] = [];
+    const half = bracketSize / 2;
+    for (let i = 0; i < half; i++) {
+      firstRoundPairs.push([padded[i], padded[bracketSize - 1 - i]]);
+    }
+
+    for (const pair of firstRoundPairs) {
+      const home = pair[0];
+      const away = pair[1];
+      if (home === null && away === null) continue;
+      fixtures.push({
+        homeTeamId: home,
+        awayTeamId: away,
+        config: twoLegged ? { round: roundLabel, leg: 1 } : { round: roundLabel },
+      });
+      if (twoLegged && home !== null && away !== null) {
+        fixtures.push({
+          homeTeamId: away,
+          awayTeamId: home,
+          config: { round: roundLabel, leg: 2 },
+        });
+      }
+    }
+
+    // Generate subsequent rounds as TBD skeletons
+    let remainingTeams = bracketSize / 2;
+    while (remainingTeams >= 2) {
+      const subRoundLabel = remainingTeams === 2 ? 'Final' : remainingTeams === 4 ? 'Semi-Final' : remainingTeams === 8 ? 'Quarter-Final' : `Round of ${remainingTeams * 2}`;
+      const matchesInRound = remainingTeams / 2;
+      for (let m = 0; m < matchesInRound; m++) {
+        fixtures.push({
+          homeTeamId: null,
+          awayTeamId: null,
+          config: twoLegged ? { round: subRoundLabel, leg: 1 } : { round: subRoundLabel },
+        });
+        if (twoLegged) {
+          fixtures.push({
+            homeTeamId: null,
+            awayTeamId: null,
+            config: { round: subRoundLabel, leg: 2 },
+          });
+        }
+      }
+      if (remainingTeams === 2) {
+        // Generate Third Place Match (losers final)
+        const home3rd = bracketSize === 2 && advancingTeams.length >= 4 ? advancingTeams[2] : null;
+        const away3rd = bracketSize === 2 && advancingTeams.length >= 4 ? advancingTeams[3] : null;
+        fixtures.push({
+          homeTeamId: home3rd,
+          awayTeamId: away3rd,
+          config: twoLegged ? { round: 'Third Place Match', leg: 1 } : { round: 'Third Place Match' },
+        });
+        if (twoLegged) {
+          fixtures.push({
+            homeTeamId: away3rd,
+            awayTeamId: home3rd,
+            config: { round: 'Third Place Match', leg: 2 },
+          });
+        }
+      }
+      remainingTeams = remainingTeams / 2;
+    }
+
+    // Save matches
+    for (const f of fixtures) {
+      const m = this.matchRepo.create({
+        stageId: stage.id,
+        homeTeamId: f.homeTeamId,
+        awayTeamId: f.awayTeamId,
+        status: 'scheduled',
+        config: f.config,
+        liveData: {},
+      });
+      await this.matchRepo.save(m);
+    }
+  }
+
+  private async advanceTeamsBetweenStages(currentStage: CompetitionStage): Promise<void> {
+    // 1. Fetch all stages in the competition
+    const stages = await this.stageRepo.find({
+      where: { competitionId: currentStage.competitionId },
+      order: { sequence: 'ASC', createdAt: 'ASC' },
+    });
+
+    const currIdx = stages.findIndex((s) => s.id === currentStage.id);
+    if (currIdx === -1 || currIdx === stages.length - 1) return;
+
+    const nextStage = stages[currIdx + 1];
+    if (nextStage.type !== 'knockout') return; // only support progression to knockout stage
+
+    // 2. Check if all matches in current stage are completed
+    const currentMatches = await this.matchRepo.find({
+      where: { stageId: currentStage.id },
+    });
+    if (currentMatches.length === 0) return;
+
+    const allCompleted = currentMatches.every((m) => m.status === 'completed');
+    if (!allCompleted) return;
+
+    // 3. Get rankings/standings from the current stage
+    const sortedTeams = await this.getStageRankings(currentStage);
+    if (sortedTeams.length === 0) return;
+
+    // 4. Fetch all matches of the next stage
+    let nextMatches = await this.matchRepo.find({
+      where: { stageId: nextStage.id },
+      order: { id: 'ASC', createdAt: 'ASC' },
+    });
+
+    if (nextMatches.length === 0) {
+      await this.generateKnockoutStageMatches(nextStage, sortedTeams);
+      nextMatches = await this.matchRepo.find({
+        where: { stageId: nextStage.id },
+        order: { id: 'ASC', createdAt: 'ASC' },
+      });
+    }
+
+    if (nextMatches.length === 0) return;
+
+    // 5. Find the first round matches of the next stage (round with the highest matches count)
+    const roundCounts: { [round: string]: number } = {};
+    for (const m of nextMatches) {
+      const rName = (m.config as any)?.round;
+      if (!rName) continue;
+      if (rName.toLowerCase().includes('third') || rName.toLowerCase().includes('3rd')) continue;
+      const isLeg1OrNone = (m.config as any)?.leg === undefined || (m.config as any)?.leg === 1;
+      if (isLeg1OrNone) {
+        roundCounts[rName] = (roundCounts[rName] || 0) + 1;
+      }
+    }
+
+    const sortedRounds = Object.keys(roundCounts).sort((a, b) => roundCounts[b] - roundCounts[a]);
+    if (sortedRounds.length === 0) return;
+
+    const firstKoRoundName = sortedRounds[0];
+    const firstKoRoundMatches = nextMatches.filter(m => 
+      (m.config as any)?.round === firstKoRoundName && 
+      ((m.config as any)?.leg === undefined || (m.config as any)?.leg === 1)
+    );
+
+    const matchesCount = firstKoRoundMatches.length;
+    const teamsCountNeeded = matchesCount * 2;
+
+    // Get the top teams needed
+    const advancingTeams = sortedTeams.slice(0, teamsCountNeeded);
+
+    const twoLegged = (nextStage.config as any)?.twoLegged || (nextStage.config as any)?.legs === 2;
+
+    // Map: High seed vs Low seed (standard bracket seeding)
+    for (let i = 0; i < matchesCount; i++) {
+      const targetMatch = firstKoRoundMatches[i];
+      if (!targetMatch) continue;
+
+      const homeTeam = advancingTeams[i] || null;
+      const awayTeam = advancingTeams[teamsCountNeeded - 1 - i] || null;
+
+      targetMatch.homeTeamId = homeTeam;
+      targetMatch.awayTeamId = awayTeam;
+      await this.matchRepo.save(targetMatch);
+
+      if (twoLegged) {
+        const nextRoundLeg2Matches = nextMatches.filter(m => 
+          (m.config as any)?.round === firstKoRoundName && 
+          (m.config as any)?.leg === 2
+        );
+        const targetLeg2Match = nextRoundLeg2Matches[i];
+        if (targetLeg2Match) {
+          targetLeg2Match.homeTeamId = awayTeam;
+          targetLeg2Match.awayTeamId = homeTeam;
+          await this.matchRepo.save(targetLeg2Match);
+        }
+      }
+    }
+
+    // Populate Third Place Match / Losers Final with 3rd and 4th place teams if first KO round is the Final (matchesCount === 1)
+    if (matchesCount === 1 && sortedTeams.length >= 4) {
+      const thirdPlaceMatches = nextMatches.filter(m => {
+        const r = (m.config as any)?.round || '';
+        const rLower = r.toLowerCase();
+        return rLower.includes('third') || rLower.includes('3rd') || rLower.includes('loser');
+      });
+
+      const thirdPlaceLeg1Matches = thirdPlaceMatches.filter(m => 
+        (m.config as any)?.leg === undefined || (m.config as any)?.leg === 1
+      );
+
+      for (let i = 0; i < thirdPlaceLeg1Matches.length; i++) {
+        const targetMatch = thirdPlaceLeg1Matches[i];
+        if (!targetMatch) continue;
+
+        const homeTeam = sortedTeams[2] || null;
+        const awayTeam = sortedTeams[3] || null;
+
+        targetMatch.homeTeamId = homeTeam;
+        targetMatch.awayTeamId = awayTeam;
+        await this.matchRepo.save(targetMatch);
+
+        if (twoLegged) {
+          const nextRoundLeg2Matches = thirdPlaceMatches.filter(m => 
+            (m.config as any)?.leg === 2
+          );
+          const targetLeg2Match = nextRoundLeg2Matches[i];
+          if (targetLeg2Match) {
+            targetLeg2Match.homeTeamId = awayTeam;
+            targetLeg2Match.awayTeamId = homeTeam;
+            await this.matchRepo.save(targetLeg2Match);
+          }
+        }
+      }
+    }
+  }
+
   async removeMatch(
     workspaceId: string,
     eventId: string,
@@ -2324,66 +2685,73 @@ export class WorkspacesService implements OnModuleInit {
       // ── Pure Knockout first round and subsequent skeleton rounds ───────────
       else if (stage.type === 'knockout') {
         const twoLegged = stage.config?.twoLegged || stage.config?.legs === 2;
-        const n = teamIds.length;
-        const bracketSize = Math.pow(2, Math.ceil(Math.log2(Math.max(n, 2))));
-        const padded: (string | null)[] = [...teamIds, ...Array(bracketSize - n).fill(null)];
+        const isFirstStage = stage.id === stages[0].id;
 
-        // Generate First Round (could contain actual teams and byes)
-        const roundLabel = bracketSize === 2 ? 'Final' : bracketSize === 4 ? 'Semi-Final' : bracketSize === 8 ? 'Quarter-Final' : `Round of ${bracketSize}`;
-        for (let i = 0; i < padded.length; i += 2) {
-          const home = padded[i];
-          const away = padded[i + 1];
-          // Skip double-bye slots
-          if (home === null && away === null) continue;
-          fixtures.push({
-            homeTeamId: home,
-            awayTeamId: away,
-            config: twoLegged ? { round: roundLabel, leg: 1 } : { round: roundLabel },
-          });
-          if (twoLegged && home !== null && away !== null) {
-            fixtures.push({
-              homeTeamId: away,
-              awayTeamId: home,
-              config: { round: roundLabel, leg: 2 },
-            });
-          }
-        }
+        if (isFirstStage) {
+          const n = teamIds.length;
+          const bracketSize = Math.pow(2, Math.ceil(Math.log2(Math.max(n, 2))));
+          const padded: (string | null)[] = [...teamIds, ...Array(bracketSize - n).fill(null)];
 
-        // Generate subsequent rounds as TBD skeletons
-        let remainingTeams = bracketSize / 2;
-        while (remainingTeams >= 2) {
-          const subRoundLabel = remainingTeams === 2 ? 'Final' : remainingTeams === 4 ? 'Semi-Final' : remainingTeams === 8 ? 'Quarter-Final' : `Round of ${remainingTeams * 2}`;
-          const matchesInRound = remainingTeams / 2;
-          for (let m = 0; m < matchesInRound; m++) {
+          // Generate First Round (could contain actual teams and byes)
+          const roundLabel = bracketSize === 2 ? 'Final' : bracketSize === 4 ? 'Semi-Final' : bracketSize === 8 ? 'Quarter-Final' : `Round of ${bracketSize}`;
+          for (let i = 0; i < padded.length; i += 2) {
+            const home = padded[i];
+            const away = padded[i + 1];
+            // Skip double-bye slots
+            if (home === null && away === null) continue;
             fixtures.push({
-              homeTeamId: null,
-              awayTeamId: null,
-              config: twoLegged ? { round: subRoundLabel, leg: 1 } : { round: subRoundLabel },
+              homeTeamId: home,
+              awayTeamId: away,
+              config: twoLegged ? { round: roundLabel, leg: 1 } : { round: roundLabel },
             });
-            if (twoLegged) {
+            if (twoLegged && home !== null && away !== null) {
               fixtures.push({
-                homeTeamId: null,
-                awayTeamId: null,
-                config: { round: subRoundLabel, leg: 2 },
+                homeTeamId: away,
+                awayTeamId: home,
+                config: { round: roundLabel, leg: 2 },
               });
             }
           }
-          if (remainingTeams === 2) {
-            // Also generate Third Place Match
-            fixtures.push({
-              homeTeamId: null,
-              awayTeamId: null,
-              config: twoLegged ? { round: 'Third Place Match', leg: 1 } : { round: 'Third Place Match' },
-            });
-            if (twoLegged) {
+
+          // Generate subsequent rounds as TBD skeletons
+          let remainingTeams = bracketSize / 2;
+          while (remainingTeams >= 2) {
+            const subRoundLabel = remainingTeams === 2 ? 'Final' : remainingTeams === 4 ? 'Semi-Final' : remainingTeams === 8 ? 'Quarter-Final' : `Round of ${remainingTeams * 2}`;
+            const matchesInRound = remainingTeams / 2;
+            for (let m = 0; m < matchesInRound; m++) {
               fixtures.push({
                 homeTeamId: null,
                 awayTeamId: null,
-                config: { round: 'Third Place Match', leg: 2 },
+                config: twoLegged ? { round: subRoundLabel, leg: 1 } : { round: subRoundLabel },
               });
+              if (twoLegged) {
+                fixtures.push({
+                  homeTeamId: null,
+                  awayTeamId: null,
+                  config: { round: subRoundLabel, leg: 2 },
+                });
+              }
             }
+            if (remainingTeams === 2) {
+              // Also generate Third Place Match
+              fixtures.push({
+                homeTeamId: null,
+                awayTeamId: null,
+                config: twoLegged ? { round: 'Third Place Match', leg: 1 } : { round: 'Third Place Match' },
+              });
+              if (twoLegged) {
+                fixtures.push({
+                  homeTeamId: null,
+                  awayTeamId: null,
+                  config: { round: 'Third Place Match', leg: 2 },
+                });
+              }
+            }
+            remainingTeams = remainingTeams / 2;
           }
-          remainingTeams = remainingTeams / 2;
+        } else {
+          // Do not generate dummy skeleton fixtures for subsequent knockout stages.
+          // They will be dynamically generated once the previous stage is fully completed.
         }
       }
 
@@ -2933,6 +3301,236 @@ export class WorkspacesService implements OnModuleInit {
   }
 
   /**
+   * Aggregates and returns stats leaderboards for a competition.
+   */
+  async getCompetitionStats(
+    workspaceId: string,
+    eventId: string,
+    competitionId: string,
+    userId: string,
+  ): Promise<any> {
+    await this.ensureMember(workspaceId, userId);
+
+    const competition = await this.competitionRepo.findOne({
+      where: { id: competitionId, eventId },
+      relations: { sport: true },
+    });
+    if (!competition) throw new NotFoundException('Competition not found');
+
+    const sportCode = competition.sport?.code ?? 'football';
+
+    // Gather all stage IDs for this competition
+    const stages = await this.stageRepo.find({ where: { competitionId } });
+    const stageIds = stages.map((s) => s.id);
+    if (stageIds.length === 0) {
+      return { sportCode, topRated: [] };
+    }
+
+    // Find all completed matches in the competition
+    const completedMatches = await this.matchRepo.find({
+      where: { stageId: In(stageIds), status: 'completed' },
+    });
+    if (completedMatches.length === 0) {
+      return { sportCode, topRated: [] };
+    }
+
+    const matchIds = completedMatches.map((m) => m.id);
+
+    // Fetch all match-player entries for these matches (starters & subs)
+    const allMatchPlayers = await this.matchPlayerRepo.find({
+      where: { matchId: In(matchIds), isPlaying: true },
+      relations: { player: { user: true }, team: true },
+    });
+
+    // Lookup structures
+    // Key: userId -> { playerId, playerName, teamName }
+    const userUserIdMap = new Map<string, { playerId: string; playerName: string; teamName: string }>();
+    // Key: username -> { playerId, playerName, teamName }
+    const userUsernameMap = new Map<string, { playerId: string; playerName: string; teamName: string }>();
+    // Key: playerId -> { playerId, playerName, teamName, ratings[] }
+    const ratingsMap = new Map<string, { playerId: string; playerName: string; teamName: string; ratings: number[] }>();
+
+    for (const mp of allMatchPlayers) {
+      const playerName = mp.player?.user?.username ?? mp.player?.jerseyNumber?.toString() ?? mp.playerId;
+      const teamName = mp.team?.name ?? 'Unknown';
+      const pInfo = { playerId: mp.playerId, playerName, teamName };
+
+      if (mp.player?.userId) {
+        userUserIdMap.set(mp.player.userId, pInfo);
+      }
+      if (mp.player?.user?.username) {
+        userUsernameMap.set(mp.player.user.username, pInfo);
+      }
+
+      if (mp.rating !== null) {
+        let existing = ratingsMap.get(mp.playerId);
+        if (!existing) {
+          existing = { ...pInfo, ratings: [] };
+          ratingsMap.set(mp.playerId, existing);
+        }
+        existing.ratings.push(Number(mp.rating));
+      }
+    }
+
+    // Top rated calculations
+    const topRated = Array.from(ratingsMap.values()).map(r => {
+      const avgRating = Math.round((r.ratings.reduce((a, b) => a + b, 0) / r.ratings.length) * 100) / 100;
+      return {
+        playerId: r.playerId,
+        playerName: r.playerName,
+        teamName: r.teamName,
+        avgRating,
+        appearances: r.ratings.length,
+      };
+    }).sort((a, b) => b.avgRating - a.avgRating).slice(0, 10);
+
+    if (sportCode === 'football') {
+      const scorers = new Map<string, { playerId: string; playerName: string; teamName: string; goals: number }>();
+      const assists = new Map<string, { playerId: string; playerName: string; teamName: string; assists: number }>();
+      const yellowCards = new Map<string, { playerId: string; playerName: string; teamName: string; cards: number }>();
+      const redCards = new Map<string, { playerId: string; playerName: string; teamName: string; cards: number }>();
+
+      const getOrCreateTally = (
+        map: Map<string, any>,
+        pUserId: string,
+        initialValueKey: string,
+      ) => {
+        let entry = map.get(pUserId);
+        if (!entry) {
+          const info = userUserIdMap.get(pUserId) ?? { playerId: pUserId, playerName: 'Unknown', teamName: 'Unknown' };
+          entry = { ...info, [initialValueKey]: 0 };
+          map.set(pUserId, entry);
+        }
+        return entry;
+      };
+
+      for (const m of completedMatches) {
+        const events = (m.liveData as any)?.events;
+        if (!Array.isArray(events)) continue;
+
+        for (const ev of events) {
+          const pUserId = ev.playerUserId;
+          if (!pUserId) continue;
+
+          if (ev.type === 'goal') {
+            if (ev.goalType !== 'own_goal') {
+              const scorer = getOrCreateTally(scorers, pUserId, 'goals');
+              scorer.goals++;
+
+              const assistUserId = ev.assistPlayerUserId;
+              if (assistUserId) {
+                const assister = getOrCreateTally(assists, assistUserId, 'assists');
+                assister.assists++;
+              }
+            }
+          } else if (ev.type === 'card') {
+            if (ev.cardType === 'yellow') {
+              const yc = getOrCreateTally(yellowCards, pUserId, 'cards');
+              yc.cards++;
+            } else if (ev.cardType === 'red' || ev.cardType === 'second_yellow') {
+              const rc = getOrCreateTally(redCards, pUserId, 'cards');
+              rc.cards++;
+            }
+          }
+        }
+      }
+
+      return {
+        sportCode,
+        topRated,
+        topScorers: Array.from(scorers.values()).sort((a, b) => b.goals - a.goals).slice(0, 10),
+        topAssists: Array.from(assists.values()).sort((a, b) => b.assists - a.assists).slice(0, 10),
+        mostYellowCards: Array.from(yellowCards.values()).sort((a, b) => b.cards - a.cards).slice(0, 10),
+        mostRedCards: Array.from(redCards.values()).sort((a, b) => b.cards - a.cards).slice(0, 10),
+      };
+    }
+
+    if (sportCode === 'cricket') {
+      const runs = new Map<string, { playerId: string; playerName: string; teamName: string; runs: number; innings: number }>();
+      const wickets = new Map<string, { playerId: string; playerName: string; teamName: string; wickets: number; innings: number }>();
+
+      for (const m of completedMatches) {
+        const innings = (m.liveData as any)?.inningsData;
+        if (!Array.isArray(innings)) continue;
+
+        for (const inn of innings) {
+          const batStats = inn.batsmanStats || {};
+          for (const username of Object.keys(batStats)) {
+            const playerRuns = batStats[username]?.runs ?? 0;
+            if (playerRuns > 0) {
+              let entry = runs.get(username);
+              if (!entry) {
+                const info = userUsernameMap.get(username) ?? { playerId: username, playerName: username, teamName: 'Unknown' };
+                entry = { ...info, runs: 0, innings: 0 };
+                runs.set(username, entry);
+              }
+              entry.runs += playerRuns;
+              entry.innings++;
+            }
+          }
+
+          const bowlStats = inn.bowlerStats || {};
+          for (const username of Object.keys(bowlStats)) {
+            const playerWickets = bowlStats[username]?.wickets ?? 0;
+            if (playerWickets > 0) {
+              let entry = wickets.get(username);
+              if (!entry) {
+                const info = userUsernameMap.get(username) ?? { playerId: username, playerName: username, teamName: 'Unknown' };
+                entry = { ...info, wickets: 0, innings: 0 };
+                wickets.set(username, entry);
+              }
+              entry.wickets += playerWickets;
+              entry.innings++;
+            }
+          }
+        }
+      }
+
+      return {
+        sportCode,
+        topRated,
+        topRuns: Array.from(runs.values()).sort((a, b) => b.runs - a.runs).slice(0, 10),
+        topWickets: Array.from(wickets.values()).sort((a, b) => b.wickets - a.wickets).slice(0, 10),
+      };
+    }
+
+    if (sportCode === 'badminton') {
+      const ralliesWon = new Map<string, { playerId: string; playerName: string; teamName: string; ralliesWon: number }>();
+
+      for (const m of completedMatches) {
+        const rallies = (m.liveData as any)?.rallies || [];
+        const matchPlayersInMatch = allMatchPlayers.filter(mp => mp.matchId === m.id);
+
+        for (const r of rallies) {
+          if (r.winnerSide === 'none') continue;
+          
+          const targetTeamId = r.winnerSide === 'home' ? m.homeTeamId : m.awayTeamId;
+          const winners = matchPlayersInMatch.filter(mp => mp.teamId === targetTeamId);
+
+          for (const w of winners) {
+            let entry = ralliesWon.get(w.playerId);
+            if (!entry) {
+              const playerName = w.player?.user?.username ?? w.player?.jerseyNumber?.toString() ?? w.playerId;
+              const teamName = w.team?.name ?? 'Unknown';
+              entry = { playerId: w.playerId, playerName, teamName, ralliesWon: 0 };
+              ralliesWon.set(w.playerId, entry);
+            }
+            entry.ralliesWon++;
+          }
+        }
+      }
+
+      return {
+        sportCode,
+        topRated,
+        topRalliesWon: Array.from(ralliesWon.values()).sort((a, b) => b.ralliesWon - a.ralliesWon).slice(0, 10),
+      };
+    }
+
+    return { sportCode, topRated };
+  }
+
+  /**
    * Auto-calculates and saves per-player ratings for a completed football match.
    * Reads liveData.events[] to tally goals, assists, own goals, and cards.
    * Only players with isPlaying=true are rated.
@@ -2992,14 +3590,68 @@ export class WorkspacesService implements OnModuleInit {
       }
 
       for (const event of liveData.events as any[]) {
-        const t = tallies.get(event.playerId);
-        if (!t) continue;
-        switch (event.type) {
-          case 'goal':        t.goals++;        break;
-          case 'own_goal':    t.ownGoals++;     break;
-          case 'assist':      t.assists++;      break;
-          case 'yellow_card': t.yellowCards++;  break;
-          case 'red_card':    t.redCards++;     break;
+        let scorerPlayerId: string | undefined = undefined;
+        let assistPlayerId: string | undefined = undefined;
+
+        if (event.playerId) {
+          scorerPlayerId = event.playerId;
+        } else if (event.playerUserId) {
+          scorerPlayerId = matchPlayers.find(mp => mp.player?.userId === event.playerUserId)?.playerId;
+        }
+
+        if (event.assistPlayerUserId) {
+          assistPlayerId = matchPlayers.find(mp => mp.player?.userId === event.assistPlayerUserId)?.playerId;
+        } else if (event.assistPlayerId) {
+          assistPlayerId = event.assistPlayerId;
+        }
+
+        if (event.type === 'goal') {
+          if (event.goalType === 'own_goal') {
+            if (scorerPlayerId) {
+              const t = tallies.get(scorerPlayerId);
+              if (t) t.ownGoals++;
+            }
+          } else {
+            if (scorerPlayerId) {
+              const t = tallies.get(scorerPlayerId);
+              if (t) t.goals++;
+            }
+            if (assistPlayerId) {
+              const t = tallies.get(assistPlayerId);
+              if (t) t.assists++;
+            }
+          }
+        } else if (event.type === 'own_goal') {
+          if (scorerPlayerId) {
+            const t = tallies.get(scorerPlayerId);
+            if (t) t.ownGoals++;
+          }
+        } else if (event.type === 'assist') {
+          if (scorerPlayerId) {
+            const t = tallies.get(scorerPlayerId);
+            if (t) t.assists++;
+          }
+        } else if (event.type === 'card') {
+          if (scorerPlayerId) {
+            const t = tallies.get(scorerPlayerId);
+            if (t) {
+              if (event.cardType === 'yellow') {
+                t.yellowCards++;
+              } else if (event.cardType === 'red' || event.cardType === 'second_yellow') {
+                t.redCards++;
+              }
+            }
+          }
+        } else if (event.type === 'yellow_card') {
+          if (scorerPlayerId) {
+            const t = tallies.get(scorerPlayerId);
+            if (t) t.yellowCards++;
+          }
+        } else if (event.type === 'red_card') {
+          if (scorerPlayerId) {
+            const t = tallies.get(scorerPlayerId);
+            if (t) t.redCards++;
+          }
         }
       }
 

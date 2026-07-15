@@ -185,6 +185,54 @@ export interface MatchPlayer {
   updatedAt: string;
 }
 
+export interface LeaderboardPlayer {
+  playerId: string;
+  playerName: string;
+  teamName: string;
+}
+
+export interface RatedPlayerStats extends LeaderboardPlayer {
+  avgRating: number;
+  appearances: number;
+}
+
+export interface FootballScorerStats extends LeaderboardPlayer {
+  goals: number;
+}
+
+export interface FootballAssistStats extends LeaderboardPlayer {
+  assists: number;
+}
+
+export interface FootballCardStats extends LeaderboardPlayer {
+  cards: number;
+}
+
+export interface CricketRunsStats extends LeaderboardPlayer {
+  runs: number;
+  innings: number;
+}
+
+export interface CricketWicketsStats extends LeaderboardPlayer {
+  wickets: number;
+  innings: number;
+}
+
+export interface BadmintonRallyStats extends LeaderboardPlayer {
+  ralliesWon: number;
+}
+
+export interface CompetitionStats {
+  sportCode: string;
+  topRated: RatedPlayerStats[];
+  topScorers?: FootballScorerStats[];
+  topAssists?: FootballAssistStats[];
+  mostYellowCards?: FootballCardStats[];
+  mostRedCards?: FootballCardStats[];
+  topRuns?: CricketRunsStats[];
+  topWickets?: CricketWicketsStats[];
+  topRalliesWon?: BadmintonRallyStats[];
+}
 
 export interface WorkspaceMember {
   id: string;
@@ -761,6 +809,17 @@ export class WorkspaceService {
     return this.http.post<{ url: string; publicId: string }>(
       `${environment.apiUrl}/upload?type=${type}`,
       formData,
+      { headers: this.headers }
+    );
+  }
+
+  getCompetitionStats(
+    workspaceId: string,
+    eventId: string,
+    competitionId: string
+  ): Observable<CompetitionStats> {
+    return this.http.get<CompetitionStats>(
+      `${this.apiUrl}/${workspaceId}/events/${eventId}/competitions/${competitionId}/stats`,
       { headers: this.headers }
     );
   }

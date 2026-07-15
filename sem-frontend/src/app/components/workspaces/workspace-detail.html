@@ -2046,6 +2046,24 @@
             </div>
           </div>
 
+          <!-- Tab Bar (Only when not in live scoring console) -->
+          @if (!selectedMatch() && stages().length > 0) {
+          <div class="flex items-center gap-3 border-b border-white/5 pb-2">
+            <button (click)="setCompetitionTab('matches')"
+              [class]="activeCompetitionTab() === 'matches' 
+                ? 'px-4 py-2 bg-violet-600/10 border border-violet-500/20 text-violet-400 text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-md shadow-violet-900/10' 
+                : 'px-4 py-2 text-slate-400 hover:text-white border border-transparent hover:bg-white/5 text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5'">
+              <i class="fi fi-rr-calendar-lines text-sm"></i> Matches & Standings
+            </button>
+            <button (click)="setCompetitionTab('stats')"
+              [class]="activeCompetitionTab() === 'stats' 
+                ? 'px-4 py-2 bg-violet-600/10 border border-violet-500/20 text-violet-400 text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-md shadow-violet-900/10' 
+                : 'px-4 py-2 text-slate-400 hover:text-white border border-transparent hover:bg-white/5 text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5'">
+              <i class="fi fi-rr-chart-histogram text-sm"></i> Leaderboards & Stats
+            </button>
+          </div>
+          }
+
           <!-- ═══════════════ STAGES & FIXTURES INITIAL SETUP ═══════════════ -->
           @if (stages().length === 0) {
           @if (isLoadingStages()) {
@@ -2075,8 +2093,280 @@
           </div>
           }
           } @else if (!selectedMatch()) {
-          <!-- ─── 2. Matches List & Schedule ─── -->
-          <div class="flex flex-col gap-6">
+            @if (activeCompetitionTab() === 'stats') {
+              <!-- Display Competition Statistics Dashboard -->
+              @if (isLoadingStats()) {
+                <div class="py-24 flex flex-col items-center justify-center gap-3">
+                  <svg class="animate-spin w-8 h-8 text-violet-500" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                  </svg>
+                  <span class="text-xs text-slate-400">Loading leaderboards...</span>
+                </div>
+              } @else if (!competitionStats() || competitionStats()?.topRated?.length === 0) {
+                <div class="rounded-2xl border border-dashed border-white/10 p-12 text-center flex flex-col items-center justify-center gap-3 bg-slate-900/50">
+                  <div class="w-16 h-16 rounded-full bg-violet-600/10 flex items-center justify-center text-violet-400">
+                    <i class="fi fi-rr-chart-user text-3xl"></i>
+                  </div>
+                  <div>
+                    <h3 class="text-sm font-semibold text-white">No stats recorded yet</h3>
+                    <p class="text-xs text-slate-500 mt-1">Complete matches and register stats to see leaderboards here.</p>
+                  </div>
+                </div>
+              } @else {
+                @let stats = competitionStats()!;
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  <!-- Common: Top Rated Players (For all sports) -->
+                  <div class="bg-slate-900 border border-white/10 rounded-2xl p-5 shadow-xl flex flex-col gap-4">
+                    <h3 class="text-sm font-bold text-white flex items-center gap-2 border-b border-white/5 pb-3">
+                      <i class="fi fi-rr-star text-amber-400"></i> Top Rated Players (Average Match Rating)
+                    </h3>
+                    <div class="overflow-x-auto">
+                      <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                          <tr class="text-slate-400 border-b border-white/5">
+                            <th class="py-2 font-bold uppercase tracking-wider text-[9px] w-12 text-center">Rank</th>
+                            <th class="py-2 font-bold uppercase tracking-wider text-[9px] pl-2">Player</th>
+                            <th class="py-2 font-bold uppercase tracking-wider text-[9px]">Team</th>
+                            <th class="py-2 font-bold uppercase tracking-wider text-[9px] text-center w-16">Matches</th>
+                            <th class="py-2 font-bold uppercase tracking-wider text-[9px] text-right pr-2 w-20">Rating</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @for (p of stats.topRated; track p.playerId; let idx = $index) {
+                          <tr class="border-b border-white/5 hover:bg-white/5 transition-colors">
+                            <td class="py-2.5 text-center font-bold text-slate-400">
+                              @if (idx === 0) {
+                                <span class="text-yellow-400 text-base">🥇</span>
+                              } @else if (idx === 1) {
+                                <span class="text-slate-300 text-base">🥈</span>
+                              } @else if (idx === 2) {
+                                <span class="text-amber-600 text-base">🥉</span>
+                              } @else {
+                                #{{ idx + 1 }}
+                              }
+                            </td>
+                            <td class="py-2.5 font-bold text-white pl-2">{{ p.playerName }}</td>
+                            <td class="py-2.5 text-slate-300">{{ p.teamName }}</td>
+                            <td class="py-2.5 text-center text-slate-400 font-semibold">{{ p.appearances }}</td>
+                            <td class="py-2.5 text-right pr-2 font-extrabold text-violet-400">{{ p.avgRating.toFixed(2) }}</td>
+                          </tr>
+                          }
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <!-- Football Specific Leaderboards -->
+                  @if (stats.sportCode === 'football') {
+                    <!-- Top Scorers -->
+                    <div class="bg-slate-900 border border-white/10 rounded-2xl p-5 shadow-xl flex flex-col gap-4">
+                      <h3 class="text-sm font-bold text-white flex items-center gap-2 border-b border-white/5 pb-3">
+                        <i class="fi fi-rr-football text-violet-400"></i> Top Scorers
+                      </h3>
+                      <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs border-collapse">
+                          <thead>
+                            <tr class="text-slate-400 border-b border-white/5">
+                              <th class="py-2 font-bold uppercase tracking-wider text-[9px] w-12 text-center">Rank</th>
+                              <th class="py-2 font-bold uppercase tracking-wider text-[9px] pl-2">Player</th>
+                              <th class="py-2 font-bold uppercase tracking-wider text-[9px]">Team</th>
+                              <th class="py-2 font-bold uppercase tracking-wider text-[9px] text-right pr-2 w-20">Goals</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @for (p of stats.topScorers; track p.playerId; let idx = $index) {
+                            <tr class="border-b border-white/5 hover:bg-white/5 transition-colors">
+                              <td class="py-2.5 text-center font-bold text-slate-400">#{{ idx + 1 }}</td>
+                              <td class="py-2.5 font-bold text-white pl-2">{{ p.playerName }}</td>
+                              <td class="py-2.5 text-slate-300">{{ p.teamName }}</td>
+                              <td class="py-2.5 text-right pr-2 font-extrabold text-emerald-400">{{ p.goals }}</td>
+                            </tr>
+                            }
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    <!-- Top Assists -->
+                    <div class="bg-slate-900 border border-white/10 rounded-2xl p-5 shadow-xl flex flex-col gap-4">
+                      <h3 class="text-sm font-bold text-white flex items-center gap-2 border-b border-white/5 pb-3">
+                        <i class="fi fi-rr-running text-violet-400"></i> Top Assists
+                      </h3>
+                      <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs border-collapse">
+                          <thead>
+                            <tr class="text-slate-400 border-b border-white/5">
+                              <th class="py-2 font-bold uppercase tracking-wider text-[9px] w-12 text-center">Rank</th>
+                              <th class="py-2 font-bold uppercase tracking-wider text-[9px] pl-2">Player</th>
+                              <th class="py-2 font-bold uppercase tracking-wider text-[9px]">Team</th>
+                              <th class="py-2 font-bold uppercase tracking-wider text-[9px] text-right pr-2 w-20">Assists</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @for (p of stats.topAssists; track p.playerId; let idx = $index) {
+                            <tr class="border-b border-white/5 hover:bg-white/5 transition-colors">
+                              <td class="py-2.5 text-center font-bold text-slate-400">#{{ idx + 1 }}</td>
+                              <td class="py-2.5 font-bold text-white pl-2">{{ p.playerName }}</td>
+                              <td class="py-2.5 text-slate-300">{{ p.teamName }}</td>
+                              <td class="py-2.5 text-right pr-2 font-extrabold text-blue-400">{{ p.assists }}</td>
+                            </tr>
+                            }
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    <!-- Discipline (Cards) -->
+                    <div class="bg-slate-900 border border-white/10 rounded-2xl p-5 shadow-xl flex flex-col gap-4">
+                      <h3 class="text-sm font-bold text-white flex items-center gap-2 border-b border-white/5 pb-3">
+                        <i class="fi fi-rr-shield-exclamation text-amber-500"></i> Discipline & Cards
+                      </h3>
+                      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- Yellow Cards -->
+                        <div class="flex flex-col gap-2">
+                          <h4 class="text-xs font-bold text-yellow-400 flex items-center gap-1.5 mb-1">
+                            <span class="w-2.5 h-3.5 bg-yellow-400 rounded-sm"></span> Most Yellow Cards
+                          </h4>
+                          <div class="flex flex-col gap-1.5 bg-slate-950/40 p-2.5 border border-white/5 rounded-xl">
+                            @for (p of stats.mostYellowCards; track p.playerId) {
+                            <div class="flex items-center justify-between text-xs py-1 border-b border-white/5 last:border-0">
+                              <div class="min-w-0">
+                                <p class="font-bold text-white truncate">{{ p.playerName }}</p>
+                                <p class="text-[9px] text-slate-500 truncate">{{ p.teamName }}</p>
+                              </div>
+                              <span class="font-bold text-yellow-400 pr-1">{{ p.cards }}</span>
+                            </div>
+                            } @empty {
+                            <p class="text-[10px] text-slate-500 text-center py-2">No yellow cards recorded</p>
+                            }
+                          </div>
+                        </div>
+
+                        <!-- Red Cards -->
+                        <div class="flex flex-col gap-2">
+                          <h4 class="text-xs font-bold text-rose-500 flex items-center gap-1.5 mb-1">
+                            <span class="w-2.5 h-3.5 bg-rose-500 rounded-sm"></span> Most Red Cards
+                          </h4>
+                          <div class="flex flex-col gap-1.5 bg-slate-950/40 p-2.5 border border-white/5 rounded-xl">
+                            @for (p of stats.mostRedCards; track p.playerId) {
+                            <div class="flex items-center justify-between text-xs py-1 border-b border-white/5 last:border-0">
+                              <div class="min-w-0">
+                                <p class="font-bold text-white truncate">{{ p.playerName }}</p>
+                                <p class="text-[9px] text-slate-500 truncate">{{ p.teamName }}</p>
+                              </div>
+                              <span class="font-bold text-rose-500 pr-1">{{ p.cards }}</span>
+                            </div>
+                            } @empty {
+                            <p class="text-[10px] text-slate-500 text-center py-2">No red cards recorded</p>
+                            }
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  }
+
+                  <!-- Cricket Specific Leaderboards -->
+                  @if (stats.sportCode === 'cricket') {
+                    <!-- Top Run Scorers -->
+                    <div class="bg-slate-900 border border-white/10 rounded-2xl p-5 shadow-xl flex flex-col gap-4">
+                      <h3 class="text-sm font-bold text-white flex items-center gap-2 border-b border-white/5 pb-3">
+                        <i class="fi fi-rr-cricket text-violet-400"></i> Most Runs (Batting Leaderboard)
+                      </h3>
+                      <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs border-collapse">
+                          <thead>
+                            <tr class="text-slate-400 border-b border-white/5">
+                              <th class="py-2 font-bold uppercase tracking-wider text-[9px] w-12 text-center">Rank</th>
+                              <th class="py-2 font-bold uppercase tracking-wider text-[9px] pl-2">Player</th>
+                              <th class="py-2 font-bold uppercase tracking-wider text-[9px]">Team</th>
+                              <th class="py-2 font-bold uppercase tracking-wider text-[9px] text-center w-16">Inns</th>
+                              <th class="py-2 font-bold uppercase tracking-wider text-[9px] text-right pr-2 w-20">Runs</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @for (p of stats.topRuns; track p.playerId; let idx = $index) {
+                            <tr class="border-b border-white/5 hover:bg-white/5 transition-colors">
+                              <td class="py-2.5 text-center font-bold text-slate-400">#{{ idx + 1 }}</td>
+                              <td class="py-2.5 font-bold text-white pl-2">{{ p.playerName }}</td>
+                              <td class="py-2.5 text-slate-300">{{ p.teamName }}</td>
+                              <td class="py-2.5 text-center text-slate-400 font-semibold">{{ p.innings }}</td>
+                              <td class="py-2.5 text-right pr-2 font-extrabold text-emerald-400">{{ p.runs }}</td>
+                            </tr>
+                            }
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    <!-- Top Wicket Takers -->
+                    <div class="bg-slate-900 border border-white/10 rounded-2xl p-5 shadow-xl flex flex-col gap-4">
+                      <h3 class="text-sm font-bold text-white flex items-center gap-2 border-b border-white/5 pb-3">
+                        <i class="fi fi-rr-bowling text-violet-400"></i> Most Wickets (Bowling Leaderboard)
+                      </h3>
+                      <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs border-collapse">
+                          <thead>
+                            <tr class="text-slate-400 border-b border-white/5">
+                              <th class="py-2 font-bold uppercase tracking-wider text-[9px] w-12 text-center">Rank</th>
+                              <th class="py-2 font-bold uppercase tracking-wider text-[9px] pl-2">Player</th>
+                              <th class="py-2 font-bold uppercase tracking-wider text-[9px]">Team</th>
+                              <th class="py-2 font-bold uppercase tracking-wider text-[9px] text-center w-16">Inns</th>
+                              <th class="py-2 font-bold uppercase tracking-wider text-[9px] text-right pr-2 w-20">Wickets</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @for (p of stats.topWickets; track p.playerId; let idx = $index) {
+                            <tr class="border-b border-white/5 hover:bg-white/5 transition-colors">
+                              <td class="py-2.5 text-center font-bold text-slate-400">#{{ idx + 1 }}</td>
+                              <td class="py-2.5 font-bold text-white pl-2">{{ p.playerName }}</td>
+                              <td class="py-2.5 text-slate-300">{{ p.teamName }}</td>
+                              <td class="py-2.5 text-center text-slate-400 font-semibold">{{ p.innings }}</td>
+                              <td class="py-2.5 text-right pr-2 font-extrabold text-emerald-400">{{ p.wickets }}</td>
+                            </tr>
+                            }
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  }
+
+                  <!-- Badminton Specific Leaderboards -->
+                  @if (stats.sportCode === 'badminton') {
+                    <!-- Top Rallies Won -->
+                    <div class="bg-slate-900 border border-white/10 rounded-2xl p-5 shadow-xl flex flex-col gap-4">
+                      <h3 class="text-sm font-bold text-white flex items-center gap-2 border-b border-white/5 pb-3">
+                        <i class="fi fi-rr-play text-violet-400"></i> Most Rallies Won
+                      </h3>
+                      <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs border-collapse">
+                          <thead>
+                            <tr class="text-slate-400 border-b border-white/5">
+                              <th class="py-2 font-bold uppercase tracking-wider text-[9px] w-12 text-center">Rank</th>
+                              <th class="py-2 font-bold uppercase tracking-wider text-[9px] pl-2">Player</th>
+                              <th class="py-2 font-bold uppercase tracking-wider text-[9px]">Team</th>
+                              <th class="py-2 font-bold uppercase tracking-wider text-[9px] text-right pr-2 w-24">Rallies Won</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @for (p of stats.topRalliesWon; track p.playerId; let idx = $index) {
+                            <tr class="border-b border-white/5 hover:bg-white/5 transition-colors">
+                              <td class="py-2.5 text-center font-bold text-slate-400">#{{ idx + 1 }}</td>
+                              <td class="py-2.5 font-bold text-white pl-2">{{ p.playerName }}</td>
+                              <td class="py-2.5 text-slate-300">{{ p.teamName }}</td>
+                              <td class="py-2.5 text-right pr-2 font-extrabold text-emerald-400">{{ p.ralliesWon }}</td>
+                            </tr>
+                            }
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            } @else {
+              <!-- ─── 2. Matches List & Schedule ─── -->
+              <div class="flex flex-col gap-6">
             <!-- Full Width Header -->
             <div class="flex items-center justify-between border-b border-white/5 pb-4">
               <h3 class="text-sm font-bold text-white uppercase tracking-wider">Scheduled Matches</h3>
@@ -2464,7 +2754,7 @@
               </div>
             </div>
           </div>
-          } @else {
+          } } @else {
           <!-- ─── 3. Live Scoring Console ─── -->
           @let match = selectedMatch()!;
           @let sport = selectedCompetition()?.sport?.code;

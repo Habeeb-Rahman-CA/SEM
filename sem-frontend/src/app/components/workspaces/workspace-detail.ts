@@ -3,7 +3,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { DatePipe, NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { WorkspaceService, Workspace, WorkspaceMember, AppNotification, Role, Team, Player, WorkspaceEvent, Sport, Competition, CompetitionStage, CompetitionTeam, Match, Venue, PointsConfigEntry, MatchPlayer } from '../../services/workspace.service';
+import { WorkspaceService, Workspace, WorkspaceMember, AppNotification, Role, Team, Player, WorkspaceEvent, Sport, Competition, CompetitionStage, CompetitionTeam, Match, Venue, PointsConfigEntry, MatchPlayer, CompetitionStats } from '../../services/workspace.service';
 import { AuthService } from '../../services/auth.service';
 import { UiService } from '../../services/ui.service';
 
@@ -42,8 +42,8 @@ export class WorkspaceDetailComponent implements OnInit {
 
   unreadNotificationsCount = computed(() => this.notifications().filter(n => !n.isRead).length);
   totalBadgeCount = computed(() => this.pendingInvitations().length + this.unreadNotificationsCount());
-  enableExtraTime = signal(true);
-  enablePenaltyShootout = signal(true);
+  enableExtraTime = signal(false);
+  enablePenaltyShootout = signal(false);
   extraTimeHalfDuration = signal(15);
 
   // Image Upload Loading States
@@ -176,6 +176,9 @@ export class WorkspaceDetailComponent implements OnInit {
   selectedCompetition = signal<Competition | null>(null);
   stages = signal<CompetitionStage[]>([]);
   isLoadingStages = signal(false);
+  activeCompetitionTab = signal<'matches' | 'stats'>('matches');
+  competitionStats = signal<CompetitionStats | null>(null);
+  isLoadingStats = signal(false);
 
   newStageName = signal('');
   newStageType = signal<'league' | 'group' | 'knockout' | 'group_knockout'>('league');
@@ -2529,6 +2532,8 @@ export class WorkspaceDetailComponent implements OnInit {
 
   onSelectCompetition(comp: Competition) {
     this.selectedCompetition.set(comp);
+    this.activeCompetitionTab.set('matches');
+    this.competitionStats.set(null);
     this.editingStage.set(null);
     this.stageCreateError.set('');
     this.stageCreateSuccess.set('');
@@ -2545,11 +2550,39 @@ export class WorkspaceDetailComponent implements OnInit {
 
   onDeselectCompetition() {
     this.selectedCompetition.set(null);
+    this.activeCompetitionTab.set('matches');
+    this.competitionStats.set(null);
     this.stages.set([]);
     this.selectedStage.set(null);
     this.selectedMatch.set(null);
     this.matches.set([]);
     this.competitionTeams.set([]);
+  }
+
+  setCompetitionTab(tab: 'matches' | 'stats') {
+    this.activeCompetitionTab.set(tab);
+    if (tab === 'stats') {
+      this.loadCompetitionStats();
+    }
+  }
+
+  loadCompetitionStats() {
+    const comp = this.selectedCompetition();
+    const ws = this.workspace();
+    const event = this.selectedEvent();
+    if (!comp || !ws || !event) return;
+
+    this.isLoadingStats.set(true);
+    this.workspaceService.getCompetitionStats(ws.id, event.id, comp.id).subscribe({
+      next: (stats) => {
+        this.competitionStats.set(stats);
+        this.isLoadingStats.set(false);
+      },
+      error: (err) => {
+        this.isLoadingStats.set(false);
+        this.uiService.error('Failed to load competition statistics.');
+      }
+    });
   }
 
   loadStages(competitionId: string) {
@@ -3459,6 +3492,9 @@ export class WorkspaceDetailComponent implements OnInit {
         this.matches.update(prev => prev.map(m => m.id === updated.id ? updated : m));
         if (live.timerRunning) this.startFootballTimer();
         else this.stopFootballTimer();
+      },
+      error: (err) => {
+        this.uiService.error(err.error?.message || 'Failed to update match status.');
       }
     });
   }
@@ -3491,6 +3527,9 @@ export class WorkspaceDetailComponent implements OnInit {
         this.selectedMatch.set(updated);
         this.matches.update(prev => prev.map(m => m.id === updated.id ? updated : m));
         this.startFootballTimer();
+      },
+      error: (err) => {
+        this.uiService.error(err.error?.message || 'Failed to start football match.');
       }
     });
   }
@@ -4238,6 +4277,9 @@ export class WorkspaceDetailComponent implements OnInit {
       next: (updated) => {
         this.selectedMatch.set(updated);
         this.matches.update(prev => prev.map(m => m.id === updated.id ? updated : m));
+      },
+      error: (err) => {
+        this.uiService.error(err.error?.message || 'Failed to start cricket match.');
       }
     });
   }
@@ -4713,6 +4755,9 @@ export class WorkspaceDetailComponent implements OnInit {
         this.matches.update(prev => prev.map(m => m.id === updated.id ? updated : m));
         this.badmintonMatchStatus.set(matchStatus);
         this.uiService.success(`Match status updated to ${matchStatus}`);
+      },
+      error: (err) => {
+        this.uiService.error(err.error?.message || 'Failed to update match status.');
       }
     });
   }
