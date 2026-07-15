@@ -1022,52 +1022,65 @@
           <p class="text-xs text-slate-500 max-w-xs">Add your first player or use bulk import to get started.</p>
         </div>
         } @else {
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
           @for (player of players(); track player.id) {
           <div
-            class="bg-slate-900 border border-white/10 hover:border-violet-500/30 rounded-2xl p-5 flex flex-col gap-4 group transition-all duration-300">
-            <div class="flex items-start gap-4">
+            class="bg-slate-900 border rounded-2xl p-4 flex flex-col justify-between gap-3 group transition-all duration-300 relative overflow-hidden"
+            [style.borderColor]="player.team.primaryColor ? player.team.primaryColor + '20' : 'rgba(255,255,255,0.1)'">
+            
+            <!-- Subtle team color accent line at the top -->
+            <div class="absolute top-0 left-0 w-full h-[2.5px] opacity-70 group-hover:opacity-100 transition-opacity"
+              [style.background]="'linear-gradient(to right, ' + (player.team.primaryColor || '#7c3aed') + ', ' + (player.team.secondaryColor || '#4f46e5') + ')'"></div>
+
+            <div class="flex items-center gap-3">
+              <!-- Avatar fallback styled exactly like members -->
               <div
-                class="w-10 h-10 rounded-xl bg-slate-800 border border-white/5 flex items-center justify-center font-bold text-violet-400 text-xs overflow-hidden flex-shrink-0">
+                class="w-9 h-9 rounded-xl flex-shrink-0 flex items-center justify-center text-white text-xs font-bold shadow-inner overflow-hidden"
+                [style.background]="player.user.avatarUrl ? 'transparent' : avatarColor(player.user.username)">
                 @if (player.user.avatarUrl) {
                 <img [src]="player.user.avatarUrl" alt="Avatar" class="w-full h-full object-cover" />
                 } @else {
                 {{ initials(player.user.username) }}
                 }
               </div>
-              <div class="flex-1 min-w-0">
-                <h4 class="text-sm font-bold text-white truncate">{{ player.user.username }}</h4>
-                <div class="flex items-center gap-1.5 mt-1">
+              
+              <!-- Info -->
+              <div class="flex-1 min-w-0 text-left">
+                <h4 class="text-xs font-bold text-white truncate" [title]="player.user.username">{{ player.user.username }}</h4>
+                <div class="flex items-center gap-1.5 mt-1.5 flex-wrap">
                   <span
-                    class="text-[10px] px-2 py-0.5 bg-violet-500/10 text-violet-400 rounded-md border border-violet-500/20 max-w-[120px] truncate">
+                    class="text-[9px] px-1.5 py-0.5 rounded border truncate max-w-[90px] font-semibold text-slate-200"
+                    [style.backgroundColor]="player.team.primaryColor ? player.team.primaryColor + '15' : 'rgba(124, 58, 237, 0.15)'"
+                    [style.borderColor]="player.team.primaryColor ? player.team.primaryColor + '30' : 'rgba(124, 58, 237, 0.3)'"
+                    [title]="player.team.name">
                     {{ player.team.name }}
                   </span>
                   @if (player.jerseyNumber) {
-                  <span class="text-[10px] px-1.5 py-0.5 bg-slate-800 text-slate-300 rounded border border-white/5">
-                    #{{ player.jerseyNumber }}
-                  </span>
+                  <!-- Custom Sports Jersey Icon with Number Overlay (Enlarged) -->
+                  <div class="relative flex items-center justify-center w-8 h-8 flex-shrink-0" [title]="'Jersey #' + player.jerseyNumber">
+                    <svg viewBox="0 0 24 24" class="w-8 h-8 drop-shadow" [style.color]="player.team.primaryColor || '#7c3aed'">
+                      <path fill="currentColor" stroke="rgba(255,255,255,0.2)" stroke-width="0.75" d="M7 3 L 9.5 5.5 C 10.5 4.5 13.5 4.5 14.5 5.5 L 17 3 L 22 7 L 19 10 L 17 9 L 17 21 L 7 21 L 7 9 L 5 10 L 2 7 Z"/>
+                    </svg>
+                    <span class="absolute inset-0 flex items-center justify-center text-[10px] font-extrabold font-mono mt-[4px] select-none drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]"
+                      [style.color]="player.team.secondaryColor || '#ffffff'">
+                      {{ player.jerseyNumber }}
+                    </span>
+                  </div>
                   }
                 </div>
-              </div>
-            </div>
-
-            <div class="text-xs text-slate-400 flex flex-col gap-1 border-t border-white/5 pt-3 text-left">
-              <div class="flex justify-between">
-                <span class="text-slate-500">Username:</span>
-                <span class="text-white truncate max-w-[150px]">{{ player.user.username }}</span>
               </div>
             </div>
 
             <!-- Actions -->
             @if (hasPermission('player.manage')) {
             <div
-              class="flex items-center justify-end gap-2 pt-3 border-t border-white/5 opacity-0 group-hover:opacity-100 transition-opacity">
+              class="flex items-center justify-end gap-1.5 pt-2 border-t border-white/5 opacity-0 group-hover:opacity-100 transition-opacity">
               <button (click)="onEditPlayer(player)"
-                class="px-2.5 py-1.5 text-[11px] font-bold text-violet-400 hover:text-white hover:bg-violet-600/20 border border-violet-500/10 hover:border-violet-500/30 rounded-lg transition-all cursor-pointer">
+                class="px-2 py-1 text-[10px] font-bold text-violet-400 hover:text-white hover:bg-violet-600/20 border border-violet-500/10 hover:border-violet-500/30 rounded-lg transition-all cursor-pointer">
                 Edit
               </button>
               <button (click)="onDeletePlayer(player)"
-                class="px-2.5 py-1.5 text-[11px] font-bold text-rose-400 hover:text-white hover:bg-rose-600/20 border border-rose-500/10 hover:border-rose-500/30 rounded-lg transition-all cursor-pointer">
+                class="px-2 py-1 text-[10px] font-bold text-rose-400 hover:text-white hover:bg-rose-600/20 border border-rose-500/10 hover:border-rose-500/30 rounded-lg transition-all cursor-pointer">
                 Delete
               </button>
             </div>
