@@ -7,6 +7,7 @@ import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { WorkspacesModule } from './workspaces/workspaces.module';
 import { UploadModule } from './upload/upload.module';
+import { LogsModule } from './logs/logs.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { UploadModule } from './upload/upload.module';
     AuthModule,
     WorkspacesModule,
     UploadModule,
+    LogsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

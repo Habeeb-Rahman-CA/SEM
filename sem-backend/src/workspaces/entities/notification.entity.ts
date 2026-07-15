@@ -1,8 +1,9 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Index } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, Index } from 'typeorm';
+import { AuditableEntity } from '../../common/auditable.entity';
 
 @Entity('notifications')
 @Index('idx_notifications_user_id', ['userId'])
-export class Notification {
+export class Notification extends AuditableEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -14,7 +15,4 @@ export class Notification {
 
   @Column({ name: 'is_read', type: 'boolean', default: false })
   isRead: boolean;
-
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
 }

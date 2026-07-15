@@ -908,15 +908,26 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           @for (team of teams(); track team.id) {
           <div
-            class="bg-slate-900 border border-white/10 hover:border-violet-500/30 rounded-2xl p-5 flex flex-col gap-4 group transition-all duration-300">
+            class="bg-slate-900 border rounded-2xl p-5 flex flex-col gap-4 group transition-all duration-300 relative overflow-hidden"
+            [style.borderColor]="team.primaryColor ? team.primaryColor + '20' : 'rgba(255,255,255,0.1)'">
+
+            <!-- Subtle color accent line at the top -->
+            <div class="absolute top-0 left-0 w-full h-[3px]"
+              [style.background]="'linear-gradient(to right, ' + (team.primaryColor || '#7c3aed') + ', ' + (team.secondaryColor || '#4f46e5') + ')'">
+            </div>
+
+            <!-- Soft background glow -->
+            <div class="absolute -right-6 -top-6 w-16 h-16 rounded-full filter blur-xl opacity-5 pointer-events-none"
+              [style.background]="team.primaryColor || '#7c3aed'"></div>
+
             <div class="flex items-start gap-4">
               <!-- Team Logo / Avatar -->
               @if (team.logoUrl) {
               <img [src]="team.logoUrl" alt="Logo"
-                class="w-12 h-12 rounded-xl object-cover border border-white/10 flex-shrink-0" />
+                class="w-16 h-16 rounded-xl object-cover border border-white/10 flex-shrink-0" />
               } @else {
               <div
-                class="w-12 h-12 rounded-xl flex items-center justify-center text-white text-sm font-extrabold shadow-inner flex-shrink-0"
+                class="w-16 h-16 rounded-xl flex items-center justify-center text-white text-base font-extrabold shadow-inner flex-shrink-0"
                 [style.background]="avatarColor(team.name)">
                 {{ initials(team.name) }}
               </div>
@@ -931,15 +942,18 @@
                   </span>
                   }
                 </div>
-                <p class="text-[10px] text-slate-500 mt-0.5">Registered {{ team.createdAt | date: 'MMM d, y' }}</p>
+                <p class="text-[10px] text-slate-500 mt-1">Registered {{ team.createdAt | date: 'MMM d, y' }}</p>
+
+                <!-- Color Badges -->
+                <div class="flex items-center gap-1.5 mt-2">
+                  <span class="text-[9px] text-slate-500 font-mono">Theme:</span>
+                  <div class="w-3 h-3 rounded-full border border-white/20"
+                    [style.backgroundColor]="team.primaryColor || '#7c3aed'" title="Primary Color"></div>
+                  <div class="w-3 h-3 rounded-full border border-white/20"
+                    [style.backgroundColor]="team.secondaryColor || '#4f46e5'" title="Secondary Color"></div>
+                </div>
               </div>
             </div>
-
-            @if (team.description) {
-            <p class="text-xs text-slate-400 line-clamp-2 leading-relaxed h-10">{{ team.description }}</p>
-            } @else {
-            <p class="text-xs text-slate-600 italic h-10">No description provided</p>
-            }
 
             <!-- Actions -->
             @if (hasPermission('team.manage')) {
@@ -1011,52 +1025,71 @@
           <p class="text-xs text-slate-500 max-w-xs">Add your first player or use bulk import to get started.</p>
         </div>
         } @else {
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
           @for (player of players(); track player.id) {
           <div
-            class="bg-slate-900 border border-white/10 hover:border-violet-500/30 rounded-2xl p-5 flex flex-col gap-4 group transition-all duration-300">
-            <div class="flex items-start gap-4">
+            class="bg-slate-900 border rounded-2xl p-4 flex flex-col justify-between gap-3 group transition-all duration-300 relative overflow-hidden"
+            [style.borderColor]="player.team.primaryColor ? player.team.primaryColor + '20' : 'rgba(255,255,255,0.1)'">
+
+            <!-- Subtle team color accent line at the top -->
+            <div class="absolute top-0 left-0 w-full h-[2.5px] opacity-70 group-hover:opacity-100 transition-opacity"
+              [style.background]="'linear-gradient(to right, ' + (player.team.primaryColor || '#7c3aed') + ', ' + (player.team.secondaryColor || '#4f46e5') + ')'">
+            </div>
+
+            <div class="flex items-center gap-3">
+              <!-- Avatar fallback styled exactly like members -->
               <div
-                class="w-10 h-10 rounded-xl bg-slate-800 border border-white/5 flex items-center justify-center font-bold text-violet-400 text-xs overflow-hidden flex-shrink-0">
+                class="w-9 h-9 rounded-xl flex-shrink-0 flex items-center justify-center text-white text-xs font-bold shadow-inner overflow-hidden"
+                [style.background]="player.user.avatarUrl ? 'transparent' : avatarColor(player.user.username)">
                 @if (player.user.avatarUrl) {
                 <img [src]="player.user.avatarUrl" alt="Avatar" class="w-full h-full object-cover" />
                 } @else {
                 {{ initials(player.user.username) }}
                 }
               </div>
-              <div class="flex-1 min-w-0">
-                <h4 class="text-sm font-bold text-white truncate">{{ player.user.username }}</h4>
-                <div class="flex items-center gap-1.5 mt-1">
+
+              <!-- Info -->
+              <div class="flex-1 min-w-0 text-left">
+                <h4 class="text-xs font-bold text-white truncate" [title]="player.user.username">{{ player.user.username
+                  }}</h4>
+                <div class="flex items-center gap-1.5 mt-1.5 flex-wrap">
                   <span
-                    class="text-[10px] px-2 py-0.5 bg-violet-500/10 text-violet-400 rounded-md border border-violet-500/20 max-w-[120px] truncate">
+                    class="text-[9px] px-1.5 py-0.5 rounded border truncate max-w-[90px] font-semibold text-slate-200"
+                    [style.backgroundColor]="player.team.primaryColor ? player.team.primaryColor + '15' : 'rgba(124, 58, 237, 0.15)'"
+                    [style.borderColor]="player.team.primaryColor ? player.team.primaryColor + '30' : 'rgba(124, 58, 237, 0.3)'"
+                    [title]="player.team.name">
                     {{ player.team.name }}
                   </span>
                   @if (player.jerseyNumber) {
-                  <span class="text-[10px] px-1.5 py-0.5 bg-slate-800 text-slate-300 rounded border border-white/5">
-                    #{{ player.jerseyNumber }}
-                  </span>
+                  <!-- Custom Sports Jersey Icon with Number Overlay (Enlarged) -->
+                  <div class="relative flex items-center justify-center w-8 h-8 flex-shrink-0"
+                    [title]="'Jersey #' + player.jerseyNumber">
+                    <svg viewBox="0 0 24 24" class="w-8 h-8 drop-shadow"
+                      [style.color]="player.team.primaryColor || '#7c3aed'">
+                      <path fill="currentColor" stroke="rgba(255,255,255,0.2)" stroke-width="0.75"
+                        d="M7 3 L 9.5 5.5 C 10.5 4.5 13.5 4.5 14.5 5.5 L 17 3 L 22 7 L 19 10 L 17 9 L 17 21 L 7 21 L 7 9 L 5 10 L 2 7 Z" />
+                    </svg>
+                    <span
+                      class="absolute inset-0 flex items-center justify-center text-[10px] font-extrabold font-mono mt-[4px] select-none drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]"
+                      [style.color]="player.team.secondaryColor || '#ffffff'">
+                      {{ player.jerseyNumber }}
+                    </span>
+                  </div>
                   }
                 </div>
-              </div>
-            </div>
-
-            <div class="text-xs text-slate-400 flex flex-col gap-1 border-t border-white/5 pt-3 text-left">
-              <div class="flex justify-between">
-                <span class="text-slate-500">Username:</span>
-                <span class="text-white truncate max-w-[150px]">{{ player.user.username }}</span>
               </div>
             </div>
 
             <!-- Actions -->
             @if (hasPermission('player.manage')) {
             <div
-              class="flex items-center justify-end gap-2 pt-3 border-t border-white/5 opacity-0 group-hover:opacity-100 transition-opacity">
+              class="flex items-center justify-end gap-1.5 pt-2 border-t border-white/5 opacity-0 group-hover:opacity-100 transition-opacity">
               <button (click)="onEditPlayer(player)"
-                class="px-2.5 py-1.5 text-[11px] font-bold text-violet-400 hover:text-white hover:bg-violet-600/20 border border-violet-500/10 hover:border-violet-500/30 rounded-lg transition-all cursor-pointer">
+                class="px-2 py-1 text-[10px] font-bold text-violet-400 hover:text-white hover:bg-violet-600/20 border border-violet-500/10 hover:border-violet-500/30 rounded-lg transition-all cursor-pointer">
                 Edit
               </button>
               <button (click)="onDeletePlayer(player)"
-                class="px-2.5 py-1.5 text-[11px] font-bold text-rose-400 hover:text-white hover:bg-rose-600/20 border border-rose-500/10 hover:border-rose-500/30 rounded-lg transition-all cursor-pointer">
+                class="px-2 py-1 text-[10px] font-bold text-rose-400 hover:text-white hover:bg-rose-600/20 border border-rose-500/10 hover:border-rose-500/30 rounded-lg transition-all cursor-pointer">
                 Delete
               </button>
             </div>
@@ -1455,45 +1488,51 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           @for (venue of venues(); track venue.id) {
           <div
-            class="bg-slate-900 border border-white/10 hover:border-violet-500/30 rounded-2xl p-5 flex flex-col gap-4 group transition-all duration-300">
-            <div class="flex items-start gap-4">
+            class="bg-slate-900 border border-white/10 hover:border-violet-500/30 rounded-2xl flex flex-col overflow-hidden group transition-all duration-300 shadow-xl hover:shadow-2xl">
+            <!-- Cover Image / Banner -->
+            <div
+              class="h-40 w-full relative bg-slate-950/60 overflow-hidden border-b border-white/5 flex-shrink-0 flex items-center justify-center">
+              @if (venue.imageUrl) {
+              <img [src]="venue.imageUrl" alt="Venue Cover"
+                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+              } @else {
+              <!-- Stylized fallback banner with nice colors & icon -->
+              <div class="absolute inset-0 bg-gradient-to-br from-violet-600/20 to-indigo-900/40 opacity-70"></div>
               <div
-                class="w-12 h-12 rounded-xl bg-slate-800 border border-white/5 flex items-center justify-center font-bold text-violet-400 text-lg overflow-hidden flex-shrink-0">
+                class="absolute w-12 h-12 rounded-full bg-violet-600/20 border border-violet-500/20 flex items-center justify-center text-violet-400 text-lg shadow-inner z-10">
                 <i class="fi fi-rr-marker"></i>
               </div>
+              }
+            </div>
+
+            <!-- Card Body -->
+            <div class="p-5 flex-1 flex flex-col justify-between gap-4 text-left">
               <div class="flex-1 min-w-0">
-                <h4 class="text-sm font-bold text-white truncate">{{ venue.name }}</h4>
+                <h4 class="text-sm font-bold text-white truncate" [title]="venue.name">{{ venue.name }}</h4>
                 @if (venue.location) {
-                <p class="text-xs text-slate-400 mt-1 flex items-center gap-1.5 truncate">
-                  <i class="fi fi-rr-navigation text-slate-500"></i> {{ venue.location }}
+                <p class="text-xs text-slate-400 mt-2 flex items-center gap-1.5" [title]="venue.location">
+                  <i class="fi fi-rr-navigation text-violet-400 flex-shrink-0 text-[10px]"></i>
+                  <span class="truncate">{{ venue.location }}</span>
                 </p>
                 }
-                <p class="text-[10px] text-slate-500 mt-1">Registered {{ venue.createdAt | date: 'MMM d, y' }}</p>
+                <p class="text-[9px] text-slate-500 mt-2.5">Registered {{ venue.createdAt | date: 'MMM d, y' }}</p>
               </div>
-            </div>
 
-            <div class="text-xs text-slate-400 flex flex-col gap-1.5 border-t border-white/5 pt-3">
-              <div class="flex justify-between">
-                <span class="text-slate-500">Capacity:</span>
-                <span class="text-white font-semibold">{{ venue.capacity ? (venue.capacity | number) + ' spectators' :
-                  'Unspecified' }}</span>
+              <!-- Actions -->
+              @if (hasPermission('workspace.update')) {
+              <div
+                class="flex items-center justify-end gap-2 pt-3 border-t border-white/5 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button (click)="onEditVenue(venue)"
+                  class="px-3 py-1.5 text-[11px] font-bold text-violet-400 hover:text-white hover:bg-violet-600/20 border border-violet-500/10 hover:border-violet-500/30 rounded-lg transition-all cursor-pointer">
+                  Edit
+                </button>
+                <button (click)="onDeleteVenue(venue)"
+                  class="px-3 py-1.5 text-[11px] font-bold text-rose-400 hover:text-white hover:bg-rose-600/20 border border-rose-500/10 hover:border-rose-500/30 rounded-lg transition-all cursor-pointer">
+                  Delete
+                </button>
               </div>
+              }
             </div>
-
-            <!-- Actions -->
-            @if (hasPermission('workspace.update')) {
-            <div
-              class="flex items-center justify-end gap-2 pt-3 border-t border-white/5 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button (click)="onEditVenue(venue)"
-                class="px-2.5 py-1.5 text-[11px] font-bold text-violet-400 hover:text-white hover:bg-violet-600/20 border border-violet-500/10 hover:border-violet-500/30 rounded-lg transition-all cursor-pointer">
-                Edit
-              </button>
-              <button (click)="onDeleteVenue(venue)"
-                class="px-2.5 py-1.5 text-[11px] font-bold text-rose-400 hover:text-white hover:bg-rose-600/20 border border-rose-500/10 hover:border-rose-500/30 rounded-lg transition-all cursor-pointer">
-                Delete
-              </button>
-            </div>
-            }
           </div>
           }
         </div>
@@ -1573,6 +1612,54 @@
 
             <form (submit)="editingVenue() ? onUpdateVenue() : onCreateVenue(); $event.preventDefault()"
               class="flex flex-col gap-4 text-left">
+              <!-- Venue Image (Optional) -->
+              <div class="flex flex-col gap-1.5">
+                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Venue Image
+                  (Optional)</label>
+                <div class="flex items-center gap-3">
+                  <div
+                    class="w-12 h-12 rounded-xl bg-slate-800 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0 relative">
+                    @if (isUploadingVenueImage()) {
+                    <div class="absolute inset-0 bg-slate-950/80 flex items-center justify-center">
+                      <svg class="animate-spin h-4 w-4 text-violet-500" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                        </circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z">
+                        </path>
+                      </svg>
+                    </div>
+                    } @else if (editingVenue()) {
+                    @if (editVenueImageUrl()) {
+                    <img [src]="editVenueImageUrl()" alt="Venue Preview" class="w-full h-full object-cover" />
+                    } @else {
+                    <i class="fi fi-rr-marker text-slate-500"></i>
+                    }
+                    } @else {
+                    @if (newVenueImageUrl()) {
+                    <img [src]="newVenueImageUrl()" alt="Venue Preview" class="w-full h-full object-cover" />
+                    } @else {
+                    <i class="fi fi-rr-marker text-slate-500"></i>
+                    }
+                    }
+                  </div>
+                  <label
+                    class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 border border-white/10 text-white hover:text-slate-950 text-xs font-bold rounded-xl transition-all cursor-pointer flex-shrink-0"
+                    [class.opacity-50]="isUploadingVenueImage()" [class.pointer-events-none]="isUploadingVenueImage()">
+                    @if (isUploadingVenueImage()) {
+                    <span class="animate-pulse">Uploading...</span>
+                    } @else {
+                    Upload Image
+                    <input type="file" class="hidden" accept="image/*"
+                      (change)="onVenueImageUpload($event, !!editingVenue())" />
+                    }
+                  </label>
+                  @if (editingVenue() ? editVenueImageUrl() : newVenueImageUrl()) {
+                  <button type="button" (click)="editingVenue() ? editVenueImageUrl.set('') : newVenueImageUrl.set('')"
+                    class="text-xs text-rose-450 hover:text-rose-300 font-bold transition cursor-pointer">Remove</button>
+                  }
+                </div>
+              </div>
+
               <!-- Venue Name -->
               <div class="flex flex-col gap-1.5">
                 <label for="v-name" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Venue Name
@@ -1824,7 +1911,7 @@
               <div class="flex items-center justify-between border-b border-white/5 pb-3">
                 <h3 class="text-sm font-bold text-white flex items-center gap-2">
                   <i class="fi fi-rr-trophy text-amber-400 text-lg"></i>
-                  🏆 Overall Leaderboard
+                  Overall Leaderboard
                 </h3>
                 <span
                   class="text-[9px] bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-full px-2 py-0.5 font-bold uppercase tracking-wider">
@@ -1842,7 +1929,7 @@
               <div
                 class="bg-gradient-to-r from-amber-500/20 via-yellow-500/10 to-transparent border border-amber-500/30 rounded-2xl p-4 flex items-center justify-between shadow-lg shadow-amber-500/5 mb-1">
                 <div class="flex items-center gap-3 text-left min-w-0">
-                  <span class="text-2xl flex-shrink-0">👑</span>
+                  <i class="fi fi-rr-crown text-2xl text-amber-400 flex-shrink-0"></i>
                   <div class="min-w-0">
                     <div class="text-[9px] uppercase font-black tracking-widest text-amber-400">Current Leader</div>
                     <div class="text-sm font-black text-white mt-0.5 truncate">{{ leader.teamName }}</div>
@@ -2395,32 +2482,47 @@
 
                 <div class="flex items-center justify-center gap-6 w-full relative z-10">
                   <!-- Home Team name -->
-                  <div class="flex-1 text-right">
-                    <h3 class="text-lg font-black text-white uppercase tracking-wide">{{ match.homeTeam?.name || 'Home'
-                      }}</h3>
-                    @if (sport === 'football') {
-                    <!-- List goals details -->
-                    <div class="text-[10px] text-slate-400 mt-1 flex flex-col items-end">
-                      @for (ev of match.liveData?.events; track ev) {
-                      @if (ev.type === 'goal') {
-                      @let isHomeGoal = (ev.goalType === 'own_goal') ? (ev.teamId === match.awayTeamId) : (ev.teamId ===
-                      match.homeTeamId);
-                      @if (isHomeGoal) {
-                      <span>
-                        <i class="fi fi-rr-football text-violet-400"></i> {{ ev.minute }}'
-                        @if (ev.goalType === 'own_goal') {
-                        (OG - {{ ev.playerName || getPlayersForTeam(match.awayTeamId).find(p => p.userId ===
-                        ev.playerUserId)?.user?.username || 'Opponent' }})
-                        } @else {
-                        {{ ev.playerName || getPlayersForTeam(match.homeTeamId).find(p => p.userId ===
-                        ev.playerUserId)?.user?.username || 'Player' }}
+                  <div class="flex-1 flex items-center justify-end gap-3 text-right">
+                    <div class="min-w-0">
+                      <h3 class="text-lg font-black text-white uppercase tracking-wide truncate">{{ match.homeTeam?.name || 'Home' }}</h3>
+                      @if (sport === 'football') {
+                      <!-- List goals details -->
+                      <div class="text-[10px] text-slate-400 mt-1 flex flex-col items-end">
+                        @for (ev of match.liveData?.events; track ev) {
+                        @if (ev.type === 'goal') {
+                        @let isHomeGoal = (ev.goalType === 'own_goal') ? (ev.teamId === match.awayTeamId) : (ev.teamId ===
+                        match.homeTeamId);
+                        @if (isHomeGoal) {
+                        <span>
+                          <i class="fi fi-rr-football text-violet-400"></i> {{ ev.minute }}'
+                          @if (ev.goalType === 'own_goal') {
+                          (OG - {{ ev.playerName || getPlayersForTeam(match.awayTeamId).find(p => p.userId ===
+                          ev.playerUserId)?.user?.username || 'Opponent' }})
+                          } @else {
+                          {{ ev.playerName || getPlayersForTeam(match.homeTeamId).find(p => p.userId ===
+                          ev.playerUserId)?.user?.username || 'Player' }}
+                          }
+                        </span>
                         }
-                      </span>
-                      }
-                      }
+                        }
+                        }
+                      </div>
                       }
                     </div>
-                    }
+                    <!-- Home Team Logo -->
+                    <div
+                      class="w-10 h-10 rounded-xl overflow-hidden bg-slate-950 border border-white/10 flex items-center justify-center flex-shrink-0"
+                      [style.background]="match.homeTeam?.logoUrl ? 'transparent' : (match.homeTeam ? avatarColor(match.homeTeam.name) : 'transparent')">
+                      @if (match.homeTeam; as homeTeam) {
+                      @if (homeTeam.logoUrl) {
+                      <img [src]="homeTeam.logoUrl" alt="Logo" class="w-full h-full object-cover" />
+                      } @else {
+                      <span class="text-xs font-bold text-white">{{ initials(homeTeam.name) }}</span>
+                      }
+                      } @else {
+                      <span class="text-xs font-bold text-slate-500">HM</span>
+                      }
+                    </div>
                   </div>
 
                   <!-- Live Score Card -->
@@ -2458,31 +2560,46 @@
                   </div>
 
                   <!-- Away Team name -->
-                  <div class="flex-1 text-left">
-                    <h3 class="text-lg font-black text-white uppercase tracking-wide">{{ match.awayTeam?.name || 'Away'
-                      }}</h3>
-                    @if (sport === 'football') {
-                    <div class="text-[10px] text-slate-400 mt-1 flex flex-col items-start">
-                      @for (ev of match.liveData?.events; track ev) {
-                      @if (ev.type === 'goal') {
-                      @let isAwayGoal = (ev.goalType === 'own_goal') ? (ev.teamId === match.homeTeamId) : (ev.teamId ===
-                      match.awayTeamId);
-                      @if (isAwayGoal) {
-                      <span>
-                        <i class="fi fi-rr-football text-violet-400"></i> {{ ev.minute }}'
-                        @if (ev.goalType === 'own_goal') {
-                        (OG - {{ ev.playerName || getPlayersForTeam(match.homeTeamId).find(p => p.userId ===
-                        ev.playerUserId)?.user?.username || 'Opponent' }})
-                        } @else {
-                        {{ ev.playerName || getPlayersForTeam(match.awayTeamId).find(p => p.userId ===
-                        ev.playerUserId)?.user?.username || 'Player' }}
-                        }
-                      </span>
+                  <div class="flex-1 flex items-center justify-start gap-3 text-left">
+                    <!-- Away Team Logo -->
+                    <div
+                      class="w-10 h-10 rounded-xl overflow-hidden bg-slate-950 border border-white/10 flex items-center justify-center flex-shrink-0"
+                      [style.background]="match.awayTeam?.logoUrl ? 'transparent' : (match.awayTeam ? avatarColor(match.awayTeam.name) : 'transparent')">
+                      @if (match.awayTeam; as awayTeam) {
+                      @if (awayTeam.logoUrl) {
+                      <img [src]="awayTeam.logoUrl" alt="Logo" class="w-full h-full object-cover" />
+                      } @else {
+                      <span class="text-xs font-bold text-white">{{ initials(awayTeam.name) }}</span>
                       }
-                      }
+                      } @else {
+                      <span class="text-xs font-bold text-slate-500">AW</span>
                       }
                     </div>
-                    }
+                    <div class="min-w-0">
+                      <h3 class="text-lg font-black text-white uppercase tracking-wide truncate">{{ match.awayTeam?.name || 'Away' }}</h3>
+                      @if (sport === 'football') {
+                      <div class="text-[10px] text-slate-400 mt-1 flex flex-col items-start">
+                        @for (ev of match.liveData?.events; track ev) {
+                        @if (ev.type === 'goal') {
+                        @let isAwayGoal = (ev.goalType === 'own_goal') ? (ev.teamId === match.homeTeamId) : (ev.teamId ===
+                        match.awayTeamId);
+                        @if (isAwayGoal) {
+                        <span>
+                          <i class="fi fi-rr-football text-violet-400"></i> {{ ev.minute }}'
+                          @if (ev.goalType === 'own_goal') {
+                          (OG - {{ ev.playerName || getPlayersForTeam(match.homeTeamId).find(p => p.userId ===
+                          ev.playerUserId)?.user?.username || 'Opponent' }})
+                          } @else {
+                          {{ ev.playerName || getPlayersForTeam(match.awayTeamId).find(p => p.userId ===
+                          ev.playerUserId)?.user?.username || 'Player' }}
+                          }
+                        </span>
+                        }
+                        }
+                        }
+                      </div>
+                      }
+                    </div>
                   </div>
                 </div>
 
@@ -2753,7 +2870,7 @@
                           <select #homeSubIn
                             class="flex-1 bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white outline-none">
                             <option value="">Player In</option>
-                            @for (p of getPlayersForTeam(match.homeTeamId); track p.id) {
+                            @for (p of getBenchPlayersForTeam(match.homeTeamId); track p.id) {
                             <option [value]="p.userId" [class.hidden]="p.userId === homeSubOut.value">{{ p.user.username
                               || p.id }}</option>
                             }
@@ -2777,182 +2894,7 @@
                       </div>
                     </div>
 
-                    <!-- Offside, Foul, Free Kick, Corner, Throw In, Goal Kick Grid -->
-                    <div class="grid grid-cols-2 gap-2 pt-2 border-t border-white/5">
-                      <!-- Offside -->
-                      <div class="flex flex-col gap-1 bg-slate-900/40 p-2 rounded-xl border border-white/5">
-                        <label class="text-[9px] font-bold text-slate-400 uppercase">Offside</label>
-                        <select #homeOffsidePlayer
-                          class="w-full bg-slate-900 border border-white/10 rounded-xl px-2 py-1 text-xs text-white outline-none">
-                          <option value="">Select Player</option>
-                          @for (p of getPlayersForTeam(match.homeTeamId); track p.id) {
-                          <option [value]="p.userId">{{ p.user.username || p.id }}</option>
-                          }
-                        </select>
-                        <button
-                          (click)="onRecordFootballOffside(match.homeTeamId!, homeOffsidePlayer.value); homeOffsidePlayer.value=''"
-                          [disabled]="!homeOffsidePlayer.value"
-                          class="w-full py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-white text-[10px] font-bold rounded-xl cursor-pointer mt-1">
-                          Log Offside
-                        </button>
-                      </div>
 
-                      <!-- Foul -->
-                      <div class="flex flex-col gap-1 bg-slate-900/40 p-2 rounded-xl border border-white/5">
-                        <label class="text-[9px] font-bold text-slate-400 uppercase">Foul Committed</label>
-                        <select #homeFoulBy
-                          class="w-full bg-slate-900 border border-white/10 rounded-xl px-2 py-1 text-xs text-white outline-none mb-1">
-                          <option value="">By Player</option>
-                          @for (p of getPlayersForTeam(match.homeTeamId); track p.id) {
-                          <option [value]="p.userId">{{ p.user.username || p.id }}</option>
-                          }
-                        </select>
-                        <select #homeFoulAgainst
-                          class="w-full bg-slate-900 border border-white/10 rounded-xl px-2 py-1 text-xs text-white outline-none mb-1">
-                          <option value="">Against Opponent</option>
-                          @for (p of getPlayersForTeam(match.awayTeamId); track p.id) {
-                          <option [value]="p.userId">{{ p.user.username || p.id }}</option>
-                          }
-                        </select>
-                        <select #homeFoulType
-                          class="w-full bg-slate-900 border border-white/10 rounded-xl px-2 py-1 text-[10px] text-white outline-none">
-                          <option value="Normal">Normal</option>
-                          <option value="Dangerous">Dangerous</option>
-                          <option value="Handball">Handball</option>
-                          <option value="Holding">Holding</option>
-                          <option value="Pushing">Pushing</option>
-                        </select>
-                        <button
-                          (click)="onRecordFootballFoul(match.homeTeamId!, homeFoulBy.value, homeFoulAgainst.value, homeFoulType.value); homeFoulBy.value=''; homeFoulAgainst.value=''"
-                          [disabled]="!homeFoulBy.value || !homeFoulAgainst.value"
-                          class="w-full py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-white text-[10px] font-bold rounded-xl cursor-pointer mt-1">
-                          Log Foul
-                        </button>
-                      </div>
-
-                      <!-- Free Kick -->
-                      <div class="flex flex-col gap-1 bg-slate-900/40 p-2 rounded-xl border border-white/5">
-                        <label class="text-[9px] font-bold text-slate-400 uppercase">Free Kick</label>
-                        <select #homeFKPlayer
-                          class="w-full bg-slate-900 border border-white/10 rounded-xl px-2 py-1 text-xs text-white outline-none mb-1">
-                          <option value="">Taken By</option>
-                          @for (p of getPlayersForTeam(match.homeTeamId); track p.id) {
-                          <option [value]="p.userId">{{ p.user.username || p.id }}</option>
-                          }
-                        </select>
-                        <select #homeFKType
-                          class="w-full bg-slate-900 border border-white/10 rounded-xl px-2 py-1 text-xs text-white outline-none mb-1">
-                          <option value="direct">Direct</option>
-                          <option value="indirect">Indirect</option>
-                        </select>
-                        <select #homeFKResult
-                          class="w-full bg-slate-900 border border-white/10 rounded-xl px-2 py-1 text-xs text-white outline-none">
-                          <option value="saved">Saved</option>
-                          <option value="scored">Scored</option>
-                          <option value="blocked">Blocked</option>
-                          <option value="off_target">Off Target</option>
-                          <option value="crossed">Crossed</option>
-                        </select>
-                        <button
-                          (click)="onRecordFootballFreeKick(match.homeTeamId!, homeFKPlayer.value, $any(homeFKType.value), homeFKResult.value); homeFKPlayer.value=''"
-                          [disabled]="!homeFKPlayer.value"
-                          class="w-full py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-white text-[10px] font-bold rounded-xl cursor-pointer mt-1">
-                          Log Free Kick
-                        </button>
-                      </div>
-
-                      <!-- Corner Kick -->
-                      <div class="flex flex-col gap-1 bg-slate-900/40 p-2 rounded-xl border border-white/5">
-                        <label class="text-[9px] font-bold text-slate-400 uppercase">Corner Kick</label>
-                        <select #homeCornerPlayer
-                          class="w-full bg-slate-900 border border-white/10 rounded-xl px-2 py-1 text-xs text-white outline-none mb-1">
-                          <option value="">Taken By</option>
-                          @for (p of getPlayersForTeam(match.homeTeamId); track p.id) {
-                          <option [value]="p.userId">{{ p.user.username || p.id }}</option>
-                          }
-                        </select>
-                        <select #homeCornerSide
-                          class="w-full bg-slate-900 border border-white/10 rounded-xl px-2 py-1 text-xs text-white outline-none">
-                          <option value="left">Left Side</option>
-                          <option value="right">Right Side</option>
-                        </select>
-                        <button
-                          (click)="onRecordFootballCornerKick(match.homeTeamId!, homeCornerPlayer.value, $any(homeCornerSide.value)); homeCornerPlayer.value=''"
-                          [disabled]="!homeCornerPlayer.value"
-                          class="w-full py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-white text-[10px] font-bold rounded-xl cursor-pointer mt-1">
-                          Log Corner
-                        </button>
-                      </div>
-
-                      <!-- Throw In -->
-                      <div class="flex flex-col gap-1 bg-slate-900/40 p-2 rounded-xl border border-white/5">
-                        <label class="text-[9px] font-bold text-slate-400 uppercase">Throw In</label>
-                        <select #homeThrowPlayer
-                          class="w-full bg-slate-900 border border-white/10 rounded-xl px-2 py-1 text-xs text-white outline-none">
-                          <option value="">Taken By</option>
-                          @for (p of getPlayersForTeam(match.homeTeamId); track p.id) {
-                          <option [value]="p.userId">{{ p.user.username || p.id }}</option>
-                          }
-                        </select>
-                        <button
-                          (click)="onRecordFootballThrowIn(match.homeTeamId!, homeThrowPlayer.value); homeThrowPlayer.value=''"
-                          [disabled]="!homeThrowPlayer.value"
-                          class="w-full py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-white text-[10px] font-bold rounded-xl cursor-pointer mt-1">
-                          Log Throw In
-                        </button>
-                      </div>
-
-                      <!-- Goal Kick -->
-                      <div class="flex flex-col gap-1 bg-slate-900/40 p-2 rounded-xl border border-white/5">
-                        <label class="text-[9px] font-bold text-slate-400 uppercase">Goal Kick</label>
-                        <select #homeGKGoalkeeper
-                          class="w-full bg-slate-900 border border-white/10 rounded-xl px-2 py-1 text-xs text-white outline-none">
-                          <option value="">Goalkeeper</option>
-                          @for (p of getPlayersForTeam(match.homeTeamId); track p.id) {
-                          <option [value]="p.userId">{{ p.user.username || p.id }}</option>
-                          }
-                        </select>
-                        <button
-                          (click)="onRecordFootballGoalKick(match.homeTeamId!, homeGKGoalkeeper.value); homeGKGoalkeeper.value=''"
-                          [disabled]="!homeGKGoalkeeper.value"
-                          class="w-full py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-white text-[10px] font-bold rounded-xl cursor-pointer mt-1">
-                          Log Goal Kick
-                        </button>
-                      </div>
-
-                      <!-- Injury -->
-                      <div class="flex flex-col gap-1 bg-slate-900/40 p-2 rounded-xl border border-white/5 col-span-2">
-                        <label class="text-[9px] font-bold text-slate-400 uppercase">Injury</label>
-                        <div class="flex gap-2">
-                          <select #homeInjuryPlayer
-                            class="flex-1 bg-slate-900 border border-white/10 rounded-xl px-2 py-1.5 text-xs text-white outline-none">
-                            <option value="">Select Player</option>
-                            @for (p of getPlayersForTeam(match.homeTeamId); track p.id) {
-                            <option [value]="p.userId">{{ p.user.username || p.id }}</option>
-                            }
-                          </select>
-                          <select #homeInjurySeverity
-                            class="flex-1 bg-slate-900 border border-white/10 rounded-xl px-2 py-1.5 text-xs text-white outline-none">
-                            <option value="Minor">Minor</option>
-                            <option value="Moderate">Moderate</option>
-                            <option value="Severe">Severe</option>
-                          </select>
-                        </div>
-                        <div class="flex items-center justify-between mt-1">
-                          <label class="text-[10px] text-slate-400 flex items-center gap-1.5 cursor-pointer">
-                            <input #homeInjurySubbed type="checkbox"
-                              class="accent-violet-500 rounded border-white/10" />
-                            Substituted?
-                          </label>
-                          <button
-                            (click)="onRecordFootballInjury(match.homeTeamId!, homeInjuryPlayer.value, homeInjurySeverity.value, homeInjurySubbed.checked); homeInjuryPlayer.value=''; homeInjurySubbed.checked=false"
-                            [disabled]="!homeInjuryPlayer.value"
-                            class="px-3 py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-white text-[10px] font-bold rounded-xl cursor-pointer">
-                            Log Injury
-                          </button>
-                        </div>
-                      </div>
-                    </div>
                   </div>
 
                   <!-- Away Team Panel -->
@@ -3089,7 +3031,7 @@
                           <select #awaySubIn
                             class="flex-1 bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white outline-none">
                             <option value="">Player In</option>
-                            @for (p of getPlayersForTeam(match.awayTeamId); track p.id) {
+                            @for (p of getBenchPlayersForTeam(match.awayTeamId); track p.id) {
                             <option [value]="p.userId" [class.hidden]="p.userId === awaySubOut.value">{{ p.user.username
                               || p.id }}</option>
                             }
@@ -3113,182 +3055,7 @@
                       </div>
                     </div>
 
-                    <!-- Offside, Foul, Free Kick, Corner, Throw In, Goal Kick Grid -->
-                    <div class="grid grid-cols-2 gap-2 pt-2 border-t border-white/5">
-                      <!-- Offside -->
-                      <div class="flex flex-col gap-1 bg-slate-900/40 p-2 rounded-xl border border-white/5">
-                        <label class="text-[9px] font-bold text-slate-400 uppercase">Offside</label>
-                        <select #awayOffsidePlayer
-                          class="w-full bg-slate-900 border border-white/10 rounded-xl px-2 py-1 text-xs text-white outline-none">
-                          <option value="">Select Player</option>
-                          @for (p of getPlayersForTeam(match.awayTeamId); track p.id) {
-                          <option [value]="p.userId">{{ p.user.username || p.id }}</option>
-                          }
-                        </select>
-                        <button
-                          (click)="onRecordFootballOffside(match.awayTeamId!, awayOffsidePlayer.value); awayOffsidePlayer.value=''"
-                          [disabled]="!awayOffsidePlayer.value"
-                          class="w-full py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-white text-[10px] font-bold rounded-xl cursor-pointer mt-1">
-                          Log Offside
-                        </button>
-                      </div>
 
-                      <!-- Foul -->
-                      <div class="flex flex-col gap-1 bg-slate-900/40 p-2 rounded-xl border border-white/5">
-                        <label class="text-[9px] font-bold text-slate-400 uppercase">Foul Committed</label>
-                        <select #awayFoulBy
-                          class="w-full bg-slate-900 border border-white/10 rounded-xl px-2 py-1 text-xs text-white outline-none mb-1">
-                          <option value="">By Player</option>
-                          @for (p of getPlayersForTeam(match.awayTeamId); track p.id) {
-                          <option [value]="p.userId">{{ p.user.username || p.id }}</option>
-                          }
-                        </select>
-                        <select #awayFoulAgainst
-                          class="w-full bg-slate-900 border border-white/10 rounded-xl px-2 py-1 text-xs text-white outline-none mb-1">
-                          <option value="">Against Opponent</option>
-                          @for (p of getPlayersForTeam(match.homeTeamId); track p.id) {
-                          <option [value]="p.userId">{{ p.user.username || p.id }}</option>
-                          }
-                        </select>
-                        <select #awayFoulType
-                          class="w-full bg-slate-900 border border-white/10 rounded-xl px-2 py-1 text-[10px] text-white outline-none">
-                          <option value="Normal">Normal</option>
-                          <option value="Dangerous">Dangerous</option>
-                          <option value="Handball">Handball</option>
-                          <option value="Holding">Holding</option>
-                          <option value="Pushing">Pushing</option>
-                        </select>
-                        <button
-                          (click)="onRecordFootballFoul(match.awayTeamId!, awayFoulBy.value, awayFoulAgainst.value, awayFoulType.value); awayFoulBy.value=''; awayFoulAgainst.value=''"
-                          [disabled]="!awayFoulBy.value || !awayFoulAgainst.value"
-                          class="w-full py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-white text-[10px] font-bold rounded-xl cursor-pointer mt-1">
-                          Log Foul
-                        </button>
-                      </div>
-
-                      <!-- Free Kick -->
-                      <div class="flex flex-col gap-1 bg-slate-900/40 p-2 rounded-xl border border-white/5">
-                        <label class="text-[9px] font-bold text-slate-400 uppercase">Free Kick</label>
-                        <select #awayFKPlayer
-                          class="w-full bg-slate-900 border border-white/10 rounded-xl px-2 py-1 text-xs text-white outline-none mb-1">
-                          <option value="">Taken By</option>
-                          @for (p of getPlayersForTeam(match.awayTeamId); track p.id) {
-                          <option [value]="p.userId">{{ p.user.username || p.id }}</option>
-                          }
-                        </select>
-                        <select #awayFKType
-                          class="w-full bg-slate-900 border border-white/10 rounded-xl px-2 py-1 text-xs text-white outline-none mb-1">
-                          <option value="direct">Direct</option>
-                          <option value="indirect">Indirect</option>
-                        </select>
-                        <select #awayFKResult
-                          class="w-full bg-slate-900 border border-white/10 rounded-xl px-2 py-1 text-xs text-white outline-none">
-                          <option value="saved">Saved</option>
-                          <option value="scored">Scored</option>
-                          <option value="blocked">Blocked</option>
-                          <option value="off_target">Off Target</option>
-                          <option value="crossed">Crossed</option>
-                        </select>
-                        <button
-                          (click)="onRecordFootballFreeKick(match.awayTeamId!, awayFKPlayer.value, $any(awayFKType.value), awayFKResult.value); awayFKPlayer.value=''"
-                          [disabled]="!awayFKPlayer.value"
-                          class="w-full py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-white text-[10px] font-bold rounded-xl cursor-pointer mt-1">
-                          Log Free Kick
-                        </button>
-                      </div>
-
-                      <!-- Corner Kick -->
-                      <div class="flex flex-col gap-1 bg-slate-900/40 p-2 rounded-xl border border-white/5">
-                        <label class="text-[9px] font-bold text-slate-400 uppercase">Corner Kick</label>
-                        <select #awayCornerPlayer
-                          class="w-full bg-slate-900 border border-white/10 rounded-xl px-2 py-1 text-xs text-white outline-none mb-1">
-                          <option value="">Taken By</option>
-                          @for (p of getPlayersForTeam(match.awayTeamId); track p.id) {
-                          <option [value]="p.userId">{{ p.user.username || p.id }}</option>
-                          }
-                        </select>
-                        <select #awayCornerSide
-                          class="w-full bg-slate-900 border border-white/10 rounded-xl px-2 py-1 text-xs text-white outline-none">
-                          <option value="left">Left Side</option>
-                          <option value="right">Right Side</option>
-                        </select>
-                        <button
-                          (click)="onRecordFootballCornerKick(match.awayTeamId!, awayCornerPlayer.value, $any(awayCornerSide.value)); awayCornerPlayer.value=''"
-                          [disabled]="!awayCornerPlayer.value"
-                          class="w-full py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-white text-[10px] font-bold rounded-xl cursor-pointer mt-1">
-                          Log Corner
-                        </button>
-                      </div>
-
-                      <!-- Throw In -->
-                      <div class="flex flex-col gap-1 bg-slate-900/40 p-2 rounded-xl border border-white/5">
-                        <label class="text-[9px] font-bold text-slate-400 uppercase">Throw In</label>
-                        <select #awayThrowPlayer
-                          class="w-full bg-slate-900 border border-white/10 rounded-xl px-2 py-1 text-xs text-white outline-none">
-                          <option value="">Taken By</option>
-                          @for (p of getPlayersForTeam(match.awayTeamId); track p.id) {
-                          <option [value]="p.userId">{{ p.user.username || p.id }}</option>
-                          }
-                        </select>
-                        <button
-                          (click)="onRecordFootballThrowIn(match.awayTeamId!, awayThrowPlayer.value); awayThrowPlayer.value=''"
-                          [disabled]="!awayThrowPlayer.value"
-                          class="w-full py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-white text-[10px] font-bold rounded-xl cursor-pointer mt-1">
-                          Log Throw In
-                        </button>
-                      </div>
-
-                      <!-- Goal Kick -->
-                      <div class="flex flex-col gap-1 bg-slate-900/40 p-2 rounded-xl border border-white/5">
-                        <label class="text-[9px] font-bold text-slate-400 uppercase">Goal Kick</label>
-                        <select #awayGKGoalkeeper
-                          class="w-full bg-slate-900 border border-white/10 rounded-xl px-2 py-1 text-xs text-white outline-none">
-                          <option value="">Goalkeeper</option>
-                          @for (p of getPlayersForTeam(match.awayTeamId); track p.id) {
-                          <option [value]="p.userId">{{ p.user.username || p.id }}</option>
-                          }
-                        </select>
-                        <button
-                          (click)="onRecordFootballGoalKick(match.awayTeamId!, awayGKGoalkeeper.value); awayGKGoalkeeper.value=''"
-                          [disabled]="!awayGKGoalkeeper.value"
-                          class="w-full py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-white text-[10px] font-bold rounded-xl cursor-pointer mt-1">
-                          Log Goal Kick
-                        </button>
-                      </div>
-
-                      <!-- Injury -->
-                      <div class="flex flex-col gap-1 bg-slate-900/40 p-2 rounded-xl border border-white/5 col-span-2">
-                        <label class="text-[9px] font-bold text-slate-400 uppercase">Injury</label>
-                        <div class="flex gap-2">
-                          <select #awayInjuryPlayer
-                            class="flex-1 bg-slate-900 border border-white/10 rounded-xl px-2 py-1.5 text-xs text-white outline-none">
-                            <option value="">Select Player</option>
-                            @for (p of getPlayersForTeam(match.awayTeamId); track p.id) {
-                            <option [value]="p.userId">{{ p.user.username || p.id }}</option>
-                            }
-                          </select>
-                          <select #awayInjurySeverity
-                            class="flex-1 bg-slate-900 border border-white/10 rounded-xl px-2 py-1.5 text-xs text-white outline-none">
-                            <option value="Minor">Minor</option>
-                            <option value="Moderate">Moderate</option>
-                            <option value="Severe">Severe</option>
-                          </select>
-                        </div>
-                        <div class="flex items-center justify-between mt-1">
-                          <label class="text-[10px] text-slate-400 flex items-center gap-1.5 cursor-pointer">
-                            <input #awayInjurySubbed type="checkbox"
-                              class="accent-violet-500 rounded border-white/10" />
-                            Substituted?
-                          </label>
-                          <button
-                            (click)="onRecordFootballInjury(match.awayTeamId!, awayInjuryPlayer.value, awayInjurySeverity.value, awayInjurySubbed.checked); awayInjuryPlayer.value=''; awayInjurySubbed.checked=false"
-                            [disabled]="!awayInjuryPlayer.value"
-                            class="px-3 py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-white text-[10px] font-bold rounded-xl cursor-pointer">
-                            Log Injury
-                          </button>
-                        </div>
-                      </div>
-                    </div>
                   </div>
                 </div>
                 } @else {
@@ -4328,6 +4095,173 @@
                 </div>
               </div>
 
+              <!-- Match Lineups Card -->
+              <div class="bg-slate-900 border border-white/10 rounded-2xl p-6 shadow-xl flex flex-col gap-5">
+                <div class="flex items-center justify-between border-b border-white/5 pb-3">
+                  <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                    <i class="fi fi-rr-users-alt text-violet-400 text-lg"></i>
+                    Match Lineups
+                  </h3>
+                  @if (match.status !== 'completed' && hasPermission('match.score')) {
+                  <button (click)="openLineupModal()"
+                    class="text-[10px] bg-violet-600 hover:bg-violet-500 text-white font-bold rounded-lg px-2.5 py-1.5 cursor-pointer transition-all">
+                    Manage Lineup
+                  </button>
+                  }
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 text-left">
+                  <!-- Home Team Lineup -->
+                  <div class="flex flex-col gap-3">
+                    <h4 class="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+                      @if (match.homeTeam?.logoUrl) {
+                      <img [src]="match.homeTeam?.logoUrl" class="w-4 h-4 rounded object-cover" />
+                      } @else {
+                      <div class="w-4 h-4 rounded flex items-center justify-center text-white text-[6px] font-black"
+                        [style.background]="avatarColor(match.homeTeam?.name || '')">
+                        {{ initials(match.homeTeam?.name || '') }}
+                      </div>
+                      }
+                      {{ match.homeTeam?.code || 'Home' }}
+                    </h4>
+                    
+                    <div class="flex flex-col gap-2 max-h-[300px] overflow-y-auto pr-1">
+                      @let homeLineup = getSortedMatchLineup(match.homeTeamId);
+                      @if (homeLineup.length === 0) {
+                      <span class="text-[10px] text-slate-500 italic">No players registered.</span>
+                      } @else {
+                        @for (mp of homeLineup; track mp.id) {
+                        <div class="flex items-center justify-between p-1.5 rounded-lg border transition-all"
+                          [class]="mp.isCurrentlyPlaying ? 'bg-slate-950/60 border-white/8' : 'bg-slate-950/20 border-white/3 opacity-60'">
+                          <div class="flex items-center gap-2 min-w-0">
+                            <span class="text-[10px] font-mono font-extrabold text-violet-400">
+                              {{ mp.player?.jerseyNumber ? '#' + mp.player?.jerseyNumber : '--' }}
+                            </span>
+                            <span class="text-xs text-slate-300 font-semibold truncate">{{ mp.player?.user?.username }}</span>
+                            @if (mp.isGoalkeeper) {
+                            <span class="text-[8px] bg-amber-500/15 border border-amber-500/30 text-amber-400 rounded px-1 font-bold">GK</span>
+                            }
+                            
+                            <!-- Sub indicators -->
+                            @if (mp.subStatus === 'in') {
+                            <span class="text-[9px] text-emerald-400 flex items-center font-bold" title="Subbed In">
+                              <i class="fi fi-rr-arrow-small-up"></i> In
+                            </span>
+                            }
+                            @if (mp.subStatus === 'out') {
+                            <span class="text-[9px] text-orange-400 flex items-center font-bold" title="Subbed Out">
+                              <i class="fi fi-rr-arrow-small-down"></i> Out
+                            </span>
+                            }
+                            @if (mp.isRedCarded) {
+                            <span class="w-1.5 h-2.5 bg-rose-500 rounded-sm inline-block border border-rose-600 shadow-sm shrink-0" title="Sent Off (Red Card)"></span>
+                            }
+                          </div>
+                          <div class="flex items-center gap-1.5 shrink-0">
+                            @if (mp.rating !== null && mp.rating !== undefined) {
+                            <!-- Rating badge -->
+                            <span class="text-[9px] font-extrabold px-1.5 py-0.5 rounded border"
+                              [ngClass]="getPlayerRatingColor(mp.rating)"
+                              title="Match rating">
+                              {{ (+mp.rating).toFixed(1) }}
+                            </span>
+                            }
+                            <span [class]="
+                              mp.isRedCarded ? 'w-2 h-2 rounded-full bg-rose-500' :
+                              mp.subStatus === 'out' ? 'w-2 h-2 rounded-full bg-orange-500' :
+                              mp.subStatus === 'in' ? 'w-2 h-2 rounded-full bg-amber-500' :
+                              mp.isCurrentlyPlaying ? 'w-2 h-2 rounded-full bg-emerald-500' :
+                              'w-2 h-2 rounded-full bg-slate-600'"
+                              [title]="
+                              mp.isRedCarded ? 'Red Carded / Sent Off' :
+                              mp.subStatus === 'out' ? 'Substituted Out' :
+                              mp.subStatus === 'in' ? 'Subbed In (Playing)' :
+                              mp.isCurrentlyPlaying ? 'Playing' : 'Bench'">
+                            </span>
+                          </div>
+                        </div>
+                        }
+                      }
+                    </div>
+                  </div>
+
+                  <!-- Away Team Lineup -->
+                  <div class="flex flex-col gap-3">
+                    <h4 class="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+                      @if (match.awayTeam?.logoUrl) {
+                      <img [src]="match.awayTeam?.logoUrl" class="w-4 h-4 rounded object-cover" />
+                      } @else {
+                      <div class="w-4 h-4 rounded flex items-center justify-center text-white text-[6px] font-black"
+                        [style.background]="avatarColor(match.awayTeam?.name || '')">
+                        {{ initials(match.awayTeam?.name || '') }}
+                      </div>
+                      }
+                      {{ match.awayTeam?.code || 'Away' }}
+                    </h4>
+
+                    <div class="flex flex-col gap-2 max-h-[300px] overflow-y-auto pr-1">
+                      @let awayLineup = getSortedMatchLineup(match.awayTeamId);
+                      @if (awayLineup.length === 0) {
+                      <span class="text-[10px] text-slate-500 italic">No players registered.</span>
+                      } @else {
+                        @for (mp of awayLineup; track mp.id) {
+                        <div class="flex items-center justify-between p-1.5 rounded-lg border transition-all"
+                          [class]="mp.isCurrentlyPlaying ? 'bg-slate-950/60 border-white/8' : 'bg-slate-950/20 border-white/3 opacity-60'">
+                          <div class="flex items-center gap-2 min-w-0">
+                            <span class="text-[10px] font-mono font-extrabold text-violet-400">
+                              {{ mp.player?.jerseyNumber ? '#' + mp.player?.jerseyNumber : '--' }}
+                            </span>
+                            <span class="text-xs text-slate-300 font-semibold truncate">{{ mp.player?.user?.username }}</span>
+                            @if (mp.isGoalkeeper) {
+                            <span class="text-[8px] bg-amber-500/15 border border-amber-500/30 text-amber-400 rounded px-1 font-bold">GK</span>
+                            }
+                            
+                            <!-- Sub indicators -->
+                            @if (mp.subStatus === 'in') {
+                            <span class="text-[9px] text-emerald-400 flex items-center font-bold" title="Subbed In">
+                              <i class="fi fi-rr-arrow-small-up"></i> In
+                            </span>
+                            }
+                            @if (mp.subStatus === 'out') {
+                            <span class="text-[9px] text-orange-400 flex items-center font-bold" title="Subbed Out">
+                              <i class="fi fi-rr-arrow-small-down"></i> Out
+                            </span>
+                            }
+                            @if (mp.isRedCarded) {
+                            <span class="w-1.5 h-2.5 bg-rose-500 rounded-sm inline-block border border-rose-600 shadow-sm shrink-0" title="Sent Off (Red Card)"></span>
+                            }
+                          </div>
+                          <div class="flex items-center gap-1.5 shrink-0">
+                            @if (mp.rating !== null && mp.rating !== undefined) {
+                            <!-- Rating badge -->
+                            <span class="text-[9px] font-extrabold px-1.5 py-0.5 rounded border"
+                              [ngClass]="getPlayerRatingColor(mp.rating)"
+                              title="Match rating">
+                              {{ (+mp.rating).toFixed(1) }}
+                            </span>
+                            }
+                            <span [class]="
+                              mp.isRedCarded ? 'w-2 h-2 rounded-full bg-rose-500' :
+                              mp.subStatus === 'out' ? 'w-2 h-2 rounded-full bg-orange-500' :
+                              mp.subStatus === 'in' ? 'w-2 h-2 rounded-full bg-amber-500' :
+                              mp.isCurrentlyPlaying ? 'w-2 h-2 rounded-full bg-emerald-500' :
+                              'w-2 h-2 rounded-full bg-slate-600'"
+                              [title]="
+                              mp.isRedCarded ? 'Red Carded / Sent Off' :
+                              mp.subStatus === 'out' ? 'Substituted Out' :
+                              mp.subStatus === 'in' ? 'Subbed In (Playing)' :
+                              mp.isCurrentlyPlaying ? 'Playing' : 'Bench'">
+                            </span>
+                          </div>
+                        </div>
+                        }
+                      }
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+
               <!-- Innings Stats Card (for Cricket only) -->
               @if (sport === 'cricket') {
               @let currentInningsNum = match.liveData?.currentInnings ?? 1;
@@ -4639,9 +4573,7 @@
                 </div>
 
                 <div class="flex flex-col gap-1.5 text-left">
-                  <label for="modal-event-logo"
-                    class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Event Logo <span
-                      class="text-slate-600 font-normal normal-case">(optional)</span></label>
+                  <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Event Logo</label>
                   <div class="flex items-center gap-3">
                     <div
                       class="w-10 h-10 rounded-xl bg-slate-950 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0 relative">
@@ -4664,20 +4596,20 @@
                       </svg>
                       }
                     </div>
-                    <input id="modal-event-logo" type="url" placeholder="https://example.com/logo.png"
-                      autocomplete="off"
-                      class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition-all flex-1"
-                      [ngModel]="newEventLogoUrl()" (ngModelChange)="newEventLogoUrl.set($event)" name="eventLogo" />
                     <label
                       class="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 border border-white/10 text-white hover:text-slate-950 text-xs font-bold rounded-xl transition-all cursor-pointer flex-shrink-0"
                       [class.opacity-50]="isUploadingEventLogo()" [class.pointer-events-none]="isUploadingEventLogo()">
                       @if (isUploadingEventLogo()) {
-                      <span class="animate-pulse">...</span>
+                      <span class="animate-pulse">Uploading...</span>
                       } @else {
-                      Upload
+                      Upload Logo
                       <input type="file" class="hidden" accept="image/*" (change)="onEventLogoUpload($event, false)" />
                       }
                     </label>
+                    @if (newEventLogoUrl()) {
+                    <button type="button" (click)="newEventLogoUrl.set('')"
+                      class="text-xs text-rose-450 hover:text-rose-300 font-bold transition">Remove</button>
+                    }
                   </div>
                 </div>
 
@@ -4824,8 +4756,7 @@
                 </div>
 
                 <div class="flex flex-col gap-1.5 text-left">
-                  <label for="edit-modal-event-logo"
-                    class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Event Logo <span
+                  <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Event Logo <span
                       class="text-slate-600 font-normal normal-case">(optional)</span></label>
                   <div class="flex items-center gap-3">
                     <div
@@ -4849,21 +4780,20 @@
                       </svg>
                       }
                     </div>
-                    <input id="edit-modal-event-logo" type="url" placeholder="https://example.com/logo.png"
-                      autocomplete="off"
-                      class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition-all flex-1"
-                      [ngModel]="editEventLogoUrl()" (ngModelChange)="editEventLogoUrl.set($event)"
-                      name="editEventLogo" />
                     <label
                       class="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 border border-white/10 text-white hover:text-slate-950 text-xs font-bold rounded-xl transition-all cursor-pointer flex-shrink-0"
                       [class.opacity-50]="isUploadingEventLogo()" [class.pointer-events-none]="isUploadingEventLogo()">
                       @if (isUploadingEventLogo()) {
-                      <span class="animate-pulse">...</span>
+                      <span class="animate-pulse">Uploading...</span>
                       } @else {
-                      Upload
+                      Upload Logo
                       <input type="file" class="hidden" accept="image/*" (change)="onEventLogoUpload($event, true)" />
                       }
                     </label>
+                    @if (editEventLogoUrl()) {
+                    <button type="button" (click)="editEventLogoUrl.set('')"
+                      class="text-xs text-rose-450 hover:text-rose-300 font-bold transition">Remove</button>
+                    }
                   </div>
                 </div>
 
@@ -5358,6 +5288,47 @@
         }
 
         <form (submit)="onCreateTeam(); $event.preventDefault()" class="flex flex-col gap-4">
+          <!-- Team Logo (centered at the top with larger w-24 h-24 preview) -->
+          <div class="flex flex-col items-center gap-3 p-4 bg-slate-950/20 border border-white/5 rounded-2xl">
+            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider self-start">Team Logo <span
+                class="text-slate-600 font-normal normal-case">(optional)</span></label>
+            <div
+              class="w-24 h-24 rounded-2xl bg-slate-950 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0 relative shadow-inner">
+              @if (isUploadingTeamLogo()) {
+              <div class="absolute inset-0 bg-slate-950/80 flex items-center justify-center">
+                <svg class="animate-spin h-6 w-6 text-violet-500" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+              </div>
+              } @else if (newTeamLogoUrl()) {
+              <img [src]="newTeamLogoUrl()" alt="Logo Preview" class="w-full h-full object-cover" />
+              } @else {
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-slate-500" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              }
+            </div>
+            <div class="flex items-center gap-3">
+              <label
+                class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 border border-white/10 text-white hover:text-slate-950 text-xs font-bold rounded-xl transition-all cursor-pointer flex-shrink-0"
+                [class.opacity-50]="isUploadingTeamLogo()" [class.pointer-events-none]="isUploadingTeamLogo()">
+                @if (isUploadingTeamLogo()) {
+                <span class="animate-pulse">Uploading...</span>
+                } @else {
+                Upload Team Logo
+                <input type="file" class="hidden" accept="image/*" (change)="onTeamLogoUpload($event, false)" />
+                }
+              </label>
+              @if (newTeamLogoUrl()) {
+              <button type="button" (click)="newTeamLogoUrl.set('')"
+                class="text-xs text-rose-450 hover:text-rose-400 font-bold transition">Remove</button>
+              }
+            </div>
+          </div>
+
           <div class="flex flex-col gap-1.5">
             <label for="team-name" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Team Name <span
                 class="text-rose-400">*</span></label>
@@ -5374,42 +5345,29 @@
               [ngModel]="newTeamCode()" (ngModelChange)="newTeamCode.set($event)" name="teamCode" required />
           </div>
 
-          <div class="flex flex-col gap-1.5">
-            <label for="team-logo" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Logo URL /
-              Upload <span class="text-slate-600 font-normal normal-case">(optional)</span></label>
-            <div class="flex items-center gap-3">
-              <div
-                class="w-10 h-10 rounded-xl bg-slate-950 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0 relative">
-                @if (isUploadingTeamLogo()) {
-                <div class="absolute inset-0 bg-slate-950/80 flex items-center justify-center">
-                  <svg class="animate-spin h-4 w-4 text-violet-500" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                  </svg>
-                </div>
-                } @else if (newTeamLogoUrl()) {
-                <img [src]="newTeamLogoUrl()" alt="Logo Preview" class="w-full h-full object-cover" />
-                } @else {
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-slate-500" fill="none" viewBox="0 0 24 24"
-                  stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                }
+          <!-- Team Colors -->
+          <div class="grid grid-cols-2 gap-4">
+            <div class="flex flex-col gap-1.5">
+              <label for="team-primary-color"
+                class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Primary Color</label>
+              <div class="flex items-center gap-2 bg-slate-950 border border-white/10 rounded-xl px-3.5 py-2">
+                <input id="team-primary-color" type="color"
+                  class="w-6 h-6 rounded-md cursor-pointer border-0 outline-none bg-transparent"
+                  [ngModel]="newTeamPrimaryColor()" (ngModelChange)="newTeamPrimaryColor.set($event)"
+                  name="primaryColor" />
+                <span class="text-[10px] text-slate-350 uppercase font-mono">{{ newTeamPrimaryColor() }}</span>
               </div>
-              <input id="team-logo" type="url" placeholder="https://example.com/logo.png" autocomplete="off"
-                class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition-all flex-1"
-                [ngModel]="newTeamLogoUrl()" (ngModelChange)="newTeamLogoUrl.set($event)" name="teamLogo" />
-              <label
-                class="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 border border-white/10 text-white hover:text-slate-950 text-xs font-bold rounded-xl transition-all cursor-pointer flex-shrink-0"
-                [class.opacity-50]="isUploadingTeamLogo()" [class.pointer-events-none]="isUploadingTeamLogo()">
-                @if (isUploadingTeamLogo()) {
-                <span class="animate-pulse">...</span>
-                } @else {
-                Upload
-                <input type="file" class="hidden" accept="image/*" (change)="onTeamLogoUpload($event, false)" />
-                }
-              </label>
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label for="team-secondary-color"
+                class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Secondary Color</label>
+              <div class="flex items-center gap-2 bg-slate-950 border border-white/10 rounded-xl px-3.5 py-2">
+                <input id="team-secondary-color" type="color"
+                  class="w-6 h-6 rounded-md cursor-pointer border-0 outline-none bg-transparent"
+                  [ngModel]="newTeamSecondaryColor()" (ngModelChange)="newTeamSecondaryColor.set($event)"
+                  name="secondaryColor" />
+                <span class="text-[10px] text-slate-350 uppercase font-mono">{{ newTeamSecondaryColor() }}</span>
+              </div>
             </div>
           </div>
 
@@ -5466,6 +5424,47 @@
         }
 
         <form (submit)="onUpdateTeam(); $event.preventDefault()" class="flex flex-col gap-4">
+          <!-- Team Logo (centered at the top with larger w-24 h-24 preview) -->
+          <div class="flex flex-col items-center gap-3 p-4 bg-slate-950/20 border border-white/5 rounded-2xl">
+            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider self-start">Team Logo <span
+                class="text-slate-600 font-normal normal-case">(optional)</span></label>
+            <div
+              class="w-24 h-24 rounded-2xl bg-slate-950 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0 relative shadow-inner">
+              @if (isUploadingTeamLogo()) {
+              <div class="absolute inset-0 bg-slate-950/80 flex items-center justify-center">
+                <svg class="animate-spin h-6 w-6 text-violet-500" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+              </div>
+              } @else if (editTeamLogoUrl()) {
+              <img [src]="editTeamLogoUrl()" alt="Logo Preview" class="w-full h-full object-cover" />
+              } @else {
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-slate-500" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              }
+            </div>
+            <div class="flex items-center gap-3">
+              <label
+                class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 border border-white/10 text-white hover:text-slate-950 text-xs font-bold rounded-xl transition-all cursor-pointer flex-shrink-0"
+                [class.opacity-50]="isUploadingTeamLogo()" [class.pointer-events-none]="isUploadingTeamLogo()">
+                @if (isUploadingTeamLogo()) {
+                <span class="animate-pulse">Uploading...</span>
+                } @else {
+                Upload Team Logo
+                <input type="file" class="hidden" accept="image/*" (change)="onTeamLogoUpload($event, true)" />
+                }
+              </label>
+              @if (editTeamLogoUrl()) {
+              <button type="button" (click)="editTeamLogoUrl.set('')"
+                class="text-xs text-rose-450 hover:text-rose-400 font-bold transition">Remove</button>
+              }
+            </div>
+          </div>
+
           <div class="flex flex-col gap-1.5">
             <label for="edit-team-name" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Team Name
               <span class="text-rose-400">*</span></label>
@@ -5482,42 +5481,29 @@
               [ngModel]="editTeamCode()" (ngModelChange)="editTeamCode.set($event)" name="editTeamCode" required />
           </div>
 
-          <div class="flex flex-col gap-1.5">
-            <label for="edit-team-logo" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Logo URL /
-              Upload</label>
-            <div class="flex items-center gap-3">
-              <div
-                class="w-10 h-10 rounded-xl bg-slate-950 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0 relative">
-                @if (isUploadingTeamLogo()) {
-                <div class="absolute inset-0 bg-slate-950/80 flex items-center justify-center">
-                  <svg class="animate-spin h-4 w-4 text-violet-500" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                  </svg>
-                </div>
-                } @else if (editTeamLogoUrl()) {
-                <img [src]="editTeamLogoUrl()" alt="Logo Preview" class="w-full h-full object-cover" />
-                } @else {
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-slate-500" fill="none" viewBox="0 0 24 24"
-                  stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                }
+          <!-- Team Colors -->
+          <div class="grid grid-cols-2 gap-4">
+            <div class="flex flex-col gap-1.5">
+              <label for="edit-team-primary-color"
+                class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Primary Color</label>
+              <div class="flex items-center gap-2 bg-slate-950 border border-white/10 rounded-xl px-3.5 py-2">
+                <input id="edit-team-primary-color" type="color"
+                  class="w-6 h-6 rounded-md cursor-pointer border-0 outline-none bg-transparent"
+                  [ngModel]="editTeamPrimaryColor()" (ngModelChange)="editTeamPrimaryColor.set($event)"
+                  name="editPrimaryColor" />
+                <span class="text-[10px] text-slate-350 uppercase font-mono">{{ editTeamPrimaryColor() }}</span>
               </div>
-              <input id="edit-team-logo" type="url" placeholder="https://example.com/logo.png" autocomplete="off"
-                class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition-all flex-1"
-                [ngModel]="editTeamLogoUrl()" (ngModelChange)="editTeamLogoUrl.set($event)" name="editTeamLogo" />
-              <label
-                class="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 border border-white/10 text-white hover:text-slate-950 text-xs font-bold rounded-xl transition-all cursor-pointer flex-shrink-0"
-                [class.opacity-50]="isUploadingTeamLogo()" [class.pointer-events-none]="isUploadingTeamLogo()">
-                @if (isUploadingTeamLogo()) {
-                <span class="animate-pulse">...</span>
-                } @else {
-                Upload
-                <input type="file" class="hidden" accept="image/*" (change)="onTeamLogoUpload($event, true)" />
-                }
-              </label>
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label for="edit-team-secondary-color"
+                class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Secondary Color</label>
+              <div class="flex items-center gap-2 bg-slate-950 border border-white/10 rounded-xl px-3.5 py-2">
+                <input id="edit-team-secondary-color" type="color"
+                  class="w-6 h-6 rounded-md cursor-pointer border-0 outline-none bg-transparent"
+                  [ngModel]="editTeamSecondaryColor()" (ngModelChange)="editTeamSecondaryColor.set($event)"
+                  name="editSecondaryColor" />
+                <span class="text-[10px] text-slate-350 uppercase font-mono">{{ editTeamSecondaryColor() }}</span>
+              </div>
             </div>
           </div>
 
@@ -6156,6 +6142,159 @@
           } @else {
           Import Members
           }
+        </button>
+      </div>
+    </div>
+  </div>
+  }
+
+  <!-- Match Lineup Manage Modal -->
+  @if (isLineupModalOpen() && selectedMatch()) {
+  @let match = selectedMatch()!;
+  <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+    (click)="isLineupModalOpen.set(false)">
+    <div
+      class="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl relative overflow-hidden"
+      (click)="$event.stopPropagation()">
+      <!-- Gradient top line -->
+      <div class="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-violet-500 to-indigo-500"></div>
+
+      <!-- Header -->
+      <div class="px-6 py-5 border-b border-white/5 flex items-center justify-between">
+        <div>
+          <h3 class="text-base font-bold text-white flex items-center gap-2">
+            <span>Manage Match Lineup</span>
+          </h3>
+          <p class="text-xs text-slate-400 mt-1">
+            Map players who are playing in this match. Checked players will be marked as "Playing", unchecked will be "Bench".
+          </p>
+        </div>
+        <button (click)="isLineupModalOpen.set(false)" class="text-slate-400 hover:text-white transition cursor-pointer">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+            <path
+              d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Content -->
+      <div class="p-6 overflow-y-auto flex-1 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Home Team -->
+        <div class="flex flex-col gap-3">
+          <h4 class="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5 border-b border-white/5 pb-2">
+            @if (match.homeTeam?.logoUrl) {
+            <img [src]="match.homeTeam?.logoUrl" class="w-4 h-4 rounded object-cover" />
+            } @else {
+            <div class="w-4 h-4 rounded flex items-center justify-center text-white text-[6px] font-black"
+              [style.background]="avatarColor(match.homeTeam?.name || '')">
+              {{ initials(match.homeTeam?.name || '') }}
+            </div>
+            }
+            {{ match.homeTeam?.name }} (Home)
+          </h4>
+
+          <div class="flex flex-col gap-2 max-h-[40vh] overflow-y-auto pr-1">
+            @let homeForm = getHomePlayersInForm();
+            @for (item of homeForm; track item.playerId) {
+                <label class="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/40 border border-white/5 hover:border-violet-500/30 transition cursor-pointer select-none">
+                  <div class="flex items-center gap-2.5 min-w-0">
+                    @if (item.player.user.avatarUrl) {
+                    <img [src]="item.player.user.avatarUrl" class="w-6 h-6 rounded-full object-cover" />
+                    } @else {
+                    <div class="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] font-black"
+                      [style.background]="avatarColor(item.player.user.username)">
+                      {{ initials(item.player.user.username) }}
+                    </div>
+                    }
+                    <div class="flex flex-col min-w-0 text-left">
+                      <span class="text-xs font-bold text-white truncate">{{ item.player.user.username }}</span>
+                      <span class="text-[9px] font-mono font-extrabold text-violet-400">
+                        {{ item.player.jerseyNumber ? '#' + item.player.jerseyNumber : 'No Jersey' }}
+                      </span>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-3">
+                    @if (item.isPlaying) {
+                    <label class="flex items-center gap-1 text-[10px] font-bold text-amber-400 cursor-pointer select-none" (click)="$event.stopPropagation()">
+                      <input type="radio" [name]="'gk_' + item.teamId" [checked]="item.isGoalkeeper"
+                        (change)="setGoalkeeper(item.teamId, item.playerId)" class="accent-amber-500 w-3 h-3" />
+                      GK
+                    </label>
+                    }
+                    <input type="checkbox" [checked]="item.isPlaying" (change)="togglePlayerInLineup(item.playerId)"
+                      class="accent-violet-500 w-4 h-4 rounded border-white/10" />
+                  </div>
+                </label>
+            }
+            @if (homeForm.length === 0) {
+              <span class="text-xs text-slate-500 italic text-center py-8">No players registered for this team.</span>
+            }
+          </div>
+        </div>
+
+        <!-- Away Team -->
+        <div class="flex flex-col gap-3">
+          <h4 class="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5 border-b border-white/5 pb-2">
+            @if (match.awayTeam?.logoUrl) {
+            <img [src]="match.awayTeam?.logoUrl" class="w-4 h-4 rounded object-cover" />
+            } @else {
+            <div class="w-4 h-4 rounded flex items-center justify-center text-white text-[6px] font-black"
+              [style.background]="avatarColor(match.awayTeam?.name || '')">
+              {{ initials(match.awayTeam?.name || '') }}
+            </div>
+            }
+            {{ match.awayTeam?.name }} (Away)
+          </h4>
+
+          <div class="flex flex-col gap-2 max-h-[40vh] overflow-y-auto pr-1">
+            @let awayForm = getAwayPlayersInForm();
+            @for (item of awayForm; track item.playerId) {
+                <label class="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/40 border border-white/5 hover:border-violet-500/30 transition cursor-pointer select-none">
+                  <div class="flex items-center gap-2.5 min-w-0">
+                    @if (item.player.user.avatarUrl) {
+                    <img [src]="item.player.user.avatarUrl" class="w-6 h-6 rounded-full object-cover" />
+                    } @else {
+                    <div class="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] font-black"
+                      [style.background]="avatarColor(item.player.user.username)">
+                      {{ initials(item.player.user.username) }}
+                    </div>
+                    }
+                    <div class="flex flex-col min-w-0 text-left">
+                      <span class="text-xs font-bold text-white truncate">{{ item.player.user.username }}</span>
+                      <span class="text-[9px] font-mono font-extrabold text-violet-400">
+                        {{ item.player.jerseyNumber ? '#' + item.player.jerseyNumber : 'No Jersey' }}
+                      </span>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-3">
+                    @if (item.isPlaying) {
+                    <label class="flex items-center gap-1 text-[10px] font-bold text-amber-400 cursor-pointer select-none" (click)="$event.stopPropagation()">
+                      <input type="radio" [name]="'gk_' + item.teamId" [checked]="item.isGoalkeeper"
+                        (change)="setGoalkeeper(item.teamId, item.playerId)" class="accent-amber-500 w-3 h-3" />
+                      GK
+                    </label>
+                    }
+                    <input type="checkbox" [checked]="item.isPlaying" (change)="togglePlayerInLineup(item.playerId)"
+                      class="accent-violet-500 w-4 h-4 rounded border-white/10" />
+                  </div>
+                </label>
+            }
+            @if (awayForm.length === 0) {
+              <span class="text-xs text-slate-500 italic text-center py-8">No players registered for this team.</span>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer Buttons -->
+      <div class="px-6 py-5 border-t border-white/5 flex justify-end gap-3 bg-slate-900">
+        <button type="button" (click)="isLineupModalOpen.set(false)"
+          class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white hover:text-slate-950 text-xs font-bold rounded-xl transition cursor-pointer">
+          Cancel
+        </button>
+        <button type="button" (click)="saveLineup()"
+          class="px-6 py-2.5 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-2">
+          Save Lineup
         </button>
       </div>
     </div>

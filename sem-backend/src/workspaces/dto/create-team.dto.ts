@@ -22,4 +22,14 @@ export class CreateTeamDto {
   @IsString()
   @MaxLength(500)
   logoUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  primaryColor?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  secondaryColor?: string;
 }

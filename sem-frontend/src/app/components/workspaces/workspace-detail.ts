@@ -1,9 +1,9 @@
 import { Component, OnInit, signal, inject, computed } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { DatePipe, NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { WorkspaceService, Workspace, WorkspaceMember, AppNotification, Role, Team, Player, WorkspaceEvent, Sport, Competition, CompetitionStage, CompetitionTeam, Match, Venue, PointsConfigEntry } from '../../services/workspace.service';
+import { WorkspaceService, Workspace, WorkspaceMember, AppNotification, Role, Team, Player, WorkspaceEvent, Sport, Competition, CompetitionStage, CompetitionTeam, Match, Venue, PointsConfigEntry, MatchPlayer } from '../../services/workspace.service';
 import { AuthService } from '../../services/auth.service';
 import { UiService } from '../../services/ui.service';
 
@@ -12,7 +12,7 @@ declare const L: any;
 @Component({
   selector: 'app-workspace-detail',
   standalone: true,
-  imports: [RouterLink, DatePipe, DecimalPipe, FormsModule],
+  imports: [RouterLink, DatePipe, FormsModule, NgClass],
   templateUrl: './workspace-detail.html',
   styleUrl: './workspace-detail.css',
 })
@@ -59,6 +59,8 @@ export class WorkspaceDetailComponent implements OnInit {
   newTeamCode = signal('');
   newTeamDescription = signal('');
   newTeamLogoUrl = signal('');
+  newTeamPrimaryColor = signal('#7c3aed');
+  newTeamSecondaryColor = signal('#4f46e5');
   isCreatingTeam = signal(false);
   teamCreateError = signal('');
   teamCreateSuccess = signal('');
@@ -77,6 +79,8 @@ export class WorkspaceDetailComponent implements OnInit {
   editTeamCode = signal('');
   editTeamDescription = signal('');
   editTeamLogoUrl = signal('');
+  editTeamPrimaryColor = signal('');
+  editTeamSecondaryColor = signal('');
   isUpdatingTeam = signal(false);
   teamUpdateError = signal('');
   teamUpdateSuccess = signal('');
@@ -214,6 +218,9 @@ export class WorkspaceDetailComponent implements OnInit {
   matches = signal<Match[]>([]);
   selectedMatch = signal<Match | null>(null);
   selectedPointsTableGroup = signal<string>('Group A');
+  matchLineup = signal<MatchPlayer[]>([]);
+  isLineupModalOpen = signal(false);
+  lineupForm = signal<{ playerId: string; isPlaying: boolean; isGoalkeeper: boolean; teamId: string; player: Player }[]>([]);
 
   // Cricket Scoring Inputs
   cricketBowler = signal<string>('');
@@ -467,6 +474,7 @@ export class WorkspaceDetailComponent implements OnInit {
   newVenueName = signal('');
   newVenueLocation = signal('');
   newVenueCapacity = signal<number | null>(null);
+  newVenueImageUrl = signal('');
   isCreatingVenue = signal(false);
   venueCreateError = signal('');
   venueCreateSuccess = signal('');
@@ -476,9 +484,11 @@ export class WorkspaceDetailComponent implements OnInit {
   editVenueName = signal('');
   editVenueLocation = signal('');
   editVenueCapacity = signal<number | null>(null);
+  editVenueImageUrl = signal('');
   isUpdatingVenue = signal(false);
   venueUpdateError = signal('');
   venueUpdateSuccess = signal('');
+  isUploadingVenueImage = signal(false);
 
   newMatchVenueId = signal('');
 
@@ -807,6 +817,7 @@ export class WorkspaceDetailComponent implements OnInit {
     this.newVenueName.set('');
     this.newVenueLocation.set('');
     this.newVenueCapacity.set(null);
+    this.newVenueImageUrl.set('');
     this.venueCreateError.set('');
     this.venueCreateSuccess.set('');
     this.isVenueModalOpen.set(true);
@@ -829,6 +840,7 @@ export class WorkspaceDetailComponent implements OnInit {
     const name = this.newVenueName().trim();
     const location = this.newVenueLocation().trim();
     const capacity = this.newVenueCapacity();
+    const imageUrl = this.newVenueImageUrl().trim();
     const ws = this.workspace();
     if (!ws || !name) return;
 
@@ -839,6 +851,7 @@ export class WorkspaceDetailComponent implements OnInit {
     const payload: any = { name };
     if (location) payload.location = location;
     if (capacity !== null && capacity !== undefined) payload.capacity = capacity;
+    if (imageUrl) payload.imageUrl = imageUrl;
 
     this.workspaceService.createVenue(ws.id, payload).subscribe({
       next: (venue) => {
@@ -847,6 +860,7 @@ export class WorkspaceDetailComponent implements OnInit {
         this.newVenueName.set('');
         this.newVenueLocation.set('');
         this.newVenueCapacity.set(null);
+        this.newVenueImageUrl.set('');
         this.venues.update(prev => [...prev, venue]);
         setTimeout(() => this.closeVenueModal(), 1000);
       },
@@ -862,6 +876,7 @@ export class WorkspaceDetailComponent implements OnInit {
     this.editVenueName.set(venue.name);
     this.editVenueLocation.set(venue.location ?? '');
     this.editVenueCapacity.set(venue.capacity);
+    this.editVenueImageUrl.set(venue.imageUrl ?? '');
     this.venueUpdateError.set('');
     this.venueUpdateSuccess.set('');
     this.isVenueModalOpen.set(true);
@@ -889,6 +904,8 @@ export class WorkspaceDetailComponent implements OnInit {
     this.venueCreateSuccess.set('');
     this.venueUpdateError.set('');
     this.venueUpdateSuccess.set('');
+    this.newVenueImageUrl.set('');
+    this.editVenueImageUrl.set('');
     if (this.map) {
       try {
         this.map.remove();
@@ -1057,6 +1074,7 @@ export class WorkspaceDetailComponent implements OnInit {
     const name = this.editVenueName().trim();
     const location = this.editVenueLocation().trim();
     const capacity = this.editVenueCapacity();
+    const imageUrl = this.editVenueImageUrl().trim();
     const ws = this.workspace();
     const venue = this.editingVenue();
     if (!ws || !venue || !name) return;
@@ -1068,6 +1086,7 @@ export class WorkspaceDetailComponent implements OnInit {
     const payload: any = { name };
     payload.location = location || null;
     payload.capacity = capacity !== null && capacity !== undefined ? capacity : null;
+    payload.imageUrl = imageUrl || null;
 
     this.workspaceService.updateVenue(ws.id, venue.id, payload).subscribe({
       next: (updated) => {
@@ -1120,6 +1139,8 @@ export class WorkspaceDetailComponent implements OnInit {
     this.newTeamCode.set('');
     this.newTeamDescription.set('');
     this.newTeamLogoUrl.set('');
+    this.newTeamPrimaryColor.set('#7c3aed');
+    this.newTeamSecondaryColor.set('#4f46e5');
     this.teamCreateError.set('');
     this.teamCreateSuccess.set('');
     this.isTeamModalOpen.set(true);
@@ -1130,6 +1151,8 @@ export class WorkspaceDetailComponent implements OnInit {
     const code = this.newTeamCode().trim().toUpperCase();
     const description = this.newTeamDescription().trim();
     const logoUrl = this.newTeamLogoUrl().trim();
+    const primaryColor = this.newTeamPrimaryColor().trim();
+    const secondaryColor = this.newTeamSecondaryColor().trim();
     const ws = this.workspace();
     if (!ws || !name || !code) return;
 
@@ -1137,7 +1160,7 @@ export class WorkspaceDetailComponent implements OnInit {
     this.teamCreateError.set('');
     this.teamCreateSuccess.set('');
 
-    this.workspaceService.createTeam(ws.id, name, code, description || undefined, logoUrl || undefined).subscribe({
+    this.workspaceService.createTeam(ws.id, name, code, description || undefined, logoUrl || undefined, primaryColor || undefined, secondaryColor || undefined).subscribe({
       next: (team) => {
         this.isCreatingTeam.set(false);
         this.teamCreateSuccess.set(`Team "${team.name}" registered successfully!`);
@@ -1145,6 +1168,8 @@ export class WorkspaceDetailComponent implements OnInit {
         this.newTeamCode.set('');
         this.newTeamDescription.set('');
         this.newTeamLogoUrl.set('');
+        this.newTeamPrimaryColor.set('#7c3aed');
+        this.newTeamSecondaryColor.set('#4f46e5');
         this.teams.update(prev => [...prev, team]);
         setTimeout(() => this.closeTeamModal(), 1000);
       },
@@ -1161,6 +1186,8 @@ export class WorkspaceDetailComponent implements OnInit {
     this.editTeamCode.set(team.code ?? '');
     this.editTeamDescription.set(team.description ?? '');
     this.editTeamLogoUrl.set(team.logoUrl ?? '');
+    this.editTeamPrimaryColor.set(team.primaryColor ?? '#7c3aed');
+    this.editTeamSecondaryColor.set(team.secondaryColor ?? '#4f46e5');
     this.teamUpdateError.set('');
     this.teamUpdateSuccess.set('');
     this.isTeamModalOpen.set(true);
@@ -1184,6 +1211,8 @@ export class WorkspaceDetailComponent implements OnInit {
     const code = this.editTeamCode().trim().toUpperCase();
     const description = this.editTeamDescription().trim();
     const logoUrl = this.editTeamLogoUrl().trim();
+    const primaryColor = this.editTeamPrimaryColor().trim();
+    const secondaryColor = this.editTeamSecondaryColor().trim();
     const ws = this.workspace();
     const team = this.editingTeam();
     if (!ws || !team || !name || !code) return;
@@ -1192,7 +1221,7 @@ export class WorkspaceDetailComponent implements OnInit {
     this.teamUpdateError.set('');
     this.teamUpdateSuccess.set('');
 
-    this.workspaceService.updateTeam(ws.id, team.id, name, code, description || undefined, logoUrl || undefined).subscribe({
+    this.workspaceService.updateTeam(ws.id, team.id, name, code, description || undefined, logoUrl || undefined, primaryColor || undefined, secondaryColor || undefined).subscribe({
       next: (updated) => {
         this.isUpdatingTeam.set(false);
         this.teamUpdateSuccess.set(`Team updated successfully!`);
@@ -2921,8 +2950,10 @@ export class WorkspaceDetailComponent implements OnInit {
     this.selectedMatch.set(match);
     this.stopBadmintonTimer();
     this.badmintonDuration.set(0);
+    this.matchLineup.set([]);
     
     if (match) {
+      this.loadMatchLineup(match.id);
       const sportCode = this.selectedCompetition()?.sport?.code;
       if (sportCode === 'football' && match.status === 'live') {
         this.startFootballTimer();
@@ -3001,7 +3032,350 @@ export class WorkspaceDetailComponent implements OnInit {
         }
       }
     }
-    return this.players().filter(p => p.teamId === teamId && !inactiveIds.has(p.userId));
+    
+    const teamPlayers = this.players().filter(p => p.teamId === teamId && !inactiveIds.has(p.userId));
+    const lineup = this.matchLineup();
+    const hasMappedLineup = lineup.some(le => le.teamId === teamId && le.isPlaying);
+    
+    if (hasMappedLineup) {
+      const playingPlayerIds = new Set(lineup.filter(le => le.isPlaying).map(le => le.playerId));
+      return teamPlayers.filter(p => playingPlayerIds.has(p.id));
+    }
+    
+    return teamPlayers;
+  }
+
+  loadMatchLineup(matchId: string) {
+    const ws = this.workspace();
+    const event = this.selectedEvent();
+    const comp = this.selectedCompetition();
+    const stage = this.selectedStage();
+    if (!ws || !event || !comp || !stage) return;
+
+    this.workspaceService.getMatchLineup(ws.id, event.id, comp.id, stage.id, matchId).subscribe({
+      next: (lineup) => this.matchLineup.set(lineup),
+      error: (err) => console.error('Failed to load match lineup', err)
+    });
+  }
+
+  openLineupModal() {
+    const match = this.selectedMatch();
+    if (!match) return;
+
+    const homePlayers = this.players().filter(p => p.teamId === match.homeTeamId);
+    const awayPlayers = this.players().filter(p => p.teamId === match.awayTeamId);
+    const currentLineup = this.matchLineup();
+
+    const form: { playerId: string; isPlaying: boolean; isGoalkeeper: boolean; teamId: string; player: Player }[] = [];
+
+    // Map home players
+    for (const p of homePlayers) {
+      const matchEntry = currentLineup.find(le => le.playerId === p.id);
+      form.push({
+        playerId: p.id,
+        teamId: p.teamId,
+        isPlaying: matchEntry ? matchEntry.isPlaying : false,
+        isGoalkeeper: matchEntry ? !!matchEntry.isGoalkeeper : false,
+        player: p
+      });
+    }
+
+    // Map away players
+    for (const p of awayPlayers) {
+      const matchEntry = currentLineup.find(le => le.playerId === p.id);
+      form.push({
+        playerId: p.id,
+        teamId: p.teamId,
+        isPlaying: matchEntry ? matchEntry.isPlaying : false,
+        isGoalkeeper: matchEntry ? !!matchEntry.isGoalkeeper : false,
+        player: p
+      });
+    }
+
+    this.lineupForm.set(form);
+    this.isLineupModalOpen.set(true);
+  }
+
+  togglePlayerInLineup(playerId: string) {
+    this.lineupForm.update(prev => prev.map(item => {
+      if (item.playerId === playerId) {
+        const nextPlaying = !item.isPlaying;
+        return {
+          ...item,
+          isPlaying: nextPlaying,
+          isGoalkeeper: nextPlaying ? item.isGoalkeeper : false
+        };
+      }
+      return item;
+    }));
+  }
+
+  setGoalkeeper(teamId: string, playerId: string) {
+    this.lineupForm.update(prev => prev.map(item => {
+      if (item.teamId === teamId) {
+        return { ...item, isGoalkeeper: item.playerId === playerId };
+      }
+      return item;
+    }));
+  }
+
+  saveLineup() {
+    const match = this.selectedMatch();
+    const ws = this.workspace();
+    const event = this.selectedEvent();
+    const comp = this.selectedCompetition();
+    const stage = this.selectedStage();
+    if (!ws || !event || !comp || !stage || !match) return;
+
+    const payload = this.lineupForm().map(item => ({
+      playerId: item.playerId,
+      isPlaying: item.isPlaying,
+      isGoalkeeper: item.isGoalkeeper,
+      teamId: item.teamId
+    }));
+
+    this.workspaceService.saveMatchLineup(ws.id, event.id, comp.id, stage.id, match.id, payload).subscribe({
+      next: (updatedLineup) => {
+        this.matchLineup.set(updatedLineup);
+        this.isLineupModalOpen.set(false);
+        this.uiService.success('Match lineup saved successfully!');
+      },
+      error: (err) => {
+        this.uiService.error(err.error?.message ?? 'Failed to save match lineup.');
+      }
+    });
+  }
+
+  getSortedMatchLineup(teamId: string | null): any[] {
+    if (!teamId) return [];
+    const match = this.selectedMatch();
+    const teamPlayers = this.players().filter(p => p.teamId === teamId);
+    const lineup = this.matchLineup();
+    const events = match?.liveData?.events || [];
+    
+    // Find all substitution and red card statuses
+    const subbedOutUserIds = new Set<string>();
+    const subbedInUserIds = new Set<string>();
+    const redCardedUserIds = new Set<string>();
+    
+    for (const ev of events) {
+      if (ev.type === 'substitution') {
+        if (ev.playerOutId) subbedOutUserIds.add(ev.playerOutId);
+        if (ev.playerInId) subbedInUserIds.add(ev.playerInId);
+      }
+      if (ev.type === 'card' && (ev.cardType === 'red' || ev.cardType === 'second_yellow')) {
+        if (ev.playerUserId) redCardedUserIds.add(ev.playerUserId);
+      }
+    }
+
+    return teamPlayers.map(p => {
+      const matchEntry = lineup.find(le => le.playerId === p.id);
+      const isOriginalStarter = matchEntry ? matchEntry.isPlaying : false;
+      const isGoalkeeper = matchEntry ? !!matchEntry.isGoalkeeper : false;
+      
+      let subStatus: 'in' | 'out' | null = null;
+      if (subbedOutUserIds.has(p.userId)) {
+        subStatus = 'out';
+      } else if (subbedInUserIds.has(p.userId)) {
+        subStatus = 'in';
+      }
+      
+      const isRedCarded = redCardedUserIds.has(p.userId);
+      
+      // A player has participated if they started or were subbed in
+      const participated = isOriginalStarter || subStatus === 'in';
+      
+      // A player is currently playing if they started or were subbed in, AND not subbed out, AND not red carded
+      const isCurrentlyPlaying = participated && subStatus !== 'out' && !isRedCarded;
+      
+      // Calculate live rating
+      const rating = this.calculatePlayerLiveRating(p, matchEntry?.rating ?? null);
+
+      return {
+        id: p.id,
+        player: p,
+        isPlaying: isOriginalStarter,
+        isGoalkeeper,
+        subStatus,
+        isRedCarded,
+        isCurrentlyPlaying,
+        participated,
+        rating,
+      };
+    }).sort((a, b) => {
+      // Sort: currently playing first, then by rating desc, then starters, then GK first among playing
+      if (a.isCurrentlyPlaying && !b.isCurrentlyPlaying) return -1;
+      if (!a.isCurrentlyPlaying && b.isCurrentlyPlaying) return 1;
+      
+      if (a.isCurrentlyPlaying && b.isCurrentlyPlaying) {
+        if (a.isGoalkeeper && !b.isGoalkeeper) return -1;
+        if (!a.isGoalkeeper && b.isGoalkeeper) return 1;
+        // Sort by rating descending
+        const ra = a.rating ?? -1;
+        const rb = b.rating ?? -1;
+        if (ra !== rb) return rb - ra;
+      } else {
+        if (a.participated && !b.participated) return -1;
+        if (!a.participated && b.participated) return 1;
+      }
+      
+      const nameA = a.player?.user?.username || '';
+      const nameB = b.player?.user?.username || '';
+      return nameA.localeCompare(nameB);
+    });
+  }
+
+  /**
+   * Calculates player's live rating during football matches.
+   * Starts at 5.0 and increments/decrements based on live match events.
+   */
+  calculatePlayerLiveRating(player: Player, dbRating: number | null): number | null {
+    const match = this.selectedMatch();
+    if (!match) return null;
+    
+    // If match hasn't started, don't show any ratings
+    if (match.status === 'scheduled') return null;
+    
+    // If rating is already finalized/saved in the DB, prioritize it
+    if (dbRating !== null) return dbRating;
+    
+    const events = match.liveData?.events || [];
+    const lineup = this.matchLineup();
+    const matchEntry = lineup.find(le => le.playerId === player.id);
+    const isOriginalStarter = matchEntry ? matchEntry.isPlaying : false;
+    const isGoalkeeper = matchEntry ? !!matchEntry.isGoalkeeper : false;
+    
+    // Check if player participated (starter or subbed in)
+    const subbedIn = events.some((ev: any) => ev.type === 'substitution' && ev.playerInId === player.userId);
+    if (!isOriginalStarter && !subbedIn) {
+      return null;
+    }
+    
+    let rating = 5.0; // Everyone starts at 5.0
+    
+    // Tally events
+    let goals = 0;
+    let assists = 0;
+    let ownGoals = 0;
+    let yellowCards = 0;
+    let redCards = 0;
+    
+    for (const ev of events) {
+      if (ev.playerUserId === player.userId) {
+        if (ev.type === 'goal') goals++;
+        if (ev.type === 'own_goal') ownGoals++;
+        if (ev.type === 'card' && ev.cardType === 'yellow') yellowCards++;
+        if (ev.type === 'card' && (ev.cardType === 'red' || ev.cardType === 'second_yellow')) redCards++;
+      }
+      if (ev.type === 'goal' && ev.assistPlayerUserId === player.userId) {
+        assists++;
+      }
+    }
+    
+    // Goal bonus
+    rating += goals * (isGoalkeeper ? 0.3 : 0.5);
+    
+    // Assist bonus
+    rating += assists * 0.3;
+    
+    // Own goal penalty
+    rating -= ownGoals * 0.5;
+    
+    // Cards penalty
+    rating -= yellowCards * 0.3;
+    rating -= redCards * 0.8;
+    
+    // GK clean sheet bonus
+    if (isGoalkeeper) {
+      const isHomeTeam = player.teamId === match.homeTeamId;
+      const goalsConceded = isHomeTeam ? (match.awayScore ?? 0) : (match.homeScore ?? 0);
+      if (goalsConceded === 0) {
+        rating += 0.5;
+      }
+    }
+    
+    // Win / Loss points if completed
+    if (match.status === 'completed') {
+      const isHomeTeam = player.teamId === match.homeTeamId;
+      const homeScore = match.homeScore ?? 0;
+      const awayScore = match.awayScore ?? 0;
+      
+      if (homeScore > awayScore) {
+        rating += isHomeTeam ? 0.5 : -0.3;
+      } else if (awayScore > homeScore) {
+        rating += isHomeTeam ? -0.3 : 0.5;
+      }
+    }
+    
+    return Math.min(10.0, Math.max(5.0, Math.round(rating * 10) / 10));
+  }
+
+  /** Returns a Tailwind-compatible color string for a player rating badge. */
+  getPlayerRatingColor(rating: number | null): string {
+    if (rating === null || rating === undefined) return 'text-slate-500 bg-slate-800/60 border-slate-700/40';
+    if (rating >= 9.0) return 'text-emerald-300 bg-emerald-500/20 border-emerald-500/30';
+    if (rating >= 7.5) return 'text-violet-300 bg-violet-500/20 border-violet-500/30';
+    if (rating >= 6.5) return 'text-amber-300 bg-amber-500/20 border-amber-500/30';
+    return 'text-rose-300 bg-rose-500/20 border-rose-500/30';
+  }
+
+
+  getHomePlayersInForm(): any[] {
+    const match = this.selectedMatch();
+    if (!match) return [];
+    return this.lineupForm().filter(item => item.teamId === match.homeTeamId);
+  }
+
+  getAwayPlayersInForm(): any[] {
+    const match = this.selectedMatch();
+    if (!match) return [];
+    return this.lineupForm().filter(item => item.teamId === match.awayTeamId);
+  }
+
+  getBenchPlayersForTeam(teamId: string | null): Player[] {
+    if (!teamId) return [];
+    const match = this.selectedMatch();
+    const inactiveIds = new Set<string>();
+    const subbedInIds = new Set<string>();
+    
+    if (match?.liveData?.events) {
+      for (const ev of match.liveData.events) {
+        if (ev.type === 'card' && (ev.cardType === 'red' || ev.cardType === 'second_yellow')) {
+          if (ev.playerUserId) {
+            inactiveIds.add(ev.playerUserId);
+          }
+        }
+        if (ev.type === 'substitution') {
+          if (ev.playerOutId) {
+            inactiveIds.add(ev.playerOutId);
+          }
+          if (ev.playerInId) {
+            subbedInIds.add(ev.playerInId);
+          }
+        }
+        if (ev.type === 'injury' && ev.substituted) {
+          if (ev.playerUserId) {
+            inactiveIds.add(ev.playerUserId);
+          }
+        }
+      }
+    }
+
+    const teamPlayers = this.players().filter(p => 
+      p.teamId === teamId && 
+      !inactiveIds.has(p.userId) && 
+      !subbedInIds.has(p.userId)
+    );
+
+    const lineup = this.matchLineup();
+    const hasMappedLineup = lineup.some(le => le.teamId === teamId && le.isPlaying);
+
+    if (hasMappedLineup) {
+      const benchPlayerIds = new Set(lineup.filter(le => !le.isPlaying).map(le => le.playerId));
+      return teamPlayers.filter(p => benchPlayerIds.has(p.id));
+    }
+
+    return teamPlayers;
   }
 
   // ─── Football Live Actions ─────────────────────────────────────────────────
@@ -4046,7 +4420,7 @@ export class WorkspaceDetailComponent implements OnInit {
             return b.wicket && b.wicketType !== 'Run Out' && b.wicketType !== 'Retired Hurt';
           });
           if (isHatTrick) {
-            this.uiService.success(`🎓 HAT-TRICK! ${bowler} has taken 3 wickets in 3 consecutive deliveries!`);
+            this.uiService.success(`HAT-TRICK! ${bowler} has taken 3 wickets in 3 consecutive deliveries!`);
           }
         }
       }
@@ -5058,6 +5432,29 @@ export class WorkspaceDetailComponent implements OnInit {
         this.isUploadingEventLogo.set(false);
         console.error(err);
         this.uiService.error('Event logo upload failed.');
+      }
+    });
+  }
+
+  onVenueImageUpload(event: any, isEdit: boolean) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    this.isUploadingVenueImage.set(true);
+    this.workspaceService.uploadImage(file, 'venue').subscribe({
+      next: (res) => {
+        this.isUploadingVenueImage.set(false);
+        if (isEdit) {
+          this.editVenueImageUrl.set(res.url);
+        } else {
+          this.newVenueImageUrl.set(res.url);
+        }
+        this.uiService.success('Venue image uploaded successfully.');
+      },
+      error: (err) => {
+        this.isUploadingVenueImage.set(false);
+        console.error(err);
+        this.uiService.error('Venue image upload failed.');
       }
     });
   }

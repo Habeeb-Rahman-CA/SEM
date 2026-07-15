@@ -2,12 +2,11 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  CreateDateColumn,
-  UpdateDateColumn,
 } from 'typeorm';
+import { AuditableEntity } from '../../common/auditable.entity';
 
 @Entity('sports')
-export class Sport {
+export class Sport extends AuditableEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -19,10 +18,4 @@ export class Sport {
 
   @Column({ type: 'text', nullable: true })
   description: string | null;
-
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
-
-  @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
 }

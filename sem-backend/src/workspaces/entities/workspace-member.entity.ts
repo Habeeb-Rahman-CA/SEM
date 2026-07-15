@@ -11,6 +11,7 @@ import {
 import { User } from '../../users/entities/user.entity';
 import { Workspace } from './workspace.entity';
 import { Role } from './role.entity';
+import { AuditableEntity } from '../../common/auditable.entity';
 
 export enum WorkspaceRole {
   // ── System Roles Slugs ──────────────────────────────
@@ -47,7 +48,7 @@ export const OPERATIONAL_ROLES: string[] = [
 @Index('idx_members_user_id', ['userId'])                   // FK: all workspaces a user belongs to
 @Index('idx_members_role_id', ['roleId'])                   // FK: members by role
 @Index('idx_members_workspace_user', ['workspaceId', 'userId'])  // Composite: permission check (hot path)
-export class WorkspaceMember {
+export class WorkspaceMember extends AuditableEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 

@@ -3,20 +3,19 @@ import {
   PrimaryGeneratedColumn,
   Column,
   Index,
-  CreateDateColumn,
-  UpdateDateColumn,
   OneToMany,
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { WorkspaceMember } from './workspace-member.entity';
+import { AuditableEntity } from '../../common/auditable.entity';
 
 @Entity('workspaces')
 @Index('idx_workspaces_owner_id', ['ownerId'])           // FK lookup: all workspaces for a user
 @Index('idx_workspaces_slug', ['slug'])                  // Unique slug lookup (duplicate of UNIQUE constraint, kept explicit)
 @Index('idx_workspaces_created_at', ['createdAt'])       // Pagination / ordering
-export class Workspace {
+export class Workspace extends AuditableEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -44,10 +43,4 @@ export class Workspace {
     cascade: true,
   })
   members: WorkspaceMember[];
-
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
-
-  @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
 }

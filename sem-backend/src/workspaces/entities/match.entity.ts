@@ -3,14 +3,13 @@ import {
   PrimaryGeneratedColumn,
   Column,
   Index,
-  CreateDateColumn,
-  UpdateDateColumn,
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
 import { CompetitionStage } from './competition-stage.entity';
 import { Team } from './team.entity';
 import { Venue } from './venue.entity';
+import { AuditableEntity } from '../../common/auditable.entity';
 
 export enum MatchType {
   MENS_SINGLES = "Men's Singles",
@@ -59,7 +58,7 @@ export enum RallyResult {
 @Index('idx_matches_away_team_id', ['awayTeamId'])                  // FK: matches involving a team as away
 @Index('idx_matches_venue_id', ['venueId'])                         // FK: matches at a venue
 @Index('idx_matches_created_at', ['createdAt'])                     // Pagination / chronological ordering
-export class Match {
+export class Match extends AuditableEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -114,10 +113,6 @@ export class Match {
 
   @Column({ type: 'json', nullable: true })
   liveData: any;
-
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
-
-  @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
 }
+
+

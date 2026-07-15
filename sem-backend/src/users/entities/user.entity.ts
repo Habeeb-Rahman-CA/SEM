@@ -1,8 +1,9 @@
-import { Entity, PrimaryGeneratedColumn, Column, Index, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, Index } from 'typeorm';
+import { AuditableEntity } from '../../common/auditable.entity';
 
 @Entity('users')
 @Index('idx_users_username', ['username'])
-export class User {
+export class User extends AuditableEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -17,10 +18,4 @@ export class User {
 
   @Column({ name: 'is_super_admin', type: 'boolean', default: false })
   isSuperAdmin: boolean;
-
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
-
-  @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
 }

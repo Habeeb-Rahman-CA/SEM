@@ -15,4 +15,9 @@ export class UpdateVenueDto {
   @IsInt()
   @Min(0)
   capacity?: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  imageUrl?: string;
 }

@@ -3,18 +3,17 @@ import {
   PrimaryGeneratedColumn,
   Column,
   Index,
-  CreateDateColumn,
-  UpdateDateColumn,
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
 import { Competition } from './competition.entity';
+import { AuditableEntity } from '../../common/auditable.entity';
 
 @Entity('competition_stages')
 @Index('idx_stages_competition_id', ['competitionId'])                     // FK: all stages for a competition
 @Index('idx_stages_competition_sequence', ['competitionId', 'sequence'])   // Composite: ordered stage list per competition
 @Index('idx_stages_type', ['type'])                                        // Filter by stage type
-export class CompetitionStage {
+export class CompetitionStage extends AuditableEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -52,10 +51,4 @@ export class CompetitionStage {
     advancingType?: 'winner' | 'winner_and_runner';
     singleGroupAdvancing?: number; // 2 or 4
   };
-
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
-
-  @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
 }

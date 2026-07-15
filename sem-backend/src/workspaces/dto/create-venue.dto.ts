@@ -15,4 +15,9 @@ export class CreateVenueDto {
   @IsInt()
   @Min(0)
   capacity?: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  imageUrl?: string;
 }

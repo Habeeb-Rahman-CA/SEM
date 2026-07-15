@@ -20,6 +20,7 @@ export interface Venue {
   name: string;
   location: string | null;
   capacity: number | null;
+  imageUrl?: string | null;
   workspaceId: string;
   createdAt: string;
   updatedAt: string;
@@ -48,6 +49,8 @@ export interface Team {
   code: string;
   description: string | null;
   logoUrl: string | null;
+  primaryColor?: string | null;
+  secondaryColor?: string | null;
   workspaceId: string;
   createdAt: string;
   updatedAt: string;
@@ -165,6 +168,21 @@ export interface CompetitionTeam {
   teamId: string;
   team: Team;
   createdAt: string;
+}
+
+export interface MatchPlayer {
+  id: string;
+  matchId: string;
+  playerId: string;
+  player?: Player;
+  teamId: string;
+  team?: Team;
+  isPlaying: boolean;
+  isGoalkeeper?: boolean;
+  /** Per-match player rating (5.0–10.0, null = not yet rated) */
+  rating?: number | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 
@@ -376,18 +394,18 @@ export class WorkspaceService {
     });
   }
 
-  createTeam(workspaceId: string, name: string, code: string, description?: string, logoUrl?: string): Observable<Team> {
+  createTeam(workspaceId: string, name: string, code: string, description?: string, logoUrl?: string, primaryColor?: string, secondaryColor?: string): Observable<Team> {
     return this.http.post<Team>(
       `${this.apiUrl}/${workspaceId}/teams`,
-      { name, code, description, logoUrl },
+      { name, code, description, logoUrl, primaryColor, secondaryColor },
       { headers: this.headers },
     );
   }
 
-  updateTeam(workspaceId: string, teamId: string, name?: string, code?: string, description?: string, logoUrl?: string): Observable<Team> {
+  updateTeam(workspaceId: string, teamId: string, name?: string, code?: string, description?: string, logoUrl?: string, primaryColor?: string, secondaryColor?: string): Observable<Team> {
     return this.http.patch<Team>(
       `${this.apiUrl}/${workspaceId}/teams/${teamId}`,
-      { name, code, description, logoUrl },
+      { name, code, description, logoUrl, primaryColor, secondaryColor },
       { headers: this.headers },
     );
   }
@@ -709,7 +727,35 @@ export class WorkspaceService {
     );
   }
 
-  uploadImage(file: File, type: 'workspace' | 'team' | 'user' | 'event'): Observable<{ url: string; publicId: string }> {
+  getMatchLineup(
+    workspaceId: string,
+    eventId: string,
+    competitionId: string,
+    stageId: string,
+    matchId: string
+  ): Observable<MatchPlayer[]> {
+    return this.http.get<MatchPlayer[]>(
+      `${this.apiUrl}/${workspaceId}/events/${eventId}/competitions/${competitionId}/stages/${stageId}/matches/${matchId}/lineup`,
+      { headers: this.headers }
+    );
+  }
+
+  saveMatchLineup(
+    workspaceId: string,
+    eventId: string,
+    competitionId: string,
+    stageId: string,
+    matchId: string,
+    lineups: { playerId: string; isPlaying: boolean; teamId: string; isGoalkeeper?: boolean }[]
+  ): Observable<MatchPlayer[]> {
+    return this.http.post<MatchPlayer[]>(
+      `${this.apiUrl}/${workspaceId}/events/${eventId}/competitions/${competitionId}/stages/${stageId}/matches/${matchId}/lineup`,
+      { lineups },
+      { headers: this.headers }
+    );
+  }
+
+  uploadImage(file: File, type: 'workspace' | 'team' | 'user' | 'event' | 'venue'): Observable<{ url: string; publicId: string }> {
     const formData = new FormData();
     formData.append('file', file);
     return this.http.post<{ url: string; publicId: string }>(

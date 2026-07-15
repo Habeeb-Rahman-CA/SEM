@@ -3,8 +3,6 @@ import {
   PrimaryGeneratedColumn,
   Column,
   Index,
-  CreateDateColumn,
-  UpdateDateColumn,
   ManyToOne,
   JoinColumn,
   OneToMany,
@@ -14,13 +12,14 @@ import {
 import { Workspace } from './workspace.entity';
 import { Competition } from './competition.entity';
 import { Team } from './team.entity';
+import { AuditableEntity } from '../../common/auditable.entity';
 
 @Entity('events')
 @Index('idx_events_workspace_id', ['workspaceId'])                         // FK: all events in a workspace
 @Index('idx_events_workspace_status', ['workspaceId', 'status'])           // Composite: filter events by status within workspace
 @Index('idx_events_workspace_start_date', ['workspaceId', 'startDate'])    // Composite: order events by date within workspace
 @Index('idx_events_status', ['status'])                                    // Global status filter
-export class Event {
+export class Event extends AuditableEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -59,10 +58,4 @@ export class Event {
     inverseJoinColumn: { name: 'team_id', referencedColumnName: 'id' },
   })
   teams: Team[];
-
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
-
-  @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
 }
