@@ -736,6 +736,39 @@ export class WorkspacesService implements OnModuleInit {
     }
   }
 
+  private async validateCompetitionContext(
+    workspaceId: string,
+    eventId: string,
+    competitionId: string,
+  ): Promise<Competition> {
+    const event = await this.eventRepo.findOne({ where: { id: eventId, workspaceId } });
+    if (!event) {
+      throw new NotFoundException(`Event "${eventId}" not found in this workspace`);
+    }
+    const competition = await this.competitionRepo.findOne({
+      where: { id: competitionId, eventId },
+      relations: { sport: true },
+    });
+    if (!competition) {
+      throw new NotFoundException(`Competition "${competitionId}" not found in this event`);
+    }
+    return competition;
+  }
+
+  private async validateStageContext(
+    workspaceId: string,
+    eventId: string,
+    competitionId: string,
+    stageId: string,
+  ): Promise<CompetitionStage> {
+    await this.validateCompetitionContext(workspaceId, eventId, competitionId);
+    const stage = await this.stageRepo.findOne({ where: { id: stageId, competitionId } });
+    if (!stage) {
+      throw new NotFoundException(`Stage "${stageId}" not found in this competition`);
+    }
+    return stage;
+  }
+
   // ─── Teams Management ──────────────────────────────────────────────────────
 
   async getTeams(workspaceId: string, userId: string): Promise<Team[]> {
@@ -1540,7 +1573,10 @@ export class WorkspacesService implements OnModuleInit {
     await this.ensurePermission(workspaceId, userId, 'event.manage');
     let teams: Team[] = [];
     if (dto.teamIds && dto.teamIds.length > 0) {
-      teams = await this.teamRepo.findBy({ id: In(dto.teamIds) });
+      teams = await this.teamRepo.findBy({ id: In(dto.teamIds), workspaceId });
+      if (teams.length !== dto.teamIds.length) {
+        throw new BadRequestException('Some teams were not found or do not belong to this workspace');
+      }
     }
     const event = this.eventRepo.create({
       name: dto.name,
@@ -1572,7 +1608,10 @@ export class WorkspacesService implements OnModuleInit {
 
     if (dto.teamIds !== undefined) {
       if (dto.teamIds.length > 0) {
-        event.teams = await this.teamRepo.findBy({ id: In(dto.teamIds) });
+        event.teams = await this.teamRepo.findBy({ id: In(dto.teamIds), workspaceId });
+        if (event.teams.length !== dto.teamIds.length) {
+          throw new BadRequestException('Some teams were not found or do not belong to this workspace');
+        }
       } else {
         event.teams = [];
       }
@@ -2225,10 +2264,7 @@ export class WorkspacesService implements OnModuleInit {
     userId: string,
   ): Promise<Match[]> {
     await this.ensureMember(workspaceId, userId);
-    const stage = await this.stageRepo.findOne({ where: { id: stageId, competitionId } });
-    if (!stage) {
-      throw new NotFoundException(`Stage "${stageId}" not found in competition`);
-    }
+    const stage = await this.validateStageContext(workspaceId, eventId, competitionId, stageId);
 
     // Self-healing progression checks
     try {
@@ -2322,10 +2358,7 @@ export class WorkspacesService implements OnModuleInit {
     userId: string,
   ): Promise<Match> {
     await this.ensurePermission(workspaceId, userId, 'competition.manage');
-    const stage = await this.stageRepo.findOne({ where: { id: stageId, competitionId } });
-    if (!stage) {
-      throw new NotFoundException(`Stage "${stageId}" not found in competition`);
-    }
+    const stage = await this.validateStageContext(workspaceId, eventId, competitionId, stageId);
 
     const comp = await this.competitionRepo.findOne({
       where: { id: competitionId },
@@ -2411,6 +2444,7 @@ export class WorkspacesService implements OnModuleInit {
     userId: string,
   ): Promise<Match> {
     await this.ensurePermission(workspaceId, userId, 'match.score');
+    await this.validateStageContext(workspaceId, eventId, competitionId, stageId);
     const match = await this.matchRepo.findOne({ where: { id: matchId, stageId } });
     if (!match) {
       throw new NotFoundException(`Match "${matchId}" not found in stage`);
@@ -3219,6 +3253,7 @@ export class WorkspacesService implements OnModuleInit {
     userId: string,
   ): Promise<void> {
     await this.ensurePermission(workspaceId, userId, 'competition.manage');
+    await this.validateStageContext(workspaceId, eventId, competitionId, stageId);
     const match = await this.matchRepo.findOne({ where: { id: matchId, stageId } });
     if (!match) {
       throw new NotFoundException(`Match "${matchId}" not found in stage`);
@@ -3262,8 +3297,7 @@ export class WorkspacesService implements OnModuleInit {
     userId: string,
   ): Promise<CompetitionTeam> {
     await this.ensurePermission(workspaceId, userId, 'competition.manage');
-    const competition = await this.competitionRepo.findOne({ where: { id: competitionId, eventId } });
-    if (!competition) throw new NotFoundException(`Competition "${competitionId}" not found`);
+    await this.validateCompetitionContext(workspaceId, eventId, competitionId);
     const team = await this.teamRepo.findOne({ where: { id: teamId, workspaceId } });
     if (!team) throw new NotFoundException(`Team "${teamId}" not found in workspace`);
     const existing = await this.competitionTeamRepo.findOne({ where: { competitionId, teamId } });
@@ -3281,6 +3315,7 @@ export class WorkspacesService implements OnModuleInit {
     userId: string,
   ): Promise<void> {
     await this.ensurePermission(workspaceId, userId, 'competition.manage');
+    await this.validateCompetitionContext(workspaceId, eventId, competitionId);
     const entry = await this.competitionTeamRepo.findOne({ where: { competitionId, teamId } });
     if (!entry) throw new NotFoundException(`Team is not enrolled in this competition`);
     await this.competitionTeamRepo.remove(entry);
@@ -3969,6 +4004,7 @@ export class WorkspacesService implements OnModuleInit {
     userId: string,
   ): Promise<MatchPlayer[]> {
     await this.ensureMember(workspaceId, userId);
+    await this.validateStageContext(workspaceId, eventId, competitionId, stageId);
 
     const match = await this.matchRepo.findOne({
       where: { id: matchId, stageId },
@@ -3998,6 +4034,7 @@ export class WorkspacesService implements OnModuleInit {
     userId: string,
   ): Promise<MatchPlayer[]> {
     await this.ensurePermission(workspaceId, userId, 'match.score');
+    await this.validateStageContext(workspaceId, eventId, competitionId, stageId);
 
     const match = await this.matchRepo.findOne({
       where: { id: matchId, stageId },
@@ -4078,6 +4115,7 @@ export class WorkspacesService implements OnModuleInit {
     userId: string,
   ): Promise<MatchPlayer[]> {
     await this.ensureMember(workspaceId, userId);
+    await this.validateStageContext(workspaceId, eventId, competitionId, stageId);
 
     const match = await this.matchRepo.findOne({ where: { id: matchId, stageId } });
     if (!match) throw new NotFoundException('Match not found');
@@ -4104,6 +4142,7 @@ export class WorkspacesService implements OnModuleInit {
     userId: string,
   ): Promise<MatchPlayer[]> {
     await this.ensurePermission(workspaceId, userId, 'match.score');
+    await this.validateStageContext(workspaceId, eventId, competitionId, stageId);
 
     const match = await this.matchRepo.findOne({ where: { id: matchId, stageId } });
     if (!match) throw new NotFoundException('Match not found');
@@ -4153,11 +4192,7 @@ export class WorkspacesService implements OnModuleInit {
     minAppearancesRequired: number;
   }> {
     await this.ensureMember(workspaceId, userId);
-
-    const competition = await this.competitionRepo.findOne({
-      where: { id: competitionId, eventId },
-    });
-    if (!competition) throw new NotFoundException('Competition not found');
+    const competition = await this.validateCompetitionContext(workspaceId, eventId, competitionId);
 
     // Gather all stage IDs for this competition
     const stages = await this.stageRepo.find({ where: { competitionId } });
@@ -4258,12 +4293,7 @@ export class WorkspacesService implements OnModuleInit {
     userId: string,
   ): Promise<any> {
     await this.ensureMember(workspaceId, userId);
-
-    const competition = await this.competitionRepo.findOne({
-      where: { id: competitionId, eventId },
-      relations: { sport: true },
-    });
-    if (!competition) throw new NotFoundException('Competition not found');
+    const competition = await this.validateCompetitionContext(workspaceId, eventId, competitionId);
 
     const sportCode = competition.sport?.code ?? 'football';
 
