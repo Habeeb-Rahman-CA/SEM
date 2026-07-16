@@ -192,15 +192,193 @@
       <!-- Top Bar -->
       <header class="flex items-center justify-between border-b border-white/5 pb-5 mb-8">
         <div class="flex items-center gap-3">
-          <!-- Global Search Bar Mockup (Left-aligned) -->
-          <div class="hidden md:flex items-center w-80 relative">
-            <span class="absolute left-4 text-slate-500 text-sm">
+          <!-- Global Search Bar (Left-aligned) -->
+          <div class="hidden md:flex items-center w-80 relative" id="globalSearchContainer">
+            <span class="absolute left-4 text-slate-500 text-sm pointer-events-none">
               <i class="fi fi-rr-search"></i>
             </span>
-            <input type="text" placeholder="Search matches, teams, players..." readonly
-              class="w-full bg-slate-900 border border-white/5 focus:border-violet-500/50 rounded-xl pl-11 pr-10 py-2.5 text-xs text-slate-400 placeholder-slate-500 outline-none transition-all cursor-not-allowed select-none animate-pulse" />
-            <span
-              class="absolute right-4 px-1.5 py-0.5 text-[9px] font-bold bg-slate-800 text-slate-500 rounded border border-white/5 font-mono select-none">⌘K</span>
+            <input type="text" id="globalSearchInput" placeholder="Search teams, players, events, venues..." 
+              [ngModel]="globalSearchQuery()" (ngModelChange)="globalSearchQuery.set($event); showGlobalSearchResults.set(true)"
+              (focus)="showGlobalSearchResults.set(true)"
+              class="w-full bg-slate-900 border border-white/5 focus:border-violet-500/50 rounded-xl pl-11 pr-10 py-2.5 text-xs text-slate-200 placeholder-slate-500 outline-none transition-all" />
+            @if (globalSearchQuery()) {
+              <button (click)="clearGlobalSearch()" class="absolute right-12 text-slate-500 hover:text-slate-300 cursor-pointer bg-transparent border-0 flex items-center">
+                <i class="fi fi-rr-cross text-[10px]"></i>
+              </button>
+            }
+            <span class="absolute right-4 px-1.5 py-0.5 text-[9px] font-bold bg-slate-800 text-slate-500 rounded border border-white/5 font-mono select-none pointer-events-none">⌘K</span>
+
+            <!-- Search Results Dropdown Panel -->
+            @if (globalSearchQuery().trim() && showGlobalSearchResults()) {
+              <!-- Backdrop to close -->
+              <div class="fixed inset-0 z-30 bg-transparent cursor-default" (click)="showGlobalSearchResults.set(false)"></div>
+              
+              <div class="absolute left-0 top-full mt-2 w-[420px] max-h-[480px] overflow-y-auto bg-slate-900 border border-white/10 rounded-2xl shadow-2xl py-3 px-4 z-40 animate-fadeIn shrink-0 flex flex-col gap-3 scrollbar-thin">
+                <div class="border-b border-white/5 pb-2">
+                  <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Search Results</h4>
+                </div>
+
+                @if (globalSearchResults().totalCount === 0) {
+                  <div class="text-center py-6 text-slate-500 text-xs">
+                    No matching results found for "{{ globalSearchQuery() }}"
+                  </div>
+                } @else {
+                  <div class="flex flex-col gap-3">
+                    
+                    <!-- Teams Results -->
+                    @if (globalSearchResults().teams.length > 0) {
+                      <div>
+                        <div class="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                          <i class="fi fi-rr-users text-slate-400"></i>
+                          <span>Teams ({{ globalSearchResults().teams.length }})</span>
+                        </div>
+                        <div class="flex flex-col gap-1">
+                          @for (team of globalSearchResults().teams; track team.id) {
+                            <button (click)="selectGlobalTeam(team)" class="w-full flex items-center gap-2.5 p-2 hover:bg-white/[0.03] rounded-xl text-left transition-colors cursor-pointer border-0 bg-transparent">
+                              @if (team.logoUrl) {
+                                <img [src]="team.logoUrl" class="w-6 h-6 rounded-md object-cover" />
+                              } @else {
+                                <div class="w-6 h-6 rounded-md flex items-center justify-center text-[10px] text-white font-extrabold" [style.background]="avatarColor(team.name)">
+                                  {{ initials(team.name) }}
+                                </div>
+                              }
+                              <div class="min-w-0 flex-1">
+                                <p class="text-xs font-semibold text-white truncate">{{ team.name }}</p>
+                                <p class="text-[9px] text-slate-400 truncate">{{ team.code || 'No code' }} • {{ team.description || 'No description' }}</p>
+                              </div>
+                            </button>
+                          }
+                        </div>
+                      </div>
+                    }
+
+                    <!-- Players Results -->
+                    @if (globalSearchResults().players.length > 0) {
+                      <div>
+                        <div class="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                          <i class="fi fi-rr-running text-slate-400"></i>
+                          <span>Players ({{ globalSearchResults().players.length }})</span>
+                        </div>
+                        <div class="flex flex-col gap-1">
+                          @for (player of globalSearchResults().players; track player.id) {
+                            <button (click)="selectGlobalPlayer(player)" class="w-full flex items-center gap-2.5 p-2 hover:bg-white/[0.03] rounded-xl text-left transition-colors cursor-pointer border-0 bg-transparent">
+                              @if (player.user?.avatarUrl) {
+                                <img [src]="player.user.avatarUrl" class="w-6 h-6 rounded-full object-cover" />
+                              } @else {
+                                <div class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] text-white font-extrabold" [style.background]="avatarColor(player.user?.username || 'P')">
+                                  {{ initials(player.user?.username || 'P') }}
+                                </div>
+                              }
+                              <div class="min-w-0 flex-1">
+                                <p class="text-xs font-semibold text-white truncate">{{ player.user?.username }}</p>
+                                <p class="text-[9px] text-slate-400 truncate">Team: {{ player.team?.name }} • Jersey: #{{ player.jerseyNumber || 'N/A' }}</p>
+                              </div>
+                            </button>
+                          }
+                        </div>
+                      </div>
+                    }
+
+                    <!-- Events Results -->
+                    @if (globalSearchResults().events.length > 0) {
+                      <div>
+                        <div class="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                          <i class="fi fi-rr-trophy text-slate-400"></i>
+                          <span>Events ({{ globalSearchResults().events.length }})</span>
+                        </div>
+                        <div class="flex flex-col gap-1">
+                          @for (event of globalSearchResults().events; track event.id) {
+                            <button (click)="selectGlobalEvent(event)" class="w-full flex items-center gap-2.5 p-2 hover:bg-white/[0.03] rounded-xl text-left transition-colors cursor-pointer border-0 bg-transparent">
+                              <div class="w-6 h-6 rounded-md bg-slate-800 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0 text-[10px] text-violet-400">
+                                @if (event.logoUrl) {
+                                  <img [src]="event.logoUrl" class="w-full h-full object-cover" />
+                                } @else {
+                                  <i class="fi fi-rr-trophy"></i>
+                                }
+                              </div>
+                              <div class="min-w-0 flex-1">
+                                <p class="text-xs font-semibold text-white truncate">{{ event.name }}</p>
+                                <p class="text-[9px] text-slate-400 truncate">Status: {{ event.status }} • {{ event.description || 'No description' }}</p>
+                              </div>
+                            </button>
+                          }
+                        </div>
+                      </div>
+                    }
+
+                    <!-- Competitions Results -->
+                    @if (globalSearchResults().competitions.length > 0) {
+                      <div>
+                        <div class="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                          <i class="fi fi-rr-layers text-slate-400"></i>
+                          <span>Competitions ({{ globalSearchResults().competitions.length }})</span>
+                        </div>
+                        <div class="flex flex-col gap-1">
+                          @for (comp of globalSearchResults().competitions; track comp.id) {
+                            <button (click)="selectGlobalCompetition(comp)" class="w-full flex items-center gap-2.5 p-2 hover:bg-white/[0.03] rounded-xl text-left transition-colors cursor-pointer border-0 bg-transparent">
+                              <div class="w-6 h-6 rounded-md bg-slate-800 border border-white/10 flex items-center justify-center text-[10px] text-indigo-400">
+                                <i class="fi fi-rr-bolt"></i>
+                              </div>
+                              <div class="min-w-0 flex-1">
+                                <p class="text-xs font-semibold text-white truncate">{{ comp.name }}</p>
+                                <p class="text-[9px] text-slate-400 truncate">Sport: {{ comp.sport?.name || 'N/A' }} • Status: {{ comp.status }}</p>
+                              </div>
+                            </button>
+                          }
+                        </div>
+                      </div>
+                    }
+
+                    <!-- Venues Results -->
+                    @if (globalSearchResults().venues.length > 0) {
+                      <div>
+                        <div class="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                          <i class="fi fi-rr-marker text-slate-400"></i>
+                          <span>Venues ({{ globalSearchResults().venues.length }})</span>
+                        </div>
+                        <div class="flex flex-col gap-1">
+                          @for (venue of globalSearchResults().venues; track venue.id) {
+                            <button (click)="selectGlobalVenue(venue)" class="w-full flex items-center gap-2.5 p-2 hover:bg-white/[0.03] rounded-xl text-left transition-colors cursor-pointer border-0 bg-transparent">
+                              <div class="w-6 h-6 rounded-md bg-slate-800 border border-white/10 flex items-center justify-center text-[10px] text-emerald-400">
+                                <i class="fi fi-rr-marker"></i>
+                              </div>
+                              <div class="min-w-0 flex-1">
+                                <p class="text-xs font-semibold text-white truncate">{{ venue.name }}</p>
+                                <p class="text-[9px] text-slate-400 truncate">Location: {{ venue.location || 'No location' }}</p>
+                              </div>
+                            </button>
+                          }
+                        </div>
+                      </div>
+                    }
+
+                    <!-- Members Results -->
+                    @if (globalSearchResults().members.length > 0) {
+                      <div>
+                        <div class="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                          <i class="fi fi-rr-users-alt text-slate-400"></i>
+                          <span>Members ({{ globalSearchResults().members.length }})</span>
+                        </div>
+                        <div class="flex flex-col gap-1">
+                          @for (member of globalSearchResults().members; track member.id) {
+                            <button (click)="selectGlobalMember(member)" class="w-full flex items-center gap-2.5 p-2 hover:bg-white/[0.03] rounded-xl text-left transition-colors cursor-pointer border-0 bg-transparent">
+                              <div class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] text-white font-extrabold" [style.background]="avatarColor(member.user.username)">
+                                {{ initials(member.user.username) }}
+                              </div>
+                              <div class="min-w-0 flex-1">
+                                <p class="text-xs font-semibold text-white truncate">{{ member.user.username }}</p>
+                                <p class="text-[9px] text-slate-400 truncate">Role: {{ member.role.name }}</p>
+                              </div>
+                            </button>
+                          }
+                        </div>
+                      </div>
+                    }
+
+                  </div>
+                }
+              </div>
+            }
           </div>
         </div>
 
@@ -628,13 +806,40 @@
 
         <!-- Members Table -->
         <div class="bg-slate-900 border border-white/10 rounded-2xl overflow-hidden">
-          <div class="px-6 py-4 border-b border-white/10 flex items-center justify-between">
-            <h2 class="text-sm font-bold text-white">All Members</h2>
-            <span class="text-xs text-slate-500">{{ members().length }} member{{ members().length !== 1 ? 's' : ''
-              }}</span>
+          <div class="px-6 py-4 border-b border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h2 class="text-sm font-bold text-white">All Members</h2>
+              <span class="text-xs text-slate-500">
+                @if (memberSearchQuery()) {
+                  {{ filteredMembers().length }} found (out of {{ members().length }})
+                } @else {
+                  {{ members().length }} member{{ members().length !== 1 ? 's' : '' }}
+                }
+              </span>
+            </div>
+            <!-- Search bar -->
+            <div class="relative w-full md:w-72">
+              <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
+                <i class="fi fi-rr-search text-xs"></i>
+              </span>
+              <input type="text" [ngModel]="memberSearchQuery()" (ngModelChange)="memberSearchQuery.set($event)"
+                placeholder="Search members..."
+                class="w-full bg-slate-950 border border-white/10 rounded-xl pl-9 pr-8 py-2 text-xs text-white placeholder-slate-500 focus:border-violet-500 focus:ring-1 focus:ring-violet-500 outline-none transition-all" />
+              @if (memberSearchQuery()) {
+              <button (click)="memberSearchQuery.set('')"
+                class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-slate-300 cursor-pointer bg-transparent border-0">
+                <i class="fi fi-rr-cross text-[10px]"></i>
+              </button>
+              }
+            </div>
           </div>
           <div class="divide-y divide-white/5">
-            @for (member of members(); track member.id) {
+            @if (filteredMembers().length === 0) {
+            <div class="px-6 py-12 text-center text-slate-500 text-xs">
+              No members found matching "{{ memberSearchQuery() }}"
+            </div>
+            }
+            @for (member of filteredMembers(); track member.id) {
             <div
               class="px-6 py-4 flex flex-col sm:flex-row sm:items-center gap-4 hover:bg-white/[0.02] transition-colors">
               <!-- Avatar + Info -->
@@ -1295,8 +1500,43 @@
           <p class="text-xs text-slate-500 max-w-xs">Register your first team to start organizing events.</p>
         </div>
         } @else {
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          @for (team of teams(); track team.id) {
+          <!-- Search and Filter Bar -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/20 border border-white/5 p-4 rounded-2xl mb-4">
+            <div class="text-xs text-slate-400 font-medium">
+              @if (teamSearchQuery()) {
+                Showing {{ filteredTeams().length }} of {{ teams().length }} teams
+              } @else {
+                {{ teams().length }} team{{ teams().length !== 1 ? 's' : '' }} registered
+              }
+            </div>
+            <div class="relative w-full sm:w-72">
+              <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                <i class="fi fi-rr-search text-xs"></i>
+              </span>
+              <input type="text" [ngModel]="teamSearchQuery()" (ngModelChange)="teamSearchQuery.set($event)"
+                placeholder="Search teams by name or code..."
+                class="w-full bg-slate-950/40 border border-white/10 focus:border-violet-500/50 rounded-xl pl-9 pr-8 py-2 text-xs text-slate-200 placeholder-slate-500 outline-none transition-all" />
+              @if (teamSearchQuery()) {
+              <button (click)="teamSearchQuery.set('')"
+                class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-slate-300 cursor-pointer bg-transparent border-0">
+                <i class="fi fi-rr-cross text-[10px]"></i>
+              </button>
+              }
+            </div>
+          </div>
+
+          @if (filteredTeams().length === 0) {
+          <div
+            class="flex flex-col items-center justify-center py-20 text-center bg-slate-900/40 border border-white/10 rounded-2xl">
+            <div class="w-16 h-16 rounded-2xl bg-slate-800 border border-white/10 flex items-center justify-center mb-4">
+              <i class="fi fi-rr-search text-slate-600 text-2xl"></i>
+            </div>
+            <h3 class="text-sm font-bold text-white mb-1">No matching teams</h3>
+            <p class="text-xs text-slate-500 max-w-xs">No teams match your search query "{{ teamSearchQuery() }}".</p>
+          </div>
+          } @else {
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            @for (team of filteredTeams(); track team.id) {
           <div
             class="bg-slate-900 border rounded-2xl p-5 flex flex-col gap-4 group transition-all duration-300 relative overflow-hidden"
             [style.borderColor]="team.primaryColor ? team.primaryColor + '20' : 'rgba(255,255,255,0.1)'">
@@ -1366,6 +1606,7 @@
           </div>
           }
         </div>
+        }
         }
         }
       </div>
@@ -1690,8 +1931,43 @@
           <p class="text-xs text-slate-500 max-w-xs">Add your first player or use bulk import to get started.</p>
         </div>
         } @else {
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-          @for (player of players(); track player.id) {
+          <!-- Search and Filter Bar -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/20 border border-white/5 p-4 rounded-2xl mb-4">
+            <div class="text-xs text-slate-400 font-medium">
+              @if (playerSearchQuery()) {
+                Showing {{ filteredPlayers().length }} of {{ players().length }} players
+              } @else {
+                {{ players().length }} player{{ players().length !== 1 ? 's' : '' }} registered
+              }
+            </div>
+            <div class="relative w-full sm:w-72">
+              <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                <i class="fi fi-rr-search text-xs"></i>
+              </span>
+              <input type="text" [ngModel]="playerSearchQuery()" (ngModelChange)="playerSearchQuery.set($event)"
+                placeholder="Search players by name, team, or jersey..."
+                class="w-full bg-slate-950/40 border border-white/10 focus:border-violet-500/50 rounded-xl pl-9 pr-8 py-2 text-xs text-slate-200 placeholder-slate-500 outline-none transition-all" />
+              @if (playerSearchQuery()) {
+              <button (click)="playerSearchQuery.set('')"
+                class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-slate-300 cursor-pointer bg-transparent border-0">
+                <i class="fi fi-rr-cross text-[10px]"></i>
+              </button>
+              }
+            </div>
+          </div>
+
+          @if (filteredPlayers().length === 0) {
+          <div
+            class="flex flex-col items-center justify-center py-20 text-center bg-slate-900/40 border border-white/10 rounded-2xl">
+            <div class="w-16 h-16 rounded-2xl bg-slate-800 border border-white/10 flex items-center justify-center mb-4">
+              <i class="fi fi-rr-search text-slate-600 text-2xl"></i>
+            </div>
+            <h3 class="text-sm font-bold text-white mb-1">No matching players</h3>
+            <p class="text-xs text-slate-500 max-w-xs">No players match your search query "{{ playerSearchQuery() }}".</p>
+          </div>
+          } @else {
+          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+            @for (player of filteredPlayers(); track player.id) {
           <div
             class="bg-slate-900 border rounded-2xl p-4 flex flex-col justify-between gap-3 group transition-all duration-300 relative overflow-hidden"
             [style.borderColor]="player.team.primaryColor ? player.team.primaryColor + '20' : 'rgba(255,255,255,0.1)'">
@@ -1766,6 +2042,7 @@
           </div>
           }
         </div>
+        }
         }
       </div>
       }
@@ -2155,8 +2432,43 @@
             matches.</p>
         </div>
         } @else {
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          @for (venue of venues(); track venue.id) {
+          <!-- Search and Filter Bar -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/20 border border-white/5 p-4 rounded-2xl mb-4">
+            <div class="text-xs text-slate-400 font-medium">
+              @if (venueSearchQuery()) {
+                Showing {{ filteredVenues().length }} of {{ venues().length }} venues
+              } @else {
+                {{ venues().length }} venue{{ venues().length !== 1 ? 's' : '' }} registered
+              }
+            </div>
+            <div class="relative w-full sm:w-72">
+              <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                <i class="fi fi-rr-search text-xs"></i>
+              </span>
+              <input type="text" [ngModel]="venueSearchQuery()" (ngModelChange)="venueSearchQuery.set($event)"
+                placeholder="Search venues by name or location..."
+                class="w-full bg-slate-950/40 border border-white/10 focus:border-violet-500/50 rounded-xl pl-9 pr-8 py-2 text-xs text-slate-200 placeholder-slate-500 outline-none transition-all" />
+              @if (venueSearchQuery()) {
+              <button (click)="venueSearchQuery.set('')"
+                class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-slate-300 cursor-pointer bg-transparent border-0">
+                <i class="fi fi-rr-cross text-[10px]"></i>
+              </button>
+              }
+            </div>
+          </div>
+
+          @if (filteredVenues().length === 0) {
+          <div
+            class="flex flex-col items-center justify-center py-20 text-center bg-slate-900/40 border border-white/10 rounded-2xl w-full">
+            <div class="w-16 h-16 rounded-2xl bg-slate-800 border border-white/10 flex items-center justify-center mb-4">
+              <i class="fi fi-rr-search text-slate-600 text-2xl"></i>
+            </div>
+            <h3 class="text-sm font-bold text-white mb-1">No matching venues</h3>
+            <p class="text-xs text-slate-500 max-w-xs">No venues match your search query "{{ venueSearchQuery() }}".</p>
+          </div>
+          } @else {
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            @for (venue of filteredVenues(); track venue.id) {
           <div
             class="bg-slate-900 border border-white/10 hover:border-violet-500/30 rounded-2xl flex flex-col overflow-hidden group transition-all duration-300 shadow-xl hover:shadow-2xl">
             <!-- Cover Image / Banner -->
@@ -2206,6 +2518,7 @@
           </div>
           }
         </div>
+        }
         }
       </div>
       }
@@ -5409,8 +5722,43 @@
           </div>
         </div>
         } @else {
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          @for (event of events(); track event.id) {
+          <!-- Search and Filter Bar -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/20 border border-white/5 p-4 rounded-2xl mb-4">
+            <div class="text-xs text-slate-400 font-medium">
+              @if (eventSearchQuery()) {
+                Showing {{ filteredEvents().length }} of {{ events().length }} events
+              } @else {
+                {{ events().length }} event{{ events().length !== 1 ? 's' : '' }} registered
+              }
+            </div>
+            <div class="relative w-full sm:w-72">
+              <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                <i class="fi fi-rr-search text-xs"></i>
+              </span>
+              <input type="text" [ngModel]="eventSearchQuery()" (ngModelChange)="eventSearchQuery.set($event)"
+                placeholder="Search events by name, status, or desc..."
+                class="w-full bg-slate-950/40 border border-white/10 focus:border-violet-500/50 rounded-xl pl-9 pr-8 py-2 text-xs text-slate-200 placeholder-slate-500 outline-none transition-all" />
+              @if (eventSearchQuery()) {
+              <button (click)="eventSearchQuery.set('')"
+                class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-slate-300 cursor-pointer bg-transparent border-0">
+                <i class="fi fi-rr-cross text-[10px]"></i>
+              </button>
+              }
+            </div>
+          </div>
+
+          @if (filteredEvents().length === 0) {
+          <div
+            class="rounded-2xl border border-dashed border-white/10 p-12 text-center flex flex-col items-center justify-center gap-3 w-full">
+            <span class="text-3xl text-slate-600"><i class="fi fi-rr-search"></i></span>
+            <div>
+              <h3 class="text-sm font-semibold text-white">No matching events</h3>
+              <p class="text-xs text-slate-500 mt-1">No events match your search query "{{ eventSearchQuery() }}".</p>
+            </div>
+          </div>
+          } @else {
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            @for (event of filteredEvents(); track event.id) {
           <div
             class="bg-slate-900 border border-white/10 hover:border-violet-500/30 rounded-2xl p-5 flex flex-col justify-between gap-4 group transition-all duration-300 text-left">
             <div class="flex flex-col gap-2">
@@ -5502,6 +5850,7 @@
           </div>
           }
         </div>
+        }
         }
       </div>
 

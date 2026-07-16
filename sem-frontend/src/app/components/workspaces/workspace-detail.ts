@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, inject, computed, effect } from '@angular/core';
+import { Component, OnInit, signal, inject, computed, effect, HostListener } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { DatePipe, NgClass } from '@angular/common';
@@ -40,6 +40,18 @@ export class WorkspaceDetailComponent implements OnInit {
     });
   }
 
+  @HostListener('document:keydown', ['$event'])
+  handleKeyboardEvent(event: KeyboardEvent) {
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+      event.preventDefault();
+      const el = document.getElementById('globalSearchInput');
+      if (el) {
+        el.focus();
+        this.showGlobalSearchResults.set(true);
+      }
+    }
+  }
+
   map: any = null;
   marker: any = null;
 
@@ -50,6 +62,175 @@ export class WorkspaceDetailComponent implements OnInit {
   error = signal('');
   activeTab = signal<'overview' | 'members' | 'settings' | 'teams' | 'players' | 'events' | 'venues'>('overview');
   isSidebarOpen = signal(true);
+
+  // ── Global Search State ──────────────────────────────────────────────────────
+  globalSearchQuery = signal<string>('');
+  showGlobalSearchResults = signal<boolean>(false);
+  allCompetitions = signal<Competition[]>([]);
+
+  // ── Search State & Filtered Computed Listings ────────────────────────────────
+  memberSearchQuery = signal<string>('');
+  teamSearchQuery = signal<string>('');
+  playerSearchQuery = signal<string>('');
+  eventSearchQuery = signal<string>('');
+  venueSearchQuery = signal<string>('');
+
+  filteredMembers = computed(() => {
+    const query = this.memberSearchQuery().toLowerCase().trim();
+    const list = this.members();
+    if (!query) return list;
+    return list.filter(m => 
+      m.user.username.toLowerCase().includes(query) ||
+      m.role.name.toLowerCase().includes(query)
+    );
+  });
+
+  filteredTeams = computed(() => {
+    const query = this.teamSearchQuery().toLowerCase().trim();
+    const list = this.teams();
+    if (!query) return list;
+    return list.filter(t => 
+      t.name.toLowerCase().includes(query) ||
+      (t.code && t.code.toLowerCase().includes(query)) ||
+      (t.description && t.description.toLowerCase().includes(query))
+    );
+  });
+
+  filteredPlayers = computed(() => {
+    const query = this.playerSearchQuery().toLowerCase().trim();
+    const list = this.players();
+    if (!query) return list;
+    return list.filter(p => 
+      p.user.username.toLowerCase().includes(query) ||
+      p.team.name.toLowerCase().includes(query) ||
+      (p.jerseyNumber && String(p.jerseyNumber).toLowerCase().includes(query))
+    );
+  });
+
+  filteredEvents = computed(() => {
+    const query = this.eventSearchQuery().toLowerCase().trim();
+    const list = this.events();
+    if (!query) return list;
+    return list.filter(e => 
+      e.name.toLowerCase().includes(query) ||
+      e.status.toLowerCase().includes(query) ||
+      (e.description && e.description.toLowerCase().includes(query))
+    );
+  });
+
+  filteredVenues = computed(() => {
+    const query = this.venueSearchQuery().toLowerCase().trim();
+    const list = this.venues();
+    if (!query) return list;
+    return list.filter(v => 
+      v.name.toLowerCase().includes(query) ||
+      (v.location && v.location.toLowerCase().includes(query))
+    );
+  });
+
+  globalSearchResults = computed(() => {
+    const query = this.globalSearchQuery().toLowerCase().trim();
+    if (!query) {
+      return {
+        teams: [],
+        players: [],
+        events: [],
+        competitions: [],
+        venues: [],
+        members: [],
+        totalCount: 0
+      };
+    }
+
+    const matchedTeams = this.teams().filter(t => 
+      t.name.toLowerCase().includes(query) || 
+      (t.code && t.code.toLowerCase().includes(query)) ||
+      (t.description && t.description.toLowerCase().includes(query))
+    );
+
+    const matchedPlayers = this.players().filter(p => 
+      p.user.username.toLowerCase().includes(query) ||
+      p.team.name.toLowerCase().includes(query) ||
+      (p.jerseyNumber && String(p.jerseyNumber).toLowerCase().includes(query))
+    );
+
+    const matchedEvents = this.events().filter(e => 
+      e.name.toLowerCase().includes(query) || 
+      e.status.toLowerCase().includes(query) ||
+      (e.description && e.description.toLowerCase().includes(query))
+    );
+
+    const matchedCompetitions = this.allCompetitions().filter(c => 
+      c.name.toLowerCase().includes(query) ||
+      c.status.toLowerCase().includes(query) ||
+      (c.sport?.name && c.sport.name.toLowerCase().includes(query))
+    );
+
+    const matchedVenues = this.venues().filter(v => 
+      v.name.toLowerCase().includes(query) ||
+      (v.location && v.location.toLowerCase().includes(query))
+    );
+
+    const matchedMembers = this.members().filter(m => 
+      m.user.username.toLowerCase().includes(query) ||
+      m.role.name.toLowerCase().includes(query)
+    );
+
+    const totalCount = matchedTeams.length + matchedPlayers.length + matchedEvents.length + matchedCompetitions.length + matchedVenues.length + matchedMembers.length;
+
+    return {
+      teams: matchedTeams,
+      players: matchedPlayers,
+      events: matchedEvents,
+      competitions: matchedCompetitions,
+      venues: matchedVenues,
+      members: matchedMembers,
+      totalCount
+    };
+  });
+
+  selectGlobalTeam(team: Team) {
+    this.activeTab.set('teams');
+    this.onViewTeamDetails(team);
+    this.clearGlobalSearch();
+  }
+
+  selectGlobalPlayer(player: Player) {
+    this.activeTab.set('players');
+    this.onViewPlayerDetails(player);
+    this.clearGlobalSearch();
+  }
+
+  selectGlobalEvent(event: WorkspaceEvent) {
+    this.activeTab.set('events');
+    this.onSelectEvent(event);
+    this.clearGlobalSearch();
+  }
+
+  selectGlobalCompetition(comp: Competition) {
+    this.activeTab.set('events');
+    const parentEvent = this.events().find(e => e.id === comp.eventId);
+    if (parentEvent) {
+      this.onSelectEvent(parentEvent);
+      this.onSelectCompetition(comp);
+    }
+    this.clearGlobalSearch();
+  }
+
+  selectGlobalVenue(venue: Venue) {
+    this.activeTab.set('venues');
+    this.clearGlobalSearch();
+  }
+
+  selectGlobalMember(member: WorkspaceMember) {
+    this.activeTab.set('members');
+    this.clearGlobalSearch();
+  }
+
+  clearGlobalSearch() {
+    this.globalSearchQuery.set('');
+    this.showGlobalSearchResults.set(false);
+  }
 
   // Invitation & Notification signals
   pendingInvitations = signal<WorkspaceMember[]>([]);
@@ -2066,9 +2247,28 @@ export class WorkspaceDetailComponent implements OnInit {
 
   loadEvents(workspaceId: string) {
     this.workspaceService.getEvents(workspaceId).subscribe({
-      next: (events) => this.events.set(events),
+      next: (events) => {
+        this.events.set(events);
+        this.loadAllCompetitions(workspaceId, events);
+      },
       error: (err) => console.error('Failed to load events', err),
     });
+  }
+
+  loadAllCompetitions(workspaceId: string, events: WorkspaceEvent[]) {
+    this.allCompetitions.set([]);
+    for (const event of events) {
+      this.workspaceService.getCompetitions(workspaceId, event.id).subscribe({
+        next: (comps) => {
+          this.allCompetitions.update(prev => {
+            const ids = new Set(prev.map(c => c.id));
+            const newComps = comps.filter(c => !ids.has(c.id));
+            return [...prev, ...newComps];
+          });
+        },
+        error: (err) => console.error(`Failed to load competitions for event ${event.id}`, err),
+      });
+    }
   }
 
   showDatePicker(event: any) {
@@ -2378,6 +2578,7 @@ export class WorkspaceDetailComponent implements OnInit {
         this.isCreatingCompetition.set(false);
         this.competitionCreateSuccess.set(`Competition "${comp.name}" created successfully!`);
         this.competitions.update(prev => [...prev, comp]);
+        this.allCompetitions.update(prev => [...prev, comp]);
         setTimeout(() => this.closeCompetitionModal(), 1500);
       },
       error: (err) => {
@@ -2428,6 +2629,7 @@ export class WorkspaceDetailComponent implements OnInit {
         this.isUpdatingCompetition.set(false);
         this.competitionUpdateSuccess.set(`Competition updated successfully!`);
         this.competitions.update(prev => prev.map(c => c.id === comp.id ? updated : c));
+        this.allCompetitions.update(prev => prev.map(c => c.id === comp.id ? updated : c));
         setTimeout(() => this.closeCompetitionModal(), 1500);
       },
       error: (err) => {
@@ -2452,6 +2654,7 @@ export class WorkspaceDetailComponent implements OnInit {
     this.workspaceService.removeCompetition(ws.id, event.id, comp.id).subscribe({
       next: () => {
         this.competitions.update(prev => prev.filter(c => c.id !== comp.id));
+        this.allCompetitions.update(prev => prev.filter(c => c.id !== comp.id));
         this.uiService.success(`Competition "${comp.name}" deleted successfully.`);
       },
       error: (err) => {
