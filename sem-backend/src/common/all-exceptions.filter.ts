@@ -5,13 +5,13 @@ import {
   HttpException,
   HttpStatus,
   Injectable,
+  Logger,
 } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
-import { LogsService } from '../logs/logs.service';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
-  constructor(private readonly logsService: LogsService) {}
+  private readonly logger = new Logger(AllExceptionsFilter.name);
 
   catch(exception: any, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
@@ -38,9 +38,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
       }
     }
 
-    // Capture error in database
+    // Capture error in logger
     this.logErrorToDb(request, statusCode, message, exception).catch((err) => {
-      console.error('Failed to log error to database:', err);
+      console.error('Failed to log error:', err);
     });
 
     // Send standardized error response
@@ -75,18 +75,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
     // Convert message list to string if it is an array
     const cleanMessage = Array.isArray(message) ? message.join(', ') : message;
 
-    await this.logsService.createErrorLog({
-      userId,
-      username,
-      method,
-      path,
-      statusCode,
-      message: cleanMessage,
-      stack,
-      payload: redactedPayload,
-      ipAddress,
-      userAgent,
-    });
+    if (statusCode >= 500) {
+      this.logger.error(`[${method} ${path}] ${cleanMessage} (User: ${username || userId || 'Guest'}, IP: ${ipAddress})`, stack);
+    } else {
+      this.logger.warn(`[${method} ${path}] Status ${statusCode}: ${cleanMessage}`);
+    }
   }
 
   private redactPayload(payload: any): any {

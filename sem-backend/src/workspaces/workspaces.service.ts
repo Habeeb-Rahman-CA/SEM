@@ -80,7 +80,7 @@ export class WorkspacesService implements OnModuleInit {
     @InjectRepository(MatchPlayer)
     private readonly matchPlayerRepo: Repository<MatchPlayer>,
     private readonly usersService: UsersService,
-  ) {}
+  ) { }
 
   async onModuleInit() {
     const defaultSports = [
@@ -511,7 +511,7 @@ export class WorkspacesService implements OnModuleInit {
     }
 
     const role = await this.findRoleBySlug('viewer', workspaceId);
-    
+
     const member = this.memberRepo.create({
       workspaceId,
       userId,
@@ -519,7 +519,7 @@ export class WorkspacesService implements OnModuleInit {
       status: 'joined',
     });
     const saved = await this.memberRepo.save(member);
-    
+
     const fullMember = await this.memberRepo.findOne({
       where: { id: saved.id },
       relations: { user: true, role: true },
@@ -1092,7 +1092,7 @@ export class WorkspacesService implements OnModuleInit {
 
   async getTeamStats(workspaceId: string, teamId: string, userId: string) {
     await this.ensureMember(workspaceId, userId);
-    
+
     const team = await this.teamRepo.findOne({ where: { id: teamId, workspaceId } });
     if (!team) {
       throw new NotFoundException('Team not found');
@@ -1185,7 +1185,7 @@ export class WorkspacesService implements OnModuleInit {
         const events = liveData.events || [];
         for (const ev of events) {
           const isSelfAssist = (ev.assistPlayerUserId && squadUserIds.includes(ev.assistPlayerUserId)) ||
-                              (ev.assistPlayerId && squadPlayerIds.includes(ev.assistPlayerId));
+            (ev.assistPlayerId && squadPlayerIds.includes(ev.assistPlayerId));
           if (ev.type === 'goal' && ev.goalType !== 'own_goal' && isSelfAssist) {
             allTimeAssists++;
           } else if (ev.type === 'assist' && isSelfAssist) {
@@ -1284,7 +1284,7 @@ export class WorkspacesService implements OnModuleInit {
     for (const ct of compTeams) {
       const comp = ct.competition;
       const compMatches = matches.filter(m => m.stage?.competitionId === comp.id);
-      
+
       let compGoals = 0;
       let compAssists = 0;
       let compRuns = 0;
@@ -1302,7 +1302,7 @@ export class WorkspacesService implements OnModuleInit {
           const events = liveData.events || [];
           for (const ev of events) {
             const isSelfAssist = (ev.assistPlayerUserId && squadUserIds.includes(ev.assistPlayerUserId)) ||
-                                (ev.assistPlayerId && squadPlayerIds.includes(ev.assistPlayerId));
+              (ev.assistPlayerId && squadPlayerIds.includes(ev.assistPlayerId));
             if (ev.type === 'goal' && ev.goalType !== 'own_goal' && isSelfAssist) {
               compAssists++;
             } else if (ev.type === 'assist' && isSelfAssist) {
@@ -1500,7 +1500,7 @@ export class WorkspacesService implements OnModuleInit {
     let allTimeRalliesWon = 0;
     let allTimeRalliesLost = 0;
     let allTimeMvps = 0;
-    
+
     // Ratings variables
     let totalRatingPoints = 0;
     let ratedMatchesCount = 0;
@@ -1517,7 +1517,7 @@ export class WorkspacesService implements OnModuleInit {
         const rVal = Number(cmp.rating);
         totalRatingPoints += rVal;
         ratedMatchesCount++;
-        
+
         const maxR = maxRatings.get(cmp.matchId);
         if (maxR !== undefined && rVal === maxR) {
           allTimeMvps++;
@@ -1529,7 +1529,7 @@ export class WorkspacesService implements OnModuleInit {
         for (const ev of events) {
           const isSelfScorer = (ev.playerUserId === player.userId) || (ev.playerId === player.id);
           const isSelfAssist = (ev.assistPlayerUserId === player.userId) || (ev.assistPlayerId === player.id);
-          
+
           if (ev.type === 'goal' && ev.goalType !== 'own_goal' && isSelfScorer) {
             allTimeGoals++;
           }
@@ -1579,7 +1579,7 @@ export class WorkspacesService implements OnModuleInit {
     for (const ct of compTeams) {
       const comp = ct.competition;
       const compMatchPlayers = completedMatchPlayers.filter(cmp => cmp.match?.stage?.competitionId === comp.id);
-      
+
       let compGoals = 0;
       let compAssists = 0;
       let compYellowCards = 0;
@@ -1613,7 +1613,7 @@ export class WorkspacesService implements OnModuleInit {
           for (const ev of events) {
             const isSelfScorer = (ev.playerUserId === player.userId) || (ev.playerId === player.id);
             const isSelfAssist = (ev.assistPlayerUserId === player.userId) || (ev.assistPlayerId === player.id);
-            
+
             if (ev.type === 'goal' && ev.goalType !== 'own_goal' && isSelfScorer) {
               compGoals++;
             }
@@ -2054,7 +2054,7 @@ export class WorkspacesService implements OnModuleInit {
 
     const sortedStages = [...comp.stages].sort((a, b) => a.sequence - b.sequence);
     const lastStage = sortedStages[sortedStages.length - 1];
-    
+
     const matches = await this.matchRepo.find({
       where: { stageId: lastStage.id },
       relations: { homeTeam: true, awayTeam: true }
@@ -2069,7 +2069,7 @@ export class WorkspacesService implements OnModuleInit {
       for (const m of matches) {
         if (!m.homeTeamId || !m.awayTeamId) continue;
         const g = (m.config as any)?.round || 'Group Stage';
-        
+
         if (!teamStats.has(m.homeTeamId)) {
           teamStats.set(m.homeTeamId, { teamId: m.homeTeamId, group: g, pts: 0, gd: 0, gf: 0, ga: 0 });
         }
@@ -2450,35 +2450,41 @@ export class WorkspacesService implements OnModuleInit {
 
   async getCompetitions(workspaceId: string, eventId: string, userId: string): Promise<Competition[]> {
     await this.ensureMember(workspaceId, userId);
-    const event = await this.eventRepo.findOne({ where: { id: eventId, workspaceId } });
-    if (!event) {
+
+    // Single query: scope event to workspace via join, then load competitions
+    const eventExists = await this.eventRepo.exists({ where: { id: eventId, workspaceId } });
+    if (!eventExists) {
       throw new NotFoundException(`Event "${eventId}" not found in workspace`);
     }
+
     const competitions = await this.competitionRepo.find({
       where: { eventId },
       relations: { sport: true, stages: true },
       order: { name: 'ASC' },
     });
 
-    const result: any[] = [];
-    for (const comp of competitions) {
-      const compJson = JSON.parse(JSON.stringify(comp));
-      if (compJson.stages && compJson.stages.length > 0) {
-        const stageIds = compJson.stages.map((s: any) => s.id);
-        const matches = await this.matchRepo.find({
-          where: { stageId: In(stageIds) },
-          relations: { homeTeam: true, awayTeam: true },
-        });
-        
-        for (const stage of compJson.stages) {
-          stage.matches = matches.filter(m => m.stageId === stage.id);
-        }
-      } else {
-        compJson.stages = [];
+    // Single IN query for ALL matches across all stages (eliminates N+1)
+    const allStageIds = competitions.flatMap(c => (c.stages ?? []).map(s => s.id));
+    const allMatchesMap = new Map<string, any[]>();
+
+    if (allStageIds.length > 0) {
+      const allMatches = await this.matchRepo.find({
+        where: { stageId: In(allStageIds) },
+        relations: { homeTeam: true, awayTeam: true },
+      });
+      for (const m of allMatches) {
+        if (!allMatchesMap.has(m.stageId)) allMatchesMap.set(m.stageId, []);
+        allMatchesMap.get(m.stageId)!.push(m);
       }
-      result.push(compJson);
     }
-    return result;
+
+    return competitions.map(comp => {
+      const compJson = JSON.parse(JSON.stringify(comp));
+      for (const stage of compJson.stages ?? []) {
+        stage.matches = allMatchesMap.get(stage.id) ?? [];
+      }
+      return compJson;
+    });
   }
 
   async createCompetition(
@@ -2488,6 +2494,7 @@ export class WorkspacesService implements OnModuleInit {
     userId: string,
   ): Promise<Competition> {
     await this.ensurePermission(workspaceId, userId, 'competition.manage');
+
     const event = await this.eventRepo.findOne({ where: { id: eventId, workspaceId } });
     if (!event) {
       throw new NotFoundException(`Event "${eventId}" not found in workspace`);
@@ -2533,12 +2540,17 @@ export class WorkspacesService implements OnModuleInit {
     userId: string,
   ): Promise<Competition> {
     await this.ensurePermission(workspaceId, userId, 'competition.manage');
-    const event = await this.eventRepo.findOne({ where: { id: eventId, workspaceId } });
-    if (!event) {
+
+    // Single exist check instead of loading the full event entity
+    const eventExists = await this.eventRepo.exists({ where: { id: eventId, workspaceId } });
+    if (!eventExists) {
       throw new NotFoundException(`Event "${eventId}" not found in workspace`);
     }
 
-    const competition = await this.competitionRepo.findOne({ where: { id: competitionId, eventId } });
+    const competition = await this.competitionRepo.findOne({
+      where: { id: competitionId, eventId },
+      relations: { sport: true },
+    });
     if (!competition) {
       throw new NotFoundException(`Competition "${competitionId}" not found in event`);
     }
@@ -2549,24 +2561,21 @@ export class WorkspacesService implements OnModuleInit {
         throw new NotFoundException(`Sport with ID "${dto.sportId}" not found`);
       }
       competition.sportId = dto.sportId;
+      competition.sport = sport; // attach in-memory, avoid re-fetch
     }
 
     if (dto.name !== undefined) competition.name = dto.name;
     if (dto.status !== undefined) competition.status = dto.status;
     if (dto.pointsConfig !== undefined) competition.pointsConfig = dto.pointsConfig ?? null;
 
-    await this.competitionRepo.save(competition);
-    const found = await this.competitionRepo.findOne({ where: { id: competitionId }, relations: { sport: true } });
-    if (!found) {
-      throw new NotFoundException(`Competition "${competitionId}" not found`);
-    }
-    return found;
+    return this.competitionRepo.save(competition);
   }
 
   async removeCompetition(workspaceId: string, eventId: string, competitionId: string, userId: string): Promise<void> {
     await this.ensurePermission(workspaceId, userId, 'competition.manage');
-    const event = await this.eventRepo.findOne({ where: { id: eventId, workspaceId } });
-    if (!event) {
+    // Validate event belongs to workspace cheaply
+    const eventExists = await this.eventRepo.exists({ where: { id: eventId, workspaceId } });
+    if (!eventExists) {
       throw new NotFoundException(`Event "${eventId}" not found in workspace`);
     }
 
@@ -2587,12 +2596,13 @@ export class WorkspacesService implements OnModuleInit {
     userId: string,
   ): Promise<CompetitionStage[]> {
     await this.ensureMember(workspaceId, userId);
-    const event = await this.eventRepo.findOne({ where: { id: eventId, workspaceId } });
-    if (!event) {
-      throw new NotFoundException(`Event "${eventId}" not found in workspace`);
-    }
-    const competition = await this.competitionRepo.findOne({ where: { id: competitionId, eventId } });
-    if (!competition) {
+    // Scope validation: verify competition belongs to the event+workspace in one query
+    const compExists = await this.competitionRepo
+      .createQueryBuilder('c')
+      .innerJoin('c.event', 'e', 'e.id = :eventId AND e.workspaceId = :workspaceId', { eventId, workspaceId })
+      .where('c.id = :competitionId', { competitionId })
+      .getExists();
+    if (!compExists) {
       throw new NotFoundException(`Competition "${competitionId}" not found in event`);
     }
 
@@ -3113,10 +3123,10 @@ export class WorkspacesService implements OnModuleInit {
 
     if ((completedMatch.config as any)?.leg === 2) {
       // Aggregate two legs
-      const leg1 = allMatches.find(m => 
-        (m.config as any)?.round === roundName && 
-        (m.config as any)?.leg === 1 && 
-        m.homeTeamId === completedMatch.awayTeamId && 
+      const leg1 = allMatches.find(m =>
+        (m.config as any)?.round === roundName &&
+        (m.config as any)?.leg === 1 &&
+        m.homeTeamId === completedMatch.awayTeamId &&
         m.awayTeamId === completedMatch.homeTeamId
       );
       if (leg1) {
@@ -3178,19 +3188,19 @@ export class WorkspacesService implements OnModuleInit {
     if (!winnerId) return;
 
     // Find index of this match in the current round
-    const currRoundMatches = allMatches.filter(m => 
-      (m.config as any)?.round === roundName && 
+    const currRoundMatches = allMatches.filter(m =>
+      (m.config as any)?.round === roundName &&
       ((m.config as any)?.leg === undefined || (m.config as any)?.leg === 1)
     );
-    const matchIndex = currRoundMatches.findIndex(m => 
-      m.id === completedMatch.id || 
+    const matchIndex = currRoundMatches.findIndex(m =>
+      m.id === completedMatch.id ||
       ((completedMatch.config as any)?.leg === 2 && m.homeTeamId === completedMatch.awayTeamId && m.awayTeamId === completedMatch.homeTeamId)
     );
     if (matchIndex === -1) return;
 
     // Next round details
-    const nextRoundMatches = allMatches.filter(m => 
-      (m.config as any)?.round === nextRoundName && 
+    const nextRoundMatches = allMatches.filter(m =>
+      (m.config as any)?.round === nextRoundName &&
       ((m.config as any)?.leg === undefined || (m.config as any)?.leg === 1)
     );
 
@@ -3211,8 +3221,8 @@ export class WorkspacesService implements OnModuleInit {
     // If next round is two-legged, also update Leg 2 match with swapped roles
     const twoLegged = (stage.config as any)?.twoLegged || (stage.config as any)?.legs === 2;
     if (twoLegged) {
-      const nextRoundLeg2Matches = allMatches.filter(m => 
-        (m.config as any)?.round === nextRoundName && 
+      const nextRoundLeg2Matches = allMatches.filter(m =>
+        (m.config as any)?.round === nextRoundName &&
         (m.config as any)?.leg === 2
       );
       const targetLeg2MatchSec = nextRoundLeg2Matches[nextMatchIndex];
@@ -3235,8 +3245,8 @@ export class WorkspacesService implements OnModuleInit {
     }
 
     if (loserId && roundName.toLowerCase() === 'semi-final') {
-      const thirdPlaceMatches = allMatches.filter(m => 
-        (m.config as any)?.round === 'Third Place Match' && 
+      const thirdPlaceMatches = allMatches.filter(m =>
+        (m.config as any)?.round === 'Third Place Match' &&
         ((m.config as any)?.leg === undefined || (m.config as any)?.leg === 1)
       );
       const targetThirdPlaceMatch = thirdPlaceMatches[0];
@@ -3249,8 +3259,8 @@ export class WorkspacesService implements OnModuleInit {
         await this.matchRepo.save(targetThirdPlaceMatch);
 
         if (twoLegged) {
-          const thirdPlaceLeg2Matches = allMatches.filter(m => 
-            (m.config as any)?.round === 'Third Place Match' && 
+          const thirdPlaceLeg2Matches = allMatches.filter(m =>
+            (m.config as any)?.round === 'Third Place Match' &&
             (m.config as any)?.leg === 2
           );
           const targetThirdPlaceLeg2Match = thirdPlaceLeg2Matches[0];
@@ -3350,10 +3360,10 @@ export class WorkspacesService implements OnModuleInit {
     for (const m of groupMatches) {
       const r = (m.config as any)?.round || 'Group Stage';
       if (!m.homeTeamId || !m.awayTeamId) continue;
-      
+
       const homeKey = `${r}-${m.homeTeamId}`;
       const awayKey = `${r}-${m.awayTeamId}`;
-      
+
       const homeStats = standings.get(homeKey);
       const awayStats = standings.get(awayKey);
       if (!homeStats || !awayStats) continue;
@@ -3403,8 +3413,8 @@ export class WorkspacesService implements OnModuleInit {
     if (sortedKoRounds.length === 0) return;
 
     const firstKoRoundName = sortedKoRounds[0];
-    const firstKoRoundMatches = knockoutMatches.filter(m => 
-      (m.config as any)?.round === firstKoRoundName && 
+    const firstKoRoundMatches = knockoutMatches.filter(m =>
+      (m.config as any)?.round === firstKoRoundName &&
       ((m.config as any)?.leg === undefined || (m.config as any)?.leg === 1)
     );
 
@@ -3423,8 +3433,8 @@ export class WorkspacesService implements OnModuleInit {
         }
         // Populate Third Place Match with 3rd and 4th place teams if they exist
         if (sortedTeams.length >= 4) {
-          const thirdPlaceLeg1Match = knockoutMatches.find(m => 
-            (m.config as any)?.round === 'Third Place Match' && 
+          const thirdPlaceLeg1Match = knockoutMatches.find(m =>
+            (m.config as any)?.round === 'Third Place Match' &&
             ((m.config as any)?.leg === undefined || (m.config as any)?.leg === 1)
           );
           if (thirdPlaceLeg1Match) {
@@ -3433,8 +3443,8 @@ export class WorkspacesService implements OnModuleInit {
             await this.matchRepo.save(thirdPlaceLeg1Match);
 
             if (twoLegged) {
-              const thirdPlaceLeg2Match = knockoutMatches.find(m => 
-                (m.config as any)?.round === 'Third Place Match' && 
+              const thirdPlaceLeg2Match = knockoutMatches.find(m =>
+                (m.config as any)?.round === 'Third Place Match' &&
                 (m.config as any)?.leg === 2
               );
               if (thirdPlaceLeg2Match) {
@@ -3474,8 +3484,8 @@ export class WorkspacesService implements OnModuleInit {
           const rA = getRunner(0);
           const rB = getRunner(1);
           if (rA && rB) {
-            const thirdPlaceLeg1Match = knockoutMatches.find(m => 
-              (m.config as any)?.round === 'Third Place Match' && 
+            const thirdPlaceLeg1Match = knockoutMatches.find(m =>
+              (m.config as any)?.round === 'Third Place Match' &&
               ((m.config as any)?.leg === undefined || (m.config as any)?.leg === 1)
             );
             if (thirdPlaceLeg1Match) {
@@ -3484,8 +3494,8 @@ export class WorkspacesService implements OnModuleInit {
               await this.matchRepo.save(thirdPlaceLeg1Match);
 
               if (twoLegged) {
-                const thirdPlaceLeg2Match = knockoutMatches.find(m => 
-                  (m.config as any)?.round === 'Third Place Match' && 
+                const thirdPlaceLeg2Match = knockoutMatches.find(m =>
+                  (m.config as any)?.round === 'Third Place Match' &&
                   (m.config as any)?.leg === 2
                 );
                 if (thirdPlaceLeg2Match) {
@@ -3538,8 +3548,8 @@ export class WorkspacesService implements OnModuleInit {
       await this.matchRepo.save(targetMatch);
 
       if (twoLegged) {
-        const nextRoundLeg2Matches = knockoutMatches.filter(m => 
-          (m.config as any)?.round === firstKoRoundName && 
+        const nextRoundLeg2Matches = knockoutMatches.filter(m =>
+          (m.config as any)?.round === firstKoRoundName &&
           (m.config as any)?.leg === 2
         );
         const targetLeg2Match = nextRoundLeg2Matches[i];
@@ -3560,7 +3570,7 @@ export class WorkspacesService implements OnModuleInit {
       if (comp) {
         const workspaceId = comp.event?.workspaceId || null;
         const qualifiedTeamIds = [...new Set(promotedTeams.flatMap((p) => [p.home, p.away]))];
-        
+
         for (const tId of qualifiedTeamIds) {
           const team = await this.teamRepo.findOne({ where: { id: tId } });
           if (team) {
@@ -3660,7 +3670,7 @@ export class WorkspacesService implements OnModuleInit {
       order: { sequence: 'ASC', createdAt: 'ASC' },
     });
     const prevStage = prevStages[prevStages.indexOf(stage) - 1];
-    
+
     let koTeamsCount = teamIds.length;
     if (prevStage) {
       if (prevStage.type === 'group' || prevStage.type === 'league') {
@@ -3676,7 +3686,7 @@ export class WorkspacesService implements OnModuleInit {
     const fixtures: Array<{ homeTeamId: string | null; awayTeamId: string | null; config: any }> = [];
 
     const roundLabel = bracketSize === 2 ? 'Final' : bracketSize === 4 ? 'Semi-Final' : bracketSize === 8 ? 'Quarter-Final' : `Round of ${bracketSize}`;
-    
+
     const firstRoundPairs: [string | null, string | null][] = [];
     const half = bracketSize / 2;
     for (let i = 0; i < half; i++) {
@@ -3812,8 +3822,8 @@ export class WorkspacesService implements OnModuleInit {
     if (sortedRounds.length === 0) return;
 
     const firstKoRoundName = sortedRounds[0];
-    const firstKoRoundMatches = nextMatches.filter(m => 
-      (m.config as any)?.round === firstKoRoundName && 
+    const firstKoRoundMatches = nextMatches.filter(m =>
+      (m.config as any)?.round === firstKoRoundName &&
       ((m.config as any)?.leg === undefined || (m.config as any)?.leg === 1)
     );
 
@@ -3838,8 +3848,8 @@ export class WorkspacesService implements OnModuleInit {
       await this.matchRepo.save(targetMatch);
 
       if (twoLegged) {
-        const nextRoundLeg2Matches = nextMatches.filter(m => 
-          (m.config as any)?.round === firstKoRoundName && 
+        const nextRoundLeg2Matches = nextMatches.filter(m =>
+          (m.config as any)?.round === firstKoRoundName &&
           (m.config as any)?.leg === 2
         );
         const targetLeg2Match = nextRoundLeg2Matches[i];
@@ -3859,7 +3869,7 @@ export class WorkspacesService implements OnModuleInit {
         return rLower.includes('third') || rLower.includes('3rd') || rLower.includes('loser');
       });
 
-      const thirdPlaceLeg1Matches = thirdPlaceMatches.filter(m => 
+      const thirdPlaceLeg1Matches = thirdPlaceMatches.filter(m =>
         (m.config as any)?.leg === undefined || (m.config as any)?.leg === 1
       );
 
@@ -3875,7 +3885,7 @@ export class WorkspacesService implements OnModuleInit {
         await this.matchRepo.save(targetMatch);
 
         if (twoLegged) {
-          const nextRoundLeg2Matches = thirdPlaceMatches.filter(m => 
+          const nextRoundLeg2Matches = thirdPlaceMatches.filter(m =>
             (m.config as any)?.leg === 2
           );
           const targetLeg2Match = nextRoundLeg2Matches[i];
@@ -3922,7 +3932,7 @@ export class WorkspacesService implements OnModuleInit {
     if (!event) throw new NotFoundException(`Event not found`);
     const competition = await this.competitionRepo.findOne({ where: { id: competitionId, eventId } });
     if (!competition) throw new NotFoundException(`Competition "${competitionId}" not found`);
-    
+
     const eventTeams = event.teams || [];
     const uniqueTeams = Array.from(new Map(eventTeams.map((t) => [t.id, t])).values());
     return uniqueTeams.map((t) => ({
@@ -3977,7 +3987,7 @@ export class WorkspacesService implements OnModuleInit {
     await this.validateCompetitionContext(workspaceId, eventId, competitionId);
     const entry = await this.competitionTeamRepo.findOne({ where: { competitionId, teamId } });
     if (!entry) throw new NotFoundException(`Team is not enrolled in this competition`);
-    
+
     const team = await this.teamRepo.findOne({ where: { id: teamId } });
     const comp = await this.competitionRepo.findOne({ where: { id: competitionId } });
 
@@ -4132,7 +4142,7 @@ export class WorkspacesService implements OnModuleInit {
         const isSingleGroup = stage.config?.groupKnockoutSubtype === 'single_group';
         const twoLeggedGroup = stage.config?.twoLegged || stage.config?.legs === 2;
         const twoLeggedKO = stage.config?.twoLegged || stage.config?.legs === 2; // default same legs for KO
-        
+
         let totalAdvancing = 2; // Default play final
 
         if (isSingleGroup) {
@@ -4176,7 +4186,7 @@ export class WorkspacesService implements OnModuleInit {
         // Ensure totalAdvancing is at least 2 and power of 2
         let koTeamsCount = totalAdvancing;
         const bracketSize = Math.pow(2, Math.ceil(Math.log2(Math.max(koTeamsCount, 2))));
-        
+
         let remainingTeams = bracketSize;
         while (remainingTeams >= 2) {
           const koRoundLabel = remainingTeams === 2 ? 'Final' : remainingTeams === 4 ? 'Semi-Final' : remainingTeams === 8 ? 'Quarter-Final' : `Round of ${remainingTeams}`;
@@ -5248,7 +5258,7 @@ export class WorkspacesService implements OnModuleInit {
 
         for (const r of rallies) {
           if (r.winnerSide === 'none') continue;
-          
+
           const targetTeamId = r.winnerSide === 'home' ? m.homeTeamId : m.awayTeamId;
           const winners = matchPlayersInMatch.filter(mp => mp.teamId === targetTeamId);
 
@@ -5309,14 +5319,14 @@ export class WorkspacesService implements OnModuleInit {
       homeScore > awayScore
         ? match.homeTeamId
         : awayScore > homeScore
-        ? match.awayTeamId
-        : null;
+          ? match.awayTeamId
+          : null;
     const loserTeamId =
       winnerTeamId === match.homeTeamId
         ? match.awayTeamId
         : winnerTeamId === match.awayTeamId
-        ? match.homeTeamId
-        : null;
+          ? match.homeTeamId
+          : null;
 
     if (sportCode === 'football') {
       if (!Array.isArray(liveData.events)) return;

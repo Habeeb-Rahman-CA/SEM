@@ -1,29 +1,54 @@
 import { Routes } from '@angular/router';
-import { LoginComponent } from './components/login/login';
-import { RegisterComponent } from './components/register/register';
-import { DashboardComponent } from './components/dashboard/dashboard';
-import { WorkspacesComponent } from './components/workspaces/workspaces';
-import { WorkspaceDetailComponent } from './components/workspaces/workspace-detail';
-import { SystemSettingsComponent } from './components/system-settings/system-settings';
-import { ProfileComponent } from './components/profile/profile';
 import { authGuard, noAuthGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
   // Auth routes (redirect to /workspaces if already logged in)
-  { path: 'login', component: LoginComponent, canActivate: [noAuthGuard] },
-  { path: 'register', component: RegisterComponent, canActivate: [noAuthGuard] },
+  {
+    path: 'login',
+    loadComponent: () => import('./components/login/login').then(m => m.LoginComponent),
+    canActivate: [noAuthGuard],
+  },
+  {
+    path: 'register',
+    loadComponent: () => import('./components/register/register').then(m => m.RegisterComponent),
+    canActivate: [noAuthGuard],
+  },
 
-  // Legacy dashboard (kept for now)
-  { path: 'dashboard', component: DashboardComponent, canActivate: [authGuard] },
+  // Legacy dashboard
+  {
+    path: 'dashboard',
+    loadComponent: () => import('./components/dashboard/dashboard').then(m => m.DashboardComponent),
+    canActivate: [authGuard],
+  },
 
   // Workspace routes
-  { path: 'workspaces', component: WorkspacesComponent, canActivate: [authGuard] },
-  { path: 'workspaces/join', loadComponent: () => import('./components/workspaces/join-workspace').then(m => m.JoinWorkspaceComponent) },
-  { path: 'workspaces/:id', component: WorkspaceDetailComponent, canActivate: [authGuard] },
-  { path: 'system-settings', component: SystemSettingsComponent, canActivate: [authGuard] },
-  { path: 'profile', component: ProfileComponent, canActivate: [authGuard] },
+  {
+    path: 'workspaces',
+    loadComponent: () => import('./components/workspaces/workspaces').then(m => m.WorkspacesComponent),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'workspaces/join',
+    loadComponent: () => import('./components/workspaces/join-workspace').then(m => m.JoinWorkspaceComponent),
+  },
+  {
+    path: 'workspaces/:id',
+    loadComponent: () => import('./components/workspaces/workspace-detail').then(m => m.WorkspaceDetailComponent),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'system-settings',
+    loadComponent: () => import('./components/system-settings/system-settings').then(m => m.SystemSettingsComponent),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'profile',
+    loadComponent: () => import('./components/profile/profile').then(m => m.ProfileComponent),
+    canActivate: [authGuard],
+  },
 
   // Default redirect
   { path: '', redirectTo: '/workspaces', pathMatch: 'full' },
   { path: '**', redirectTo: '/workspaces' },
 ];
+
