@@ -4,14 +4,19 @@ import {
   ArgumentsHost,
   HttpException,
   HttpStatus,
-  Injectable,
   Logger,
+  Optional,
 } from '@nestjs/common';
-import { HttpAdapterHost } from '@nestjs/core';
+import { ErrorLoggerService } from '../reliability/logging/error-logger.service';
+import { ErrorSeverity } from '../reliability/logging/error-log.entity';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
   private readonly logger = new Logger(AllExceptionsFilter.name);
+
+  constructor(
+    @Optional() private readonly errorLogger?: ErrorLoggerService,
+  ) {}
 
   catch(exception: any, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
@@ -38,8 +43,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
       }
     }
 
-    // Capture error in logger
-    this.logErrorToDb(request, statusCode, message, exception).catch((err) => {
+    // Route to structured logger
+    this.captureError(request, statusCode, message, exception).catch((err) => {
       console.error('Failed to log error:', err);
     });
 
@@ -53,44 +58,59 @@ export class AllExceptionsFilter implements ExceptionFilter {
     });
   }
 
-  private async logErrorToDb(
+  private async captureError(
     request: any,
     statusCode: number,
     message: string,
     exception: any,
   ): Promise<void> {
-    // Only log client-side errors (>= 400) and server-side errors
     if (statusCode < 400) return;
 
     const user = request.user;
-    const userId = user?.id || null;
-    const username = user?.username || null;
-    const { method, path, body, headers } = request;
-    const ipAddress = request.ip || headers['x-forwarded-for'] || null;
-    const userAgent = headers['user-agent'] || null;
+    const userId = user?.id ?? null;
+    const username = user?.username ?? null;
+    const { method, path: reqPath } = request;
+    const ipAddress = request.ip || request.headers['x-forwarded-for'] || null;
+    const userAgent = request.headers?.['user-agent'] || null;
 
-    const redactedPayload = this.redactPayload(body);
-    const stack = statusCode >= 500 && exception instanceof Error ? exception.stack || null : null;
-
-    // Convert message list to string if it is an array
     const cleanMessage = Array.isArray(message) ? message.join(', ') : message;
+    const error = exception instanceof Error ? exception : null;
 
-    if (statusCode >= 500) {
-      this.logger.error(`[${method} ${path}] ${cleanMessage} (User: ${username || userId || 'Guest'}, IP: ${ipAddress})`, stack);
+    const severity =
+      statusCode >= 500 ? ErrorSeverity.ERROR : ErrorSeverity.WARN;
+
+    if (this.errorLogger) {
+      await this.errorLogger.logError(cleanMessage, error, {
+        severity,
+        context: 'HttpException',
+        requestMethod: method,
+        requestPath: reqPath,
+        statusCode,
+        userId,
+        username,
+        ipAddress,
+        userAgent,
+      });
     } else {
-      this.logger.warn(`[${method} ${path}] Status ${statusCode}: ${cleanMessage}`);
+      // Fallback to NestJS Logger when DI not available (e.g., bootstrap phase)
+      if (statusCode >= 500) {
+        this.logger.error(
+          `[${method} ${reqPath}] ${cleanMessage} (User: ${username ?? userId ?? 'Guest'}, IP: ${ipAddress})`,
+          error?.stack,
+        );
+      } else {
+        this.logger.warn(`[${method} ${reqPath}] Status ${statusCode}: ${cleanMessage}`);
+      }
     }
   }
 
   private redactPayload(payload: any): any {
     if (!payload || typeof payload !== 'object') return payload;
-    if (Array.isArray(payload)) {
-      return payload.map(item => this.redactPayload(item));
-    }
+    if (Array.isArray(payload)) return payload.map((item) => this.redactPayload(item));
     const redacted = { ...payload };
     const sensitiveKeys = ['password', 'token', 'secret', 'passwordConfirm', 'accessToken', 'refreshToken', 'avatarUrl'];
     for (const key in redacted) {
-      if (sensitiveKeys.some(sk => key.toLowerCase().includes(sk.toLowerCase()))) {
+      if (sensitiveKeys.some((sk) => key.toLowerCase().includes(sk.toLowerCase()))) {
         redacted[key] = '[REDACTED]';
       } else if (typeof redacted[key] === 'object' && redacted[key] !== null) {
         redacted[key] = this.redactPayload(redacted[key]);

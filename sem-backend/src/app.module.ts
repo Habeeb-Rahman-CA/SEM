@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_FILTER } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
@@ -12,6 +13,8 @@ import { TeamsModule } from './teams/teams.module';
 import { PlayersModule } from './players/players.module';
 import { EventsModule } from './events/events.module';
 import { CompetitionsModule } from './competitions/competitions.module';
+import { ReliabilityModule } from './reliability/reliability.module';
+import { AllExceptionsFilter } from './common/all-exceptions.filter';
 
 @Module({
   imports: [
@@ -42,8 +45,13 @@ import { CompetitionsModule } from './competitions/competitions.module';
     PlayersModule,
     EventsModule,
     CompetitionsModule,
+    ReliabilityModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    // Register as a global filter via DI so ErrorLoggerService is injected
+    { provide: APP_FILTER, useClass: AllExceptionsFilter },
+  ],
 })
 export class AppModule {}

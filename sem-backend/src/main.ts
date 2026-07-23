@@ -5,9 +5,16 @@ import { AppModule } from './app.module';
 import { RequestContextInterceptor } from './common/request-context.interceptor';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    // Structured logging — keep NestJS logger active; Winston supplements it
+    logger: ['error', 'warn', 'log', 'debug', 'verbose'],
+  });
 
-  // Set up Redis adapter for Socket.IO if configured (for horizontal scaling)
+  // ── Graceful Shutdown ─────────────────────────────────────────────────────
+  // Enables onApplicationShutdown() hooks across all providers (e.g. RecoveryService)
+  app.enableShutdownHooks();
+
+  // ── Redis Socket.IO adapter (horizontal scaling) ──────────────────────────
   const redisHost = process.env.REDIS_HOST;
   if (redisHost) {
     const { RedisIoAdapter } = require('./common/redis-io.adapter');
@@ -20,13 +27,16 @@ async function bootstrap() {
     }
   }
 
-  // Set global API prefix
+  // ── Global prefix ─────────────────────────────────────────────────────────
   app.setGlobalPrefix('api');
 
-  // Set global request context interceptor
+  // ── Request context (audit trail for createdBy/updatedBy) ────────────────
   app.useGlobalInterceptors(new RequestContextInterceptor());
 
-  // Enable CORS
+  // Note: AllExceptionsFilter is registered via APP_FILTER in AppModule
+  // so it is fully DI-aware (ErrorLoggerService injected automatically)
+
+  // ── CORS ──────────────────────────────────────────────────────────────────
   const corsOrigin = process.env.CORS_ORIGIN ?? '*';
   app.enableCors({
     origin: corsOrigin === '*' ? '*' : corsOrigin.split(','),
@@ -34,7 +44,7 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Enable global validation pipe
+  // ── Validation ────────────────────────────────────────────────────────────
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -45,7 +55,7 @@ async function bootstrap() {
 
   const port = process.env.PORT ?? 3000;
 
-  // Set up Swagger API Documentation (only in non-production environments)
+  // ── Swagger (non-production only) ─────────────────────────────────────────
   if (process.env.NODE_ENV !== 'production') {
     const config = new DocumentBuilder()
       .setTitle('SEM API')
@@ -59,10 +69,10 @@ async function bootstrap() {
 
   await app.listen(port);
   console.log(`Application is running on: http://localhost:${port}/api`);
+  console.log(`Health check:              http://localhost:${port}/api/health/live`);
   if (process.env.NODE_ENV !== 'production') {
-    console.log(`Swagger documentation is available at: http://localhost:${port}/api/docs`);
+    console.log(`Swagger documentation:     http://localhost:${port}/api/docs`);
   }
 }
-// Trigger reload 2
-bootstrap();
 
+bootstrap();
