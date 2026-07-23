@@ -4,6 +4,13 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../../users/users.service';
 
+export interface JwtPayloadUser {
+  id: string;
+  username: string;
+  avatarUrl: string | null;
+  isSuperAdmin: boolean;
+}
+
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
@@ -17,12 +24,17 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: any) {
-    const user = await this.usersService.findOneByUsername(payload.username);
+  async validate(payload: { sub: string; username: string; isSuperAdmin: boolean }): Promise<JwtPayloadUser> {
+    const user = await this.usersService.findOneById(payload.sub);
     if (!user) {
       throw new UnauthorizedException('User not found or token invalid');
     }
-    // This is attached to Request object: req.user
-    return { id: user.id, username: user.username, avatarUrl: user.avatarUrl };
+    // This object is attached to req.user by Passport
+    return {
+      id: user.id,
+      username: user.username,
+      avatarUrl: user.avatarUrl,
+      isSuperAdmin: user.isSuperAdmin,
+    };
   }
 }
