@@ -1,7 +1,7 @@
 import { Component, OnInit, signal, inject, computed, effect, HostListener, DestroyRef } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
-import { DatePipe, NgClass } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { WorkspaceService, Workspace, WorkspaceMember, AppNotification, Role, Team, Player, WorkspaceEvent, Sport, Competition, CompetitionStage, CompetitionTeam, Match, PointsConfigEntry, MatchPlayer, CompetitionStats } from '../../services/workspace.service';
 import { VenueService, Venue } from '../../services/venue.service';
@@ -29,6 +29,7 @@ import { TopbarComponent } from './layout/topbar/topbar';
 import { WorkspaceDashboardComponent } from './dashboard/dashboard';
 import { WorkspaceMembersComponent } from './members/members';
 import { WorkspaceSettingsComponent } from './settings/settings';
+import { WorkspaceReportsComponent } from './reports/reports';
 
 declare const L: any;
 
@@ -39,7 +40,6 @@ declare const L: any;
     RouterLink,
     DatePipe,
     FormsModule,
-    NgClass,
     VenueListComponent,
     VenueModalComponent,
     TeamListComponent,
@@ -56,6 +56,7 @@ declare const L: any;
     WorkspaceDashboardComponent,
     WorkspaceMembersComponent,
     WorkspaceSettingsComponent,
+    WorkspaceReportsComponent,
   ],
   templateUrl: './workspace-detail.html',
   styleUrl: './workspace-detail.css',
@@ -107,7 +108,7 @@ export class WorkspaceDetailComponent implements OnInit {
   roles = signal<Role[]>([]);
   isLoading = signal(true);
   error = signal('');
-  activeTab = signal<'overview' | 'members' | 'settings' | 'teams' | 'players' | 'events' | 'venues'>('overview');
+  activeTab = signal<'overview' | 'members' | 'settings' | 'teams' | 'players' | 'events' | 'venues' | 'reports'>('overview');
   isSidebarOpen = signal(true);
 
   // ── Workspace Dashboard Overview Signals ─────────────────────────────────────

@@ -7,7 +7,6 @@ import { AvatarComponent } from '../../../shared/components/avatar/avatar';
 import { ButtonComponent } from '../../../shared/components/button/button';
 import { BadgeComponent } from '../../../shared/components/badge/badge';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state';
-import { LoadingSpinnerComponent } from '../../../shared/components/loading-spinner/loading-spinner';
 import { SearchInputComponent } from '../../../shared/components/search-input/search-input';
 import { StatCardComponent } from '../../../shared/components/stat-card/stat-card';
 import { TabBarComponent } from '../../../shared/components/tab-bar/tab-bar';
@@ -24,7 +23,6 @@ import { BulkImportComponent, BulkImportFieldMapping } from '../../../shared/com
     ButtonComponent,
     BadgeComponent,
     EmptyStateComponent,
-    LoadingSpinnerComponent,
     SearchInputComponent,
     StatCardComponent,
     TabBarComponent,

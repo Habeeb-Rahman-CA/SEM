@@ -1,0 +1,482 @@
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div>
+      <h1 class="text-xl font-black text-white flex items-center gap-2 tracking-tight">
+        <i class="fi fi-rr-chart-pie text-violet-500"></i> Workspace Analytics & Reports
+      </h1>
+      <p class="text-slate-400 text-xs mt-1">Export complete workspace datasets or generate print-ready official tournament standing sheets.</p>
+    </div>
+  </div>
+
+  <!-- Top Cards Grid -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <!-- Card 1: Workspace Overview -->
+    <div class="bg-slate-900/60 border border-white/5 rounded-2xl p-6 flex flex-col justify-between backdrop-blur-md relative overflow-hidden group">
+      <div class="absolute -right-4 -top-4 w-24 h-24 bg-violet-600/10 rounded-full blur-xl group-hover:bg-violet-600/15 transition-all"></div>
+      <div class="space-y-4">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-violet-600/10 border border-violet-500/20 flex items-center justify-center text-violet-400">
+            <i class="fi fi-rr-apps text-base"></i>
+          </div>
+          <div>
+            <h2 class="text-sm font-extrabold text-white">Workspace Overview Dataset</h2>
+            <p class="text-[10px] text-slate-500">All registered workspace master data.</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-2 py-2">
+          <div class="bg-slate-950/40 border border-white/5 rounded-xl p-3 text-center">
+            <div class="text-xs font-black text-white">{{ teams().length }}</div>
+            <div class="text-[9px] text-slate-500 font-bold uppercase mt-1">Teams</div>
+          </div>
+          <div class="bg-slate-950/40 border border-white/5 rounded-xl p-3 text-center">
+            <div class="text-xs font-black text-white">{{ players().length }}</div>
+            <div class="text-[9px] text-slate-500 font-bold uppercase mt-1">Players</div>
+          </div>
+          <div class="bg-slate-950/40 border border-white/5 rounded-xl p-3 text-center">
+            <div class="text-xs font-black text-white">{{ events().length }}</div>
+            <div class="text-[9px] text-slate-500 font-bold uppercase mt-1">Events</div>
+          </div>
+        </div>
+
+        <p class="text-[11px] text-slate-400 leading-relaxed">
+          Downloads a comprehensive multi-sheet Excel file (.xlsx) containing separate tabs for teams list, active rosters, system roles, physical venues, and schedules.
+        </p>
+      </div>
+
+      <div class="mt-6">
+        <button
+          (click)="downloadWorkspaceReport()"
+          [disabled]="isGeneratingWorkspaceReport()"
+          class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:bg-violet-600/50 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-lg shadow-violet-600/10">
+          @if (isGeneratingWorkspaceReport()) {
+            <i class="fi fi-rr-spinner animate-spin"></i> Generating Report...
+          } @else {
+            <i class="fi fi-rr-document"></i> Export Workspace Data (Excel)
+          }
+        </button>
+      </div>
+    </div>
+
+    <!-- Card 2: Player Stats -->
+    <div class="bg-slate-900/60 border border-white/5 rounded-2xl p-6 flex flex-col justify-between backdrop-blur-md relative overflow-hidden group">
+      <div class="absolute -right-4 -top-4 w-24 h-24 bg-emerald-600/10 rounded-full blur-xl group-hover:bg-emerald-600/15 transition-all"></div>
+      <div class="space-y-4">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-emerald-600/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+            <i class="fi fi-rr-running text-base"></i>
+          </div>
+          <div>
+            <h2 class="text-sm font-extrabold text-white">Player Roster & Analytics</h2>
+            <p class="text-[10px] text-slate-500">Rosters, positions, ratings and registration details.</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 py-2">
+          <div class="bg-slate-950/40 border border-white/5 rounded-xl p-3 text-center">
+            <div class="text-xs font-black text-white">{{ players().length }}</div>
+            <div class="text-[9px] text-slate-500 font-bold uppercase mt-1">Total Roster</div>
+          </div>
+          <div class="bg-slate-950/40 border border-white/5 rounded-xl p-3 text-center">
+            <div class="text-xs font-black text-white">{{ members().length }}</div>
+            <div class="text-[9px] text-slate-500 font-bold uppercase mt-1">Collaborators</div>
+          </div>
+        </div>
+
+        <p class="text-[11px] text-slate-400 leading-relaxed">
+          Downloads a fully configured sheet containing player user metadata, jersey numbers, associated team codes, registration timestamps, and system workspace roles.
+        </p>
+      </div>
+
+      <div class="mt-6">
+        <button
+          (click)="downloadPlayerReport()"
+          [disabled]="isGeneratingPlayerReport()"
+          class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-600/50 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-lg shadow-emerald-600/10">
+          @if (isGeneratingPlayerReport()) {
+            <i class="fi fi-rr-spinner animate-spin"></i> Generating...
+          } @else {
+            <i class="fi fi-rr-document"></i> Export Player Roster (Excel)
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Competition Standing Card -->
+  <div class="bg-slate-900/60 border border-white/5 rounded-2xl p-6 backdrop-blur-md">
+    <div class="flex items-center gap-3 mb-6">
+      <div class="w-10 h-10 rounded-xl bg-indigo-600/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+        <i class="fi fi-rr-trophy text-base"></i>
+      </div>
+      <div>
+        <h2 class="text-sm font-extrabold text-white">Tournament & Match Reports</h2>
+        <p class="text-[10px] text-slate-500 font-bold">Select event and competition categories below to compile tournament reports.</p>
+      </div>
+    </div>
+
+    <!-- Dropdowns -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      <div class="space-y-1.5">
+        <label for="eventSelect" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Select Event / Sports Festival</label>
+        <select
+          id="eventSelect"
+          [value]="selectedEventId()"
+          (change)="onEventChange($any($event.target).value)"
+          class="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white outline-none focus:border-violet-500 transition-all">
+          <option value="">-- Choose an Event --</option>
+          @for (e of events(); track e.id) {
+            <option [value]="e.id">{{ e.name }} ({{ e.status }})</option>
+          }
+        </select>
+      </div>
+
+      <div class="space-y-1.5">
+        <label for="compSelect" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Select Competition Category</label>
+        <select
+          id="compSelect"
+          [disabled]="!selectedEventId() || isLoadingCompetitions()"
+          [value]="selectedCompetitionId()"
+          (change)="onCompetitionChange($any($event.target).value)"
+          class="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white outline-none focus:border-violet-500 transition-all disabled:opacity-40">
+          @if (isLoadingCompetitions()) {
+            <option value="">Loading categories...</option>
+          } @else if (!selectedEventId()) {
+            <option value="">Select an event first</option>
+          } @else {
+            <option value="">-- Choose a Competition --</option>
+            @for (c of competitions(); track c.id) {
+              <option [value]="c.id">{{ c.name }} ({{ c.sport?.name }})</option>
+            }
+          }
+        </select>
+      </div>
+    </div>
+
+    <!-- Loading Details Spinner -->
+    @if (isLoadingDetails()) {
+      <div class="py-12 flex flex-col items-center justify-center gap-3">
+        <i class="fi fi-rr-spinner animate-spin text-2xl text-violet-500"></i>
+        <span class="text-xs text-slate-500">Compiling tournament datasets...</span>
+      </div>
+    } @else if (selectedCompetitionId() && stages().length === 0) {
+      <div class="py-8 text-center bg-slate-950/20 border border-dashed border-white/5 rounded-xl">
+        <i class="fi fi-rr-info text-xl text-slate-600 mb-2"></i>
+        <p class="text-xs text-slate-500 font-bold">No stages or matches configured for this competition yet.</p>
+      </div>
+    } @else if (selectedCompetitionId()) {
+      <!-- Actions Bar -->
+      <div class="flex flex-wrap items-center justify-between gap-4 p-4 bg-slate-950/40 border border-white/5 rounded-xl mb-6">
+        <div class="flex gap-2">
+          <button
+            (click)="selectedTab.set('standings')"
+            [class]="selectedTab() === 'standings' ? 'bg-violet-600/10 text-violet-400 border border-violet-500/20' : 'text-slate-400 hover:text-white border border-transparent hover:bg-white/5'"
+            class="px-4 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer">
+            Standings Table
+          </button>
+          <button
+            (click)="selectedTab.set('matches')"
+            [class]="selectedTab() === 'matches' ? 'bg-violet-600/10 text-violet-400 border border-violet-500/20' : 'text-slate-400 hover:text-white border border-transparent hover:bg-white/5'"
+            class="px-4 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer">
+            Fixtures & Results
+          </button>
+          <button
+            (click)="selectedTab.set('stats')"
+            [class]="selectedTab() === 'stats' ? 'bg-violet-600/10 text-violet-400 border border-violet-500/20' : 'text-slate-400 hover:text-white border border-transparent hover:bg-white/5'"
+            class="px-4 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer">
+            Leaderboard Stats
+          </button>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button
+            (click)="downloadCompetitionExcel()"
+            [disabled]="isGeneratingCompExcel()"
+            class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 disabled:bg-slate-800/50 text-white text-xs font-bold rounded-lg border border-white/10 transition-all cursor-pointer">
+            @if (isGeneratingCompExcel()) {
+              <i class="fi fi-rr-spinner animate-spin"></i> Generating...
+            } @else {
+              <i class="fi fi-rr-document"></i> Export Standings (Excel)
+            }
+          </button>
+          <button
+            (click)="printOfficialReport()"
+            class="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg transition-all cursor-pointer shadow-lg shadow-indigo-600/10">
+            <i class="fi fi-rr-print"></i> Print Official Report (PDF)
+          </button>
+        </div>
+      </div>
+
+      <!-- Preview Tabs content -->
+      <div class="bg-slate-950/20 border border-white/5 rounded-xl p-4">
+        <!-- Standings Tab -->
+        @if (selectedTab() === 'standings') {
+          <div class="space-y-6">
+            @for (stage of stages(); track stage.id) {
+              @if (stage.type === 'league' || stage.type === 'group' || stage.type === 'group_knockout') {
+                <div class="space-y-3">
+                  <h3 class="text-xs font-extrabold text-white flex items-center gap-2">
+                    <i class="fi fi-rr-angle-small-right text-violet-400"></i> Stage: {{ stage.name }} (Points Table)
+                  </h3>
+                  
+                  <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr class="border-b border-white/5 text-[10px] uppercase font-bold text-slate-500">
+                          <th class="py-2.5 px-3 w-12 text-center">Pos</th>
+                          <th class="py-2.5 px-3">Team</th>
+                          <th class="py-2.5 px-3 text-center">P</th>
+                          <th class="py-2.5 px-3 text-center">W</th>
+                          <th class="py-2.5 px-3 text-center">D</th>
+                          <th class="py-2.5 px-3 text-center">L</th>
+                          <th class="py-2.5 px-3 text-center">GF</th>
+                          <th class="py-2.5 px-3 text-center">GA</th>
+                          <th class="py-2.5 px-3 text-center">GD</th>
+                          <th class="py-2.5 px-3 text-center text-violet-400 font-extrabold">Pts</th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-white/5">
+                        @for (row of getStandingsForStage(stage); track row.teamId; let idx = $index) {
+                          <tr class="hover:bg-white/2 transition-colors">
+                            <td class="py-3 px-3 text-center font-extrabold text-slate-400">
+                              @if (idx === 0) {
+                                <i class="fi fi-rr-medal text-amber-400"></i> 1
+                              } @else if (idx === 1) {
+                                <i class="fi fi-rr-medal text-slate-300"></i> 2
+                              } @else if (idx === 2) {
+                                <i class="fi fi-rr-medal text-amber-600"></i> 3
+                              } @else {
+                                {{ idx + 1 }}
+                              }
+                            </td>
+                            <td class="py-3 px-3 font-extrabold text-white">{{ row.teamName }}</td>
+                            <td class="py-3 px-3 text-center">{{ row.played }}</td>
+                            <td class="py-3 px-3 text-center text-emerald-400 font-bold">{{ row.won }}</td>
+                            <td class="py-3 px-3 text-center text-amber-400">{{ row.drawn }}</td>
+                            <td class="py-3 px-3 text-center text-rose-500">{{ row.lost }}</td>
+                            <td class="py-3 px-3 text-center text-slate-400">{{ row.gf }}</td>
+                            <td class="py-3 px-3 text-center text-slate-400">{{ row.ga }}</td>
+                            <td class="py-3 px-3 text-center font-bold" [ngClass]="row.gd > 0 ? 'text-emerald-400' : row.gd < 0 ? 'text-rose-500' : 'text-slate-400'">
+                              {{ row.gd > 0 ? '+' : '' }}{{ row.gd }}
+                            </td>
+                            <td class="py-3 px-3 text-center text-violet-400 font-black bg-violet-500/5">{{ row.pts }}</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              } @else {
+                <div class="p-3 bg-slate-900/40 rounded-xl border border-white/5">
+                  <p class="text-[11px] text-slate-400 font-bold">Stage: {{ stage.name }} (Knockout/Bracket Format - Points Table not applicable)</p>
+                </div>
+              }
+            }
+          </div>
+        }
+
+        <!-- Matches Tab -->
+        @if (selectedTab() === 'matches') {
+          <div class="space-y-3">
+            @for (m of matches(); track m.id) {
+              <div class="flex items-center justify-between p-3 bg-slate-900/40 border border-white/5 rounded-xl hover:bg-slate-900/60 transition-colors">
+                <div class="flex items-center gap-4 flex-1">
+                  <div class="text-right w-1/3 truncate text-xs font-black text-white">{{ m.homeTeam?.name || 'TBD' }}</div>
+                  <div class="flex items-center justify-center px-3 py-1 bg-slate-950 border border-white/10 rounded-lg text-xs font-extrabold text-white font-mono min-w-16">
+                    @if (m.status === 'completed') {
+                      {{ m.homeScore }} - {{ m.awayScore }}
+                    } @else if (m.status === 'live') {
+                      <span class="text-rose-500 animate-pulse">{{ m.homeScore }} - {{ m.awayScore }}</span>
+                    } @else {
+                      VS
+                    }
+                  </div>
+                  <div class="text-left w-1/3 truncate text-xs font-black text-white">{{ m.awayTeam?.name || 'TBD' }}</div>
+                </div>
+
+                <div class="text-right pl-4">
+                  <div class="text-[10px] text-slate-500 font-bold">
+                    {{ stages().find(s => s.id === m.stageId)?.name }}
+                    @if (m.config.round) {
+                      &middot; {{ m.config.round }}
+                    }
+                  </div>
+                  <div class="text-[9px] text-slate-600 mt-0.5">
+                    {{ m.venue?.name || 'No Venue' }} &middot; Status: <span class="capitalize">{{ m.status }}</span>
+                  </div>
+                </div>
+              </div>
+            } @empty {
+              <div class="text-center py-6">
+                <p class="text-xs text-slate-500 font-bold">No match fixtures scheduled yet.</p>
+              </div>
+            }
+          </div>
+        }
+
+        <!-- Stats Tab -->
+        @if (selectedTab() === 'stats') {
+          @if (competitionStats()) {
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <!-- Top Rated Players -->
+              <div class="bg-slate-900/20 border border-white/5 rounded-xl p-4 space-y-3">
+                <h3 class="text-xs font-extrabold text-white flex items-center gap-1.5">
+                  <i class="fi fi-rr-star text-amber-400"></i> Top Rated Players
+                </h3>
+                <div class="divide-y divide-white/5 text-xs">
+                  @for (p of competitionStats()?.topRated; track p.playerId; let idx = $index) {
+                    <div class="flex items-center justify-between py-2">
+                      <div class="flex items-center gap-2">
+                        <span class="text-[10px] text-slate-500 font-bold">#{{ idx + 1 }}</span>
+                        <div>
+                          <div class="font-extrabold text-white">{{ p.playerName }}</div>
+                          <div class="text-[9px] text-slate-500 font-bold">{{ p.teamName }}</div>
+                        </div>
+                      </div>
+                      <div class="text-right">
+                        <div class="font-black text-violet-400 font-mono">{{ p.avgRating.toFixed(2) }}</div>
+                        <div class="text-[8px] text-slate-600 font-bold">{{ p.appearances }} apps</div>
+                      </div>
+                    </div>
+                  } @empty {
+                    <div class="text-slate-500 text-center py-4">No rated appearances yet.</div>
+                  }
+                </div>
+              </div>
+
+              <!-- MVPs -->
+              <div class="bg-slate-900/20 border border-white/5 rounded-xl p-4 space-y-3">
+                <h3 class="text-xs font-extrabold text-white flex items-center gap-1.5">
+                  <i class="fi fi-rr-crown text-amber-500"></i> Most MVPs Won
+                </h3>
+                <div class="divide-y divide-white/5 text-xs">
+                  @for (p of competitionStats()?.mostMvps; track p.playerId; let idx = $index) {
+                    <div class="flex items-center justify-between py-2">
+                      <div class="flex items-center gap-2">
+                        <span class="text-[10px] text-slate-500 font-bold">#{{ idx + 1 }}</span>
+                        <div>
+                          <div class="font-extrabold text-white">{{ p.playerName }}</div>
+                          <div class="text-[9px] text-slate-500 font-bold">{{ p.teamName }}</div>
+                        </div>
+                      </div>
+                      <div class="text-right">
+                        <div class="font-black text-emerald-400 font-mono">{{ p.mvps }}</div>
+                        <div class="text-[8px] text-slate-600 font-bold">Awards</div>
+                      </div>
+                    </div>
+                  } @empty {
+                    <div class="text-slate-500 text-center py-4">No MVP awards issued yet.</div>
+                  }
+                </div>
+              </div>
+
+              <!-- Sport Specific (Football Goalscorers / Assists) -->
+              @if (competitionStats()?.sportCode === 'football') {
+                <div class="bg-slate-900/20 border border-white/5 rounded-xl p-4 space-y-3">
+                  <h3 class="text-xs font-extrabold text-white flex items-center gap-1.5">
+                    <i class="fi fi-rr-football text-emerald-400"></i> Goals Scored
+                  </h3>
+                  <div class="divide-y divide-white/5 text-xs">
+                    @for (p of competitionStats()?.topScorers; track p.playerId; let idx = $index) {
+                      <div class="flex items-center justify-between py-2">
+                        <div class="flex items-center gap-2">
+                          <span class="text-[10px] text-slate-500 font-bold">#{{ idx + 1 }}</span>
+                          <div>
+                            <div class="font-extrabold text-white">{{ p.playerName }}</div>
+                            <div class="text-[9px] text-slate-500 font-bold">{{ p.teamName }}</div>
+                          </div>
+                        </div>
+                        <div class="font-black text-white font-mono">{{ p.goals }}</div>
+                      </div>
+                    } @empty {
+                      <div class="text-slate-500 text-center py-4">No goals recorded yet.</div>
+                    }
+                  </div>
+                </div>
+
+                <div class="bg-slate-900/20 border border-white/5 rounded-xl p-4 space-y-3">
+                  <h3 class="text-xs font-extrabold text-white flex items-center gap-1.5">
+                    <i class="fi fi-rr-target text-cyan-400"></i> Assists Provided
+                  </h3>
+                  <div class="divide-y divide-white/5 text-xs">
+                    @for (p of competitionStats()?.topAssists; track p.playerId; let idx = $index) {
+                      <div class="flex items-center justify-between py-2">
+                        <div class="flex items-center gap-2">
+                          <span class="text-[10px] text-slate-500 font-bold">#{{ idx + 1 }}</span>
+                          <div>
+                            <div class="font-extrabold text-white">{{ p.playerName }}</div>
+                            <div class="text-[9px] text-slate-500 font-bold">{{ p.teamName }}</div>
+                          </div>
+                        </div>
+                        <div class="font-black text-white font-mono">{{ p.assists }}</div>
+                      </div>
+                    } @empty {
+                      <div class="text-slate-500 text-center py-4">No assists recorded yet.</div>
+                    }
+                  </div>
+                </div>
+              }
+
+              <!-- Sport Specific (Cricket Runs / Wickets) -->
+              @if (competitionStats()?.sportCode === 'cricket') {
+                <div class="bg-slate-900/20 border border-white/5 rounded-xl p-4 space-y-3">
+                  <h3 class="text-xs font-extrabold text-white flex items-center gap-1.5">
+                    <i class="fi fi-rr-bowling text-emerald-400"></i> Wickets Taken
+                  </h3>
+                  <div class="divide-y divide-white/5 text-xs">
+                    @for (p of competitionStats()?.topWickets; track p.playerId; let idx = $index) {
+                      <div class="flex items-center justify-between py-2">
+                        <div class="flex items-center gap-2">
+                          <span class="text-[10px] text-slate-500 font-bold">#{{ idx + 1 }}</span>
+                          <div>
+                            <div class="font-extrabold text-white">{{ p.playerName }}</div>
+                            <div class="text-[9px] text-slate-500 font-bold">{{ p.teamName }}</div>
+                          </div>
+                        </div>
+                        <div class="font-black text-white font-mono">{{ p.wickets }}</div>
+                      </div>
+                    } @empty {
+                      <div class="text-slate-500 text-center py-4">No wickets recorded yet.</div>
+                    }
+                  </div>
+                </div>
+
+                <div class="bg-slate-900/20 border border-white/5 rounded-xl p-4 space-y-3">
+                  <h3 class="text-xs font-extrabold text-white flex items-center gap-1.5">
+                    <i class="fi fi-rr-star text-amber-400"></i> Runs Scored
+                  </h3>
+                  <div class="divide-y divide-white/5 text-xs">
+                    @for (p of competitionStats()?.topRuns; track p.playerId; let idx = $index) {
+                      <div class="flex items-center justify-between py-2">
+                        <div class="flex items-center gap-2">
+                          <span class="text-[10px] text-slate-500 font-bold">#{{ idx + 1 }}</span>
+                          <div>
+                            <div class="font-extrabold text-white">{{ p.playerName }}</div>
+                            <div class="text-[9px] text-slate-500 font-bold">{{ p.teamName }}</div>
+                          </div>
+                        </div>
+                        <div class="font-black text-white font-mono">{{ p.runs }}</div>
+                      </div>
+                    } @empty {
+                      <div class="text-slate-500 text-center py-4">No runs recorded yet.</div>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          } @else {
+            <div class="text-center py-6 text-slate-500 text-xs font-bold">
+              Failed to load competition statistics.
+            </div>
+          }
+        }
+      </div>
+    } @else {
+      <div class="py-12 text-center bg-slate-950/20 border border-dashed border-white/5 rounded-xl">
+        <i class="fi fi-rr-chart-pie text-xl text-slate-600 mb-2"></i>
+        <p class="text-xs text-slate-500 font-bold">Please select an event and category above to load report insights.</p>
+      </div>
+    }
+  </div>
+</div>

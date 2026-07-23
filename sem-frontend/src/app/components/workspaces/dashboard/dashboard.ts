@@ -1,16 +1,16 @@
 import { Component, input, model, output } from '@angular/core';
-import { NgClass, DatePipe } from '@angular/common';
+import { NgClass } from '@angular/common';
 import { Workspace } from '../../../services/workspace.service';
 
 @Component({
   selector: 'app-workspace-dashboard',
   standalone: true,
-  imports: [NgClass, DatePipe],
+  imports: [NgClass],
   templateUrl: './dashboard.html',
 })
 export class WorkspaceDashboardComponent {
   workspace = input.required<Workspace | null>();
-  activeTab = model<'overview' | 'members' | 'settings' | 'teams' | 'players' | 'events' | 'venues'>();
+  activeTab = model<'overview' | 'members' | 'settings' | 'teams' | 'players' | 'events' | 'venues' | 'reports'>();
 
   liveMatches = input<any[]>([]);
   upcomingMatches = input<any[]>([]);

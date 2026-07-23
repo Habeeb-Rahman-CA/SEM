@@ -119,6 +119,18 @@
           [(activeTab)]="activeTab" />
       }
 
+      <!-- ═══════════════ REPORTS TAB ═══════════════ -->
+      @if (activeTab() === 'reports') {
+        <app-workspace-reports
+          [workspace]="workspace()"
+          [teams]="teams()"
+          [players]="players()"
+          [events]="events()"
+          [venues]="venues()"
+          [members]="members()"
+          [roles]="roles()" />
+      }
+
       <!-- ═══════════════ TEAMS TAB ═══════════════ -->
       @if (activeTab() === 'teams') {
       <app-team-list

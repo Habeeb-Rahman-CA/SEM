@@ -10,15 +10,13 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AvatarComponent } from '../../shared/components/avatar/avatar';
 import { ButtonComponent } from '../../shared/components/button/button';
 import { ModalComponent } from '../../shared/components/modal/modal';
-import { BadgeComponent } from '../../shared/components/badge/badge';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state';
-import { LoadingSpinnerComponent } from '../../shared/components/loading-spinner/loading-spinner';
 import { InitialsPipe } from '../../shared/pipes/initials.pipe';
 
 @Component({
   selector: 'app-workspaces',
   standalone: true,
-  imports: [RouterLink, DatePipe, FormsModule, AvatarComponent, ButtonComponent, ModalComponent, BadgeComponent, EmptyStateComponent, LoadingSpinnerComponent, InitialsPipe],
+  imports: [RouterLink, DatePipe, FormsModule, AvatarComponent, ButtonComponent, ModalComponent, EmptyStateComponent, InitialsPipe],
   templateUrl: './workspaces.html',
   styleUrl: './workspaces.css',
 })

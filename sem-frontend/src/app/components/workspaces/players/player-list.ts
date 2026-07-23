@@ -9,7 +9,6 @@ import { EmptyStateComponent } from '../../../shared/components/empty-state/empt
 import { LoadingSpinnerComponent } from '../../../shared/components/loading-spinner/loading-spinner';
 import { SearchInputComponent } from '../../../shared/components/search-input/search-input';
 import { StatCardComponent } from '../../../shared/components/stat-card/stat-card';
-import { RatingColorPipe } from '../../../shared/pipes/rating-color.pipe';
 import { BulkImportComponent, BulkImportFieldMapping } from '../../../shared/components/bulk-import/bulk-import';
 
 @Component({
@@ -24,7 +23,6 @@ import { BulkImportComponent, BulkImportFieldMapping } from '../../../shared/com
     LoadingSpinnerComponent,
     SearchInputComponent,
     StatCardComponent,
-    RatingColorPipe,
     BulkImportComponent
   ],
   templateUrl: './player-list.html',
