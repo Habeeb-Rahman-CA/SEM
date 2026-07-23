@@ -373,7 +373,7 @@
           </div>
 
           <!-- Actions -->
-          <div class="flex items-center justify-end gap-2 pt-3 border-t border-white/5 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div class="flex items-center justify-end gap-2 pt-3 border-t border-white/5 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
             <app-button label="Stats" iconClass="fi-rr-stats" variant="outline" size="xs" (clicked)="selectedTeamId.set(team.id)" />
             @if (canUpdate()) {
               <app-button label="Edit" iconClass="fi-rr-edit" variant="ghost" size="xs" (clicked)="edit.emit(team)" />

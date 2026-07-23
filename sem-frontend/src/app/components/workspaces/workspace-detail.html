@@ -317,7 +317,7 @@
                 <!-- Actions -->
                 @if (hasPermission('competition.manage')) {
                 <div
-                  class="flex items-center justify-end gap-2 pt-3 border-t border-white/5 opacity-0 group-hover:opacity-100 transition-opacity">
+                  class="flex items-center justify-end gap-2 pt-3 border-t border-white/5 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
                   <button (click)="onEditCompetition(comp)"
                     class="px-2.5 py-1.5 text-[11px] font-bold text-violet-400 hover:text-white hover:bg-violet-600/20 border border-violet-500/10 hover:border-violet-500/30 rounded-lg transition-all cursor-pointer">
                     Edit
@@ -1362,7 +1362,7 @@
                 View Competitions
               </button>
               @if (hasPermission('event.manage')) {
-              <div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div class="flex items-center gap-2 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
                 <button (click)="onEditEvent(event)"
                   class="px-2 py-1 text-[10px] font-bold text-slate-400 hover:text-white hover:bg-slate-800 border border-white/10 rounded-md transition-all cursor-pointer">
                   Edit

@@ -116,7 +116,7 @@ import { Venue } from '../../../services/venue.service';
               <!-- Actions -->
               @if (canUpdate()) {
               <div
-                class="flex items-center justify-end gap-2 pt-3 border-t border-white/5 opacity-0 group-hover:opacity-100 transition-opacity">
+                class="flex items-center justify-end gap-2 pt-3 border-t border-white/5 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
                 <button (click)="edit.emit(venue)"
                   class="px-3 py-1.5 text-[11px] font-bold text-violet-400 hover:text-white hover:bg-violet-600/20 border border-violet-500/10 hover:border-violet-500/30 rounded-lg transition-all cursor-pointer">
                   Edit
