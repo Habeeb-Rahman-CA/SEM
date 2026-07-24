@@ -656,6 +656,13 @@ export class WorkspaceService {
       { headers: this.headers }
     );
   }
+
+  globalSearch(workspaceId: string, query: string): Observable<{ files: WorkspaceFile[]; teams: Team[]; players: Player[] }> {
+    return this.http.get<{ files: WorkspaceFile[]; teams: Team[]; players: Player[] }>(
+      `${environment.apiUrl}/search?workspaceId=${workspaceId}&q=${encodeURIComponent(query)}`,
+      { headers: this.headers }
+    );
+  }
 }
 
 export interface WorkspaceFile {

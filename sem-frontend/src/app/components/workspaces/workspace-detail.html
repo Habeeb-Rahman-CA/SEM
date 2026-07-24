@@ -133,6 +133,7 @@
         (selectCompetition)="selectGlobalCompetition($event)"
         (selectVenue)="selectGlobalVenue($event)"
         (selectMember)="selectGlobalMember($event)"
+        (selectFile)="selectGlobalFile($event)"
         (acceptInvitation)="acceptInvite($event.workspaceId, $event.name)"
         (rejectInvitation)="rejectInvite($event.workspaceId, $event.name)"
         (markNotificationsRead)="markNotificationsAsRead()"
@@ -197,7 +198,8 @@
       <!-- ═══════════════ FILES TAB ═══════════════ -->
       @if (activeTab() === 'files') {
         <app-workspace-files
-          [workspace]="workspace()" />
+          [workspace]="workspace()"
+          [selectedFileId]="selectedFileId()" />
       }
 
       <!-- ═══════════════ TEAMS TAB ═══════════════ -->

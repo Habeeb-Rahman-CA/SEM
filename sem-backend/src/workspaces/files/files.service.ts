@@ -11,6 +11,7 @@ import { WorkspaceFileVersion } from '../entities/workspace-file-version.entity'
 import { WorkspaceMembersService } from '../members/members.service';
 import { CloudinaryService } from '../../upload/cloudinary.service';
 import { EventsGateway } from '../events.gateway';
+import { SearchService } from '../../search/search.service';
 import sharp from 'sharp';
 
 @Injectable()
@@ -23,9 +24,13 @@ export class FilesService {
     private readonly workspaceMembersService: WorkspaceMembersService,
     private readonly cloudinaryService: CloudinaryService,
     private readonly eventsGateway: EventsGateway,
+    private readonly searchService: SearchService,
   ) {}
 
-  async listFiles(workspaceId: string, userId: string): Promise<WorkspaceFile[]> {
+  async listFiles(
+    workspaceId: string,
+    userId: string,
+  ): Promise<WorkspaceFile[]> {
     await this.workspaceMembersService.ensureMember(workspaceId, userId);
     return this.fileRepo.find({
       where: { workspaceId, isDeleted: false },
@@ -47,12 +52,16 @@ export class FilesService {
     }
 
     let bufferToUpload = file.buffer;
-    let mimeType = file.mimetype;
-    let filename = file.originalname;
+    const mimeType = file.mimetype;
+    const filename = file.originalname;
     let size = file.size;
 
     // Image compression using Sharp if requested
-    if (compress && mimeType.startsWith('image/') && !mimeType.includes('svg')) {
+    if (
+      compress &&
+      mimeType.startsWith('image/') &&
+      !mimeType.includes('svg')
+    ) {
       try {
         const sharpInstance = sharp(file.buffer);
         // Compress as JPEG or WebP depending on source or fallback to JPEG
@@ -105,6 +114,7 @@ export class FilesService {
     });
 
     const savedFile = await this.fileRepo.save(workspaceFile);
+    await this.searchService.indexFile(savedFile);
 
     // Create Initial Version Entry
     const initialVersion = this.versionRepo.create({
@@ -118,7 +128,13 @@ export class FilesService {
     await this.versionRepo.save(initialVersion);
 
     // Run Virus Scanner in background
-    this.scanFileInBackground(workspaceId, savedFile.id, initialVersion.id, bufferToUpload, filename);
+    this.scanFileInBackground(
+      workspaceId,
+      savedFile.id,
+      initialVersion.id,
+      bufferToUpload,
+      filename,
+    );
 
     return savedFile;
   }
@@ -141,11 +157,15 @@ export class FilesService {
     }
 
     let bufferToUpload = file.buffer;
-    let mimeType = file.mimetype;
+    const mimeType = file.mimetype;
     let size = file.size;
 
     // Image compression
-    if (compress && mimeType.startsWith('image/') && !mimeType.includes('svg')) {
+    if (
+      compress &&
+      mimeType.startsWith('image/') &&
+      !mimeType.includes('svg')
+    ) {
       try {
         const sharpInstance = sharp(file.buffer);
         let compressed: Buffer;
@@ -165,7 +185,10 @@ export class FilesService {
         bufferToUpload = compressed;
         size = compressed.length;
       } catch (err) {
-        console.error('Sharp compression failed on version upload, uploading original', err);
+        console.error(
+          'Sharp compression failed on version upload, uploading original',
+          err,
+        );
       }
     }
 
@@ -201,9 +224,16 @@ export class FilesService {
     workspaceFile.virusScanStatus = 'pending';
     workspaceFile.virusScanDetails = 'New version pending scan';
     const updatedFile = await this.fileRepo.save(workspaceFile);
+    await this.searchService.indexFile(updatedFile);
 
     // Run Virus Scanner in background for new version
-    this.scanFileInBackground(workspaceId, updatedFile.id, savedVersion.id, bufferToUpload, file.originalname);
+    this.scanFileInBackground(
+      workspaceId,
+      updatedFile.id,
+      savedVersion.id,
+      bufferToUpload,
+      file.originalname,
+    );
 
     return updatedFile;
   }
@@ -248,7 +278,9 @@ export class FilesService {
     }
 
     workspaceFile.name = name.trim();
-    return this.fileRepo.save(workspaceFile);
+    const saved = await this.fileRepo.save(workspaceFile);
+    await this.searchService.indexFile(saved);
+    return saved;
   }
 
   async deleteFile(
@@ -269,6 +301,7 @@ export class FilesService {
     workspaceFile.deletedAt = new Date();
     workspaceFile.deletedBy = userId;
     await this.fileRepo.save(workspaceFile);
+    await this.searchService.deleteFile(fileId);
   }
 
   // Real-time enterprise virus scanning mockup with ClamAV details
@@ -292,7 +325,8 @@ export class FilesService {
           filename.toLowerCase().includes('eicar');
 
         let status: 'clean' | 'infected' = 'clean';
-        let details = 'ClamAV 1.0.1: Clean. No virus or malicious signature found.';
+        let details =
+          'ClamAV 1.0.1: Clean. No virus or malicious signature found.';
 
         if (hasEicar || hasVirusName) {
           status = 'infected';
@@ -308,24 +342,33 @@ export class FilesService {
         });
 
         // Update main File Entry (only if it is still the latest version scanned)
-        const currentFile = await this.fileRepo.findOne({ where: { id: fileId } });
+        const currentFile = await this.fileRepo.findOne({
+          where: { id: fileId },
+        });
         if (currentFile && currentFile.url) {
           await this.fileRepo.update(fileId, {
             virusScanStatus: status,
             virusScanDetails: details,
-            // If infected, we restrict access by replacing url with a quarantined state, or we flag it so the UI handles restriction
           });
+          const updated = await this.fileRepo.findOne({
+            where: { id: fileId },
+          });
+          if (updated) {
+            await this.searchService.indexFile(updated);
+          }
         }
 
         // Emit socket event to update clients in real-time
         if (this.eventsGateway && this.eventsGateway.server) {
-          this.eventsGateway.server.to(`workspace:${workspaceId}`).emit('fileScanned', {
-            fileId,
-            versionId,
-            status,
-            details,
-            filename,
-          });
+          this.eventsGateway.server
+            .to(`workspace:${workspaceId}`)
+            .emit('fileScanned', {
+              fileId,
+              versionId,
+              status,
+              details,
+              filename,
+            });
         }
       } catch (err) {
         console.error('Error during background virus scan:', err);

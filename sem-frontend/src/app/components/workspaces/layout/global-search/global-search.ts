@@ -1,6 +1,6 @@
 import { Component, input, model, output, HostListener, ElementRef, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Team, Player, WorkspaceEvent, Competition, Venue, WorkspaceMember } from '../../../../services/workspace.service';
+import { Team, Player, WorkspaceEvent, Competition, Venue, WorkspaceMember, WorkspaceFile } from '../../../../services/workspace.service';
 import { AvatarComponent } from '../../../../shared/components/avatar/avatar';
 
 @Component({
@@ -20,6 +20,7 @@ export class GlobalSearchComponent {
     competitions: Competition[];
     venues: Venue[];
     members: WorkspaceMember[];
+    files?: WorkspaceFile[];
     totalCount: number;
   }>();
 
@@ -29,6 +30,7 @@ export class GlobalSearchComponent {
   selectCompetition = output<Competition>();
   selectVenue = output<Venue>();
   selectMember = output<WorkspaceMember>();
+  selectFile = output<WorkspaceFile>();
 
   private elRef = inject(ElementRef);
 

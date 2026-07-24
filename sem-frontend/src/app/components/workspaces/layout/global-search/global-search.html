@@ -170,6 +170,29 @@
             </div>
           }
 
+          <!-- Files Results -->
+          @if (results().files && results().files!.length > 0) {
+            <div>
+              <div class="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                <i class="fi fi-rr-document text-slate-400"></i>
+                <span>Files ({{ results().files!.length }})</span>
+              </div>
+              <div class="flex flex-col gap-1">
+                @for (file of results().files; track file.id) {
+                  <button role="option" (click)="selectFile.emit(file)" class="w-full flex items-center gap-2.5 p-2 hover:bg-white/[0.03] rounded-xl text-left transition-colors cursor-pointer border-0 bg-transparent outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-violet-500">
+                    <div class="w-6 h-6 rounded-md bg-slate-800 border border-white/10 flex items-center justify-center text-[10px] text-amber-400">
+                      <i class="fi fi-rr-document"></i>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                      <p class="text-xs font-semibold text-white truncate">{{ file.name }}</p>
+                      <p class="text-[9px] text-slate-400 truncate">Type: {{ file.mimeType }} • Status: {{ file.virusScanStatus }}</p>
+                    </div>
+                  </button>
+                }
+              </div>
+            </div>
+          }
+
         </div>
       }
     </div>

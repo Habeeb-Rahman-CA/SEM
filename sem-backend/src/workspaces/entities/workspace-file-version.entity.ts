@@ -18,7 +18,9 @@ export class WorkspaceFileVersion extends AuditableEntity {
   @Column({ name: 'file_id', type: 'uuid' })
   fileId: string;
 
-  @ManyToOne(() => WorkspaceFile, (file) => file.versions, { onDelete: 'CASCADE' })
+  @ManyToOne(() => WorkspaceFile, (file) => file.versions, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'file_id' })
   file: WorkspaceFile;
 

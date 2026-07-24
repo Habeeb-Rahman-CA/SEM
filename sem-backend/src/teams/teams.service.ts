@@ -15,6 +15,7 @@ import { NotificationType } from '../workspaces/entities/notification.entity';
 import { WorkspacesService } from '../workspaces/workspaces.service';
 import { CreateTeamDto } from './dto/create-team.dto';
 import { UpdateTeamDto } from './dto/update-team.dto';
+import { SearchService } from '../search/search.service';
 
 @Injectable()
 export class TeamsService {
@@ -30,6 +31,7 @@ export class TeamsService {
     @InjectRepository(WorkspaceMember)
     private readonly memberRepo: Repository<WorkspaceMember>,
     private readonly workspacesService: WorkspacesService,
+    private readonly searchService: SearchService,
   ) {}
 
   async getTeams(workspaceId: string, userId: string): Promise<Team[]> {
@@ -86,6 +88,7 @@ export class TeamsService {
       workspaceId,
     });
     const saved = await this.teamRepo.save(team);
+    await this.searchService.indexTeam(saved);
 
     // Notify workspace members
     const memberIds = await this.workspacesService.getWorkspaceMemberUserIds(
@@ -142,7 +145,9 @@ export class TeamsService {
       }),
     });
 
-    return this.teamRepo.save(team);
+    const saved = await this.teamRepo.save(team);
+    await this.searchService.indexTeam(saved);
+    return saved;
   }
 
   async removeTeam(
@@ -174,6 +179,7 @@ export class TeamsService {
 
     team.deletedAt = new Date();
     await this.teamRepo.save(team);
+    await this.searchService.deleteTeam(teamId);
   }
 
   async getTeamStats(workspaceId: string, teamId: string, userId: string) {

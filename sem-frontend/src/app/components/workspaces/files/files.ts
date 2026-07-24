@@ -20,6 +20,7 @@ export class WorkspaceFilesComponent implements OnInit, OnDestroy {
 
   // Inputs
   workspace = input.required<Workspace | null>();
+  selectedFileId = input<string | null>(null);
 
   // State Signals
   files = signal<WorkspaceFile[]>([]);
@@ -93,6 +94,18 @@ export class WorkspaceFilesComponent implements OnInit, OnDestroy {
       const ws = this.workspace();
       if (ws) {
         this.loadFiles(ws.id);
+      }
+    });
+
+    // Auto-open preview when a file is selected from global search
+    effect(() => {
+      const fileId = this.selectedFileId();
+      const list = this.files();
+      if (fileId && list.length > 0) {
+        const found = list.find(f => f.id === fileId);
+        if (found) {
+          this.openPreview(found);
+        }
       }
     });
   }

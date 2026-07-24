@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
@@ -29,6 +29,7 @@ import { FilesService } from './files/files.service';
 import { UsersModule } from '../users/users.module';
 import { UploadModule } from '../upload/upload.module';
 import { EventsGateway } from './events.gateway';
+import { SearchModule } from '../search/search.module';
 
 // Extracted Domain Services
 import { NotificationsService } from './notifications/notifications.service';
@@ -62,6 +63,7 @@ import { WorkspaceMembersService } from './members/members.service';
     ]),
     UsersModule,
     UploadModule,
+    forwardRef(() => SearchModule),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -76,7 +78,11 @@ import { WorkspaceMembersService } from './members/members.service';
       }),
     }),
   ],
-  controllers: [WorkspacesController, SystemSettingsController, FilesController],
+  controllers: [
+    WorkspacesController,
+    SystemSettingsController,
+    FilesController,
+  ],
   providers: [
     WorkspacesService,
     EventsGateway,

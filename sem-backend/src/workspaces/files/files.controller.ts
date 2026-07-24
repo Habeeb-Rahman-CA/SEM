@@ -56,10 +56,7 @@ export class FilesController {
   })
   @ApiParam(WS_ID)
   @ApiResponse({ status: 200, description: 'List of files' })
-  listFiles(
-    @Param('workspaceId') workspaceId: string,
-    @Request() req: any,
-  ) {
+  listFiles(@Param('workspaceId') workspaceId: string, @Request() req: any) {
     return this.filesService.listFiles(workspaceId, req.user.id);
   }
 
@@ -97,7 +94,10 @@ export class FilesController {
     type: Number,
     description: 'Compression quality (0.0 to 1.0)',
   })
-  @ApiResponse({ status: 201, description: 'File uploaded and scanning initiated' })
+  @ApiResponse({
+    status: 201,
+    description: 'File uploaded and scanning initiated',
+  })
   uploadFile(
     @Param('workspaceId') workspaceId: string,
     @UploadedFile() file: Express.Multer.File,
@@ -184,7 +184,11 @@ export class FilesController {
     @Param('fileId') fileId: string,
     @Request() req: any,
   ) {
-    return this.filesService.getVersionHistory(workspaceId, fileId, req.user.id);
+    return this.filesService.getVersionHistory(
+      workspaceId,
+      fileId,
+      req.user.id,
+    );
   }
 
   @Patch(':fileId')
@@ -201,7 +205,12 @@ export class FilesController {
     @Body() dto: RenameFileDto,
     @Request() req: any,
   ) {
-    return this.filesService.renameFile(workspaceId, fileId, dto.name, req.user.id);
+    return this.filesService.renameFile(
+      workspaceId,
+      fileId,
+      dto.name,
+      req.user.id,
+    );
   }
 
   @Delete(':fileId')

@@ -16,6 +16,7 @@ import { WorkspacesService } from '../workspaces/workspaces.service';
 import { UsersService } from '../users/users.service';
 import { CreatePlayerDto } from './dto/create-player.dto';
 import { UpdatePlayerDto } from './dto/update-player.dto';
+import { SearchService } from '../search/search.service';
 
 @Injectable()
 export class PlayersService {
@@ -32,6 +33,7 @@ export class PlayersService {
     private readonly matchRepo: Repository<Match>,
     private readonly workspacesService: WorkspacesService,
     private readonly usersService: UsersService,
+    private readonly searchService: SearchService,
   ) {}
 
   async getPlayers(workspaceId: string, userId: string): Promise<Player[]> {
@@ -83,6 +85,7 @@ export class PlayersService {
     const saved = await this.playerRepo.save(player);
     saved.team = team;
     saved.user = user;
+    await this.searchService.indexPlayer(saved);
 
     // Notify the player
     const jerseyText = dto.jerseyNumber
@@ -147,6 +150,7 @@ export class PlayersService {
     });
 
     const saved = await this.playerRepo.save(player);
+    await this.searchService.indexPlayer(saved);
 
     if (isTransfer) {
       await this.workspacesService.sendNotification(
@@ -190,6 +194,7 @@ export class PlayersService {
 
     player.deletedAt = new Date();
     await this.playerRepo.save(player);
+    await this.searchService.deletePlayer(playerId);
   }
 
   async getPlayerStats(workspaceId: string, playerId: string, userId: string) {

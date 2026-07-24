@@ -9,7 +9,7 @@ import {
 } from 'typeorm';
 import { Workspace } from './workspace.entity';
 import { AuditableEntity } from '../../common/auditable.entity';
-import { WorkspaceFileVersion } from './workspace-file-version.entity.js';
+import { WorkspaceFileVersion } from './workspace-file-version.entity';
 
 @Entity('workspace_files')
 @Index('idx_workspace_files_workspace_id', ['workspaceId'])

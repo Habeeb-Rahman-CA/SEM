@@ -2,7 +2,7 @@ import { Component, OnInit, signal, inject, computed, effect, HostListener, Dest
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { FormsModule } from '@angular/forms';
-import { WorkspaceService, Workspace, WorkspaceMember, AppNotification, Role, Team, Player, WorkspaceEvent, Sport, Competition, CompetitionStage, CompetitionTeam, Match, PointsConfigEntry, MatchPlayer, CompetitionStats } from '../../services/workspace.service';
+import { WorkspaceService, Workspace, WorkspaceMember, AppNotification, Role, Team, Player, WorkspaceEvent, Sport, Competition, CompetitionStage, CompetitionTeam, Match, PointsConfigEntry, MatchPlayer, CompetitionStats, WorkspaceFile } from '../../services/workspace.service';
 import { VenueService, Venue } from '../../services/venue.service';
 import { AuthService } from '../../services/auth.service';
 import { UiService } from '../../services/ui.service';
@@ -72,11 +72,48 @@ export class WorkspaceDetailComponent implements OnInit {
 
   constructor() {
     effect(() => {
-      // Clear team/player details when main tab changes
+      // Clear team/player/file details when main tab changes
       this.activeTab();
       this.selectedTeamId.set(null);
       this.selectedPlayerId.set(null);
+      this.selectedFileId.set(null);
     });
+
+    effect(() => {
+      const query = this.globalSearchQuery().trim();
+      const workspaceId = this.workspace()?.id;
+      if (query && workspaceId) {
+        this.workspaceService.globalSearch(workspaceId, query).subscribe({
+          next: (res) => {
+            this.serverSearchResults.set({
+              files: res.files || [],
+              teams: res.teams || [],
+              players: res.players || [],
+            });
+          },
+          error: (err) => {
+            console.error('Server global search failed:', err);
+            // Fallback: search locally
+            const queryLower = query.toLowerCase();
+            const matchedTeams = this.teams().filter(t => 
+              t.name.toLowerCase().includes(queryLower) || 
+              (t.code && t.code.toLowerCase().includes(queryLower))
+            );
+            const matchedPlayers = this.players().filter(p => 
+              p.user.username.toLowerCase().includes(queryLower) ||
+              p.team.name.toLowerCase().includes(queryLower)
+            );
+            this.serverSearchResults.set({
+              files: [],
+              teams: matchedTeams,
+              players: matchedPlayers
+            });
+          }
+        });
+      } else {
+        this.serverSearchResults.set({ files: [], teams: [], players: [] });
+      }
+    }, { allowSignalWrites: true });
   }
 
   @HostListener('document:keydown', ['$event'])
@@ -117,6 +154,8 @@ export class WorkspaceDetailComponent implements OnInit {
   globalSearchQuery = signal<string>('');
   showGlobalSearchResults = signal<boolean>(false);
   allCompetitions = signal<Competition[]>([]);
+  serverSearchResults = signal<{ files: any[]; teams: any[]; players: any[] }>({ files: [], teams: [], players: [] });
+  selectedFileId = signal<string | null>(null);
 
   // ── Search State & Filtered Computed Listings ────────────────────────────────
   memberSearchQuery = signal<string>('');
@@ -188,21 +227,10 @@ export class WorkspaceDetailComponent implements OnInit {
         competitions: [],
         venues: [],
         members: [],
+        files: [],
         totalCount: 0
       };
     }
-
-    const matchedTeams = this.teams().filter(t => 
-      t.name.toLowerCase().includes(query) || 
-      (t.code && t.code.toLowerCase().includes(query)) ||
-      (t.description && t.description.toLowerCase().includes(query))
-    );
-
-    const matchedPlayers = this.players().filter(p => 
-      p.user.username.toLowerCase().includes(query) ||
-      p.team.name.toLowerCase().includes(query) ||
-      (p.jerseyNumber && String(p.jerseyNumber).toLowerCase().includes(query))
-    );
 
     const matchedEvents = this.events().filter(e => 
       e.name.toLowerCase().includes(query) || 
@@ -226,7 +254,13 @@ export class WorkspaceDetailComponent implements OnInit {
       m.role.name.toLowerCase().includes(query)
     );
 
-    const totalCount = matchedTeams.length + matchedPlayers.length + matchedEvents.length + matchedCompetitions.length + matchedVenues.length + matchedMembers.length;
+    // Merge server-side search results (Elasticsearch / OpenSearch)
+    const serverResults = this.serverSearchResults();
+    const matchedTeams = serverResults.teams;
+    const matchedPlayers = serverResults.players;
+    const matchedFiles = serverResults.files;
+
+    const totalCount = matchedTeams.length + matchedPlayers.length + matchedEvents.length + matchedCompetitions.length + matchedVenues.length + matchedMembers.length + matchedFiles.length;
 
     return {
       teams: matchedTeams,
@@ -235,6 +269,7 @@ export class WorkspaceDetailComponent implements OnInit {
       competitions: matchedCompetitions,
       venues: matchedVenues,
       members: matchedMembers,
+      files: matchedFiles,
       totalCount
     };
   });
@@ -274,6 +309,12 @@ export class WorkspaceDetailComponent implements OnInit {
 
   selectGlobalMember(member: WorkspaceMember) {
     this.activeTab.set('members');
+    this.clearGlobalSearch();
+  }
+
+  selectGlobalFile(file: WorkspaceFile) {
+    this.activeTab.set('files');
+    this.selectedFileId.set(file.id);
     this.clearGlobalSearch();
   }
 

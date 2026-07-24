@@ -1,6 +1,6 @@
 import { Component, input, model, output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Workspace, Team, Player, WorkspaceEvent, Competition, Venue, WorkspaceMember, AppNotification } from '../../../../services/workspace.service';
+import { Workspace, Team, Player, WorkspaceEvent, Competition, Venue, WorkspaceMember, AppNotification, WorkspaceFile } from '../../../../services/workspace.service';
 import { GlobalSearchComponent } from '../global-search/global-search';
 import { NotificationPanelComponent } from '../notification-panel/notification-panel';
 import { UserDropdownComponent } from '../user-dropdown/user-dropdown';
@@ -29,6 +29,7 @@ export class TopbarComponent {
     competitions: Competition[];
     venues: Venue[];
     members: WorkspaceMember[];
+    files?: WorkspaceFile[];
     totalCount: number;
   }>();
 
@@ -50,6 +51,7 @@ export class TopbarComponent {
   selectCompetition = output<Competition>();
   selectVenue = output<Venue>();
   selectMember = output<WorkspaceMember>();
+  selectFile = output<WorkspaceFile>();
   acceptInvitation = output<{ workspaceId: string; name: string }>();
   rejectInvitation = output<{ workspaceId: string; name: string }>();
   markNotificationsRead = output<void>();

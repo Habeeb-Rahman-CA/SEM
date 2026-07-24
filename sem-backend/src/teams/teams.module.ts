@@ -8,6 +8,7 @@ import { WorkspaceMember } from '../workspaces/entities/workspace-member.entity'
 import { TeamsService } from './teams.service';
 import { TeamsController } from './teams.controller';
 import { WorkspacesModule } from '../workspaces/workspaces.module';
+import { SearchModule } from '../search/search.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { WorkspacesModule } from '../workspaces/workspaces.module';
       WorkspaceMember,
     ]),
     WorkspacesModule,
+    SearchModule,
   ],
   controllers: [TeamsController],
   providers: [TeamsService],
