@@ -675,14 +675,24 @@ export class WorkspaceDetailComponent implements OnInit {
     const ws = this.workspace();
     if (!ws) return;
 
+    const newRole = this.roles().find(r => r.slug === newRoleSlug);
+    if (!newRole) return;
+
+    const originalRole = member.role;
+
+    // Optimistic Update
+    this.members.update(prev => prev.map(m => m.id === member.id ? { ...m, role: newRole } : m));
+
     this.workspaceService.updateMemberRole(ws.id, member.userId, newRoleSlug).subscribe({
       next: (updated) => {
         this.members.update(prev => prev.map(m => m.id === member.id ? { ...m, role: updated.role } : m));
         this.uiService.success(`Role for ${member.user.username} updated to ${updated.role.name}.`);
       },
       error: (err) => {
+        // Rollback
+        this.members.update(prev => prev.map(m => m.id === member.id ? { ...m, role: originalRole } : m));
+        select.value = originalRole?.slug ?? '';
         this.uiService.error(err.error?.message ?? 'Failed to update member role.');
-        select.value = member.role?.slug ?? '';
       }
     });
   }
@@ -700,12 +710,20 @@ export class WorkspaceDetailComponent implements OnInit {
     });
     if (!confirmed) return;
 
+    const originalMembers = this.members();
+
+    // Optimistic Update
+    this.members.update(prev => prev.filter(m => m.userId !== member.userId));
+
     this.workspaceService.removeMember(ws.id, member.userId).subscribe({
       next: () => {
-        this.members.update(prev => prev.filter(m => m.userId !== member.userId));
         this.uiService.success(`Removed "${member.user.username}" from workspace.`);
       },
-      error: (err) => this.uiService.error(err.error?.message ?? 'Failed to remove member.'),
+      error: (err) => {
+        // Rollback
+        this.members.set(originalMembers);
+        this.uiService.error(err.error?.message ?? 'Failed to remove member.');
+      },
     });
   }
 
@@ -749,12 +767,20 @@ export class WorkspaceDetailComponent implements OnInit {
     });
     if (!confirmed) return;
 
+    const originalRoles = this.roles();
+
+    // Optimistic Update
+    this.roles.update(prev => prev.filter(r => r.id !== role.id));
+
     this.workspaceService.removeRole(ws.id, role.id).subscribe({
       next: () => {
-        this.roles.update(prev => prev.filter(r => r.id !== role.id));
         this.uiService.success(`Role "${role.name}" deleted successfully.`);
       },
-      error: (err) => this.uiService.error(err.error?.message ?? 'Failed to delete role.'),
+      error: (err) => {
+        // Rollback
+        this.roles.set(originalRoles);
+        this.uiService.error(err.error?.message ?? 'Failed to delete role.');
+      },
     });
   }
 
@@ -803,13 +829,23 @@ export class WorkspaceDetailComponent implements OnInit {
     });
     if (!confirmed) return;
 
+    const originalVenues = this.venues();
+    const originalMatches = this.matches();
+
+    // Optimistic Update
+    this.venues.update(prev => prev.filter(v => v.id !== venue.id));
+    this.matches.update(prevMatches => prevMatches.map(m => m.venueId === venue.id ? { ...m, venueId: null, venue: null } : m));
+
     this.venueService.removeVenue(ws.id, venue.id).subscribe({
       next: () => {
-        this.venues.update(prev => prev.filter(v => v.id !== venue.id));
-        this.matches.update(prevMatches => prevMatches.map(m => m.venueId === venue.id ? { ...m, venueId: null, venue: null } : m));
         this.uiService.success(`Venue "${venue.name}" deleted successfully.`);
       },
-      error: (err) => this.uiService.error(err.error?.message ?? 'Failed to delete venue.'),
+      error: (err) => {
+        // Rollback
+        this.venues.set(originalVenues);
+        this.matches.set(originalMatches);
+        this.uiService.error(err.error?.message ?? 'Failed to delete venue.');
+      },
     });
   }
 
@@ -871,24 +907,32 @@ export class WorkspaceDetailComponent implements OnInit {
     });
     if (!confirmed) return;
 
+    const originalTeams = this.teams();
+    const originalMatches = this.matches();
+
+    // Optimistic Update
+    this.teams.update(prev => prev.filter(t => t.id !== team.id));
+    this.matches.update(prevMatches => prevMatches.map(m => {
+      let updated = { ...m };
+      if (m.homeTeamId === team.id) {
+        updated.homeTeamId = null;
+        updated.homeTeam = null;
+      }
+      if (m.awayTeamId === team.id) {
+        updated.awayTeamId = null;
+        updated.awayTeam = null;
+      }
+      return updated;
+    }));
+
     this.teamService.removeTeam(ws.id, team.id).subscribe({
       next: () => {
-        this.teams.update(prev => prev.filter(t => t.id !== team.id));
-        this.matches.update(prevMatches => prevMatches.map(m => {
-          let updated = { ...m };
-          if (m.homeTeamId === team.id) {
-            updated.homeTeamId = null;
-            updated.homeTeam = null;
-          }
-          if (m.awayTeamId === team.id) {
-            updated.awayTeamId = null;
-            updated.awayTeam = null;
-          }
-          return updated;
-        }));
         this.uiService.success(`Team "${team.name}" deleted successfully.`);
       },
       error: (err) => {
+        // Rollback
+        this.teams.set(originalTeams);
+        this.matches.set(originalMatches);
         this.uiService.error(err.error?.message ?? 'Failed to delete team.');
       }
     });
@@ -955,12 +999,18 @@ export class WorkspaceDetailComponent implements OnInit {
     });
     if (!confirmed) return;
 
+    const originalPlayers = this.players();
+
+    // Optimistic Update
+    this.players.update(prev => prev.filter(p => p.id !== player.id));
+
     this.playerService.removePlayer(ws.id, player.id).subscribe({
       next: () => {
-        this.players.update(prev => prev.filter(p => p.id !== player.id));
         this.uiService.success(`Player "${player.user.username}" deleted successfully.`);
       },
       error: (err) => {
+        // Rollback
+        this.players.set(originalPlayers);
         this.uiService.error(err.error?.message ?? 'Failed to delete player.');
       }
     });

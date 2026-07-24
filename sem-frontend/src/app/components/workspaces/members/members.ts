@@ -112,14 +112,21 @@ export class WorkspaceMembersComponent {
     const ws = this.workspace();
     if (!ws) return;
 
+    const originalRole = member.role;
+
+    // Optimistic Update
+    this.members.update(prev => prev.map(m => m.id === member.id ? { ...m, role: { ...m.role, slug: newRoleSlug } } : m));
+
     this.workspaceService.updateMemberRole(ws.id, member.userId, newRoleSlug).subscribe({
       next: (updated) => {
         this.members.update(prev => prev.map(m => m.id === member.id ? { ...m, role: updated.role } : m));
         this.uiService.success(`Role for ${member.user.username} updated to ${updated.role.name}.`);
       },
       error: (err) => {
+        // Rollback
+        this.members.update(prev => prev.map(m => m.id === member.id ? { ...m, role: originalRole } : m));
+        select.value = originalRole?.slug ?? '';
         this.uiService.error(err.error?.message ?? 'Failed to update member role.');
-        select.value = member.role?.slug ?? '';
       }
     });
   }
@@ -135,12 +142,20 @@ export class WorkspaceMembersComponent {
     });
     if (!confirmed) return;
 
+    const originalMembers = this.members();
+
+    // Optimistic Update
+    this.members.update(prev => prev.filter(m => m.userId !== member.userId));
+
     this.workspaceService.removeMember(ws.id, member.userId).subscribe({
       next: () => {
-        this.members.update(prev => prev.filter(m => m.userId !== member.userId));
         this.uiService.success(`Removed "${member.user.username}" from workspace.`);
       },
-      error: (err) => this.uiService.error(err.error?.message ?? 'Failed to remove member.'),
+      error: (err) => {
+        // Rollback
+        this.members.set(originalMembers);
+        this.uiService.error(err.error?.message ?? 'Failed to remove member.');
+      },
     });
   }
 

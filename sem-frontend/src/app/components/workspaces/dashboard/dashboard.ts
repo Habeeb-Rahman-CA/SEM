@@ -30,6 +30,8 @@ export class WorkspaceDashboardComponent {
   canManagePlayers = input<boolean>(false);
   canManageVenues = input<boolean>(false);
 
+  isOverviewLoading = input<boolean>(false);
+
   selectedOverviewCompId = model<string>('');
   selectedOverviewComp = model<any | null>(null);
 

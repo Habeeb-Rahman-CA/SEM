@@ -5,6 +5,7 @@ import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/
 import { routes } from './app.routes';
 import { cacheInterceptor } from './interceptors/cache.interceptor';
 import { authInterceptor } from './interceptors/auth.interceptor';
+import { retryInterceptor } from './interceptors/retry.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -12,7 +13,7 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes, withPreloading(PreloadAllModules)),
     provideHttpClient(
       withFetch(),                                              // Use Fetch API (HTTP/2 multiplexing)
-      withInterceptors([authInterceptor, cacheInterceptor]),    // Auth token + in-memory GET cache
+      withInterceptors([authInterceptor, retryInterceptor, cacheInterceptor]), // Auth token + auto retry + in-memory GET cache
     ),
   ]
 };

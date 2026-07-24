@@ -597,12 +597,22 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
     });
     if (!confirmed) return;
 
+    const originalEvents = this.events();
+
+    // Optimistic Update
+    this.events.update(prev => prev.filter(e => e.id !== event.id));
+    if (this.selectedEvent()?.id === event.id) {
+      this.selectedEvent.set(null);
+      this.competitions.set([]);
+    }
+
     this.eventService.removeEvent(ws.id, event.id).subscribe({
       next: () => {
-        this.events.update(prev => prev.filter(e => e.id !== event.id));
         this.uiService.success(`Event "${event.name}" deleted successfully.`);
       },
       error: (err) => {
+        // Rollback
+        this.events.set(originalEvents);
         this.uiService.error(err.error?.message ?? 'Failed to delete event.');
       }
     });
@@ -793,12 +803,23 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
     });
     if (!confirmed) return;
 
+    const originalCompetitions = this.competitions();
+
+    // Optimistic Update
+    this.competitions.update(prev => prev.filter(c => c.id !== comp.id));
+    if (this.selectedCompetition()?.id === comp.id) {
+      this.selectedCompetition.set(null);
+      this.stages.set([]);
+      this.matches.set([]);
+    }
+
     this.competitionService.removeCompetition(ws.id, event.id, comp.id).subscribe({
       next: () => {
-        this.competitions.update(prev => prev.filter(c => c.id !== comp.id));
         this.uiService.success(`Competition "${comp.name}" deleted successfully.`);
       },
       error: (err) => {
+        // Rollback
+        this.competitions.set(originalCompetitions);
         this.uiService.error(err.error?.message ?? 'Failed to delete competition.');
       }
     });

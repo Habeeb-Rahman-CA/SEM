@@ -132,7 +132,31 @@
       <span class="text-[11px] text-slate-400">Click any match card to enter live scoring console</span>
     </div>
 
-    @if (liveMatches().length > 0) {
+    @if (isOverviewLoading()) {
+      <!-- Skeleton -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 animate-pulse" aria-busy="true" aria-label="Loading live matches">
+        @for (sk of [1, 2, 3]; track sk) {
+          <div class="rounded-xl bg-slate-900 border border-white/10 p-4 space-y-4">
+            <div class="flex justify-between">
+              <div class="w-24 h-4 bg-slate-800 rounded-md"></div>
+              <div class="w-14 h-4 bg-slate-800 rounded-md"></div>
+            </div>
+            <div class="flex items-center justify-between px-2">
+              <div class="flex flex-col items-center gap-2">
+                <div class="w-10 h-10 rounded-xl bg-slate-800"></div>
+                <div class="w-16 h-3 bg-slate-800 rounded"></div>
+              </div>
+              <div class="w-12 h-6 bg-slate-800 rounded-lg"></div>
+              <div class="flex flex-col items-center gap-2">
+                <div class="w-10 h-10 rounded-xl bg-slate-800"></div>
+                <div class="w-16 h-3 bg-slate-800 rounded"></div>
+              </div>
+            </div>
+            <div class="h-3 bg-slate-800 rounded w-3/4 mx-auto"></div>
+          </div>
+        }
+      </div>
+    } @else if (liveMatches().length > 0) {
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
         @for (match of liveMatches(); track match.id) {
           <div (click)="enterLiveMatch.emit(match)"
@@ -208,7 +232,7 @@
           </div>
         }
       </div>
-    @} @else {
+    } @else {
       <div class="p-4 rounded-xl bg-slate-900/50 border border-white/10 text-center space-y-1">
         <p class="text-xs font-bold text-slate-300">No Matches Currently Live</p>
         <p class="text-[10px] text-slate-500">There are no matches actively running right now in this workspace.</p>
@@ -240,7 +264,27 @@
       }
     </div>
 
-    @if (selectedOverviewComp() && selectedOverviewComp()?.standings?.length > 0) {
+    @if (isOverviewLoading()) {
+      <!-- Standings Skeleton -->
+      <div class="overflow-x-auto rounded-xl border border-white/10 bg-slate-900/90 animate-pulse" aria-busy="true" aria-label="Loading standings">
+        <div class="h-10 bg-slate-950 border-b border-white/10 flex items-center px-4 gap-4">
+          <div class="w-24 h-3 bg-slate-800 rounded"></div>
+          <div class="w-32 h-3 bg-slate-800 rounded"></div>
+          <div class="w-20 h-3 bg-slate-800 rounded"></div>
+        </div>
+        @for (sk of [1,2,3,4,5]; track sk) {
+          <div class="flex items-center gap-4 px-4 py-3 border-b border-white/5">
+            <div class="w-5 h-3 bg-slate-800 rounded"></div>
+            <div class="w-20 h-3 bg-slate-800 rounded flex-1"></div>
+            <div class="w-6 h-3 bg-slate-800 rounded"></div>
+            <div class="w-6 h-3 bg-slate-800 rounded"></div>
+            <div class="w-6 h-3 bg-slate-800 rounded"></div>
+            <div class="w-6 h-3 bg-slate-800 rounded"></div>
+            <div class="w-8 h-4 bg-violet-900/40 rounded"></div>
+          </div>
+        }
+      </div>
+    } @else if (selectedOverviewComp() && selectedOverviewComp()?.standings?.length > 0) {
       <div class="overflow-x-auto rounded-xl border border-white/10 bg-slate-900/90 backdrop-blur-md shadow-lg">
         <table class="w-full text-left text-xs text-slate-300">
           <thead class="bg-slate-950/90 text-slate-400 uppercase tracking-wider text-[9px] font-extrabold border-b border-white/10">
