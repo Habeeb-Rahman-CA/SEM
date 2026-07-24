@@ -18,6 +18,9 @@ import { FixturesGeneratorService } from './services/fixtures-generator.service'
 import { MatchLineupService } from './services/match-lineup.service';
 import { StatisticsRatingsService } from './services/statistics-ratings.service';
 import { BracketAdvancementService } from './services/bracket-advancement.service';
+import { CompetitionRankingsService } from './services/competition-rankings.service';
+import { MatchGenerationService } from './services/match-generation.service';
+import { CompetitionCompletionService } from './services/competition-completion.service';
 import { SportEngineRegistry } from './sports/sport-engine.registry';
 
 @Module({
@@ -44,6 +47,9 @@ import { SportEngineRegistry } from './sports/sport-engine.registry';
     MatchLineupService,
     StatisticsRatingsService,
     BracketAdvancementService,
+    CompetitionRankingsService,
+    MatchGenerationService,
+    CompetitionCompletionService,
     SportEngineRegistry,
   ],
   exports: [
@@ -52,6 +58,9 @@ import { SportEngineRegistry } from './sports/sport-engine.registry';
     MatchLineupService,
     StatisticsRatingsService,
     BracketAdvancementService,
+    CompetitionRankingsService,
+    MatchGenerationService,
+    CompetitionCompletionService,
     SportEngineRegistry,
   ],
 })
