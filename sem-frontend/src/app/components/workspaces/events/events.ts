@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, signal, inject, computed, effect, model, input } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, inject, computed, effect, model, input, ChangeDetectionStrategy } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
@@ -29,6 +29,7 @@ import { getSportBadgeClass, getSportIconClass, formatMatchStatusDetail } from '
     InitialsPipe
   ],
   templateUrl: './events.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class WorkspaceEventsComponent implements OnInit, OnDestroy {
   // SERVICES

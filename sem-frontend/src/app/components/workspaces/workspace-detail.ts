@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, inject, computed, effect, HostListener, DestroyRef } from '@angular/core';
+import { Component, OnInit, signal, inject, computed, effect, HostListener, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { FormsModule } from '@angular/forms';
@@ -49,6 +49,7 @@ declare const L: any;
   ],
   templateUrl: './workspace-detail.html',
   styleUrl: './workspace-detail.css',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class WorkspaceDetailComponent implements OnInit {
   private workspaceService = inject(WorkspaceService);
