@@ -12,6 +12,7 @@ import { StatCardComponent } from '../../../shared/components/stat-card/stat-car
 import { TabBarComponent } from '../../../shared/components/tab-bar/tab-bar';
 import { TabItem } from '../../../shared/components/tab-bar/tab-bar';
 import { BulkImportComponent, BulkImportFieldMapping } from '../../../shared/components/bulk-import/bulk-import';
+import { PaginatorComponent } from '../../../shared';
 
 @Component({
   selector: 'app-team-list',
@@ -26,7 +27,8 @@ import { BulkImportComponent, BulkImportFieldMapping } from '../../../shared/com
     SearchInputComponent,
     StatCardComponent,
     TabBarComponent,
-    BulkImportComponent
+    BulkImportComponent,
+    PaginatorComponent
   ],
   templateUrl: './team-list.html',
 })
@@ -52,6 +54,9 @@ export class TeamListComponent {
   teamsImported = output<Team[]>();
 
   teamSearchQuery = signal('');
+  sortOrder = signal('name-asc');
+  page = signal(1);
+  pageSize = signal(12);
 
   selectedTeamForDetails = signal<any | null>(null);
   activeTeamDetailTab = signal<'overview' | 'competitions' | 'squad'>('overview');
@@ -76,11 +81,38 @@ export class TeamListComponent {
 
   filteredTeams = computed(() => {
     const query = this.teamSearchQuery().toLowerCase().trim();
-    if (!query) return this.teams();
-    return this.teams().filter(t =>
-      t.name.toLowerCase().includes(query) ||
-      (t.code && t.code.toLowerCase().includes(query))
-    );
+    let list = this.teams();
+
+    // 1. Filter by Search Query
+    if (query) {
+      list = list.filter(t =>
+        t.name.toLowerCase().includes(query) ||
+        (t.code && t.code.toLowerCase().includes(query))
+      );
+    }
+
+    // 2. Sort
+    const sort = this.sortOrder();
+    list = [...list].sort((a, b) => {
+      if (sort === 'name-asc') {
+        return a.name.localeCompare(b.name);
+      } else if (sort === 'name-desc') {
+        return b.name.localeCompare(a.name);
+      } else if (sort === 'code-asc') {
+        return (a.code || '').localeCompare(b.code || '');
+      } else if (sort === 'code-desc') {
+        return (b.code || '').localeCompare(a.code || '');
+      }
+      return 0;
+    });
+
+    return list;
+  });
+
+  paginatedTeams = computed(() => {
+    const list = this.filteredTeams();
+    const startIndex = (this.page() - 1) * this.pageSize();
+    return list.slice(startIndex, startIndex + this.pageSize());
   });
 
   constructor() {
@@ -93,7 +125,14 @@ export class TeamListComponent {
         this.selectedTeamForDetails.set(null);
       }
     }, { allowSignalWrites: true });
+
+    effect(() => {
+      this.teamSearchQuery();
+      this.sortOrder();
+      this.page.set(1);
+    }, { allowSignalWrites: true });
   }
+
 
   loadTeamStats(workspaceId: string, teamId: string) {
     this.isLoadingTeamStats.set(true);

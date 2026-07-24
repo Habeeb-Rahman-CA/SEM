@@ -144,79 +144,127 @@
   </app-empty-state>
   } @else {
     <!-- Search and Filter Bar -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/20 border border-white/5 p-4 rounded-2xl mb-4">
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-slate-900/20 border border-white/5 p-4 rounded-2xl mb-4">
       <div class="text-xs text-slate-400 font-medium">
-        @if (playerSearchQuery()) {
+        @if (playerSearchQuery() || selectedTeamFilter() !== 'all') {
           Showing {{ filteredPlayers().length }} of {{ players().length }} players
         } @else {
           {{ players().length }} player{{ players().length !== 1 ? 's' : '' }} registered
         }
       </div>
-      <app-search-input [value]="playerSearchQuery()" placeholder="Search players by name, team, or jersey..." (valueChange)="playerSearchQuery.set($event)" />
+      
+      <!-- Filters and Search Controls -->
+      <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+        <!-- Team Filter -->
+        <div class="relative w-full sm:w-auto min-w-[130px]">
+          <select [ngModel]="selectedTeamFilter()" (ngModelChange)="selectedTeamFilter.set($event)"
+            class="w-full bg-slate-950 border border-white/10 focus:border-violet-500 rounded-xl pl-3 pr-8 py-2 text-xs text-white outline-none cursor-pointer appearance-none">
+            <option value="all" class="bg-slate-900">All Teams</option>
+            @for (t of teams(); track t.id) {
+              <option [value]="t.id" class="bg-slate-900">{{ t.name }}</option>
+            }
+          </select>
+          <div class="absolute inset-y-0 right-2 flex items-center pointer-events-none text-slate-400">
+            <i class="fi fi-rr-angle-small-down text-sm"></i>
+          </div>
+        </div>
+
+        <!-- Sort Select -->
+        <div class="relative w-full sm:w-auto min-w-[140px]">
+          <select [ngModel]="sortOrder()" (ngModelChange)="sortOrder.set($event)"
+            class="w-full bg-slate-950 border border-white/10 focus:border-violet-500 rounded-xl pl-3 pr-8 py-2 text-xs text-white outline-none cursor-pointer appearance-none">
+            <option value="name-asc" class="bg-slate-900">Name (A-Z)</option>
+            <option value="name-desc" class="bg-slate-900">Name (Z-A)</option>
+            <option value="jersey-asc" class="bg-slate-900">Jersey # (Asc)</option>
+            <option value="jersey-desc" class="bg-slate-900">Jersey # (Desc)</option>
+            <option value="team-asc" class="bg-slate-900">Team (A-Z)</option>
+            <option value="team-desc" class="bg-slate-900">Team (Z-A)</option>
+          </select>
+          <div class="absolute inset-y-0 right-2 flex items-center pointer-events-none text-slate-400">
+            <i class="fi fi-rr-angle-small-down text-sm"></i>
+          </div>
+        </div>
+
+        <!-- Search bar -->
+        <app-search-input [value]="playerSearchQuery()" placeholder="Search players..." (valueChange)="playerSearchQuery.set($event)" />
+      </div>
     </div>
 
     @if (filteredPlayers().length === 0) {
-    <app-empty-state iconClass="fi-rr-search" title="No matching players" [message]="'No players match your search query &quot;' + playerSearchQuery() + '&quot;.'" />
+    <app-empty-state iconClass="fi-rr-search" title="No matching players" message="No players match your search criteria." />
     } @else {
-    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-      @for (player of filteredPlayers(); track player.id) {
-    <div
-      class="bg-slate-900 border rounded-2xl p-4 flex flex-col justify-between gap-3 group transition-all duration-300 relative overflow-hidden"
-      [style.borderColor]="player.team.primaryColor ? player.team.primaryColor + '20' : 'rgba(255,255,255,0.1)'">
+    <div class="flex flex-col gap-6">
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+        @for (player of paginatedPlayers(); track player.id) {
+        <div
+          class="bg-slate-900 border rounded-2xl p-4 flex flex-col justify-between gap-3 group transition-all duration-300 relative overflow-hidden"
+          [style.borderColor]="player.team.primaryColor ? player.team.primaryColor + '20' : 'rgba(255,255,255,0.1)'">
 
-      <!-- Subtle team color accent line at the top -->
-      <div class="absolute top-0 left-0 w-full h-[2.5px] opacity-70 group-hover:opacity-100 transition-opacity"
-        [style.background]="'linear-gradient(to right, ' + (player.team.primaryColor || '#7c3aed') + ', ' + (player.team.secondaryColor || '#4f46e5') + ')'">
-      </div>
+          <!-- Subtle team color accent line at the top -->
+          <div class="absolute top-0 left-0 w-full h-[2.5px] opacity-70 group-hover:opacity-100 transition-opacity"
+            [style.background]="'linear-gradient(to right, ' + (player.team.primaryColor || '#7c3aed') + ', ' + (player.team.secondaryColor || '#4f46e5') + ')'">
+          </div>
 
-      <div class="flex items-center gap-3">
-        <!-- Avatar fallback styled exactly like members -->
-        <app-avatar [name]="player.user.username" [logoUrl]="player.user.avatarUrl" customClass="w-9 h-9 rounded-xl flex-shrink-0 shadow-inner" textClass="text-xs font-bold text-white" />
+          <div class="flex items-center gap-3">
+            <!-- Avatar fallback styled exactly like members -->
+            <app-avatar [name]="player.user.username" [logoUrl]="player.user.avatarUrl" customClass="w-9 h-9 rounded-xl flex-shrink-0 shadow-inner" textClass="text-xs font-bold text-white" />
 
-        <!-- Info -->
-        <div class="flex-1 min-w-0 text-left">
-          <h4 class="text-xs font-bold text-white truncate" [title]="player.user.username">{{ player.user.username
-            }}</h4>
-          <div class="flex items-center gap-1.5 mt-1.5 flex-wrap">
-            <span
-              class="text-[9px] px-1.5 py-0.5 rounded border truncate max-w-[90px] font-semibold text-slate-200"
-              [style.backgroundColor]="player.team.primaryColor ? player.team.primaryColor + '15' : 'rgba(124, 58, 237, 0.15)'"
-              [style.borderColor]="player.team.primaryColor ? player.team.primaryColor + '30' : 'rgba(124, 58, 237, 0.3)'"
-              [title]="player.team.name">
-              {{ player.team.name }}
-            </span>
-            @if (player.jerseyNumber) {
-            <!-- Custom Sports Jersey Icon with Number Overlay (Enlarged) -->
-            <div class="relative flex items-center justify-center w-8 h-8 flex-shrink-0"
-              [title]="'Jersey #' + player.jerseyNumber">
-              <svg viewBox="0 0 24 24" class="w-8 h-8 drop-shadow"
-                [style.color]="player.team.primaryColor || '#7c3aed'">
-                <path fill="currentColor" stroke="rgba(255,255,255,0.2)" stroke-width="0.75"
-                  d="M7 3 L 9.5 5.5 C 10.5 4.5 13.5 4.5 14.5 5.5 L 17 3 L 22 7 L 19 10 L 17 9 L 17 21 L 7 21 L 7 9 L 5 10 L 2 7 Z" />
-              </svg>
-              <span
-                class="absolute inset-0 flex items-center justify-center text-[10px] font-extrabold font-mono mt-[4px] select-none drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]"
-                [style.color]="player.team.secondaryColor || '#ffffff'">
-                {{ player.jerseyNumber }}
-              </span>
+            <!-- Info -->
+            <div class="flex-1 min-w-0 text-left">
+              <h4 class="text-xs font-bold text-white truncate" [title]="player.user.username">{{ player.user.username }}</h4>
+              <div class="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                <span
+                  class="text-[9px] px-1.5 py-0.5 rounded border truncate max-w-[90px] font-semibold text-slate-200"
+                  [style.backgroundColor]="player.team.primaryColor ? player.team.primaryColor + '15' : 'rgba(124, 58, 237, 0.15)'"
+                  [style.borderColor]="player.team.primaryColor ? player.team.primaryColor + '30' : 'rgba(124, 58, 237, 0.3)'"
+                  [title]="player.team.name">
+                  {{ player.team.name }}
+                </span>
+                @if (player.jerseyNumber) {
+                <!-- Custom Sports Jersey Icon with Number Overlay (Enlarged) -->
+                <div class="relative flex items-center justify-center w-8 h-8 flex-shrink-0"
+                  [title]="'Jersey #' + player.jerseyNumber">
+                  <svg viewBox="0 0 24 24" class="w-8 h-8 drop-shadow"
+                    [style.color]="player.team.primaryColor || '#7c3aed'">
+                    <path fill="currentColor" stroke="rgba(255,255,255,0.2)" stroke-width="0.75"
+                      d="M7 3 L 9.5 5.5 C 10.5 4.5 13.5 4.5 14.5 5.5 L 17 3 L 22 7 L 19 10 L 17 9 L 17 21 L 7 21 L 7 9 L 5 10 L 2 7 Z" />
+                  </svg>
+                  <span
+                    class="absolute inset-0 flex items-center justify-center text-[10px] font-extrabold font-mono mt-[4px] select-none drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]"
+                    [style.color]="player.team.secondaryColor || '#ffffff'">
+                    {{ player.jerseyNumber }}
+                  </span>
+                </div>
+                }
+              </div>
             </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="flex items-center justify-end gap-1.5 pt-2 border-t border-white/5 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+            <app-button label="Stats" iconClass="fi-rr-stats" variant="outline" size="xs" (clicked)="selectedPlayerId.set(player.id)" />
+            @if (canUpdate()) {
+              <app-button label="Edit" iconClass="fi-rr-edit" variant="ghost" size="xs" (clicked)="edit.emit(player)" />
+              <app-button label="Delete" iconClass="fi-rr-trash" variant="danger" size="xs" (clicked)="delete.emit(player)" />
             }
           </div>
         </div>
+        }
       </div>
 
-      <!-- Actions -->
-      <div class="flex items-center justify-end gap-1.5 pt-2 border-t border-white/5 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
-        <app-button label="Stats" iconClass="fi-rr-stats" variant="outline" size="xs" (clicked)="selectedPlayerId.set(player.id)" />
-        @if (canUpdate()) {
-          <app-button label="Edit" iconClass="fi-rr-edit" variant="ghost" size="xs" (clicked)="edit.emit(player)" />
-          <app-button label="Delete" iconClass="fi-rr-trash" variant="danger" size="xs" (clicked)="delete.emit(player)" />
-        }
+      <!-- Pagination -->
+      <div class="bg-slate-900/40 border border-white/10 rounded-2xl p-4">
+        <app-paginator
+          [currentPage]="page()"
+          [pageSize]="pageSize()"
+          [total]="filteredPlayers().length"
+          [pageSizeOptions]="[12, 24, 48, 96]"
+          (pageChange)="page.set($event)"
+          (pageSizeChange)="pageSize.set($event)"
+          [showAlways]="true" />
       </div>
     </div>
     }
-  </div>
-  }
   }
 </div>
 }

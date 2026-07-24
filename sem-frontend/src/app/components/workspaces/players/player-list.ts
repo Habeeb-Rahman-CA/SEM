@@ -10,6 +10,7 @@ import { LoadingSpinnerComponent } from '../../../shared/components/loading-spin
 import { SearchInputComponent } from '../../../shared/components/search-input/search-input';
 import { StatCardComponent } from '../../../shared/components/stat-card/stat-card';
 import { BulkImportComponent, BulkImportFieldMapping } from '../../../shared/components/bulk-import/bulk-import';
+import { PaginatorComponent } from '../../../shared';
 
 @Component({
   selector: 'app-player-list',
@@ -23,7 +24,8 @@ import { BulkImportComponent, BulkImportFieldMapping } from '../../../shared/com
     LoadingSpinnerComponent,
     SearchInputComponent,
     StatCardComponent,
-    BulkImportComponent
+    BulkImportComponent,
+    PaginatorComponent
   ],
   templateUrl: './player-list.html',
 })
@@ -51,6 +53,10 @@ export class PlayerListComponent {
   playersImported = output<Player[]>();
 
   playerSearchQuery = signal('');
+  selectedTeamFilter = signal('all');
+  sortOrder = signal('name-asc');
+  page = signal(1);
+  pageSize = signal(12);
 
   selectedPlayerForDetails = signal<any | null>(null);
   isLoadingPlayerStats = signal(false);
@@ -65,12 +71,53 @@ export class PlayerListComponent {
 
   filteredPlayers = computed(() => {
     const query = this.playerSearchQuery().toLowerCase().trim();
-    if (!query) return this.players();
-    return this.players().filter(p =>
-      p.user.username.toLowerCase().includes(query) ||
-      p.team.name.toLowerCase().includes(query) ||
-      (p.jerseyNumber && p.jerseyNumber.toLowerCase().includes(query))
-    );
+    let list = this.players();
+
+    // 1. Filter by Search Query
+    if (query) {
+      list = list.filter(p =>
+        p.user.username.toLowerCase().includes(query) ||
+        p.team.name.toLowerCase().includes(query) ||
+        (p.jerseyNumber && p.jerseyNumber.toLowerCase().includes(query))
+      );
+    }
+
+    // 2. Filter by Team
+    const teamFilter = this.selectedTeamFilter();
+    if (teamFilter !== 'all') {
+      list = list.filter(p => p.teamId === teamFilter);
+    }
+
+    // 3. Sort
+    const sort = this.sortOrder();
+    list = [...list].sort((a, b) => {
+      if (sort === 'name-asc') {
+        return a.user.username.localeCompare(b.user.username);
+      } else if (sort === 'name-desc') {
+        return b.user.username.localeCompare(a.user.username);
+      } else if (sort === 'jersey-asc') {
+        const numA = a.jerseyNumber ? parseInt(a.jerseyNumber, 10) : 9999;
+        const numB = b.jerseyNumber ? parseInt(b.jerseyNumber, 10) : 9999;
+        return numA - numB;
+      } else if (sort === 'jersey-desc') {
+        const numA = a.jerseyNumber ? parseInt(a.jerseyNumber, 10) : -1;
+        const numB = b.jerseyNumber ? parseInt(b.jerseyNumber, 10) : -1;
+        return numB - numA;
+      } else if (sort === 'team-asc') {
+        return a.team.name.localeCompare(b.team.name);
+      } else if (sort === 'team-desc') {
+        return b.team.name.localeCompare(a.team.name);
+      }
+      return 0;
+    });
+
+    return list;
+  });
+
+  paginatedPlayers = computed(() => {
+    const list = this.filteredPlayers();
+    const startIndex = (this.page() - 1) * this.pageSize();
+    return list.slice(startIndex, startIndex + this.pageSize());
   });
 
   constructor() {
@@ -83,7 +130,15 @@ export class PlayerListComponent {
         this.selectedPlayerForDetails.set(null);
       }
     }, { allowSignalWrites: true });
+
+    effect(() => {
+      this.playerSearchQuery();
+      this.selectedTeamFilter();
+      this.sortOrder();
+      this.page.set(1);
+    }, { allowSignalWrites: true });
   }
+
 
   loadPlayerStats(workspaceId: string, playerId: string) {
     this.isLoadingPlayerStats.set(true);

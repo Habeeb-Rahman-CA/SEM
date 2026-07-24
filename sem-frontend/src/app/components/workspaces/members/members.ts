@@ -1,4 +1,4 @@
-import { Component, input, model, computed, signal, inject } from '@angular/core';
+import { Component, input, model, computed, signal, inject, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Workspace, WorkspaceMember, WorkspaceService } from '../../../services/workspace.service';
@@ -6,12 +6,12 @@ import { UiService } from '../../../services/ui.service';
 import { AuthService } from '../../../services/auth.service';
 import { AvatarComponent } from '../../../shared/components/avatar/avatar';
 import { BulkImportComponent, BulkImportFieldMapping } from '../../../shared/components/bulk-import/bulk-import';
-import { roleBadgeClass } from '../../../shared';
+import { roleBadgeClass, PaginatorComponent } from '../../../shared';
 
 @Component({
   selector: 'app-workspace-members',
   standalone: true,
-  imports: [CommonModule, FormsModule, AvatarComponent, BulkImportComponent],
+  imports: [CommonModule, FormsModule, AvatarComponent, BulkImportComponent, PaginatorComponent],
   templateUrl: './members.html',
 })
 export class WorkspaceMembersComponent {
@@ -33,16 +33,65 @@ export class WorkspaceMembersComponent {
   canUpdate = input<boolean>(false);
   canRemove = input<boolean>(false);
 
-  // Search filter
+  // Search filter, role filter, sort order, and pagination
   memberSearchQuery = signal<string>('');
+  selectedRoleFilter = signal<string>('all');
+  sortOrder = signal<string>('name-asc');
+  page = signal<number>(1);
+  pageSize = signal<number>(10);
+
   filteredMembers = computed(() => {
     const query = this.memberSearchQuery().toLowerCase().trim();
-    if (!query) return this.members();
-    return this.members().filter(m =>
-      m.user.username.toLowerCase().includes(query) ||
-      m.role.name.toLowerCase().includes(query)
-    );
+    let list = this.members();
+
+    // 1. Filter by Search Query
+    if (query) {
+      list = list.filter(m =>
+        m.user.username.toLowerCase().includes(query) ||
+        m.role.name.toLowerCase().includes(query)
+      );
+    }
+
+    // 2. Filter by Role
+    const roleFilter = this.selectedRoleFilter();
+    if (roleFilter !== 'all') {
+      list = list.filter(m => m.role.slug === roleFilter);
+    }
+
+    // 3. Sort
+    const sort = this.sortOrder();
+    list = [...list].sort((a, b) => {
+      if (sort === 'name-asc') {
+        return a.user.username.localeCompare(b.user.username);
+      } else if (sort === 'name-desc') {
+        return b.user.username.localeCompare(a.user.username);
+      } else if (sort === 'joined-newest') {
+        return new Date(b.joinedAt).getTime() - new Date(a.joinedAt).getTime();
+      } else if (sort === 'joined-oldest') {
+        return new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime();
+      }
+      return 0;
+    });
+
+    return list;
   });
+
+  paginatedMembers = computed(() => {
+    const list = this.filteredMembers();
+    const startIndex = (this.page() - 1) * this.pageSize();
+    return list.slice(startIndex, startIndex + this.pageSize());
+  });
+
+  constructor() {
+    effect(() => {
+      this.memberSearchQuery();
+      this.selectedRoleFilter();
+      this.sortOrder();
+      this.page.set(1);
+    }, { allowSignalWrites: true });
+  }
+
+
 
   // Invitation Form state
   inviteUsername = signal<string>('');

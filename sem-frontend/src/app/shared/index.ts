@@ -10,6 +10,8 @@ export { SearchInputComponent }   from './components/search-input/search-input';
 export { TabBarComponent }        from './components/tab-bar/tab-bar';
 export { EmptyStateComponent }    from './components/empty-state/empty-state';
 export { LoadingSpinnerComponent } from './components/loading-spinner/loading-spinner';
+export { PaginatorComponent }      from './components/paginator/paginator';
+
 
 // ── Type re-exports ───────────────────────────────────────────────────────────
 export type { ButtonVariant, ButtonSize }        from './components/button/button';
