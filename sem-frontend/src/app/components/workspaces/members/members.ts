@@ -1,4 +1,4 @@
-import { Component, input, model, computed, signal, inject } from '@angular/core';
+import { Component, input, model, computed, signal, inject, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Workspace, WorkspaceMember, WorkspaceService } from '../../../services/workspace.service';
@@ -6,11 +6,12 @@ import { UiService } from '../../../services/ui.service';
 import { AuthService } from '../../../services/auth.service';
 import { AvatarComponent } from '../../../shared/components/avatar/avatar';
 import { BulkImportComponent, BulkImportFieldMapping } from '../../../shared/components/bulk-import/bulk-import';
+import { roleBadgeClass, PaginatorComponent } from '../../../shared';
 
 @Component({
   selector: 'app-workspace-members',
   standalone: true,
-  imports: [CommonModule, FormsModule, AvatarComponent, BulkImportComponent],
+  imports: [CommonModule, FormsModule, AvatarComponent, BulkImportComponent, PaginatorComponent],
   templateUrl: './members.html',
 })
 export class WorkspaceMembersComponent {
@@ -32,16 +33,65 @@ export class WorkspaceMembersComponent {
   canUpdate = input<boolean>(false);
   canRemove = input<boolean>(false);
 
-  // Search filter
+  // Search filter, role filter, sort order, and pagination
   memberSearchQuery = signal<string>('');
+  selectedRoleFilter = signal<string>('all');
+  sortOrder = signal<string>('name-asc');
+  page = signal<number>(1);
+  pageSize = signal<number>(10);
+
   filteredMembers = computed(() => {
     const query = this.memberSearchQuery().toLowerCase().trim();
-    if (!query) return this.members();
-    return this.members().filter(m =>
-      m.user.username.toLowerCase().includes(query) ||
-      m.role.name.toLowerCase().includes(query)
-    );
+    let list = this.members();
+
+    // 1. Filter by Search Query
+    if (query) {
+      list = list.filter(m =>
+        m.user.username.toLowerCase().includes(query) ||
+        m.role.name.toLowerCase().includes(query)
+      );
+    }
+
+    // 2. Filter by Role
+    const roleFilter = this.selectedRoleFilter();
+    if (roleFilter !== 'all') {
+      list = list.filter(m => m.role.slug === roleFilter);
+    }
+
+    // 3. Sort
+    const sort = this.sortOrder();
+    list = [...list].sort((a, b) => {
+      if (sort === 'name-asc') {
+        return a.user.username.localeCompare(b.user.username);
+      } else if (sort === 'name-desc') {
+        return b.user.username.localeCompare(a.user.username);
+      } else if (sort === 'joined-newest') {
+        return new Date(b.joinedAt).getTime() - new Date(a.joinedAt).getTime();
+      } else if (sort === 'joined-oldest') {
+        return new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime();
+      }
+      return 0;
+    });
+
+    return list;
   });
+
+  paginatedMembers = computed(() => {
+    const list = this.filteredMembers();
+    const startIndex = (this.page() - 1) * this.pageSize();
+    return list.slice(startIndex, startIndex + this.pageSize());
+  });
+
+  constructor() {
+    effect(() => {
+      this.memberSearchQuery();
+      this.selectedRoleFilter();
+      this.sortOrder();
+      this.page.set(1);
+    }, { allowSignalWrites: true });
+  }
+
+
 
   // Invitation Form state
   inviteUsername = signal<string>('');
@@ -77,19 +127,8 @@ export class WorkspaceMembersComponent {
     setTimeout(() => this.isCopied.set(false), 2000);
   }
 
-  roleBadgeClass(slug: string): string {
-    const map: Record<string, string> = {
-      owner:               'bg-violet-500/20 text-violet-300 border-violet-500/30',
-      administrator:       'bg-blue-500/20 text-blue-300 border-blue-500/30',
-      event_manager:       'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
-      competition_manager: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
-      referee:             'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
-      statistician:        'bg-orange-500/20 text-orange-300 border-orange-500/30',
-      media_team:          'bg-pink-500/20 text-pink-300 border-pink-500/30',
-      viewer:              'bg-slate-500/20 text-slate-300 border-slate-500/30',
-    };
-    return map[slug] ?? 'bg-slate-500/20 text-slate-300 border-slate-500/30';
-  }
+  roleBadgeClass = roleBadgeClass;
+
 
   onInvite() {
     const username = this.inviteUsername().trim();
@@ -122,14 +161,21 @@ export class WorkspaceMembersComponent {
     const ws = this.workspace();
     if (!ws) return;
 
+    const originalRole = member.role;
+
+    // Optimistic Update
+    this.members.update(prev => prev.map(m => m.id === member.id ? { ...m, role: { ...m.role, slug: newRoleSlug } } : m));
+
     this.workspaceService.updateMemberRole(ws.id, member.userId, newRoleSlug).subscribe({
       next: (updated) => {
         this.members.update(prev => prev.map(m => m.id === member.id ? { ...m, role: updated.role } : m));
         this.uiService.success(`Role for ${member.user.username} updated to ${updated.role.name}.`);
       },
       error: (err) => {
+        // Rollback
+        this.members.update(prev => prev.map(m => m.id === member.id ? { ...m, role: originalRole } : m));
+        select.value = originalRole?.slug ?? '';
         this.uiService.error(err.error?.message ?? 'Failed to update member role.');
-        select.value = member.role?.slug ?? '';
       }
     });
   }
@@ -145,12 +191,20 @@ export class WorkspaceMembersComponent {
     });
     if (!confirmed) return;
 
+    const originalMembers = this.members();
+
+    // Optimistic Update
+    this.members.update(prev => prev.filter(m => m.userId !== member.userId));
+
     this.workspaceService.removeMember(ws.id, member.userId).subscribe({
       next: () => {
-        this.members.update(prev => prev.filter(m => m.userId !== member.userId));
         this.uiService.success(`Removed "${member.user.username}" from workspace.`);
       },
-      error: (err) => this.uiService.error(err.error?.message ?? 'Failed to remove member.'),
+      error: (err) => {
+        // Rollback
+        this.members.set(originalMembers);
+        this.uiService.error(err.error?.message ?? 'Failed to remove member.');
+      },
     });
   }
 

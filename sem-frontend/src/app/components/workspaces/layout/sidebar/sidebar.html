@@ -147,6 +147,15 @@
       <span [class.lg:hidden]="!isSidebarOpen()">Reports</span>
     </button>
 
+    <button (click)="activeTab.set('files'); closeSidebarOnMobile()"
+      [attr.aria-current]="activeTab() === 'files' ? 'page' : null"
+      [class]="activeTab() === 'files' ? 'bg-violet-600/10 text-violet-400 border border-violet-500/20' : 'text-slate-400 hover:text-white border border-transparent hover:bg-white/5'"
+      [class.lg:justify-center]="!isSidebarOpen()" [class.lg:px-0]="!isSidebarOpen()"
+      class="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold rounded-xl transition-all cursor-pointer outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500">
+      <i class="fi fi-rr-folder text-base shrink-0"></i>
+      <span [class.lg:hidden]="!isSidebarOpen()">Files</span>
+    </button>
+
     @if (hasSettingsPermission()) {
     <button (click)="activeTab.set('settings'); closeSidebarOnMobile()"
       [attr.aria-current]="activeTab() === 'settings' ? 'page' : null"

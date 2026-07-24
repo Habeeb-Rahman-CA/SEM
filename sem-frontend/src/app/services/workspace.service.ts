@@ -607,6 +607,90 @@ export class WorkspaceService {
     );
   }
 
+  // ─── Workspace Files Management ──────────────────────────────────────────
 
+  getFiles(workspaceId: string): Observable<WorkspaceFile[]> {
+    return this.http.get<WorkspaceFile[]>(`${this.apiUrl}/${workspaceId}/files`, {
+      headers: this.headers,
+    });
+  }
 
+  uploadWorkspaceFile(workspaceId: string, file: File, compress: boolean = false, quality: number = 0.8): Observable<WorkspaceFile> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<WorkspaceFile>(
+      `${this.apiUrl}/${workspaceId}/files?compress=${compress}&quality=${quality}`,
+      formData,
+      { headers: this.headers }
+    );
+  }
+
+  uploadWorkspaceFileVersion(workspaceId: string, fileId: string, file: File, compress: boolean = false, quality: number = 0.8): Observable<WorkspaceFile> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<WorkspaceFile>(
+      `${this.apiUrl}/${workspaceId}/files/${fileId}/version?compress=${compress}&quality=${quality}`,
+      formData,
+      { headers: this.headers }
+    );
+  }
+
+  getFileVersions(workspaceId: string, fileId: string): Observable<WorkspaceFileVersion[]> {
+    return this.http.get<WorkspaceFileVersion[]>(
+      `${this.apiUrl}/${workspaceId}/files/${fileId}/versions`,
+      { headers: this.headers }
+    );
+  }
+
+  renameWorkspaceFile(workspaceId: string, fileId: string, name: string): Observable<WorkspaceFile> {
+    return this.http.patch<WorkspaceFile>(
+      `${this.apiUrl}/${workspaceId}/files/${fileId}`,
+      { name },
+      { headers: this.headers }
+    );
+  }
+
+  deleteWorkspaceFile(workspaceId: string, fileId: string): Observable<void> {
+    return this.http.delete<void>(
+      `${this.apiUrl}/${workspaceId}/files/${fileId}`,
+      { headers: this.headers }
+    );
+  }
+
+  globalSearch(workspaceId: string, query: string): Observable<{ files: WorkspaceFile[]; teams: Team[]; players: Player[] }> {
+    return this.http.get<{ files: WorkspaceFile[]; teams: Team[]; players: Player[] }>(
+      `${environment.apiUrl}/search?workspaceId=${workspaceId}&q=${encodeURIComponent(query)}`,
+      { headers: this.headers }
+    );
+  }
 }
+
+export interface WorkspaceFile {
+  id: string;
+  workspaceId: string;
+  name: string;
+  mimeType: string;
+  size: number;
+  url: string;
+  publicId: string | null;
+  currentVersion: number;
+  virusScanStatus: string;
+  virusScanDetails: string | null;
+  createdAt: string;
+  createdBy: string | null;
+  updatedAt: string;
+}
+
+export interface WorkspaceFileVersion {
+  id: string;
+  fileId: string;
+  versionNumber: number;
+  url: string;
+  publicId: string | null;
+  size: number;
+  virusScanStatus: string;
+  virusScanDetails: string | null;
+  createdAt: string;
+  createdBy: string | null;
+}
+

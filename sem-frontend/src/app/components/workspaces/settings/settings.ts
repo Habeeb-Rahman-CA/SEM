@@ -19,7 +19,7 @@ export class WorkspaceSettingsComponent {
   private router = inject(Router);
 
   workspace = model.required<Workspace | null>();
-  activeTab = model<'overview' | 'members' | 'settings' | 'teams' | 'players' | 'events' | 'venues' | 'reports'>();
+  activeTab = model<'overview' | 'members' | 'settings' | 'teams' | 'players' | 'events' | 'venues' | 'reports' | 'files'>();
 
   // Settings form states
   editName = signal('');

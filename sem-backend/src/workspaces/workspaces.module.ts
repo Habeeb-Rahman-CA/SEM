@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
@@ -19,11 +19,17 @@ import { Notification } from './entities/notification.entity';
 import { MatchPlayer } from './entities/match-player.entity';
 import { AuditLog } from './entities/audit-log.entity';
 import { SystemConfig } from './entities/system-config.entity';
+import { WorkspaceFile } from './entities/workspace-file.entity';
+import { WorkspaceFileVersion } from './entities/workspace-file-version.entity';
 import { WorkspacesService } from './workspaces.service';
 import { WorkspacesController } from './workspaces.controller';
 import { SystemSettingsController } from './system-settings.controller';
+import { FilesController } from './files/files.controller';
+import { FilesService } from './files/files.service';
 import { UsersModule } from '../users/users.module';
+import { UploadModule } from '../upload/upload.module';
 import { EventsGateway } from './events.gateway';
+import { SearchModule } from '../search/search.module';
 
 // Extracted Domain Services
 import { NotificationsService } from './notifications/notifications.service';
@@ -52,8 +58,12 @@ import { WorkspaceMembersService } from './members/members.service';
       MatchPlayer,
       AuditLog,
       SystemConfig,
+      WorkspaceFile,
+      WorkspaceFileVersion,
     ]),
     UsersModule,
+    UploadModule,
+    forwardRef(() => SearchModule),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -68,7 +78,11 @@ import { WorkspaceMembersService } from './members/members.service';
       }),
     }),
   ],
-  controllers: [WorkspacesController, SystemSettingsController],
+  controllers: [
+    WorkspacesController,
+    SystemSettingsController,
+    FilesController,
+  ],
   providers: [
     WorkspacesService,
     EventsGateway,
@@ -77,6 +91,7 @@ import { WorkspaceMembersService } from './members/members.service';
     SystemConfigService,
     RolesPermissionsService,
     WorkspaceMembersService,
+    FilesService,
   ],
   exports: [
     WorkspacesService,

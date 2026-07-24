@@ -22,10 +22,26 @@ export class UiService {
   // Toasts
   toasts = signal<Toast[]>([]);
 
+  // Offline status signal
+  isOffline = signal(typeof navigator !== 'undefined' ? !navigator.onLine : false);
+
   // Confirm Modal
   confirmModalOpen = signal(false);
   confirmOptions = signal<ConfirmOptions | null>(null);
   private confirmResolve: ((value: boolean) => void) | null = null;
+
+  constructor() {
+    if (typeof window !== 'undefined') {
+      window.addEventListener('online', () => {
+        this.isOffline.set(false);
+        this.success('Your connection has been restored.');
+      });
+      window.addEventListener('offline', () => {
+        this.isOffline.set(true);
+        this.error('You are currently offline. Live updates and actions are disabled.');
+      });
+    }
+  }
 
   showToast(message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info', duration = 3000) {
     const id = Math.random().toString(36).substring(2, 9);

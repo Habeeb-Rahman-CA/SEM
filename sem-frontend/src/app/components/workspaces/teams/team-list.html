@@ -319,7 +319,7 @@
     </app-empty-state>
     } @else {
       <!-- Search and Filter Bar -->
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/20 border border-white/5 p-4 rounded-2xl mb-4">
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-slate-900/20 border border-white/5 p-4 rounded-2xl mb-4">
         <div class="text-xs text-slate-400 font-medium">
           @if (teamSearchQuery()) {
             Showing {{ filteredTeams().length }} of {{ teams().length }} teams
@@ -327,61 +327,93 @@
             {{ teams().length }} team{{ teams().length !== 1 ? 's' : '' }} registered
           }
         </div>
-        <app-search-input [value]="teamSearchQuery()" placeholder="Search teams by name or code..." (valueChange)="teamSearchQuery.set($event)" />
+        
+        <!-- Controls: Sort & Search -->
+        <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+          <!-- Sort Select -->
+          <div class="relative w-full sm:w-auto min-w-[140px]">
+            <select [ngModel]="sortOrder()" (ngModelChange)="sortOrder.set($event)"
+              class="w-full bg-slate-950 border border-white/10 focus:border-violet-500 rounded-xl pl-3 pr-8 py-2 text-xs text-white outline-none cursor-pointer appearance-none">
+              <option value="name-asc" class="bg-slate-900">Name (A-Z)</option>
+              <option value="name-desc" class="bg-slate-900">Name (Z-A)</option>
+              <option value="code-asc" class="bg-slate-900">Code (A-Z)</option>
+              <option value="code-desc" class="bg-slate-900">Code (Z-A)</option>
+            </select>
+            <div class="absolute inset-y-0 right-2 flex items-center pointer-events-none text-slate-400">
+              <i class="fi fi-rr-angle-small-down text-sm"></i>
+            </div>
+          </div>
+
+          <app-search-input [value]="teamSearchQuery()" placeholder="Search teams by name or code..." (valueChange)="teamSearchQuery.set($event)" />
+        </div>
       </div>
 
       @if (filteredTeams().length === 0) {
       <app-empty-state iconClass="fi-rr-search" title="No matching teams" [message]="'No teams match your search query &quot;' + teamSearchQuery() + '&quot;.'" />
       } @else {
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        @for (team of filteredTeams(); track team.id) {
-        <div class="bg-slate-900 border rounded-2xl p-5 flex flex-col gap-4 group transition-all duration-300 relative overflow-hidden"
-          [style.borderColor]="team.primaryColor ? team.primaryColor + '20' : 'rgba(255,255,255,0.1)'">
+      <div class="flex flex-col gap-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          @for (team of paginatedTeams(); track team.id) {
+          <div class="bg-slate-900 border rounded-2xl p-5 flex flex-col gap-4 group transition-all duration-300 relative overflow-hidden"
+            [style.borderColor]="team.primaryColor ? team.primaryColor + '20' : 'rgba(255,255,255,0.1)'">
 
-          <!-- Subtle color accent line at the top -->
-          <div class="absolute top-0 left-0 w-full h-[3px]"
-            [style.background]="'linear-gradient(to right, ' + (team.primaryColor || '#7c3aed') + ', ' + (team.secondaryColor || '#4f46e5') + ')'">
-          </div>
+            <!-- Subtle color accent line at the top -->
+            <div class="absolute top-0 left-0 w-full h-[3px]"
+              [style.background]="'linear-gradient(to right, ' + (team.primaryColor || '#7c3aed') + ', ' + (team.secondaryColor || '#4f46e5') + ')'">
+            </div>
 
-          <!-- Soft background glow -->
-          <div class="absolute -right-6 -top-6 w-16 h-16 rounded-full filter blur-xl opacity-5 pointer-events-none"
-            [style.background]="team.primaryColor || '#7c3aed'"></div>
+            <!-- Soft background glow -->
+            <div class="absolute -right-6 -top-6 w-16 h-16 rounded-full filter blur-xl opacity-5 pointer-events-none"
+              [style.background]="team.primaryColor || '#7c3aed'"></div>
 
-          <div class="flex items-start gap-4">
-            <!-- Team Logo / Avatar -->
-            <app-avatar [name]="team.name" [logoUrl]="team.logoUrl" customClass="w-16 h-16 rounded-xl border border-white/10 flex-shrink-0 shadow-inner" textClass="text-base font-extrabold text-white" />
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-2">
-                <h4 class="text-sm font-bold text-white truncate">{{ team.name }}</h4>
-                @if (team.code) {
-                <span class="text-[10px] font-bold px-1.5 py-0.5 bg-slate-800 text-violet-400 border border-white/5 rounded">
-                  {{ team.code }}
-                </span>
-                }
-              </div>
-              <p class="text-[10px] text-slate-500 mt-1">Registered {{ team.createdAt | date: 'MMM d, y' }}</p>
+            <div class="flex items-start gap-4">
+              <!-- Team Logo / Avatar -->
+              <app-avatar [name]="team.name" [logoUrl]="team.logoUrl" customClass="w-16 h-16 rounded-xl border border-white/10 flex-shrink-0 shadow-inner" textClass="text-base font-extrabold text-white" />
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2">
+                  <h4 class="text-sm font-bold text-white truncate">{{ team.name }}</h4>
+                  @if (team.code) {
+                  <span class="text-[10px] font-bold px-1.5 py-0.5 bg-slate-800 text-violet-400 border border-white/5 rounded">
+                    {{ team.code }}
+                  </span>
+                  }
+                </div>
+                <p class="text-[10px] text-slate-500 mt-1">Registered {{ team.createdAt | date: 'MMM d, y' }}</p>
 
-              <!-- Color Badges -->
-              <div class="flex items-center gap-1.5 mt-2">
-                <span class="text-[9px] text-slate-500 font-mono">Theme:</span>
-                <div class="w-3 h-3 rounded-full border border-white/20"
-                  [style.backgroundColor]="team.primaryColor || '#7c3aed'" title="Primary Color"></div>
-                <div class="w-3 h-3 rounded-full border border-white/20"
-                  [style.backgroundColor]="team.secondaryColor || '#4f46e5'" title="Secondary Color"></div>
+                <!-- Color Badges -->
+                <div class="flex items-center gap-1.5 mt-2">
+                  <span class="text-[9px] text-slate-500 font-mono">Theme:</span>
+                  <div class="w-3 h-3 rounded-full border border-white/20"
+                    [style.backgroundColor]="team.primaryColor || '#7c3aed'" title="Primary Color"></div>
+                  <div class="w-3 h-3 rounded-full border border-white/20"
+                    [style.backgroundColor]="team.secondaryColor || '#4f46e5'" title="Secondary Color"></div>
+                </div>
               </div>
             </div>
-          </div>
 
-          <!-- Actions -->
-          <div class="flex items-center justify-end gap-2 pt-3 border-t border-white/5 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
-            <app-button label="Stats" iconClass="fi-rr-stats" variant="outline" size="xs" (clicked)="selectedTeamId.set(team.id)" />
-            @if (canUpdate()) {
-              <app-button label="Edit" iconClass="fi-rr-edit" variant="ghost" size="xs" (clicked)="edit.emit(team)" />
-              <app-button label="Delete" iconClass="fi-rr-trash" variant="danger" size="xs" (clicked)="delete.emit(team)" />
-            }
+            <!-- Actions -->
+            <div class="flex items-center justify-end gap-2 pt-3 border-t border-white/5 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+              <app-button label="Stats" iconClass="fi-rr-stats" variant="outline" size="xs" (clicked)="selectedTeamId.set(team.id)" />
+              @if (canUpdate()) {
+                <app-button label="Edit" iconClass="fi-rr-edit" variant="ghost" size="xs" (clicked)="edit.emit(team)" />
+                <app-button label="Delete" iconClass="fi-rr-trash" variant="danger" size="xs" (clicked)="delete.emit(team)" />
+              }
+            </div>
           </div>
+          }
         </div>
-        }
+
+        <!-- Pagination -->
+        <div class="bg-slate-900/40 border border-white/10 rounded-2xl p-4">
+          <app-paginator
+            [currentPage]="page()"
+            [pageSize]="pageSize()"
+            [total]="filteredTeams().length"
+            [pageSizeOptions]="[12, 24, 48, 96]"
+            (pageChange)="page.set($event)"
+            (pageSizeChange)="pageSize.set($event)"
+            [showAlways]="true" />
+        </div>
       </div>
       }
     }

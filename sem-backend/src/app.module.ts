@@ -14,6 +14,7 @@ import { PlayersModule } from './players/players.module';
 import { EventsModule } from './events/events.module';
 import { CompetitionsModule } from './competitions/competitions.module';
 import { ReliabilityModule } from './reliability/reliability.module';
+import { SearchModule } from './search/search.module';
 import { AllExceptionsFilter } from './common/all-exceptions.filter';
 
 @Module({
@@ -46,6 +47,7 @@ import { AllExceptionsFilter } from './common/all-exceptions.filter';
     EventsModule,
     CompetitionsModule,
     ReliabilityModule,
+    SearchModule,
   ],
   controllers: [AppController],
   providers: [

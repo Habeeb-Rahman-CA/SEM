@@ -105,41 +105,75 @@
   }
 
   <!-- Members Table -->
-  <div class="bg-slate-900 border border-white/10 rounded-2xl overflow-hidden">
-    <div class="px-6 py-4 border-b border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+  <div class="bg-slate-900 border border-white/10 rounded-2xl overflow-hidden flex flex-col gap-0">
+    <div class="px-6 py-4 border-b border-white/10 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
       <div>
         <h2 class="text-sm font-bold text-white">All Members</h2>
         <span class="text-xs text-slate-500">
-          @if (memberSearchQuery()) {
+          @if (memberSearchQuery() || selectedRoleFilter() !== 'all') {
             {{ filteredMembers().length }} found (out of {{ members().length }})
           } @else {
             {{ members().length }} member{{ members().length !== 1 ? 's' : '' }}
           }
         </span>
       </div>
-      <!-- Search bar -->
-      <div class="relative w-full md:w-72">
-        <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
-          <i class="fi fi-rr-search text-xs"></i>
-        </span>
-        <input type="text" [ngModel]="memberSearchQuery()" (ngModelChange)="memberSearchQuery.set($event)"
-          placeholder="Search members..."
-          class="w-full bg-slate-950 border border-white/10 rounded-xl pl-9 pr-8 py-2 text-xs text-white placeholder-slate-500 focus:border-violet-500 focus:ring-1 focus:ring-violet-500 outline-none transition-all" />
-        @if (memberSearchQuery()) {
-        <button (click)="memberSearchQuery.set('')"
-          class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-slate-300 cursor-pointer bg-transparent border-0">
-          <i class="fi fi-rr-cross text-[10px]"></i>
-        </button>
-        }
+      
+      <!-- Filters and Search Bar -->
+      <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+        <!-- Role Filter -->
+        <div class="relative w-full sm:w-auto min-w-[120px]">
+          <select [ngModel]="selectedRoleFilter()" (ngModelChange)="selectedRoleFilter.set($event)"
+            class="w-full bg-slate-950 border border-white/10 focus:border-violet-500 rounded-xl pl-3 pr-8 py-2 text-xs text-white outline-none cursor-pointer appearance-none">
+            <option value="all" class="bg-slate-900">All Roles</option>
+            <option value="owner" class="bg-slate-900">Owner</option>
+            @for (r of assignableRoles(); track r.id) {
+              <option [value]="r.slug" class="bg-slate-900">{{ r.name }}</option>
+            }
+          </select>
+          <div class="absolute inset-y-0 right-2 flex items-center pointer-events-none text-slate-400">
+            <i class="fi fi-rr-angle-small-down text-sm"></i>
+          </div>
+        </div>
+
+        <!-- Sort Select -->
+        <div class="relative w-full sm:w-auto min-w-[140px]">
+          <select [ngModel]="sortOrder()" (ngModelChange)="sortOrder.set($event)"
+            class="w-full bg-slate-950 border border-white/10 focus:border-violet-500 rounded-xl pl-3 pr-8 py-2 text-xs text-white outline-none cursor-pointer appearance-none">
+            <option value="name-asc" class="bg-slate-900">Name (A-Z)</option>
+            <option value="name-desc" class="bg-slate-900">Name (Z-A)</option>
+            <option value="joined-newest" class="bg-slate-900">Joined (Newest)</option>
+            <option value="joined-oldest" class="bg-slate-900">Joined (Oldest)</option>
+          </select>
+          <div class="absolute inset-y-0 right-2 flex items-center pointer-events-none text-slate-400">
+            <i class="fi fi-rr-angle-small-down text-sm"></i>
+          </div>
+        </div>
+
+        <!-- Search bar -->
+        <div class="relative w-full sm:w-64">
+          <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
+            <i class="fi fi-rr-search text-xs"></i>
+          </span>
+          <input type="text" [ngModel]="memberSearchQuery()" (ngModelChange)="memberSearchQuery.set($event)"
+            placeholder="Search members..."
+            class="w-full bg-slate-950 border border-white/10 rounded-xl pl-9 pr-8 py-2 text-xs text-white placeholder-slate-500 focus:border-violet-500 focus:ring-1 focus:ring-violet-500 outline-none transition-all" />
+          @if (memberSearchQuery()) {
+          <button (click)="memberSearchQuery.set('')"
+            class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-slate-300 cursor-pointer bg-transparent border-0">
+            <i class="fi fi-rr-cross text-[10px]"></i>
+          </button>
+          }
+        </div>
       </div>
     </div>
+    
     <div class="divide-y divide-white/5">
       @if (filteredMembers().length === 0) {
       <div class="px-6 py-12 text-center text-slate-500 text-xs">
-        No members found matching "{{ memberSearchQuery() }}"
+        No members found matching the filters
       </div>
       }
-      @for (member of filteredMembers(); track member.id) {
+      @for (member of paginatedMembers(); track member.id) {
       <div
         class="px-6 py-4 flex flex-col sm:flex-row sm:items-center gap-4 hover:bg-white/[0.02] transition-colors">
         <!-- Avatar + Info -->
@@ -191,7 +225,21 @@
       </div>
       }
     </div>
+
+    <!-- Paginator Footer -->
+    @if (filteredMembers().length > 0) {
+      <div class="px-6 py-4 border-t border-white/10">
+        <app-paginator
+          [currentPage]="page()"
+          [pageSize]="pageSize()"
+          [total]="filteredMembers().length"
+          (pageChange)="page.set($event)"
+          (pageSizeChange)="pageSize.set($event)"
+          [showAlways]="true" />
+      </div>
+    }
   </div>
+
 
 </div>
 

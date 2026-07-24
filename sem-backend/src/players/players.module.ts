@@ -9,6 +9,7 @@ import { PlayersService } from './players.service';
 import { PlayersController } from './players.controller';
 import { WorkspacesModule } from '../workspaces/workspaces.module';
 import { UsersModule } from '../users/users.module';
+import { SearchModule } from '../search/search.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { UsersModule } from '../users/users.module';
     ]),
     WorkspacesModule,
     UsersModule,
+    SearchModule,
   ],
   controllers: [PlayersController],
   providers: [PlayersService],

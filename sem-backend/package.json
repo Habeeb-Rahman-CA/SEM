@@ -26,9 +26,11 @@
     "migration:create": "npm run typeorm migration:create"
   },
   "dependencies": {
+    "@elastic/elasticsearch": "^9.4.2",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.0.1",
+    "@nestjs/elasticsearch": "^11.1.0",
     "@nestjs/jwt": "^11.0.2",
     "@nestjs/mapped-types": "*",
     "@nestjs/passport": "^11.0.5",
@@ -51,6 +53,7 @@
     "pg": "^8.22.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
+    "sharp": "^0.35.3",
     "socket.io": "^4.8.3",
     "typeorm": "^1.0.0",
     "winston": "^3.19.0"
