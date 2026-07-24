@@ -6,6 +6,7 @@ import { UiService } from '../../../services/ui.service';
 import { AuthService } from '../../../services/auth.service';
 import { AvatarComponent } from '../../../shared/components/avatar/avatar';
 import { BulkImportComponent, BulkImportFieldMapping } from '../../../shared/components/bulk-import/bulk-import';
+import { roleBadgeClass } from '../../../shared';
 
 @Component({
   selector: 'app-workspace-members',
@@ -77,19 +78,8 @@ export class WorkspaceMembersComponent {
     setTimeout(() => this.isCopied.set(false), 2000);
   }
 
-  roleBadgeClass(slug: string): string {
-    const map: Record<string, string> = {
-      owner:               'bg-violet-500/20 text-violet-300 border-violet-500/30',
-      administrator:       'bg-blue-500/20 text-blue-300 border-blue-500/30',
-      event_manager:       'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
-      competition_manager: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
-      referee:             'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
-      statistician:        'bg-orange-500/20 text-orange-300 border-orange-500/30',
-      media_team:          'bg-pink-500/20 text-pink-300 border-pink-500/30',
-      viewer:              'bg-slate-500/20 text-slate-300 border-slate-500/30',
-    };
-    return map[slug] ?? 'bg-slate-500/20 text-slate-300 border-slate-500/30';
-  }
+  roleBadgeClass = roleBadgeClass;
+
 
   onInvite() {
     const username = this.inviteUsername().trim();

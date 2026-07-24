@@ -23,3 +23,7 @@ export type { TabItem }                          from './components/tab-bar/tab-
 export { InitialsPipe }    from './pipes/initials.pipe';
 export { AvatarColorPipe } from './pipes/avatar-color.pipe';
 export { RatingColorPipe } from './pipes/rating-color.pipe';
+
+// ── Shared Utils ──────────────────────────────────────────────────────────────
+export { getSportBadgeClass, getSportIconClass, formatMatchStatusDetail, roleBadgeClass } from './utils/ui-helpers';
+
