@@ -1,0 +1,377 @@
+<!-- Role Management View -->
+@if (activeSubSection() === 'roles') {
+  <div class="grid grid-cols-1 gap-8">
+    <div class="bg-slate-900 border border-white/10 rounded-2xl p-6 shadow-xl flex flex-col gap-6 relative overflow-hidden">
+      <div class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-violet-500 to-indigo-500"></div>
+      <div>
+        <h2 class="text-lg font-bold text-white mb-1">Global Role Management</h2>
+        <p class="text-xs text-slate-400">Create, edit, and manage default roles available globally to all workspaces.</p>
+      </div>
+
+      <div class="bg-slate-950 border border-white/5 rounded-xl p-5">
+        <h3 class="text-xs font-bold text-white mb-1">Create Global Role</h3>
+        <p class="text-[11px] text-slate-500 mb-4">Add a new role that will be available in all workspaces.</p>
+
+        @if (roleCreateSuccess()) {
+          <div class="mb-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-3 text-emerald-300 text-xs flex items-center gap-2">
+            <i class="fi fi-rr-check-circle text-emerald-400 text-sm"></i>
+            {{ roleCreateSuccess() }}
+          </div>
+        }
+        @if (roleCreateError()) {
+          <div class="mb-4 rounded-xl bg-rose-500/10 border border-rose-500/30 p-3 text-rose-300 text-xs flex items-center gap-2">
+            <i class="fi fi-rr-exclamation text-rose-400 text-sm"></i>
+            {{ roleCreateError() }}
+          </div>
+        }
+
+        <form (submit)="onCreateRole(); $event.preventDefault()" class="flex flex-col sm:flex-row gap-3 items-end">
+          <div class="flex-1 flex flex-col gap-1.5 w-full">
+            <label for="role-name" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Role Name</label>
+            <input id="role-name" type="text" placeholder="e.g. Referee, Coordinator" autocomplete="off"
+              class="bg-slate-900 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 outline-none transition-all w-full"
+              [ngModel]="newRoleName()" (ngModelChange)="newRoleName.set($event)" name="roleName" required />
+          </div>
+          <div class="flex-1 flex flex-col gap-1.5 w-full">
+            <label for="role-desc" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Description <span class="text-slate-600 font-normal normal-case">(optional)</span></label>
+            <input id="role-desc" type="text" placeholder="Short description of duties"
+              class="bg-slate-900 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 outline-none transition-all w-full"
+              [ngModel]="newRoleDescription()" (ngModelChange)="newRoleDescription.set($event)" name="roleDesc" />
+          </div>
+          <button type="submit"
+            [disabled]="isCreatingRole() || !newRoleName().trim()"
+            class="w-full sm:w-auto px-6 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 h-[42px]">
+            @if (isCreatingRole()) {
+              <i class="fi fi-rr-spinner animate-spin text-xs"></i>
+            } @else { <i class="fi fi-rr-plus text-xs"></i> Create }
+          </button>
+        </form>
+      </div>
+
+      @if (isLoading()) {
+        <div class="py-8 flex flex-col items-center justify-center gap-3">
+          <i class="fi fi-rr-spinner animate-spin text-violet-500 text-xl"></i>
+          <span class="text-xs text-slate-500">Loading global roles...</span>
+        </div>
+      } @else {
+        <div class="bg-slate-950 border border-white/5 rounded-xl overflow-hidden">
+          <div class="px-6 py-4 border-b border-white/10 flex items-center justify-between">
+            <h3 class="text-xs font-bold text-white">All Global Roles</h3>
+            <span class="text-[11px] text-slate-500">{{ roles().length }} role{{ roles().length !== 1 ? 's' : '' }}</span>
+          </div>
+
+          <div class="hidden sm:grid grid-cols-[1.5fr_2fr_2fr_200px] gap-4 px-6 py-2.5 border-b border-white/5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+            <span>Role name</span>
+            <span>Description</span>
+            <span>Permissions</span>
+            <span class="text-center">Actions</span>
+          </div>
+
+          <div class="divide-y divide-white/5">
+            @for (role of roles(); track role.id) {
+              <div class="grid grid-cols-1 sm:grid-cols-[1.5fr_2fr_2fr_200px] gap-3 sm:gap-4 px-6 py-4 items-center hover:bg-white/[0.02] transition-colors group">
+                <div class="flex items-center gap-3">
+                  <span class="text-xs font-bold px-2.5 py-1 rounded-lg border" [class]="roleBadgeClass(role.slug)">
+                    {{ role.name }}
+                  </span>
+                </div>
+
+                <div>
+                  <p class="text-xs text-slate-400 truncate">{{ role.description || '—' }}</p>
+                  <p class="text-[10px] text-slate-600 font-mono mt-0.5">{{ role.slug }}</p>
+                </div>
+
+                <div class="flex flex-wrap gap-1 max-h-[60px] overflow-y-auto">
+                  @for (p of role.permissions || []; track p.id) {
+                    <span class="text-[9px] font-semibold bg-slate-800 text-slate-300 border border-white/5 px-1.5 py-0.5 rounded" [title]="p.description">
+                      {{ p.name }}
+                    </span>
+                  } @empty {
+                    <span class="text-[10px] text-slate-600 italic">No permissions</span>
+                  }
+                </div>
+
+                <div class="flex items-center justify-center gap-1.5">
+                  <button (click)="openEditRoleModal(role)" title="Edit Role Details"
+                    class="p-1.5 text-violet-400 hover:text-violet-300 hover:bg-violet-500/10 rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1 text-[11px] font-bold">
+                    <i class="fi fi-rr-edit text-xs"></i> Edit
+                  </button>
+
+                  <button (click)="openPermissionModal(role)" title="Manage Permissions"
+                    class="p-1.5 text-violet-400 hover:text-violet-300 hover:bg-violet-500/10 rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1 text-[11px] font-bold">
+                    <i class="fi fi-rr-lock text-xs"></i> Permissions
+                  </button>
+
+                  @if (role.isSystem && ['owner', 'administrator', 'viewer'].includes(role.slug)) {
+                    <span class="text-[10px] font-semibold bg-slate-700/60 text-slate-400 border border-slate-600 px-2 py-1 rounded">Core</span>
+                  } @else {
+                    <button (click)="onDeleteRole(role)" title="Delete Global Role"
+                      class="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1 text-[11px] font-bold">
+                      <i class="fi fi-rr-trash text-xs"></i>
+                    </button>
+                  }
+                </div>
+
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+}
+
+<!-- Permission Management View -->
+@if (activeSubSection() === 'permissions') {
+  <div class="grid grid-cols-1 gap-8">
+    <div class="bg-slate-900 border border-white/10 rounded-2xl p-6 shadow-xl flex flex-col gap-6 relative overflow-hidden">
+      <div class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-violet-500 to-indigo-500"></div>
+      <div>
+        <h2 class="text-lg font-bold text-white mb-1">System Permissions Directory & Management</h2>
+        <p class="text-xs text-slate-400">Create, edit, and delete action scopes across the entire system.</p>
+      </div>
+
+      <div class="bg-slate-950 border border-white/5 rounded-xl p-5">
+        <h3 class="text-xs font-bold text-white mb-1">Create System Permission Scope</h3>
+        <p class="text-[11px] text-slate-500 mb-4">Add a new action scope key to the permission registry.</p>
+
+        @if (permCreateSuccess()) {
+          <div class="mb-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-3 text-emerald-300 text-xs flex items-center gap-2">
+            <i class="fi fi-rr-check-circle text-emerald-400 text-sm"></i>
+            {{ permCreateSuccess() }}
+          </div>
+        }
+        @if (permCreateError()) {
+          <div class="mb-4 rounded-xl bg-rose-500/10 border border-rose-500/30 p-3 text-rose-300 text-xs flex items-center gap-2">
+            <i class="fi fi-rr-exclamation text-rose-400 text-sm"></i>
+            {{ permCreateError() }}
+          </div>
+        }
+
+        <form (submit)="onCreatePermission(); $event.preventDefault()" class="flex flex-col sm:flex-row gap-3 items-end">
+          <div class="flex-1 flex flex-col gap-1.5 w-full">
+            <label for="perm-name" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Permission Name</label>
+            <input id="perm-name" type="text" placeholder="e.g. Audit Logs View" autocomplete="off"
+              class="bg-slate-900 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 outline-none transition-all w-full"
+              [ngModel]="newPermName()" (ngModelChange)="newPermName.set($event)" name="permName" required />
+          </div>
+          <div class="w-full sm:w-48 flex flex-col gap-1.5">
+            <label for="perm-slug" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Permission Key (Slug)</label>
+            <input id="perm-slug" type="text" placeholder="e.g. audit.view" autocomplete="off"
+              class="bg-slate-900 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 outline-none transition-all w-full font-mono text-xs"
+              [ngModel]="newPermSlug()" (ngModelChange)="newPermSlug.set($event)" name="permSlug" required />
+          </div>
+          <div class="flex-1 flex flex-col gap-1.5 w-full">
+            <label for="perm-desc" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Description <span class="text-slate-600 font-normal normal-case">(optional)</span></label>
+            <input id="perm-desc" type="text" placeholder="What action this scope grants"
+              class="bg-slate-900 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 outline-none transition-all w-full"
+              [ngModel]="newPermDescription()" (ngModelChange)="newPermDescription.set($event)" name="permDesc" />
+          </div>
+          <button type="submit"
+            [disabled]="isCreatingPerm() || !newPermName().trim() || !newPermSlug().trim()"
+            class="w-full sm:w-auto px-6 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 h-[42px]">
+            @if (isCreatingPerm()) {
+              <i class="fi fi-rr-spinner animate-spin text-xs"></i>
+            } @else { <i class="fi fi-rr-plus text-xs"></i> Add Scope }
+          </button>
+        </form>
+      </div>
+
+      <div class="bg-slate-950 border border-white/5 rounded-xl overflow-hidden">
+        <div class="px-6 py-4 border-b border-white/10 flex items-center justify-between">
+          <h3 class="text-xs font-bold text-white">System Scopes</h3>
+          <span class="text-[11px] text-slate-500">{{ permissions().length }} permission scopes</span>
+        </div>
+
+        <div class="hidden sm:grid grid-cols-[1.5fr_2fr_1.5fr_160px] gap-4 px-6 py-2.5 border-b border-white/5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+          <span>Permission Key / Name</span>
+          <span>Description</span>
+          <span>Assigned Roles</span>
+          <span class="text-center">Actions</span>
+        </div>
+
+        <div class="divide-y divide-white/5">
+          @for (perm of permissions(); track perm.id) {
+            <div class="grid grid-cols-1 sm:grid-cols-[1.5fr_2fr_1.5fr_160px] gap-3 sm:gap-4 px-6 py-4 items-center hover:bg-white/[0.02] transition-colors">
+              <div>
+                <p class="text-xs font-bold text-white">{{ perm.name }}</p>
+                <p class="text-[10px] text-slate-500 font-mono mt-0.5">{{ perm.slug }}</p>
+              </div>
+              <p class="text-xs text-slate-400 leading-relaxed truncate">{{ perm.description || '—' }}</p>
+              <div class="flex flex-wrap gap-1.5">
+                @for (role of getRolesForPermission(perm); track role.id) {
+                  <span class="text-[9px] font-bold px-2 py-0.5 rounded border" [class]="roleBadgeClass(role.slug)">
+                    {{ role.name }}
+                  </span>
+                } @empty {
+                  <span class="text-[10px] text-slate-600 italic">None</span>
+                }
+              </div>
+              <div class="flex items-center justify-center gap-2">
+                <button (click)="openEditPermModal(perm)" title="Edit Permission Scope"
+                  class="p-1.5 text-violet-400 hover:text-violet-300 hover:bg-violet-500/10 rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1 text-[11px] font-bold">
+                  <i class="fi fi-rr-edit text-xs"></i> Edit
+                </button>
+                <button (click)="onDeletePermission(perm)" title="Delete Permission Scope"
+                  class="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1 text-[11px] font-bold">
+                  <i class="fi fi-rr-trash text-xs"></i>
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Manage Role Permissions Modal -->
+@if (selectedRole()) {
+  <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-xl max-h-[85vh] flex flex-col shadow-2xl relative overflow-hidden" (click)="$event.stopPropagation()">
+      <div class="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-violet-500 to-indigo-500"></div>
+
+      <div class="px-6 py-5 border-b border-white/5 flex items-center justify-between">
+        <div>
+          <h3 class="text-base font-bold text-white flex items-center gap-2">
+            <span>Manage Permissions:</span>
+            <span class="text-violet-400">{{ selectedRole()?.name }}</span>
+          </h3>
+          <p class="text-xs text-slate-400 mt-1">Configure action scopes for this global role.</p>
+        </div>
+        <button (click)="closePermissionModal()" class="text-slate-400 hover:text-white transition cursor-pointer">
+          <i class="fi fi-rr-cross text-sm"></i>
+        </button>
+      </div>
+
+      <div class="p-6 overflow-y-auto flex-1 divide-y divide-white/5 max-h-[50vh]">
+        @for (perm of permissions(); track perm.id) {
+          <label class="flex items-start gap-3.5 py-3 cursor-pointer group hover:bg-white/[0.01] -mx-4 px-4 rounded-xl transition-all">
+            <input type="checkbox" 
+              [checked]="selectedRolePermissionIds().includes(perm.id)"
+              (change)="togglePermission(perm.id)"
+              class="mt-1 w-4 h-4 rounded border-white/10 bg-slate-950 text-violet-600 focus:ring-violet-500/20 focus:ring-2 focus:ring-offset-slate-900 transition" />
+            <div>
+              <span class="text-xs font-bold text-white group-hover:text-violet-300 transition-colors">{{ perm.name }}</span>
+              <span class="text-[10px] text-slate-500 font-mono ml-2">{{ perm.slug }}</span>
+              <p class="text-[11px] text-slate-400 mt-0.5 leading-relaxed">{{ perm.description }}</p>
+            </div>
+          </label>
+        } @empty {
+          <div class="py-8 text-center text-xs text-slate-500">No permissions loaded.</div>
+        }
+      </div>
+
+      <div class="px-6 py-4 bg-slate-950/40 border-t border-white/5 flex items-center justify-end gap-3">
+        <button (click)="closePermissionModal()" [disabled]="isSavingPermissions()"
+          class="px-4 py-2 text-xs font-bold text-slate-400 hover:text-white transition cursor-pointer disabled:opacity-50">
+          Cancel
+        </button>
+        <button (click)="saveRolePermissions()" [disabled]="isSavingPermissions()"
+          class="px-5 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-xs font-bold text-white rounded-xl transition-all cursor-pointer flex items-center gap-2">
+          @if (isSavingPermissions()) {
+            <i class="fi fi-rr-spinner animate-spin text-xs"></i> Saving...
+          } @else { Save Changes }
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Edit Global Role Modal -->
+@if (editingRole()) {
+  <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-md flex flex-col shadow-2xl relative overflow-hidden" (click)="$event.stopPropagation()">
+      <div class="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-violet-500 to-indigo-500"></div>
+
+      <div class="px-6 py-5 border-b border-white/5 flex items-center justify-between">
+        <div>
+          <h3 class="text-base font-bold text-white">Edit Global Role</h3>
+          <p class="text-xs text-slate-400 mt-1">Update name and description for this role.</p>
+        </div>
+        <button (click)="closeEditRoleModal()" class="text-slate-400 hover:text-white transition cursor-pointer">
+          <i class="fi fi-rr-cross text-sm"></i>
+        </button>
+      </div>
+
+      <form (submit)="onUpdateRole(); $event.preventDefault()" class="p-6 flex flex-col gap-4">
+        <div class="flex flex-col gap-1.5">
+          <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Role Name</label>
+          <input type="text" [ngModel]="editRoleName()" (ngModelChange)="editRoleName.set($event)" name="editRoleName" required
+            class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-sm text-white outline-none transition-all" />
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+          <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Description</label>
+          <textarea [ngModel]="editRoleDescription()" (ngModelChange)="editRoleDescription.set($event)" name="editRoleDesc" rows="3"
+            class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-sm text-white outline-none transition-all resize-none"></textarea>
+        </div>
+
+        <div class="pt-4 border-t border-white/5 flex items-center justify-end gap-3">
+          <button type="button" (click)="closeEditRoleModal()" [disabled]="isUpdatingRole()"
+            class="px-4 py-2 text-xs font-bold text-slate-400 hover:text-white transition cursor-pointer disabled:opacity-50">
+            Cancel
+          </button>
+          <button type="submit" [disabled]="isUpdatingRole() || !editRoleName().trim()"
+            class="px-5 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-xs font-bold text-white rounded-xl transition-all cursor-pointer flex items-center gap-2">
+            @if (isUpdatingRole()) {
+              <i class="fi fi-rr-spinner animate-spin text-xs"></i> Updating...
+            } @else { Save Changes }
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- Edit Permission Modal -->
+@if (editingPerm()) {
+  <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-md flex flex-col shadow-2xl relative overflow-hidden" (click)="$event.stopPropagation()">
+      <div class="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-violet-500 to-indigo-500"></div>
+
+      <div class="px-6 py-5 border-b border-white/5 flex items-center justify-between">
+        <div>
+          <h3 class="text-base font-bold text-white">Edit Permission Scope</h3>
+          <p class="text-xs text-slate-400 mt-1">Update details for permission key.</p>
+        </div>
+        <button (click)="closeEditPermModal()" class="text-slate-400 hover:text-white transition cursor-pointer">
+          <i class="fi fi-rr-cross text-sm"></i>
+        </button>
+      </div>
+
+      <form (submit)="onUpdatePermission(); $event.preventDefault()" class="p-6 flex flex-col gap-4">
+        <div class="flex flex-col gap-1.5">
+          <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Permission Name</label>
+          <input type="text" [ngModel]="editPermName()" (ngModelChange)="editPermName.set($event)" name="editPermName" required
+            class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-sm text-white outline-none transition-all" />
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+          <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Permission Key (Slug)</label>
+          <input type="text" [ngModel]="editPermSlug()" (ngModelChange)="editPermSlug.set($event)" name="editPermSlug" required
+            class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-sm text-white font-mono text-xs transition-all" />
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+          <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Description</label>
+          <textarea [ngModel]="editPermDescription()" (ngModelChange)="editPermDescription.set($event)" name="editPermDesc" rows="3"
+            class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-sm text-white outline-none transition-all resize-none"></textarea>
+        </div>
+
+        <div class="pt-4 border-t border-white/5 flex items-center justify-end gap-3">
+          <button type="button" (click)="closeEditPermModal()" [disabled]="isUpdatingPerm()"
+            class="px-4 py-2 text-xs font-bold text-slate-400 hover:text-white transition cursor-pointer disabled:opacity-50">
+            Cancel
+          </button>
+          <button type="submit" [disabled]="isUpdatingPerm() || !editPermName().trim() || !editPermSlug().trim()"
+            class="px-5 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-xs font-bold text-white rounded-xl transition-all cursor-pointer flex items-center gap-2">
+            @if (isUpdatingPerm()) {
+              <i class="fi fi-rr-spinner animate-spin text-xs"></i> Updating...
+            } @else { Save Changes }
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

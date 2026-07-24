@@ -1,0 +1,96 @@
+<!-- Audit Logs & Activity Trail View -->
+<div class="grid grid-cols-1 gap-8">
+  <div class="bg-slate-900 border border-white/10 rounded-2xl p-6 shadow-xl flex flex-col gap-6 relative overflow-hidden">
+    <div class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-amber-500 to-violet-500"></div>
+    
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div>
+        <h2 class="text-lg font-bold text-white mb-1 flex items-center gap-2">
+          <i class="fi fi-rr-document-signed text-amber-400 text-base"></i>
+          System Audit Logs & Security Trail
+        </h2>
+        <p class="text-xs text-slate-400">Recorded action events, configuration updates, and administrative security logs.</p>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <select [ngModel]="selectedAuditCategory()" (ngModelChange)="selectedAuditCategory.set($event); loadAuditLogs()"
+          class="bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-300 outline-none cursor-pointer">
+          <option value="">All Categories</option>
+          <option value="SECURITY">Security</option>
+          <option value="MASTER_DATA">Master Data</option>
+          <option value="WORKSPACE">Workspace</option>
+          <option value="SYSTEM">System</option>
+        </select>
+
+        <button (click)="onClearAuditLogs()"
+          class="px-4 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer">
+          <i class="fi fi-rr-trash text-xs"></i> Clear Audit History
+        </button>
+      </div>
+    </div>
+
+    <!-- Audit Logs Table -->
+    @if (isLoadingAuditLogs()) {
+      <div class="py-12 flex flex-col items-center justify-center gap-3">
+        <i class="fi fi-rr-spinner animate-spin text-amber-500 text-xl"></i>
+        <span class="text-xs text-slate-500">Loading audit log trail...</span>
+      </div>
+    } @else {
+      <div class="bg-slate-950 border border-white/5 rounded-xl overflow-hidden">
+        <div class="px-6 py-4 border-b border-white/10 flex items-center justify-between">
+          <h3 class="text-xs font-bold text-white">Recent Log Entries</h3>
+          <span class="text-[11px] text-slate-500">{{ auditLogs().length }} entries</span>
+        </div>
+
+        <!-- Header -->
+        <div class="hidden sm:grid grid-cols-[1.5fr_1.2fr_1.5fr_2fr_120px_160px] gap-3 px-6 py-2.5 border-b border-white/5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+          <span>Action</span>
+          <span>Category</span>
+          <span>Performed By</span>
+          <span>Details / Payload</span>
+          <span>Status</span>
+          <span>Timestamp</span>
+        </div>
+
+        <!-- Rows -->
+        <div class="divide-y divide-white/5">
+          @for (log of auditLogs(); track log.id) {
+            <div class="grid grid-cols-1 sm:grid-cols-[1.5fr_1.2fr_1.5fr_2fr_120px_160px] gap-2 sm:gap-3 px-6 py-3.5 items-center hover:bg-white/[0.02] transition-colors text-xs">
+              <div class="font-bold text-white font-mono text-[11px] truncate" [title]="log.action">
+                {{ log.action }}
+              </div>
+              <div>
+                <span class="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border"
+                  [class]="log.category === 'SECURITY' ? 'bg-rose-500/10 text-rose-300 border-rose-500/30' :
+                           log.category === 'MASTER_DATA' ? 'bg-violet-500/10 text-violet-300 border-violet-500/30' :
+                           log.category === 'WORKSPACE' ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30' :
+                           'bg-blue-500/10 text-blue-300 border-blue-500/30'">
+                  {{ log.category }}
+                </span>
+              </div>
+              <div class="text-slate-300 font-medium truncate">
+                {{ log.performedByName || 'System / Anonymous' }}
+              </div>
+              <div class="text-slate-400 text-[11px] truncate" [title]="log.details || ''">
+                {{ log.details || '—' }}
+              </div>
+              <div>
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded"
+                  [class]="log.status === 'SUCCESS' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'">
+                  {{ log.status }}
+                </span>
+              </div>
+              <div class="text-[11px] text-slate-500 font-mono">
+                {{ log.createdAt | date:'short' }}
+              </div>
+            </div>
+          } @empty {
+            <div class="p-8 text-center text-xs text-slate-500">
+              No audit log records found for the selected filter.
+            </div>
+          }
+        </div>
+      </div>
+    }
+  </div>
+</div>

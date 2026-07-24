@@ -1,0 +1,111 @@
+<!-- Global Preferences & Maintenance View -->
+<div class="grid grid-cols-1 gap-8">
+  <div class="bg-slate-900 border border-white/10 rounded-2xl p-6 shadow-xl flex flex-col gap-6 relative overflow-hidden">
+    <div class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-cyan-500 to-blue-500"></div>
+
+    <div>
+      <h2 class="text-lg font-bold text-white mb-1 flex items-center gap-2">
+        <i class="fi fi-rr-settings-sliders text-cyan-400 text-base"></i>
+        Global System Preferences & Maintenance Controls
+      </h2>
+      <p class="text-xs text-slate-400">Manage maintenance toggles, registration policies, broadcast announcements, and system limits.</p>
+    </div>
+
+    @if (isLoadingConfigs()) {
+      <div class="py-12 flex flex-col items-center justify-center gap-3">
+        <i class="fi fi-rr-spinner animate-spin text-cyan-500 text-xl"></i>
+        <span class="text-xs text-slate-500">Loading system configurations...</span>
+      </div>
+    } @else if (systemConfigs()) {
+      <div class="grid grid-cols-1 gap-6">
+
+        <!-- Maintenance Mode Toggle -->
+        <div class="bg-slate-950 border border-white/5 rounded-xl p-5 flex items-center justify-between">
+          <div>
+            <div class="flex items-center gap-2">
+              <i class="fi fi-rr-tool text-amber-400 text-sm"></i>
+              <h3 class="text-xs font-bold text-white">System Maintenance Mode</h3>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-1">When enabled, non-admin users will be restricted from performing write actions.</p>
+          </div>
+
+          <button (click)="onToggleConfig('maintenance_mode', systemConfigs()?.[ 'maintenance_mode' ] || 'false')"
+            class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer border"
+            [class]="systemConfigs()?.[ 'maintenance_mode' ] === 'true' ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' : 'bg-slate-900 text-slate-400 border-white/10'">
+            <i class="fi" [class]="systemConfigs()?.[ 'maintenance_mode' ] === 'true' ? 'fi-sr-toggle-on text-amber-400' : 'fi-rr-toggle-off'"></i>
+            {{ systemConfigs()?.[ 'maintenance_mode' ] === 'true' ? 'Enabled' : 'Disabled' }}
+          </button>
+        </div>
+
+        <!-- Allow Registrations Toggle -->
+        <div class="bg-slate-950 border border-white/5 rounded-xl p-5 flex items-center justify-between">
+          <div>
+            <div class="flex items-center gap-2">
+              <i class="fi fi-rr-user-add text-emerald-400 text-sm"></i>
+              <h3 class="text-xs font-bold text-white">Allow Public Self-Registration</h3>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-1">Controls whether new users can self-register accounts on the login/register screen.</p>
+          </div>
+
+          <button (click)="onToggleConfig('allow_registrations', systemConfigs()?.[ 'allow_registrations' ] || 'true')"
+            class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer border"
+            [class]="systemConfigs()?.[ 'allow_registrations' ] === 'true' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-rose-500/20 text-rose-300 border-rose-500/40'">
+            <i class="fi" [class]="systemConfigs()?.[ 'allow_registrations' ] === 'true' ? 'fi-sr-toggle-on text-emerald-400' : 'fi-rr-toggle-off'"></i>
+            {{ systemConfigs()?.[ 'allow_registrations' ] === 'true' ? 'Allowed' : 'Disabled' }}
+          </button>
+        </div>
+
+        <!-- Announcement Banner Config -->
+        <div class="bg-slate-950 border border-white/5 rounded-xl p-5 flex flex-col gap-4">
+          <div>
+            <div class="flex items-center gap-2">
+              <i class="fi fi-rr-bullhorn text-violet-400 text-sm"></i>
+              <h3 class="text-xs font-bold text-white">System Broadcast Announcement Banner</h3>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-1">Set a system-wide announcement message visible to all logged-in users.</p>
+          </div>
+
+          <div class="flex flex-col sm:flex-row gap-3">
+            <input type="text" placeholder="e.g. Scheduled maintenance tonight at 02:00 UTC."
+              #announcementInput [value]="systemConfigs()?.[ 'announcement_text' ] || ''"
+              class="bg-slate-900 border border-white/10 focus:border-violet-500 rounded-xl px-4 py-2 text-xs text-white outline-none flex-1" />
+
+            <select #announcementLevelInput [value]="systemConfigs()?.[ 'announcement_level' ] || 'info'"
+              class="bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-300 outline-none">
+              <option value="info">Info (Blue)</option>
+              <option value="warning">Warning (Amber)</option>
+              <option value="alert">Alert (Rose)</option>
+            </select>
+
+            <button (click)="onUpdateConfigValue('announcement_text', announcementInput.value); onUpdateConfigValue('announcement_level', announcementLevelInput.value)"
+              class="px-5 py-2 bg-violet-600 hover:bg-violet-500 text-white font-bold rounded-xl text-xs transition cursor-pointer flex items-center gap-1.5">
+              <i class="fi fi-rr-check text-xs"></i> Update Banner
+            </button>
+          </div>
+        </div>
+
+        <!-- Workspace Quota Limit -->
+        <div class="bg-slate-950 border border-white/5 rounded-xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-2">
+              <i class="fi fi-rr-box text-cyan-400 text-sm"></i>
+              <h3 class="text-xs font-bold text-white">Default Max Workspaces Per User</h3>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-1">Maximum number of organization workspaces a standard user can create.</p>
+          </div>
+
+          <div class="flex items-center gap-2 w-full sm:w-auto">
+            <input type="number" #maxWsInput [value]="systemConfigs()?.[ 'max_workspaces_per_user' ] || '10'" min="1" max="100"
+              class="w-24 bg-slate-900 border border-white/10 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs text-white font-bold text-center outline-none" />
+
+            <button (click)="onUpdateConfigValue('max_workspaces_per_user', maxWsInput.value)"
+              class="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl text-xs transition cursor-pointer">
+              Save Limit
+            </button>
+          </div>
+        </div>
+
+      </div>
+    }
+  </div>
+</div>
