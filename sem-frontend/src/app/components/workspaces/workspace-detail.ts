@@ -24,6 +24,7 @@ import { WorkspaceDashboardComponent } from './dashboard/dashboard';
 import { WorkspaceMembersComponent } from './members/members';
 import { WorkspaceSettingsComponent } from './settings/settings';
 import { WorkspaceReportsComponent } from './reports/reports';
+import { WorkspaceFilesComponent } from './files/files';
 import { getSportBadgeClass, getSportIconClass, formatMatchStatusDetail, roleBadgeClass } from '../../shared';
 
 declare const L: any;
@@ -46,6 +47,7 @@ declare const L: any;
     WorkspaceMembersComponent,
     WorkspaceSettingsComponent,
     WorkspaceReportsComponent,
+    WorkspaceFilesComponent,
   ],
   templateUrl: './workspace-detail.html',
   styleUrl: './workspace-detail.css',
@@ -98,7 +100,7 @@ export class WorkspaceDetailComponent implements OnInit {
   roles = signal<Role[]>([]);
   isLoading = signal(true);
   error = signal('');
-  activeTab = signal<'overview' | 'members' | 'settings' | 'teams' | 'players' | 'events' | 'venues' | 'reports'>('overview');
+  activeTab = signal<'overview' | 'members' | 'settings' | 'teams' | 'players' | 'events' | 'venues' | 'reports' | 'files'>('overview');
   isSidebarOpen = signal(true);
 
   // ── Workspace Dashboard Overview Signals ─────────────────────────────────────

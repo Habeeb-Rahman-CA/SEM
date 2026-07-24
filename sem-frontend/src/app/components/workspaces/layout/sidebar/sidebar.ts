@@ -11,7 +11,7 @@ import { AvatarComponent } from '../../../../shared/components/avatar/avatar';
 export class SidebarComponent {
   workspace = input<Workspace | null>(null);
   isSidebarOpen = model<boolean>(true);
-  activeTab = model<'overview' | 'members' | 'settings' | 'teams' | 'players' | 'events' | 'venues' | 'reports'>('overview');
+  activeTab = model<'overview' | 'members' | 'settings' | 'teams' | 'players' | 'events' | 'venues' | 'reports' | 'files'>('overview');
   membersCount = input<number>(0);
   teamsCount = input<number>(0);
   playersCount = input<number>(0);

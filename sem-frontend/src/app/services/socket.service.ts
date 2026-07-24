@@ -94,4 +94,16 @@ export class SocketService {
       this.socket.emit('unsubscribeWorkspace', { workspaceId });
     }
   }
+
+  onFileScanned(callback: (data: any) => void) {
+    if (this.socket) {
+      this.socket.on('fileScanned', callback);
+    }
+  }
+
+  offFileScanned() {
+    if (this.socket) {
+      this.socket.off('fileScanned');
+    }
+  }
 }

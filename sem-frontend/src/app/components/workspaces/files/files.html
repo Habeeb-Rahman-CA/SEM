@@ -1,0 +1,402 @@
+<div class="space-y-6">
+  <!-- Header & Settings Panel -->
+  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-black text-white flex items-center gap-3">
+        <i class="fi fi-rr-folder-open text-violet-400"></i>
+        <span>File Management</span>
+      </h1>
+      <p class="text-xs text-slate-400 mt-1">Upload, compress, track versions, and scan files for security threats.</p>
+    </div>
+
+    <!-- Upload Button -->
+    <div class="flex items-center gap-3">
+      <label class="relative flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-bold rounded-xl cursor-pointer shadow-lg shadow-violet-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]">
+        <i class="fi fi-rr-upload"></i>
+        <span>Upload File</span>
+        <input type="file" (change)="onFileUpload($event)" class="hidden" [disabled]="isUploading() || isLoading()" />
+      </label>
+    </div>
+  </div>
+
+  <!-- Compression settings card -->
+  <div class="bg-slate-900/50 border border-white/5 rounded-2xl p-4">
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-400">
+          <i class="fi fi-rr-settings-sliders text-base"></i>
+        </div>
+        <div>
+          <h3 class="text-xs font-extrabold text-white">Smart Image Compression Settings</h3>
+          <p class="text-[10px] text-slate-400">Optimizes JPEGs, PNGs, and WebPs automatically to save space and bandwidth.</p>
+        </div>
+      </div>
+      
+      <div class="flex flex-wrap items-center gap-6">
+        <!-- Client compression checkbox -->
+        <label class="flex items-center gap-2 cursor-pointer select-none">
+          <input type="checkbox" [checked]="compressOnClient()" (change)="compressOnClient.set(!compressOnClient())" class="w-4 h-4 accent-violet-600 rounded border-white/10 bg-slate-950" />
+          <span class="text-xs text-slate-300">Compress on Client</span>
+        </label>
+
+        <!-- Server compression checkbox -->
+        <label class="flex items-center gap-2 cursor-pointer select-none">
+          <input type="checkbox" [checked]="compressOnServer()" (change)="compressOnServer.set(!compressOnServer())" class="w-4 h-4 accent-violet-600 rounded border-white/10 bg-slate-950" />
+          <span class="text-xs text-slate-300">Compress on Server</span>
+        </label>
+
+        <!-- Quality slider -->
+        <div class="flex items-center gap-3 min-w-[200px]">
+          <span class="text-[10px] text-slate-400 shrink-0">Quality ({{ (compressionQuality() * 100) | number:'1.0-0' }}%)</span>
+          <input type="range" min="0.4" max="1.0" step="0.05" [value]="compressionQuality()" (input)="compressionQuality.set($any($event.target).value)" class="flex-1 accent-violet-500 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search and Tabs -->
+  <div class="flex flex-col sm:flex-row gap-4 justify-between items-center bg-slate-900/60 p-4 border border-white/10 rounded-2xl">
+    <!-- Category Tabs -->
+    <div class="flex bg-slate-950 p-1 rounded-xl border border-white/5 w-full sm:w-auto">
+      <button (click)="selectedTab.set('all')" [class]="selectedTab() === 'all' ? 'bg-violet-600/20 text-violet-400 border border-violet-500/20' : 'text-slate-400 hover:text-white'" class="flex-1 sm:flex-initial px-4 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer">
+        All Files
+      </button>
+      <button (click)="selectedTab.set('images')" [class]="selectedTab() === 'images' ? 'bg-violet-600/20 text-violet-400 border border-violet-500/20' : 'text-slate-400 hover:text-white'" class="flex-1 sm:flex-initial px-4 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer">
+        Images
+      </button>
+      <button (click)="selectedTab.set('documents')" [class]="selectedTab() === 'documents' ? 'bg-violet-600/20 text-violet-400 border border-violet-500/20' : 'text-slate-400 hover:text-white'" class="flex-1 sm:flex-initial px-4 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer">
+        Documents
+      </button>
+      <button (click)="selectedTab.set('other')" [class]="selectedTab() === 'other' ? 'bg-violet-600/20 text-violet-400 border border-violet-500/20' : 'text-slate-400 hover:text-white'" class="flex-1 sm:flex-initial px-4 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer">
+        Other
+      </button>
+    </div>
+
+    <!-- Search Input -->
+    <div class="relative w-full sm:w-72">
+      <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+        <i class="fi fi-rr-search text-xs"></i>
+      </span>
+      <input type="text" [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)" placeholder="Search files by name..." class="w-full pl-9 pr-4 py-2 text-xs bg-slate-950 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-violet-500 transition-all" />
+    </div>
+  </div>
+
+  <!-- Upload Loading state -->
+  @if (isUploading()) {
+    <div class="flex items-center gap-3 p-4 bg-violet-600/10 border border-violet-500/20 rounded-xl text-violet-400">
+      <i class="fi fi-rr-spinner animate-spin text-sm"></i>
+      <span class="text-xs font-bold">Uploading file and processing compression... Please wait.</span>
+    </div>
+  }
+
+  <!-- Files Table / Grid -->
+  @if (isLoading()) {
+    <div class="flex flex-col items-center justify-center py-20 bg-slate-900/20 border border-white/5 rounded-3xl gap-4">
+      <i class="fi fi-rr-spinner animate-spin text-3xl text-violet-500"></i>
+      <span class="text-slate-400 text-xs font-medium">Loading workspace files...</span>
+    </div>
+  } @else if (filteredFiles().length === 0) {
+    <div class="flex flex-col items-center justify-center py-20 bg-slate-900/20 border border-white/5 rounded-3xl text-center p-6">
+      <div class="w-16 h-16 rounded-2xl bg-slate-800 flex items-center justify-center mb-4 border border-white/5">
+        <i class="fi fi-rr-folder-open text-2xl text-slate-500"></i>
+      </div>
+      <h3 class="text-white font-bold text-sm">No files found</h3>
+      <p class="text-slate-500 text-xs mt-1 max-w-sm">No files uploaded match the current tab/search filters. Use the upload button above to add workspace attachments.</p>
+    </div>
+  } @else {
+    <div class="bg-slate-900/40 border border-white/10 rounded-2xl overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full border-collapse text-left">
+          <thead>
+            <tr class="border-b border-white/10 bg-slate-900/60">
+              <th class="p-4 text-xs font-black text-slate-400">Name</th>
+              <th class="p-4 text-xs font-black text-slate-400">Type</th>
+              <th class="p-4 text-xs font-black text-slate-400">Size</th>
+              <th class="p-4 text-xs font-black text-slate-400">Version</th>
+              <th class="p-4 text-xs font-black text-slate-400">Virus Scan Status</th>
+              <th class="p-4 text-xs font-black text-slate-400">Uploaded</th>
+              <th class="p-4 text-xs font-black text-slate-400 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-white/5">
+            @for (file of filteredFiles(); track file.id) {
+              <tr class="hover:bg-white/[0.02] transition-colors group">
+                <!-- Name (Inline Edit) -->
+                <td class="p-4">
+                  @if (renamingFileId() === file.id) {
+                    <div class="flex items-center gap-2">
+                      <input type="text" [(ngModel)]="renamingName" (keyup.enter)="saveRename(file)" (keyup.esc)="cancelRename()" class="px-2.5 py-1 text-xs bg-slate-950 border border-violet-500 rounded-lg text-white focus:outline-none w-48 sm:w-64" />
+                      <button (click)="saveRename(file)" class="p-1.5 bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-md hover:bg-emerald-500/30 transition-all cursor-pointer">
+                        <i class="fi fi-rr-check"></i>
+                      </button>
+                      <button (click)="cancelRename()" class="p-1.5 bg-slate-800 text-slate-400 border border-white/5 rounded-md hover:bg-slate-700 transition-all cursor-pointer">
+                        <i class="fi fi-rr-cross-small"></i>
+                      </button>
+                    </div>
+                  } @else {
+                    <div class="flex items-center gap-3">
+                      <div class="w-8 h-8 rounded-lg bg-slate-950 flex items-center justify-center border border-white/5 shrink-0">
+                        <i class="fi" [class]="getFileIconClass(file.mimeType, file.name)"></i>
+                      </div>
+                      <span class="text-xs font-bold text-white max-w-[200px] sm:max-w-[320px] truncate" [title]="file.name">{{ file.name }}</span>
+                      <button (click)="startRename(file)" class="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-white transition-all cursor-pointer" title="Rename file">
+                        <i class="fi fi-rr-edit text-[10px]"></i>
+                      </button>
+                    </div>
+                  }
+                </td>
+
+                <!-- Type -->
+                <td class="p-4">
+                  <span class="text-[10px] uppercase font-mono px-2 py-0.5 bg-slate-950 text-slate-400 border border-white/5 rounded">
+                    {{ file.mimeType.split('/')[1] || 'binary' }}
+                  </span>
+                </td>
+
+                <!-- Size -->
+                <td class="p-4 text-xs text-slate-300 font-mono">
+                  {{ formatBytes(file.size) }}
+                </td>
+
+                <!-- Version -->
+                <td class="p-4">
+                  <button (click)="openVersionHistory(file)" class="text-xs text-violet-400 hover:text-violet-300 font-semibold underline flex items-center gap-1.5 cursor-pointer">
+                    <i class="fi fi-rr-time-past text-[10px]"></i>
+                    <span>v{{ file.currentVersion }}</span>
+                  </button>
+                </td>
+
+                <!-- Virus Scan Status -->
+                <td class="p-4">
+                  @if (file.virusScanStatus === 'pending') {
+                    <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-bold" [title]="file.virusScanDetails || 'Scanning initiated...'">
+                      <i class="fi fi-rr-spinner animate-spin"></i>
+                      <span>Scanning</span>
+                    </div>
+                  } @else if (file.virusScanStatus === 'clean') {
+                    <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold" [title]="file.virusScanDetails || 'Passed ClamAV security scan.'">
+                      <i class="fi fi-rr-check-circle"></i>
+                      <span>Clean & Safe</span>
+                    </div>
+                  } @else if (file.virusScanStatus === 'infected') {
+                    <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[10px] font-bold animate-pulse cursor-help" [title]="file.virusScanDetails || 'WARNING: Malicious code detected! Access quarantined.'">
+                      <i class="fi fi-rr-shield-exclamation animate-bounce"></i>
+                      <span>Quarantined</span>
+                    </div>
+                  }
+                </td>
+
+                <!-- Uploaded At -->
+                <td class="p-4 text-xs text-slate-400 font-mono">
+                  {{ file.createdAt | date:'shortDate' }}
+                </td>
+
+                <!-- Actions -->
+                <td class="p-4 text-right">
+                  <div class="flex items-center justify-end gap-2">
+                    <!-- Preview -->
+                    @if (file.virusScanStatus !== 'infected') {
+                      <button (click)="openPreview(file)" class="p-2 bg-slate-950 text-slate-300 border border-white/5 rounded-xl hover:bg-slate-800 transition-all cursor-pointer" title="Preview file">
+                        <i class="fi fi-rr-eye"></i>
+                      </button>
+                    } @else {
+                      <button class="p-2 bg-slate-950 text-slate-600 border border-white/5 rounded-xl cursor-not-allowed" title="Preview blocked (infected)">
+                        <i class="fi fi-rr-eye"></i>
+                      </button>
+                    }
+
+                    <!-- Download -->
+                    @if (file.virusScanStatus !== 'infected') {
+                      <a [href]="file.url" target="_blank" download class="p-2 bg-slate-950 text-slate-300 border border-white/5 rounded-xl hover:bg-slate-800 transition-all flex items-center justify-center cursor-pointer" title="Download file">
+                        <i class="fi fi-rr-download"></i>
+                      </a>
+                    } @else {
+                      <button class="p-2 bg-slate-950 text-slate-600 border border-white/5 rounded-xl cursor-not-allowed" title="Download blocked (infected)">
+                        <i class="fi fi-rr-download"></i>
+                      </button>
+                    }
+
+                    <!-- Delete -->
+                    <button (click)="onDeleteFile(file)" class="p-2 bg-slate-950 text-rose-400/80 hover:text-rose-400 border border-white/5 rounded-xl hover:bg-slate-800 transition-all cursor-pointer" title="Delete file">
+                      <i class="fi fi-rr-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+</div>
+
+<!-- ═══════════════ VERSION HISTORY MODAL ═══════════════ -->
+@if (isVersionModalOpen() && selectedFile()) {
+  <div class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+    <div class="w-full max-w-2xl bg-slate-950 border border-white/10 rounded-2xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
+      <!-- Modal Header -->
+      <div class="p-5 border-b border-white/10 flex justify-between items-center bg-slate-900/80">
+        <div>
+          <h2 class="text-sm font-black text-white flex items-center gap-2">
+            <i class="fi fi-rr-time-past text-violet-400"></i>
+            <span>Version History: {{ selectedFile()?.name }}</span>
+          </h2>
+          <p class="text-[10px] text-slate-400 mt-0.5">View and download historical updates or upload a new version.</p>
+        </div>
+        <button (click)="closeVersionModal()" class="p-1 text-slate-400 hover:text-white rounded-lg cursor-pointer">
+          <i class="fi fi-rr-cross-small text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-6 overflow-y-auto space-y-6">
+        <!-- Upload New Version Field -->
+        <div class="p-4 bg-slate-900/60 border border-white/5 rounded-xl flex items-center justify-between gap-4">
+          <div>
+            <h4 class="text-xs font-extrabold text-white">Upload New Version</h4>
+            <p class="text-[10px] text-slate-400">Replaces the current file URL and preserves the existing reference.</p>
+          </div>
+          <label class="relative flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-[11px] font-bold rounded-lg cursor-pointer transition-all shadow-md">
+            <i class="fi fi-rr-upload text-[10px]"></i>
+            <span>Upload New Version</span>
+            <input type="file" (change)="onVersionUpload($event, selectedFile()?.id || '')" class="hidden" />
+          </label>
+        </div>
+
+        <!-- Versions Timeline -->
+        <div class="space-y-4">
+          <h3 class="text-xs font-black text-slate-400 uppercase tracking-wider">Version Timeline</h3>
+
+          @if (isLoadingVersions()) {
+            <div class="flex items-center justify-center py-10 gap-3">
+              <i class="fi fi-rr-spinner animate-spin text-xl text-violet-500"></i>
+              <span class="text-slate-400 text-xs">Loading versions...</span>
+            </div>
+          } @else {
+            <div class="space-y-4">
+              @for (ver of versionHistory(); track ver.id) {
+                <div class="flex items-start gap-4 p-3.5 bg-slate-900/40 border border-white/5 rounded-xl hover:bg-slate-900/70 transition-all">
+                  <div class="w-8 h-8 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-400 flex items-center justify-center font-bold text-xs shrink-0">
+                    v{{ ver.versionNumber }}
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex justify-between items-start gap-4">
+                      <div>
+                        <span class="text-xs font-bold text-white">Version {{ ver.versionNumber }}</span>
+                        @if (ver.versionNumber === selectedFile()?.currentVersion) {
+                          <span class="ml-2 px-1.5 py-0.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[8px] font-black rounded-md uppercase">Current</span>
+                        }
+                      </div>
+                      <span class="text-[10px] text-slate-400 font-mono">{{ ver.createdAt | date:'medium' }}</span>
+                    </div>
+
+                    <div class="flex items-center gap-4 mt-2">
+                      <span class="text-[10px] text-slate-500 font-mono">Size: {{ formatBytes(ver.size) }}</span>
+
+                      <!-- Scan Badge -->
+                      @if (ver.virusScanStatus === 'pending') {
+                        <span class="inline-flex items-center gap-1 text-amber-400 text-[9px] font-bold" [title]="ver.virusScanDetails || 'Scanning initiated...'">
+                          <i class="fi fi-rr-spinner animate-spin text-[8px]"></i>
+                          <span>Scanning</span>
+                        </span>
+                      } @else if (ver.virusScanStatus === 'clean') {
+                        <span class="inline-flex items-center gap-1 text-emerald-400 text-[9px] font-bold" [title]="ver.virusScanDetails || 'No threat detected.'">
+                          <i class="fi fi-rr-check-circle text-[8px]"></i>
+                          <span>Safe</span>
+                        </span>
+                      } @else if (ver.virusScanStatus === 'infected') {
+                        <span class="inline-flex items-center gap-1 text-rose-400 text-[9px] font-bold" [title]="ver.virusScanDetails || 'VIRUS DETECTED!'">
+                          <i class="fi fi-rr-shield-exclamation text-[8px]"></i>
+                          <span>Infected</span>
+                        </span>
+                      }
+                    </div>
+                  </div>
+
+                  <!-- Download historical version button -->
+                  @if (ver.virusScanStatus !== 'infected') {
+                    <a [href]="ver.url" target="_blank" download class="p-2 bg-slate-950 text-slate-400 hover:text-white border border-white/5 rounded-lg transition-all" title="Download version">
+                      <i class="fi fi-rr-download text-[11px]"></i>
+                    </a>
+                  } @else {
+                    <button class="p-2 bg-slate-950 text-slate-600 border border-white/5 rounded-lg cursor-not-allowed" title="Blocked due to virus infection">
+                      <i class="fi fi-rr-download text-[11px]"></i>
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ═══════════════ RICH FILE PREVIEW MODAL ═══════════════ -->
+@if (isPreviewModalOpen() && previewFile()) {
+  <div class="fixed inset-0 bg-black/90 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+    <div class="w-full max-w-4xl bg-slate-950 border border-white/10 rounded-2xl shadow-2xl flex flex-col h-[85vh] overflow-hidden">
+      <!-- Modal Header -->
+      <div class="p-5 border-b border-white/10 flex justify-between items-center bg-slate-900/80">
+        <div>
+          <h2 class="text-sm font-black text-white flex items-center gap-2">
+            <i class="fi fi-rr-eye text-violet-400"></i>
+            <span>Preview File: {{ previewFile()?.name }}</span>
+          </h2>
+          <p class="text-[10px] text-slate-400 mt-0.5">Type: {{ previewFile()?.mimeType }} | Size: {{ formatBytes(previewFile()?.size || 0) }}</p>
+        </div>
+        <button (click)="closePreviewModal()" class="p-1 text-slate-400 hover:text-white rounded-lg cursor-pointer">
+          <i class="fi fi-rr-cross-small text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Preview Body -->
+      <div class="flex-1 bg-slate-950 overflow-auto flex items-center justify-center p-6 relative">
+        @if (isLoadingPreview()) {
+          <div class="flex flex-col items-center gap-3">
+            <i class="fi fi-rr-spinner animate-spin text-3xl text-violet-500"></i>
+            <span class="text-slate-400 text-xs">Fetching file contents...</span>
+          </div>
+        } @else {
+          <!-- Image Previews -->
+          @if (previewFile()?.mimeType?.startsWith('image/')) {
+            <div class="max-w-full max-h-full flex items-center justify-center rounded-xl overflow-hidden border border-white/5 bg-slate-900">
+              <img [src]="previewFile()?.url" [alt]="previewFile()?.name" class="max-w-full max-h-[60vh] object-contain rounded-xl" />
+            </div>
+          }
+          
+          <!-- PDF Previews -->
+          @else if (previewFile()?.mimeType?.includes('pdf')) {
+            <iframe [src]="$any(previewFile()?.url)" class="w-full h-full border-0 rounded-xl bg-white" title="PDF preview"></iframe>
+          }
+
+          <!-- Text Previews -->
+          @else if (previewFile()?.mimeType?.startsWith('text/') || previewFile()?.name?.endsWith('.txt') || previewFile()?.name?.endsWith('.csv') || previewFile()?.name?.endsWith('.json')) {
+            <div class="w-full h-full bg-slate-900 border border-white/5 rounded-xl p-4 overflow-auto font-mono text-xs text-slate-300 select-text whitespace-pre-wrap leading-relaxed">
+              {{ previewTextContent() }}
+            </div>
+          }
+
+          <!-- Generic Fallback Document card -->
+          @else {
+            <div class="flex flex-col items-center text-center p-8 bg-slate-900 border border-white/5 rounded-2xl max-w-sm">
+              <div class="w-20 h-20 bg-slate-950 border border-white/5 rounded-3xl flex items-center justify-center mb-5">
+                <i class="fi" [class]="getFileIconClass(previewFile()?.mimeType || '', previewFile()?.name || '')" class="text-4xl"></i>
+              </div>
+              <h4 class="text-white font-black text-sm">{{ previewFile()?.name }}</h4>
+              <span class="text-[10px] font-mono text-slate-500 mt-1 uppercase">{{ previewFile()?.mimeType }}</span>
+              <p class="text-xs text-slate-400 mt-4 leading-relaxed">This file type ({{ previewFile()?.mimeType }}) does not support inline rendering. You can download the file to inspect its contents.</p>
+              
+              <a [href]="previewFile()?.url" target="_blank" download class="mt-6 flex items-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-xl transition-all shadow-md">
+                <i class="fi fi-rr-download"></i>
+                <span>Download File</span>
+              </a>
+            </div>
+          }
+        }
+      </div>
+    </div>
+  </div>
+}

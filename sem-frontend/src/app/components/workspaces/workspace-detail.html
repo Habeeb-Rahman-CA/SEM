@@ -194,6 +194,12 @@
           [roles]="roles()" />
       }
 
+      <!-- ═══════════════ FILES TAB ═══════════════ -->
+      @if (activeTab() === 'files') {
+        <app-workspace-files
+          [workspace]="workspace()" />
+      }
+
       <!-- ═══════════════ TEAMS TAB ═══════════════ -->
       @if (activeTab() === 'teams') {
       <app-team-list

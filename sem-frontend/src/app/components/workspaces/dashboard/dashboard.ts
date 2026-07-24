@@ -11,7 +11,7 @@ import { getSportBadgeClass, getSportIconClass, formatMatchStatusDetail } from '
 })
 export class WorkspaceDashboardComponent {
   workspace = input.required<Workspace | null>();
-  activeTab = model<'overview' | 'members' | 'settings' | 'teams' | 'players' | 'events' | 'venues' | 'reports'>();
+  activeTab = model<'overview' | 'members' | 'settings' | 'teams' | 'players' | 'events' | 'venues' | 'reports' | 'files'>();
 
   liveMatches = input<any[]>([]);
   upcomingMatches = input<any[]>([]);
