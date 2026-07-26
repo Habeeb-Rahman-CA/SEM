@@ -1,6 +1,7 @@
 import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { EventService } from '../../services/event.service';
 import { WorkspaceEvent } from '../../services/workspace.service';
 import { AvatarComponent } from '../../shared/components/avatar/avatar';
@@ -9,7 +10,7 @@ import { getSportBadgeClass, getSportIconClass } from '../../shared';
 @Component({
   selector: 'app-public-event',
   standalone: true,
-  imports: [CommonModule, RouterModule, DatePipe, AvatarComponent],
+  imports: [CommonModule, RouterModule, DatePipe, AvatarComponent, FormsModule],
   templateUrl: './public-event.html',
 })
 export class PublicEventComponent implements OnInit {
@@ -29,6 +30,13 @@ export class PublicEventComponent implements OnInit {
   stages = signal<any[]>([]);
   selectedStage = signal<any | null>(null);
   matches = signal<any[]>([]);
+  selectedTeamFilter = signal<string>('all');
+  filteredMatches = computed(() => {
+    const list = this.matches();
+    const teamFilter = this.selectedTeamFilter();
+    if (teamFilter === 'all') return list;
+    return list.filter(m => m.homeTeamId === teamFilter || m.awayTeamId === teamFilter);
+  });
   selectedPointsTableGroup = signal<string>('Group A');
   isLoadingStages = signal<boolean>(false);
   isLoadingMatches = signal<boolean>(false);
@@ -80,6 +88,7 @@ export class PublicEventComponent implements OnInit {
 
   selectCompetition(comp: any) {
     this.selectedCompetition.set(comp);
+    this.selectedTeamFilter.set('all');
     this.stages.set([]);
     this.selectedStage.set(null);
     this.matches.set([]);
@@ -109,6 +118,7 @@ export class PublicEventComponent implements OnInit {
 
   selectStage(stage: any) {
     this.selectedStage.set(stage);
+    this.selectedTeamFilter.set('all');
     this.matches.set([]);
     
     const eventId = this.eventId();
@@ -292,7 +302,7 @@ export class PublicEventComponent implements OnInit {
 
   // Knockout rounds rendering helpers
   getKnockoutRounds(): string[] {
-    const list = this.matches();
+    const list = this.filteredMatches();
     const stage = this.selectedStage();
     if (!stage) return [];
     
@@ -322,7 +332,7 @@ export class PublicEventComponent implements OnInit {
   }
 
   getMatchesForRound(roundName: string): any[] {
-    return this.matches().filter(m => m.config?.round === roundName && (m.config?.leg === undefined || m.config?.leg === 1));
+    return this.filteredMatches().filter(m => m.config?.round === roundName && (m.config?.leg === undefined || m.config?.leg === 1));
   }
 
   getStageWinnerAndRunnerUp(): { winner: string; runnerUp: string | null } | null {
@@ -330,7 +340,7 @@ export class PublicEventComponent implements OnInit {
     if (!stage) return null;
     if (stage.type !== 'knockout' && stage.type !== 'group_knockout') return null;
     
-    const finalMatch = this.matches().find(m => m.config?.round?.toLowerCase().includes('final') && !m.config?.round?.toLowerCase().includes('semi') && !m.config?.round?.toLowerCase().includes('quarter'));
+    const finalMatch = this.filteredMatches().find(m => m.config?.round?.toLowerCase().includes('final') && !m.config?.round?.toLowerCase().includes('semi') && !m.config?.round?.toLowerCase().includes('quarter'));
     if (!finalMatch || finalMatch.status !== 'completed') return null;
     
     const homeScore = finalMatch.homeScore ?? 0;

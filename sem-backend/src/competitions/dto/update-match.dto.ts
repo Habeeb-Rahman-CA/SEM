@@ -38,4 +38,8 @@ export class UpdateMatchDto {
   @IsOptional()
   @IsObject()
   liveData?: any;
+
+  @IsOptional()
+  @IsString()
+  scheduledAt?: string;
 }

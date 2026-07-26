@@ -198,7 +198,7 @@ export class CompetitionService {
     competitionId: string,
     stageId: string,
     matchId: string,
-    payload: { homeTeamId?: string; awayTeamId?: string; venueId?: string | null; homeScore?: number; awayScore?: number; status?: string; config?: any; liveData?: any }
+    payload: { homeTeamId?: string; awayTeamId?: string; venueId?: string | null; homeScore?: number; awayScore?: number; status?: string; config?: any; liveData?: any; scheduledAt?: string | null }
   ): Observable<Match> {
     return this.http.patch<Match>(
       `${this.apiUrl}/${workspaceId}/events/${eventId}/competitions/${competitionId}/stages/${stageId}/matches/${matchId}`,

@@ -194,6 +194,7 @@ export interface Match {
   homeScore: number;
   awayScore: number;
   status: 'scheduled' | 'live' | 'completed';
+  scheduledAt?: string | null;
   config: {
     timerDuration?: number;
     overs?: number;

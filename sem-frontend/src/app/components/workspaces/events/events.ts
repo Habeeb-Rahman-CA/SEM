@@ -21,6 +21,7 @@ import { EventModalComponent } from './event-modal';
 import { CompetitionModalComponent } from './competition-modal';
 import { FixturesModalComponent } from './fixtures-modal';
 import { LineupModalComponent } from './lineup-modal';
+import { ScheduleMatchModalComponent } from './schedule-match-modal';
 
 @Component({
   selector: 'app-workspace-events',
@@ -36,7 +37,8 @@ import { LineupModalComponent } from './lineup-modal';
     EventModalComponent,
     CompetitionModalComponent,
     FixturesModalComponent,
-    LineupModalComponent
+    LineupModalComponent,
+    ScheduleMatchModalComponent
   ],
   templateUrl: './events.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -92,6 +94,8 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
 
   isGenerateFixturesModalOpen = signal(false);
   isLineupModalOpen = signal(false);
+  isScheduleMatchModalOpen = signal(false);
+  selectedMatchToSchedule = signal<Match | null>(null);
 
   // Standings Group
   selectedPointsTableGroup = signal('Group A');
@@ -862,6 +866,18 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
 
   getMatchesForRound(roundName: string): Match[] {
     return this.matches().filter(m => m.config?.round === roundName && (m.config?.leg === undefined || m.config?.leg === 1));
+  }
+
+  onOpenScheduleModal(match: Match) {
+    this.selectedMatchToSchedule.set(match);
+    this.isScheduleMatchModalOpen.set(true);
+  }
+
+  onMatchScheduled(updated: Match) {
+    this.matches.update(prev => prev.map(m => m.id === updated.id ? updated : m));
+    if (this.selectedMatch() && this.selectedMatch()!.id === updated.id) {
+      this.selectedMatch.set(updated);
+    }
   }
 
   openPublicPage(event: WorkspaceEvent) {

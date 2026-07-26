@@ -78,6 +78,7 @@ export class MatchLineupService {
       homeScore: 0,
       awayScore: 0,
       status: 'scheduled',
+      scheduledAt: dto.scheduledAt ? new Date(dto.scheduledAt) : null,
       config,
       liveData,
     });
@@ -473,6 +474,9 @@ export class MatchLineupService {
     if (dto.awayScore !== undefined) match.awayScore = dto.awayScore;
     if (dto.status !== undefined) match.status = dto.status;
     if (dto.venueId !== undefined) match.venueId = dto.venueId;
+    if (dto.scheduledAt !== undefined) {
+      match.scheduledAt = dto.scheduledAt ? new Date(dto.scheduledAt) : null;
+    }
     if (dto.config !== undefined) {
       match.config = { ...match.config, ...dto.config };
     }

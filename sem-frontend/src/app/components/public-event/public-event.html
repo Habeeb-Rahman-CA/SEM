@@ -290,9 +290,21 @@
                 
                 <!-- Left Column: Matches / Fixtures List -->
                 <div class="flex flex-col gap-4">
-                  <h3 class="text-sm font-bold text-white flex items-center gap-2 border-b border-white/5 pb-3">
-                    <i class="fi fi-rr-calendar text-violet-400"></i> Matches & Schedules
-                  </h3>
+                  <div class="flex items-center justify-between border-b border-white/5 pb-3">
+                    <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                      <i class="fi fi-rr-calendar text-violet-400"></i> Matches & Schedules
+                    </h3>
+                    <div class="flex items-center gap-1.5">
+                      <label for="pub-team-filter" class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Team:</label>
+                      <select id="pub-team-filter" [ngModel]="selectedTeamFilter()" (ngModelChange)="selectedTeamFilter.set($event)"
+                        class="bg-slate-950 border border-white/10 focus:border-violet-500 rounded-lg px-2.5 py-1 text-[10px] text-white outline-none">
+                        <option value="all">All Teams</option>
+                        @for (t of event()?.teams; track t.id) {
+                          <option [value]="t.id">{{ t.name }}</option>
+                        }
+                      </select>
+                    </div>
+                  </div>
 
                   @if (isLoadingMatches()) {
                     <div class="py-12 flex flex-col items-center justify-center gap-3">
@@ -301,7 +313,7 @@
                     </div>
                   } @else {
                     <div class="flex flex-col gap-3 overflow-y-auto no-scrollbar max-h-[600px] pr-1">
-                      @for (m of matches(); track m.id) {
+                      @for (m of filteredMatches(); track m.id) {
                         <div class="bg-slate-900 border border-white/10 rounded-2xl p-4 flex flex-col gap-3 transition-all hover:border-white/20">
                           
                           <!-- Header Status and Info -->
@@ -362,6 +374,27 @@
                             </div>
 
                           </div>
+
+                          <!-- Venue & Schedule details -->
+                          @if (m.scheduledAt || m.venue) {
+                            <div class="flex flex-wrap items-center gap-3 text-[10px] text-slate-400 mt-1 border-t border-white/5 pt-2">
+                              @if (m.scheduledAt) {
+                                <div class="flex items-center gap-1">
+                                  <i class="fi fi-rr-calendar text-violet-400"></i>
+                                  <span>{{ m.scheduledAt | date:'medium' }}</span>
+                                </div>
+                              }
+                              @if (m.venue) {
+                                <div class="flex items-center gap-1">
+                                  <i class="fi fi-rr-marker text-violet-400"></i>
+                                  <span>{{ m.venue.name }}</span>
+                                  @if (m.venue.location) {
+                                    <span class="text-slate-500">({{ m.venue.location }})</span>
+                                  }
+                                </div>
+                              }
+                            </div>
+                          }
 
                           <!-- Footer / MVP Detail -->
                           @if (m.mvp) {
@@ -544,6 +577,20 @@
                                       <span class="font-black text-white pr-1">{{ m.awayScore }}</span>
                                     }
                                   </div>
+
+                                  @if (m.scheduledAt || m.venue) {
+                                    <div class="flex flex-wrap items-center gap-2 text-[9px] text-slate-500 mt-1 pl-6">
+                                      @if (m.scheduledAt) {
+                                        <span>{{ m.scheduledAt | date:'short' }}</span>
+                                      }
+                                      @if (m.scheduledAt && m.venue) {
+                                        <span>•</span>
+                                      }
+                                      @if (m.venue) {
+                                        <span>{{ m.venue.name }}</span>
+                                      }
+                                    </div>
+                                  }
 
                                 </div>
                               }

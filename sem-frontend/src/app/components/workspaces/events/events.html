@@ -711,15 +711,23 @@
                       <span class="text-sm font-bold text-white">{{ match.awayTeam?.name || 'Away' }}</span>
                     </div>
                   </div>
-                  @if (match.venue) {
-                  <div class="text-[10px] text-slate-400 flex items-center gap-1 mt-2.5">
-                    <i class="fi fi-rr-marker text-violet-400"></i>
-                    <span>{{ match.venue.name }}</span>
-                    @if (match.venue.location) {
-                    <span class="text-slate-500">({{ match.venue.location }})</span>
+                  <div class="flex flex-wrap items-center justify-center gap-3 mt-2.5 text-[10px] text-slate-400">
+                    @if (match.scheduledAt) {
+                    <div class="flex items-center gap-1">
+                      <i class="fi fi-rr-calendar text-violet-400"></i>
+                      <span>{{ match.scheduledAt | date:'medium' }}</span>
+                    </div>
+                    }
+                    @if (match.venue) {
+                    <div class="flex items-center gap-1">
+                      <i class="fi fi-rr-marker text-violet-400"></i>
+                      <span>{{ match.venue.name }}</span>
+                      @if (match.venue.location) {
+                      <span class="text-slate-500">({{ match.venue.location }})</span>
+                      }
+                    </div>
                     }
                   </div>
-                  }
                   @if (match.mvp) {
                   <div class="text-[10px] text-amber-400 flex items-center gap-1 mt-2">
                     <i class="fi fi-rr-trophy text-amber-500"></i>
@@ -754,6 +762,13 @@
                     class="text-[10px] font-bold px-2.5 py-1 bg-blue-500/10 text-blue-400 rounded-lg border border-blue-500/20 uppercase tracking-wider">
                     Completed
                   </span>
+                  }
+
+                  @if (match.status !== 'completed' && hasPermission('competition.manage')) {
+                  <button (click)="onOpenScheduleModal(match)"
+                    class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 hover:text-white border border-white/5 hover:border-white/10 text-slate-300 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1">
+                    <i class="fi fi-rr-calendar"></i> Schedule
+                  </button>
                   }
 
                   <button (click)="onSelectMatch(match)"
@@ -1223,4 +1238,5 @@
   <app-competition-modal [(isOpen)]="isCompetitionModalOpen" [workspace]="workspace()" [selectedEvent]="selectedEvent()" [editingCompetition]="editingCompetition()" [sports]="sports()" (competitionSaved)="onCompetitionSaved($event)" />
   <app-fixtures-modal [(isOpen)]="isGenerateFixturesModalOpen" [workspace]="workspace()" [selectedEvent]="selectedEvent()" [selectedCompetition]="selectedCompetition()" [teams]="teams()" [venues]="venues()" [stages]="stages()" (fixturesGenerated)="onFixturesGenerated()" />
   <app-lineup-modal [(isOpen)]="isLineupModalOpen" [workspace]="workspace()" [selectedEvent]="selectedEvent()" [selectedCompetition]="selectedCompetition()" [selectedStage]="selectedStage()" [selectedMatch]="selectedMatch()" [players]="players()" [matchLineup]="matchLineup()" (lineupSaved)="onLineupSaved($event)" />
+  <app-schedule-match-modal [(isOpen)]="isScheduleMatchModalOpen" [workspace]="workspace()" [selectedEvent]="selectedEvent()" [selectedCompetition]="selectedCompetition()" [selectedStage]="selectedStage()" [match]="selectedMatchToSchedule()" [venues]="venues()" (matchScheduled)="onMatchScheduled($event)" />
 }
