@@ -27,7 +27,7 @@ export class PublicEventComponent implements OnInit, OnDestroy {
   error = signal<string | null>(null);
 
   // Tabs navigation
-  activeTab = signal<'overview' | 'competitions' | 'standings' | 'stats' | 'gallery' | 'announcements'>('overview');
+  activeTab = signal<'overview' | 'competitions' | 'standings' | 'results' | 'stats' | 'gallery' | 'announcements'>('overview');
 
   /** Call this instead of activeTab.set() when navigating to standings so we auto-init */
   goToStandings() {
@@ -37,6 +37,78 @@ export class PublicEventComponent implements OnInit, OnDestroy {
       if (comps && comps.length > 0) this.selectStandingsCompetition(comps[0]);
     }
   }
+
+  /** Call this instead of activeTab.set() when navigating to results so we auto-init */
+  goToResults() {
+    this.activeTab.set('results');
+    if (!this.resultsComp()) {
+      const comps = this.event()?.competitions;
+      if (comps && comps.length > 0) this.selectResultsCompetition(comps[0]);
+    }
+  }
+
+  // Results State
+  resultsComp = signal<any | null>(null);
+  resultsData = signal<any | null>(null);
+  isLoadingResults = signal<boolean>(false);
+  resultsError = signal<string | null>(null);
+  resultsSearchQuery = signal<string>('');
+  resultsSortOrder = signal<'desc' | 'asc'>('desc');
+
+  filteredGroupedResults = computed(() => {
+    const data = this.resultsData();
+    if (!data || !data.groupedResults) return [];
+
+    const query = this.resultsSearchQuery().toLowerCase().trim();
+    const sort = this.resultsSortOrder();
+
+    // Flatten all matches with their date context
+    let allMatches: any[] = [];
+    data.groupedResults.forEach((group: any) => {
+      group.matches.forEach((m: any) => {
+        allMatches.push({ ...m, dateContext: group.date });
+      });
+    });
+
+    // Apply query filter (team name, stage name, venue name)
+    if (query) {
+      allMatches = allMatches.filter((m: any) => {
+        const homeName = m.homeTeam?.name?.toLowerCase() ?? '';
+        const awayName = m.awayTeam?.name?.toLowerCase() ?? '';
+        const stageName = m.stage?.name?.toLowerCase() ?? '';
+        const venueName = m.venue?.name?.toLowerCase() ?? '';
+        return homeName.includes(query) || awayName.includes(query) || stageName.includes(query) || venueName.includes(query);
+      });
+    }
+
+    // Sort matches
+    allMatches.sort((a, b) => {
+      const dateA = a.scheduledAt ? new Date(a.scheduledAt).getTime() : new Date(a.completedAt).getTime();
+      const dateB = b.scheduledAt ? new Date(b.scheduledAt).getTime() : new Date(b.completedAt).getTime();
+      return sort === 'desc' ? dateB - dateA : dateA - dateB;
+    });
+
+    // Re-group by date
+    const dateMap = new Map<string, any[]>();
+    allMatches.forEach((m) => {
+      const d = m.dateContext;
+      if (!dateMap.has(d)) {
+        dateMap.set(d, []);
+      }
+      dateMap.get(d)!.push(m);
+    });
+
+    // Sort group dates according to sort order
+    const sortedDates = Array.from(dateMap.keys()).sort((a, b) => {
+      return sort === 'desc' ? b.localeCompare(a) : a.localeCompare(b);
+    });
+
+    return sortedDates.map((date) => ({
+      date,
+      matches: dateMap.get(date)!,
+    }));
+  });
+
 
   // Competitions State
   selectedCompetition = signal<any | null>(null);
@@ -512,5 +584,32 @@ export class PublicEventComponent implements OnInit, OnDestroy {
     if (pos === 1) return 'text-emerald-400 font-black';
     if (pos === 2) return 'text-amber-400 font-black';
     return 'text-slate-400';
+  }
+
+  // ─── Results Tab Logic ──────────────────────────────────────────────────────
+
+  selectResultsCompetition(comp: any) {
+    this.resultsComp.set(comp);
+    this.resultsData.set(null);
+    this.resultsError.set(null);
+    this.loadResults();
+  }
+
+  loadResults() {
+    const eventId = this.eventId();
+    const comp = this.resultsComp();
+    if (!eventId || !comp) return;
+
+    this.isLoadingResults.set(true);
+    this.eventService.getPublicResults(eventId, comp.id).subscribe({
+      next: (data) => {
+        this.resultsData.set(data);
+        this.isLoadingResults.set(false);
+      },
+      error: (err) => {
+        this.resultsError.set(err.error?.message ?? 'Failed to load results');
+        this.isLoadingResults.set(false);
+      }
+    });
   }
 }

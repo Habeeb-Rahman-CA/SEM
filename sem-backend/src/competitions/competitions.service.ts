@@ -1115,4 +1115,195 @@ export class CompetitionsService {
       bracket,
     };
   }
+
+  async getPublicResults(eventId: string, competitionId: string): Promise<any> {
+    const event = await this.eventRepo.findOne({ where: { id: eventId } });
+    if (!event || !event.isPublic) {
+      throw new NotFoundException('Event not found or is not public');
+    }
+
+    const comp = await this.competitionRepo.findOne({
+      where: { id: competitionId, eventId },
+      relations: { sport: true },
+    });
+    if (!comp) throw new NotFoundException('Competition not found');
+
+    // All stages for this competition
+    const stages = await this.stageRepo.find({
+      where: { competitionId },
+      order: { sequence: 'ASC', createdAt: 'ASC' },
+    });
+    const stageIds = stages.map((s) => s.id);
+    if (stageIds.length === 0) return { competition: comp.name, sportCode: comp.sport?.code ?? '', results: [] };
+
+    const stageMap = new Map(stages.map((s) => [s.id, s]));
+
+    // All completed matches across all stages
+    const matches = await this.matchRepo.find({
+      where: { stageId: In(stageIds), status: 'completed' },
+      relations: { homeTeam: true, awayTeam: true, venue: true },
+      order: { createdAt: 'DESC' },
+    });
+
+    if (matches.length === 0) return { competition: comp.name, sportCode: comp.sport?.code ?? '', results: [] };
+
+    // Enrich with player stats
+    const matchIds = matches.map((m) => m.id);
+    const matchPlayers = await this.matchPlayerRepo.find({
+      where: { matchId: In(matchIds), isPlaying: true },
+      relations: { player: { user: true }, team: true },
+    });
+
+    const playersByMatch = new Map<string, MatchPlayer[]>();
+    for (const mp of matchPlayers) {
+      if (!playersByMatch.has(mp.matchId)) playersByMatch.set(mp.matchId, []);
+      playersByMatch.get(mp.matchId)!.push(mp);
+    }
+
+    const results = matches.map((m) => {
+      const players = playersByMatch.get(m.id) ?? [];
+
+      // Determine winner
+      let winner: 'home' | 'away' | 'draw' = 'draw';
+      if (m.homeScore > m.awayScore) winner = 'home';
+      else if (m.awayScore > m.homeScore) winner = 'away';
+
+      // MVP (highest rated player)
+      let mvp: any = null;
+      let maxRating = -1;
+      for (const mp of players) {
+        if (mp.rating !== null) {
+          const r = Number(mp.rating);
+          if (r > maxRating) {
+            maxRating = r;
+            mvp = {
+              playerId: mp.playerId,
+              playerName: mp.player?.user?.username ?? mp.player?.jerseyNumber?.toString() ?? 'Player',
+              teamName: mp.team?.name ?? 'Unknown',
+              rating: r,
+            };
+          }
+        }
+      }
+      if (mvp && maxRating < 5.0) mvp = null;
+
+      const getPlayerStats = (mp: MatchPlayer, liveData: any) => {
+        const stats: any = {};
+        const username = mp.player?.user?.username;
+        if (liveData && Array.isArray(liveData.inningsData) && username) {
+          let runs = 0;
+          let wickets = 0;
+          for (const inn of liveData.inningsData) {
+            const bStats = inn.batsmanStats?.[username];
+            if (bStats) runs += bStats.runs ?? 0;
+            const bowlStats = inn.bowlerStats?.[username];
+            if (bowlStats) wickets += bowlStats.wickets ?? 0;
+          }
+          if (runs > 0) stats.runs = runs;
+          if (wickets > 0) stats.wickets = wickets;
+        }
+
+        if (liveData && Array.isArray(liveData.events)) {
+          const userId = mp.player?.userId;
+          for (const event of liveData.events) {
+            const isPlayer = (event.playerId === mp.playerId) ||
+                             (userId && event.playerUserId === userId) ||
+                             (username && event.playerUsername === username);
+            const isAssister = (event.assistPlayerId === mp.playerId) ||
+                               (userId && event.assistPlayerUserId === userId);
+
+            if (isPlayer) {
+              if (event.type === 'goal') {
+                if (event.goalType === 'own_goal') {
+                  stats.ownGoals = (stats.ownGoals ?? 0) + 1;
+                } else {
+                  stats.goals = (stats.goals ?? 0) + 1;
+                }
+              } else if (event.type === 'card') {
+                if (event.cardType === 'yellow') {
+                  stats.yellowCards = (stats.yellowCards ?? 0) + 1;
+                } else if (event.cardType === 'red' || event.cardType === 'second_yellow') {
+                  stats.redCards = (stats.redCards ?? 0) + 1;
+                }
+              } else if (event.type === 'rally' || event.type === 'rally_won') {
+                stats.ralliesWon = (stats.ralliesWon ?? 0) + 1;
+              }
+            }
+            if (isAssister && event.type === 'goal' && event.goalType !== 'own_goal') {
+              stats.assists = (stats.assists ?? 0) + 1;
+            }
+          }
+        }
+        return stats;
+      };
+
+      const liveData = m.liveData;
+
+      // Top performers — scorers / highest-rated per team
+      const homePerformers = players
+        .filter((mp) => mp.teamId === m.homeTeamId && mp.rating !== null)
+        .sort((a, b) => Number(b.rating) - Number(a.rating))
+        .slice(0, 3)
+        .map((mp) => ({
+          playerId: mp.playerId,
+          playerName: mp.player?.user?.username ?? mp.player?.jerseyNumber?.toString() ?? 'Player',
+          jerseyNumber: mp.player?.jerseyNumber ?? null,
+          rating: Number(mp.rating),
+          stats: getPlayerStats(mp, liveData),
+        }));
+
+      const awayPerformers = players
+        .filter((mp) => mp.teamId === m.awayTeamId && mp.rating !== null)
+        .sort((a, b) => Number(b.rating) - Number(a.rating))
+        .slice(0, 3)
+        .map((mp) => ({
+          playerId: mp.playerId,
+          playerName: mp.player?.user?.username ?? mp.player?.jerseyNumber?.toString() ?? 'Player',
+          jerseyNumber: mp.player?.jerseyNumber ?? null,
+          rating: Number(mp.rating),
+          stats: getPlayerStats(mp, liveData),
+        }));
+
+      const stage = stageMap.get(m.stageId);
+
+      return {
+        id: m.id,
+        homeTeam: m.homeTeam ? { id: m.homeTeamId, name: m.homeTeam.name, logoUrl: m.homeTeam.logoUrl } : null,
+        awayTeam: m.awayTeam ? { id: m.awayTeamId, name: m.awayTeam.name, logoUrl: m.awayTeam.logoUrl } : null,
+        homeScore: m.homeScore,
+        awayScore: m.awayScore,
+        winner,
+        scheduledAt: (m as any).scheduledAt ?? null,
+        completedAt: m.updatedAt ?? m.createdAt,
+        venue: m.venue ? { name: m.venue.name, location: (m.venue as any).location ?? null } : null,
+        stage: stage ? { id: stage.id, name: stage.name, type: stage.type } : null,
+        round: (m.config as any)?.round ?? null,
+        mvp,
+        homePerformers,
+        awayPerformers,
+      };
+    });
+
+
+    // Group results by date (using scheduledAt or completedAt)
+    const grouped = new Map<string, any[]>();
+    for (const r of results) {
+      const dateKey = r.scheduledAt
+        ? new Date(r.scheduledAt).toISOString().split('T')[0]
+        : new Date(r.completedAt).toISOString().split('T')[0];
+      if (!grouped.has(dateKey)) grouped.set(dateKey, []);
+      grouped.get(dateKey)!.push(r);
+    }
+
+    const groupedResults = Array.from(grouped.entries())
+      .sort(([a], [b]) => b.localeCompare(a)) // most recent date first
+      .map(([date, matches]) => ({ date, matches }));
+
+    return {
+      competition: comp.name,
+      sportCode: comp.sport?.code ?? '',
+      totalCompleted: results.length,
+      groupedResults,
+    };
+  }
 }

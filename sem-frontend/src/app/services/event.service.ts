@@ -96,4 +96,8 @@ export class EventService {
   getPublicStandings(eventId: string, competitionId: string, stageId: string): Observable<any> {
     return this.http.get<any>(`${environment.apiUrl}/public/events/${eventId}/competitions/${competitionId}/stages/${stageId}/standings`);
   }
+
+  getPublicResults(eventId: string, competitionId: string): Observable<any> {
+    return this.http.get<any>(`${environment.apiUrl}/public/events/${eventId}/competitions/${competitionId}/results`);
+  }
 }

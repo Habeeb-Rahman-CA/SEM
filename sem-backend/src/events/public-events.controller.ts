@@ -82,4 +82,16 @@ export class PublicEventsController {
   ) {
     return this.competitionsService.getPublicStandings(eventId, competitionId, stageId);
   }
+
+  @Get(':eventId/competitions/:competitionId/results')
+  @ApiOperation({ summary: 'Get public completed match results for a competition' })
+  @ApiParam({ name: 'eventId', description: 'Event UUID' })
+  @ApiParam({ name: 'competitionId', description: 'Competition UUID' })
+  @ApiResponse({ status: 200, description: 'Completed results grouped by date with MVP and player stats' })
+  async getPublicResults(
+    @Param('eventId') eventId: string,
+    @Param('competitionId') competitionId: string,
+  ) {
+    return this.competitionsService.getPublicResults(eventId, competitionId);
+  }
 }
