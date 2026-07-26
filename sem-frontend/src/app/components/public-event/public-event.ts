@@ -1,7 +1,9 @@
-import { Component, OnInit, signal, computed, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed, inject } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { interval, Subscription } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
 import { EventService } from '../../services/event.service';
 import { WorkspaceEvent } from '../../services/workspace.service';
 import { AvatarComponent } from '../../shared/components/avatar/avatar';
@@ -13,9 +15,11 @@ import { getSportBadgeClass, getSportIconClass } from '../../shared';
   imports: [CommonModule, RouterModule, DatePipe, AvatarComponent, FormsModule],
   templateUrl: './public-event.html',
 })
-export class PublicEventComponent implements OnInit {
+export class PublicEventComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private eventService = inject(EventService);
+
+  private pollSub: Subscription | null = null;
 
   eventId = signal<string | null>(null);
   event = signal<WorkspaceEvent | null>(null);
@@ -23,7 +27,16 @@ export class PublicEventComponent implements OnInit {
   error = signal<string | null>(null);
 
   // Tabs navigation
-  activeTab = signal<'overview' | 'competitions' | 'stats' | 'gallery' | 'announcements'>('overview');
+  activeTab = signal<'overview' | 'competitions' | 'standings' | 'stats' | 'gallery' | 'announcements'>('overview');
+
+  /** Call this instead of activeTab.set() when navigating to standings so we auto-init */
+  goToStandings() {
+    this.activeTab.set('standings');
+    if (!this.standingsComp()) {
+      const comps = this.event()?.competitions;
+      if (comps && comps.length > 0) this.selectStandingsCompetition(comps[0]);
+    }
+  }
 
   // Competitions State
   selectedCompetition = signal<any | null>(null);
@@ -44,6 +57,36 @@ export class PublicEventComponent implements OnInit {
   // Statistics State
   competitionStats = signal<any | null>(null);
   isLoadingStats = signal<boolean>(false);
+
+  // ─── Standings State ──────────────────────────────────────────────────────
+  standingsComp = signal<any | null>(null);      // selected competition for standings tab
+  standingsStages = signal<any[]>([]);
+  standingsStage = signal<any | null>(null);
+  standingsData = signal<any | null>(null);       // server-computed standings response
+  standingsGroup = signal<string>('');            // for group_knockout group filter
+  isLoadingStandings = signal<boolean>(false);
+  standingsError = signal<string | null>(null);
+
+  // Groups available inside the current standings stage
+  standingsGroups = computed(() => {
+    const data = this.standingsData();
+    if (!data?.table) return [];
+    const groups = new Set<string>();
+    const matches = (data as any)._allGroupMatches ?? [];
+    matches.forEach((m: any) => {
+      if (m.config?.round) groups.add(m.config.round);
+    });
+    // fall back: infer from bracket data
+    return Array.from(groups);
+  });
+
+  // Filtered league table by current group selection
+  filteredTable = computed(() => {
+    const data = this.standingsData();
+    if (!data?.table) return [];
+    // table is already server-computed; just return as-is (groups are separate rows)
+    return data.table;
+  });
 
   // Lightbox for Gallery
   selectedImage = signal<string | null>(null);
@@ -371,5 +414,103 @@ export class PublicEventComponent implements OnInit {
       navigator.clipboard.writeText(window.location.href);
       alert('Event page link copied to clipboard!');
     }
+  }
+
+  // ─── Standings Tab Logic ───────────────────────────────────────────────────
+
+  selectStandingsCompetition(comp: any) {
+    this.standingsComp.set(comp);
+    this.standingsStages.set([]);
+    this.standingsStage.set(null);
+    this.standingsData.set(null);
+    this.standingsError.set(null);
+    this.stopPolling();
+
+    const eventId = this.eventId();
+    if (!eventId) return;
+
+    this.eventService.getPublicStages(eventId, comp.id).subscribe({
+      next: (stages) => {
+        this.standingsStages.set(stages);
+        if (stages.length > 0) this.selectStandingsStage(stages[0]);
+      },
+      error: () => this.standingsError.set('Failed to load stages')
+    });
+  }
+
+  selectStandingsStage(stage: any) {
+    this.standingsStage.set(stage);
+    this.standingsData.set(null);
+    this.standingsError.set(null);
+    this.stopPolling();
+    this.loadStandings();
+    this.startPolling();
+  }
+
+  loadStandings() {
+    const eventId = this.eventId();
+    const comp = this.standingsComp();
+    const stage = this.standingsStage();
+    if (!eventId || !comp || !stage) return;
+
+    this.isLoadingStandings.set(true);
+    this.eventService.getPublicStandings(eventId, comp.id, stage.id).subscribe({
+      next: (data) => {
+        this.standingsData.set(data);
+        this.isLoadingStandings.set(false);
+        // Stop polling if no more live matches
+        const hasLive = (data?.progress?.live ?? 0) > 0;
+        if (!hasLive) this.stopPolling();
+      },
+      error: (err) => {
+        this.standingsError.set(err.error?.message ?? 'Failed to load standings');
+        this.isLoadingStandings.set(false);
+      }
+    });
+  }
+
+  private startPolling() {
+    this.stopPolling();
+    // Poll every 30s — will self-stop when no live matches remain
+    this.pollSub = interval(30_000).pipe(
+      switchMap(() => {
+        const eventId = this.eventId();
+        const comp = this.standingsComp();
+        const stage = this.standingsStage();
+        if (!eventId || !comp || !stage) return [];
+        return this.eventService.getPublicStandings(eventId, comp.id, stage.id);
+      })
+    ).subscribe({
+      next: (data) => {
+        this.standingsData.set(data);
+        const hasLive = (data?.progress?.live ?? 0) > 0;
+        if (!hasLive) this.stopPolling();
+      }
+    });
+  }
+
+  private stopPolling() {
+    if (this.pollSub) {
+      this.pollSub.unsubscribe();
+      this.pollSub = null;
+    }
+  }
+
+  ngOnDestroy() {
+    this.stopPolling();
+  }
+
+  // Helper to get position colour class
+  positionClass(pos: number, total: number): string {
+    if (pos === 1) return 'border-l-4 border-l-emerald-500 bg-emerald-500/5';
+    if (pos === 2) return 'border-l-4 border-l-amber-500 bg-amber-500/5';
+    if (pos === total) return 'border-l-4 border-l-rose-500 bg-rose-500/5';
+    return '';
+  }
+
+  positionBadgeClass(pos: number): string {
+    if (pos === 1) return 'text-emerald-400 font-black';
+    if (pos === 2) return 'text-amber-400 font-black';
+    return 'text-slate-400';
   }
 }

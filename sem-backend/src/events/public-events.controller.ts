@@ -68,5 +68,18 @@ export class PublicEventsController {
   ) {
     return this.competitionsService.getPublicCompetitionStats(eventId, competitionId);
   }
-}
 
+  @Get(':eventId/competitions/:competitionId/stages/:stageId/standings')
+  @ApiOperation({ summary: 'Get public standings for a competition stage' })
+  @ApiParam({ name: 'eventId', description: 'Event UUID' })
+  @ApiParam({ name: 'competitionId', description: 'Competition UUID' })
+  @ApiParam({ name: 'stageId', description: 'Stage UUID' })
+  @ApiResponse({ status: 200, description: 'League table and/or knockout bracket progress' })
+  async getPublicStandings(
+    @Param('eventId') eventId: string,
+    @Param('competitionId') competitionId: string,
+    @Param('stageId') stageId: string,
+  ) {
+    return this.competitionsService.getPublicStandings(eventId, competitionId, stageId);
+  }
+}

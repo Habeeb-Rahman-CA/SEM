@@ -956,4 +956,163 @@ export class CompetitionsService {
   async getPublicCompetitionStats(eventId: string, competitionId: string): Promise<any> {
     return this.statisticsRatingsService.getPublicCompetitionStats(eventId, competitionId);
   }
+
+  async getPublicStandings(
+    eventId: string,
+    competitionId: string,
+    stageId: string,
+  ): Promise<any> {
+    const event = await this.eventRepo.findOne({ where: { id: eventId } });
+    if (!event || !event.isPublic) {
+      throw new NotFoundException('Event not found or is not public');
+    }
+
+    const stage = await this.stageRepo.findOne({ where: { id: stageId, competitionId } });
+    if (!stage) throw new NotFoundException('Stage not found');
+
+    const matches = await this.matchRepo.find({
+      where: { stageId },
+      relations: { homeTeam: true, awayTeam: true },
+      order: { createdAt: 'ASC' },
+    });
+
+    const competitionTeams = await this.competitionTeamRepo.find({
+      where: { competitionId },
+      relations: { team: true },
+    });
+
+    const isLeague = stage.type === 'league' || stage.type === 'group' || stage.type === 'group_knockout';
+    const isKnockout = stage.type === 'knockout' || stage.type === 'group_knockout';
+
+    const winPts: number = (stage.config as any)?.winPoint ?? 3;
+    const drawPts: number = (stage.config as any)?.drawPoint ?? 1;
+
+    // ─── League / Group Table ───────────────────────────────────────────────
+    let table: any[] = [];
+    if (isLeague) {
+      const statsMap = new Map<string, {
+        teamId: string; teamName: string; teamLogoUrl: string | null;
+        played: number; won: number; drawn: number; lost: number;
+        gf: number; ga: number; gd: number; pts: number;
+        group?: string;
+      }>();
+
+      for (const ct of competitionTeams) {
+        statsMap.set(ct.teamId, {
+          teamId: ct.teamId,
+          teamName: ct.team?.name ?? 'Unknown',
+          teamLogoUrl: ct.team?.logoUrl ?? null,
+          played: 0, won: 0, drawn: 0, lost: 0,
+          gf: 0, ga: 0, gd: 0, pts: 0,
+        });
+      }
+
+      for (const m of matches) {
+        if (m.status !== 'completed') continue;
+        if (!m.homeTeamId || !m.awayTeamId) continue;
+
+        // Only count group-stage matches if group_knockout
+        if (stage.type === 'group_knockout') {
+          const round = (m.config as any)?.round ?? '';
+          const isGroupMatch = round.toLowerCase().includes('group') || round.toLowerCase().includes('stage');
+          if (!isGroupMatch) continue;
+        }
+
+        let h = statsMap.get(m.homeTeamId);
+        let a = statsMap.get(m.awayTeamId);
+
+        if (!h && m.homeTeam) {
+          h = { teamId: m.homeTeamId, teamName: m.homeTeam.name, teamLogoUrl: m.homeTeam.logoUrl ?? null, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, pts: 0 };
+          statsMap.set(m.homeTeamId, h);
+        }
+        if (!a && m.awayTeam) {
+          a = { teamId: m.awayTeamId, teamName: m.awayTeam.name, teamLogoUrl: m.awayTeam.logoUrl ?? null, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, pts: 0 };
+          statsMap.set(m.awayTeamId, a);
+        }
+        if (!h || !a) continue;
+
+        h.played++; a.played++;
+        h.gf += m.homeScore; h.ga += m.awayScore;
+        a.gf += m.awayScore; a.ga += m.homeScore;
+        h.gd = h.gf - h.ga; a.gd = a.gf - a.ga;
+
+        if (m.homeScore > m.awayScore) {
+          h.won++; h.pts += winPts; a.lost++;
+        } else if (m.homeScore < m.awayScore) {
+          a.won++; a.pts += winPts; h.lost++;
+        } else {
+          h.drawn++; h.pts += drawPts;
+          a.drawn++; a.pts += drawPts;
+        }
+      }
+
+      // Head-to-head tie-break (goals scored between tied teams)
+      const rows = Array.from(statsMap.values());
+      rows.sort((a, b) => {
+        if (b.pts !== a.pts) return b.pts - a.pts;
+        if (b.gd !== a.gd) return b.gd - a.gd;
+        return b.gf - a.gf;
+      });
+
+      table = rows.map((r, i) => ({ ...r, position: i + 1 }));
+    }
+
+    // ─── Knockout Bracket Progress ───────────────────────────────────────────
+    let bracket: any[] = [];
+    if (isKnockout) {
+      const roundOrder = [
+        'round of 32', 'round of 16', 'round of 8',
+        'quarter-final', 'semi-final', 'final',
+        'third place match', '3rd place match',
+      ];
+
+      const roundsMap = new Map<string, any[]>();
+      for (const m of matches) {
+        const round: string = (m.config as any)?.round ?? 'Unknown';
+        if (stage.type === 'group_knockout') {
+          const isGroup = round.toLowerCase().includes('group') || round.toLowerCase().includes('stage');
+          if (isGroup) continue;
+        }
+        if (!roundsMap.has(round)) roundsMap.set(round, []);
+        roundsMap.get(round)!.push({
+          id: m.id,
+          homeTeam: m.homeTeam ? { id: m.homeTeamId, name: m.homeTeam.name, logoUrl: m.homeTeam.logoUrl } : null,
+          awayTeam: m.awayTeam ? { id: m.awayTeamId, name: m.awayTeam.name, logoUrl: m.awayTeam.logoUrl } : null,
+          homeScore: m.homeScore,
+          awayScore: m.awayScore,
+          status: m.status,
+          scheduledAt: (m as any).scheduledAt ?? null,
+          leg: (m.config as any)?.leg ?? null,
+        });
+      }
+
+      const sortedRounds = Array.from(roundsMap.keys()).sort((a, b) => {
+        const aLow = a.toLowerCase(); const bLow = b.toLowerCase();
+        const ia = roundOrder.findIndex(o => aLow.includes(o));
+        const ib = roundOrder.findIndex(o => bLow.includes(o));
+        if (ia !== -1 && ib !== -1) return ia - ib;
+        if (ia !== -1) return -1;
+        if (ib !== -1) return 1;
+        return a.localeCompare(b);
+      });
+
+      bracket = sortedRounds.map(round => ({ round, matches: roundsMap.get(round)! }));
+    }
+
+    // ─── Stage metadata ──────────────────────────────────────────────────────
+    const totalMatches = matches.length;
+    const completedMatches = matches.filter(m => m.status === 'completed').length;
+    const liveMatches = matches.filter(m => m.status === 'live').length;
+
+    return {
+      stageId,
+      stageName: stage.name,
+      stageType: stage.type,
+      pointsConfig: { winPts, drawPts },
+      progress: { total: totalMatches, completed: completedMatches, live: liveMatches },
+      isCompleted: totalMatches > 0 && completedMatches === totalMatches,
+      table,
+      bracket,
+    };
+  }
 }

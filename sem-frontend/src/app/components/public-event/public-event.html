@@ -132,6 +132,12 @@
           <i class="fi fi-rr-trophy text-sm"></i>
           Fixtures & Brackets
         </button>
+        <button (click)="goToStandings()"
+          class="flex-1 min-w-[120px] text-center text-xs font-bold py-3 px-4 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2"
+          [class]="activeTab() === 'standings' ? 'bg-violet-600 text-white shadow-md shadow-violet-600/20' : 'text-slate-400 hover:text-white hover:bg-white/5'">
+          <i class="fi fi-rr-list-ol text-sm"></i>
+          Standings
+        </button>
         <button (click)="activeTab.set('stats')"
           class="flex-1 min-w-[120px] text-center text-xs font-bold py-3 px-4 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2"
           [class]="activeTab() === 'stats' ? 'bg-violet-600 text-white shadow-md shadow-violet-600/20' : 'text-slate-400 hover:text-white hover:bg-white/5'">
@@ -236,9 +242,339 @@
         </div>
       }
 
+      <!-- Panel 3: Standings Tab -->
+      @if (activeTab() === 'standings') {
+        <div class="flex flex-col gap-6">
+
+          <!-- Header -->
+          <div class="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                <i class="fi fi-rr-list-ol text-violet-400"></i> Live Standings
+              </h2>
+              <p class="text-xs text-slate-500 mt-1">Rankings update automatically after match completion.</p>
+            </div>
+            @if ((standingsData()?.progress?.live ?? 0) > 0) {
+              <div class="flex items-center gap-2 px-3 py-1.5 bg-rose-500/10 border border-rose-500/20 rounded-xl text-xs text-rose-400 font-bold">
+                <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+                {{ standingsData()?.progress?.live }} Live · Auto-refreshing every 30s
+              </div>
+            }
+          </div>
+
+          <!-- 2-column layout -->
+          <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+
+            <!-- Sidebar: Competition selector -->
+            <div class="lg:col-span-1 flex flex-col gap-4">
+              <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">COMPETITIONS</h3>
+              <div class="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-x-visible pb-2 lg:pb-0 no-scrollbar">
+                @for (comp of evt.competitions; track comp.id) {
+                  <button (click)="selectStandingsCompetition(comp)"
+                    class="flex-shrink-0 lg:flex-shrink text-left p-3.5 rounded-xl border transition-all text-xs font-bold flex items-center gap-3 w-full cursor-pointer"
+                    [class]="standingsComp()?.id === comp.id
+                      ? 'bg-violet-600 border-violet-500 text-white shadow-md shadow-violet-600/10'
+                      : 'bg-slate-900 border-white/10 text-slate-300 hover:text-white hover:border-white/20'">
+                    <span class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-sm flex-shrink-0">
+                      <i [class]="getSportIconClass(comp.sport?.code) || 'fi fi-rr-trophy'"></i>
+                    </span>
+                    <span class="truncate">{{ comp.name }}</span>
+                  </button>
+                } @empty {
+                  <div class="text-center text-xs text-slate-500 py-6">No competitions published.</div>
+                }
+              </div>
+            </div>
+
+            <!-- Main content -->
+            <div class="lg:col-span-3 flex flex-col gap-5">
+
+              @if (standingsComp()) {
+
+                <!-- Stage tabs -->
+                @if (standingsStages().length > 0) {
+                  <div class="flex items-center gap-1.5 p-1 bg-slate-900/60 border border-white/10 rounded-xl overflow-x-auto no-scrollbar">
+                    @for (stg of standingsStages(); track stg.id) {
+                      <button (click)="selectStandingsStage(stg)"
+                        class="flex-shrink-0 text-center text-[10px] font-extrabold py-2 px-4 rounded-lg transition-all cursor-pointer uppercase tracking-wider"
+                        [class]="standingsStage()?.id === stg.id
+                          ? 'bg-violet-600 text-white shadow shadow-violet-600/20'
+                          : 'text-slate-400 hover:text-white hover:bg-white/5'">
+                        {{ stg.name }}
+                      </button>
+                    }
+                  </div>
+                }
+
+                @if (isLoadingStandings()) {
+                  <div class="py-20 flex flex-col items-center justify-center gap-3">
+                    <div class="w-8 h-8 rounded-full border-2 border-violet-500/20 border-t-violet-500 animate-spin"></div>
+                    <span class="text-xs text-slate-400">Computing standings...</span>
+                  </div>
+                } @else if (standingsError()) {
+                  <div class="p-5 bg-rose-500/10 border border-rose-500/20 rounded-2xl text-rose-300 text-sm flex items-center gap-3">
+                    <i class="fi fi-rr-exclamation-triangle text-xl"></i> {{ standingsError() }}
+                  </div>
+                } @else if (standingsData(); as data) {
+
+                  <!-- Progress bar -->
+                  @if ((data.progress?.total ?? 0) > 0) {
+                    <div class="bg-slate-900 border border-white/10 rounded-2xl p-4 flex flex-col gap-2.5">
+                      <div class="flex items-center justify-between text-xs">
+                        <span class="text-slate-400 font-medium">Stage Progress</span>
+                        <span class="text-white font-bold">{{ data.progress.completed }} / {{ data.progress.total }} matches completed</span>
+                      </div>
+                      <div class="h-2 bg-slate-800 rounded-full overflow-hidden">
+                        <div class="h-full rounded-full transition-all duration-700"
+                          [class]="data.isCompleted ? 'bg-emerald-500' : ((data.progress?.live ?? 0) > 0 ? 'bg-rose-500' : 'bg-violet-600')"
+                          [style.width.%]="(data.progress.completed / data.progress.total) * 100">
+                        </div>
+                      </div>
+                      <div class="flex items-center gap-5 text-[10px] text-slate-500">
+                        <span><i class="fi fi-rr-check-circle text-emerald-400 mr-1"></i>{{ data.progress.completed }} completed</span>
+                        @if ((data.progress?.live ?? 0) > 0) {
+                          <span class="text-rose-400 font-bold">
+                            <i class="fi fi-rr-record-vinyl mr-1 animate-pulse"></i>{{ data.progress.live }} live
+                          </span>
+                        }
+                        <span>{{ data.progress.total - data.progress.completed - (data.progress.live ?? 0) }} pending</span>
+                      </div>
+                    </div>
+                  }
+
+                  <!-- Champion banner when stage complete -->
+                  @if (data.isCompleted && data.table?.length > 0) {
+                    <div class="bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-transparent border border-amber-500/30 rounded-2xl p-5 flex items-center justify-between shadow-lg shadow-amber-500/5">
+                      <div class="flex items-center gap-3">
+                        <div class="h-11 w-11 rounded-xl bg-amber-500/25 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-inner">
+                          <i class="fi fi-rr-trophy text-xl"></i>
+                        </div>
+                        <div>
+                          <div class="text-[9px] uppercase font-black tracking-widest text-amber-400">CHAMPION</div>
+                          <h4 class="text-base font-black text-white leading-tight mt-0.5">{{ data.table[0].teamName }}</h4>
+                        </div>
+                      </div>
+                      @if (data.table?.length > 1) {
+                        <div class="text-right border-l border-white/10 pl-5">
+                          <div class="text-[9px] uppercase font-bold tracking-widest text-slate-400">RUNNER-UP</div>
+                          <div class="text-xs font-black text-white/90 mt-0.5 flex items-center justify-end gap-1">
+                            <i class="fi fi-rr-medal text-slate-400"></i> {{ data.table[1].teamName }}
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  }
+
+                  <!-- League / Group Table -->
+                  @if (data.table?.length > 0) {
+                    <div class="bg-slate-900 border border-white/10 rounded-2xl shadow-xl overflow-hidden">
+                      <div class="px-5 py-3.5 border-b border-white/5 flex items-center justify-between">
+                        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                          <i class="fi fi-rr-list-check text-violet-400"></i> Points Table
+                        </h3>
+                        <div class="flex items-center gap-2 text-[10px]">
+                          <span class="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded border border-emerald-500/20 font-semibold">
+                            Win: {{ data.pointsConfig?.winPts ?? 3 }} pts
+                          </span>
+                          <span class="px-2 py-0.5 bg-slate-800 text-slate-300 rounded border border-white/5 font-semibold">
+                            Draw: {{ data.pointsConfig?.drawPts ?? 1 }} pt
+                          </span>
+                        </div>
+                      </div>
+
+                      <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs border-collapse">
+                          <thead>
+                            <tr class="text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-white/5">
+                              <th class="py-3 px-4 w-8">#</th>
+                              <th class="py-3 pl-2 pr-4">Team</th>
+                              <th class="py-3 text-center px-2" title="Played">P</th>
+                              <th class="py-3 text-center px-2 text-emerald-400" title="Won">W</th>
+                              <th class="py-3 text-center px-2" title="Drawn">D</th>
+                              <th class="py-3 text-center px-2 text-rose-400" title="Lost">L</th>
+                              <th class="py-3 text-center px-2" title="Goals For">GF</th>
+                              <th class="py-3 text-center px-2" title="Goals Against">GA</th>
+                              <th class="py-3 text-center px-2" title="Goal Difference">GD</th>
+                              <th class="py-3 text-right pr-5 text-violet-400" title="Points">Pts</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @for (row of data.table; track row.teamId; let idx = $index) {
+                              <tr class="border-b border-white/5 hover:bg-white/[0.03] transition-colors"
+                                [class]="positionClass(row.position, data.table.length)">
+                                <td class="py-3 px-4">
+                                  <span class="text-xs font-black" [class]="positionBadgeClass(row.position)">
+                                    {{ row.position }}
+                                  </span>
+                                </td>
+                                <td class="py-3 pl-2 pr-4">
+                                  <div class="flex items-center gap-2 min-w-0">
+                                    <app-avatar [name]="row.teamName" [logoUrl]="row.teamLogoUrl"
+                                      customClass="w-5 h-5 rounded flex-shrink-0" textClass="text-[8px] font-bold text-white" />
+                                    <span class="font-semibold text-white truncate max-w-[130px]" [title]="row.teamName">{{ row.teamName }}</span>
+                                    @if (data.isCompleted && idx === 0) {
+                                      <span class="text-[9px] px-1.5 py-0.5 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded font-black uppercase flex-shrink-0">Champion</span>
+                                    } @else if (data.isCompleted && idx === 1) {
+                                      <span class="text-[9px] px-1.5 py-0.5 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded font-black uppercase flex-shrink-0">Runner-up</span>
+                                    }
+                                  </div>
+                                </td>
+                                <td class="py-3 text-center text-slate-300 font-semibold px-2">{{ row.played }}</td>
+                                <td class="py-3 text-center text-emerald-400 font-medium px-2">{{ row.won }}</td>
+                                <td class="py-3 text-center text-slate-400 font-medium px-2">{{ row.drawn }}</td>
+                                <td class="py-3 text-center text-rose-400 font-medium px-2">{{ row.lost }}</td>
+                                <td class="py-3 text-center text-slate-300 px-2">{{ row.gf }}</td>
+                                <td class="py-3 text-center text-slate-300 px-2">{{ row.ga }}</td>
+                                <td class="py-3 text-center font-semibold px-2"
+                                  [class.text-emerald-400]="row.gd > 0"
+                                  [class.text-rose-400]="row.gd < 0"
+                                  [class.text-slate-400]="row.gd === 0">
+                                  {{ row.gd > 0 ? '+' : '' }}{{ row.gd }}
+                                </td>
+                                <td class="py-3 text-right pr-5 font-extrabold text-violet-400">{{ row.pts }}</td>
+                              </tr>
+                            } @empty {
+                              <tr>
+                                <td colspan="10" class="py-10 text-center text-xs text-slate-500">
+                                  No match results recorded yet.
+                                </td>
+                              </tr>
+                            }
+                          </tbody>
+                        </table>
+                      </div>
+
+                      <!-- Tie-break footnote -->
+                      <div class="px-5 py-3 border-t border-white/5 flex items-center gap-1.5 text-[10px] text-slate-500">
+                        <i class="fi fi-rr-info"></i>
+                        Tie-break order: Points &rarr; Goal Difference &rarr; Goals Scored
+                      </div>
+                    </div>
+                  }
+
+                  <!-- Knockout Bracket Progress -->
+                  @if (data.bracket?.length > 0) {
+                    <div class="bg-slate-900 border border-white/10 rounded-2xl p-5 shadow-xl flex flex-col gap-5">
+                      <h3 class="text-sm font-bold text-white flex items-center gap-2 border-b border-white/5 pb-3">
+                        <i class="fi fi-rr-diagram-project text-violet-400"></i> Knockout Bracket Progress
+                      </h3>
+
+                      <div class="flex flex-col gap-6">
+                        @for (roundBlock of data.bracket; track roundBlock.round) {
+                          <div class="flex flex-col gap-2">
+                            <!-- Round label -->
+                            <div class="text-[9px] font-black text-violet-300 uppercase tracking-widest flex items-center gap-2">
+                              <span class="w-1.5 h-1.5 rounded-full bg-violet-500"></span>
+                              {{ roundBlock.round }}
+                            </div>
+
+                            <!-- Match cards grid -->
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              @for (m of roundBlock.matches; track m.id) {
+                                <div class="bg-slate-950/60 border rounded-xl p-3 flex flex-col gap-2.5 transition-all"
+                                  [class]="m.status === 'live'
+                                    ? 'border-rose-500/30 shadow shadow-rose-500/10'
+                                    : m.status === 'completed'
+                                      ? 'border-emerald-500/15'
+                                      : 'border-white/5'">
+
+                                  <!-- Status + schedule -->
+                                  <div class="flex items-center justify-between text-[9px] font-bold uppercase tracking-wider">
+                                    @if (m.status === 'live') {
+                                      <span class="text-rose-400 flex items-center gap-1">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping"></span> LIVE
+                                      </span>
+                                    } @else if (m.status === 'completed') {
+                                      <span class="text-blue-400">Completed</span>
+                                    } @else {
+                                      <span class="text-slate-500">Scheduled</span>
+                                    }
+                                    @if (m.scheduledAt) {
+                                      <span class="text-slate-500 font-medium normal-case">{{ m.scheduledAt | date:'shortDate' }}</span>
+                                    }
+                                  </div>
+
+                                  <!-- Teams + Score -->
+                                  <div class="flex items-center gap-2">
+                                    <!-- Home -->
+                                    <div class="flex-1 flex items-center gap-1.5 min-w-0">
+                                      <app-avatar [name]="m.homeTeam?.name || 'TBD'" [logoUrl]="m.homeTeam?.logoUrl"
+                                        customClass="w-5 h-5 rounded flex-shrink-0" textClass="text-[7px] font-bold text-white" />
+                                      <span class="text-xs text-white truncate"
+                                        [class.text-slate-500]="!m.homeTeam"
+                                        [class.font-black]="m.status === 'completed' && m.homeScore > m.awayScore"
+                                        [class.font-semibold]="!(m.status === 'completed' && m.homeScore > m.awayScore)">
+                                        {{ m.homeTeam?.name || 'TBD' }}
+                                      </span>
+                                    </div>
+
+                                    <!-- Score or VS -->
+                                    @if (m.status === 'completed' || m.status === 'live') {
+                                      <div class="flex items-center gap-1 flex-shrink-0">
+                                        <span class="text-sm font-black text-white bg-slate-900 px-2 py-0.5 rounded min-w-[24px] text-center border"
+                                          [class]="m.homeScore > m.awayScore ? 'border-emerald-500/40 text-emerald-300' : 'border-white/5'">
+                                          {{ m.homeScore }}
+                                        </span>
+                                        <span class="text-[9px] text-slate-500 font-bold">–</span>
+                                        <span class="text-sm font-black text-white bg-slate-900 px-2 py-0.5 rounded min-w-[24px] text-center border"
+                                          [class]="m.awayScore > m.homeScore ? 'border-emerald-500/40 text-emerald-300' : 'border-white/5'">
+                                          {{ m.awayScore }}
+                                        </span>
+                                      </div>
+                                    } @else {
+                                      <span class="text-[10px] font-black text-slate-500 px-1 flex-shrink-0">VS</span>
+                                    }
+
+                                    <!-- Away -->
+                                    <div class="flex-1 flex items-center justify-end gap-1.5 min-w-0 text-right">
+                                      <span class="text-xs text-white truncate"
+                                        [class.text-slate-500]="!m.awayTeam"
+                                        [class.font-black]="m.status === 'completed' && m.awayScore > m.homeScore"
+                                        [class.font-semibold]="!(m.status === 'completed' && m.awayScore > m.homeScore)">
+                                        {{ m.awayTeam?.name || 'TBD' }}
+                                      </span>
+                                      <app-avatar [name]="m.awayTeam?.name || 'TBD'" [logoUrl]="m.awayTeam?.logoUrl"
+                                        customClass="w-5 h-5 rounded flex-shrink-0" textClass="text-[7px] font-bold text-white" />
+                                    </div>
+                                  </div>
+                                </div>
+                              }
+                            </div>
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  }
+
+                  <!-- Empty state -->
+                  @if (!data.table?.length && !data.bracket?.length) {
+                    <div class="rounded-2xl border border-dashed border-white/10 p-16 text-center flex flex-col items-center justify-center gap-3">
+                      <i class="fi fi-rr-list-ol text-3xl text-slate-500"></i>
+                      <div>
+                        <h3 class="text-sm font-semibold text-white">No standings available</h3>
+                        <p class="text-xs text-slate-500 mt-1">Matches need to be completed for rankings to appear.</p>
+                      </div>
+                    </div>
+                  }
+
+                }
+
+              } @else {
+                <div class="rounded-2xl border border-dashed border-white/10 p-16 text-center flex flex-col items-center justify-center gap-3">
+                  <i class="fi fi-rr-list-ol text-3xl text-slate-500"></i>
+                  <p class="text-xs text-slate-500">Select a competition to view its standings.</p>
+                </div>
+              }
+
+            </div>
+          </div>
+        </div>
+      }
+
       <!-- Panel 2: Competitions & Brackets Tab -->
       @if (activeTab() === 'competitions') {
         <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+
           
           <!-- Competitions Sidebar -->
           <div class="lg:col-span-1 flex flex-col gap-4">
