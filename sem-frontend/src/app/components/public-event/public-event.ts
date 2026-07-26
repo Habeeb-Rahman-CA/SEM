@@ -55,6 +55,50 @@ export class PublicEventComponent implements OnInit, OnDestroy {
   resultsSearchQuery = signal<string>('');
   resultsSortOrder = signal<'desc' | 'asc'>('desc');
 
+  // Sharing State
+  isShareModalOpen = signal<boolean>(false);
+  shareTab = signal<'general' | 'fixtures' | 'standings' | 'results'>('general');
+  copySuccess = signal<boolean>(false);
+
+  shareUrl = computed(() => {
+    const base = window.location.origin + window.location.pathname;
+    const tab = this.shareTab();
+    const eventId = this.eventId();
+    if (!eventId) return base;
+
+    if (tab === 'fixtures') {
+      const compId = this.selectedCompetition()?.id;
+      return compId ? `${base}?tab=competitions&comp=${compId}` : `${base}?tab=competitions`;
+    }
+    if (tab === 'standings') {
+      const compId = this.standingsComp()?.id;
+      const stageId = this.standingsStage()?.id;
+      if (compId && stageId) {
+        return `${base}?tab=standings&comp=${compId}&stage=${stageId}`;
+      }
+      return `${base}?tab=standings`;
+    }
+    if (tab === 'results') {
+      const compId = this.resultsComp()?.id;
+      return compId ? `${base}?tab=results&comp=${compId}` : `${base}?tab=results`;
+    }
+    return base; // general
+  });
+
+  shareTitle = computed(() => {
+    const eventName = this.event()?.name ?? 'Sports Event';
+    const tab = this.shareTab();
+    if (tab === 'fixtures') return `Fixtures & Brackets for ${eventName}`;
+    if (tab === 'standings') return `Live Standings for ${eventName}`;
+    if (tab === 'results') return `Match Results for ${eventName}`;
+    return eventName;
+  });
+
+  shareQrUrl = computed(() => {
+    return `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(this.shareUrl())}`;
+  });
+
+
   filteredGroupedResults = computed(() => {
     const data = this.resultsData();
     if (!data || !data.groupedResults) return [];
@@ -188,9 +232,28 @@ export class PublicEventComponent implements OnInit, OnDestroy {
         this.event.set(evt);
         this.isLoading.set(false);
 
-        // If there are competitions, select the first one by default
-        if (evt.competitions && evt.competitions.length > 0) {
-          this.selectCompetition(evt.competitions[0]);
+        // Check query parameters to select target competition or tab
+        const tab = this.route.snapshot.queryParamMap.get('tab') as any;
+        const compId = this.route.snapshot.queryParamMap.get('comp');
+        const stageId = this.route.snapshot.queryParamMap.get('stage') || undefined;
+
+        let targetComp = evt.competitions?.[0];
+        if (compId && evt.competitions) {
+          const found = evt.competitions.find((c: any) => c.id === compId);
+          if (found) targetComp = found;
+        }
+
+        if (tab) {
+          this.activeTab.set(tab);
+          if (tab === 'standings') {
+            if (targetComp) this.selectStandingsCompetition(targetComp, stageId);
+          } else if (tab === 'results') {
+            if (targetComp) this.selectResultsCompetition(targetComp);
+          } else {
+            if (targetComp) this.selectCompetition(targetComp, stageId);
+          }
+        } else {
+          if (targetComp) this.selectCompetition(targetComp, stageId);
         }
       },
       error: (err) => {
@@ -201,7 +264,7 @@ export class PublicEventComponent implements OnInit, OnDestroy {
     });
   }
 
-  selectCompetition(comp: any) {
+  selectCompetition(comp: any, targetStageId?: string) {
     this.selectedCompetition.set(comp);
     this.selectedTeamFilter.set('all');
     this.stages.set([]);
@@ -218,7 +281,12 @@ export class PublicEventComponent implements OnInit, OnDestroy {
         this.stages.set(stagesList);
         this.isLoadingStages.set(false);
         if (stagesList.length > 0) {
-          this.selectStage(stagesList[0]);
+          let selected = stagesList[0];
+          if (targetStageId) {
+            const found = stagesList.find((s: any) => s.id === targetStageId);
+            if (found) selected = found;
+          }
+          this.selectStage(selected);
         }
       },
       error: (err) => {
@@ -474,23 +542,52 @@ export class PublicEventComponent implements OnInit, OnDestroy {
     return null;
   }
 
-  // General share helper
+  // Sharing helper methods
   shareEventLink() {
-    if (navigator.share) {
-      navigator.share({
-        title: this.event()?.name || 'Sports Event',
-        text: this.event()?.description || 'Check out this event!',
-        url: window.location.href
-      }).catch(err => console.error('Error sharing:', err));
-    } else {
-      navigator.clipboard.writeText(window.location.href);
-      alert('Event page link copied to clipboard!');
+    this.openShareModal('general');
+  }
+
+  openShareModal(tabType: 'general' | 'fixtures' | 'standings' | 'results' = 'general') {
+    this.shareTab.set(tabType);
+    this.isShareModalOpen.set(true);
+  }
+
+  closeShareModal() {
+    this.isShareModalOpen.set(false);
+    this.copySuccess.set(false);
+  }
+
+  copyShareLink() {
+    navigator.clipboard.writeText(this.shareUrl());
+    this.copySuccess.set(true);
+    setTimeout(() => this.copySuccess.set(false), 2000);
+  }
+
+  shareSocial(platform: 'whatsapp' | 'twitter' | 'facebook' | 'telegram' | 'email') {
+    const title = this.shareTitle();
+    const url = this.shareUrl();
+
+    let shareLink = '';
+    if (platform === 'whatsapp') {
+      shareLink = `https://api.whatsapp.com/send?text=${encodeURIComponent(title + ': ' + url)}`;
+    } else if (platform === 'twitter') {
+      shareLink = `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`;
+    } else if (platform === 'facebook') {
+      shareLink = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+    } else if (platform === 'telegram') {
+      shareLink = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`;
+    } else if (platform === 'email') {
+      shareLink = `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent('Check this out: ' + url)}`;
+    }
+
+    if (shareLink) {
+      window.open(shareLink, '_blank', 'noopener,noreferrer');
     }
   }
 
   // ─── Standings Tab Logic ───────────────────────────────────────────────────
 
-  selectStandingsCompetition(comp: any) {
+  selectStandingsCompetition(comp: any, targetStageId?: string) {
     this.standingsComp.set(comp);
     this.standingsStages.set([]);
     this.standingsStage.set(null);
@@ -504,7 +601,14 @@ export class PublicEventComponent implements OnInit, OnDestroy {
     this.eventService.getPublicStages(eventId, comp.id).subscribe({
       next: (stages) => {
         this.standingsStages.set(stages);
-        if (stages.length > 0) this.selectStandingsStage(stages[0]);
+        if (stages.length > 0) {
+          let selected = stages[0];
+          if (targetStageId) {
+            const found = stages.find((s: any) => s.id === targetStageId);
+            if (found) selected = found;
+          }
+          this.selectStandingsStage(selected);
+        }
       },
       error: () => this.standingsError.set('Failed to load stages')
     });

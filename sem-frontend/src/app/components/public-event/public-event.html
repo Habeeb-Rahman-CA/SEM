@@ -260,6 +260,9 @@
               </h2>
               <p class="text-xs text-slate-500 mt-1">Official scores, player stats, and awards of completed matches.</p>
             </div>
+            <button (click)="openShareModal('results')" class="px-4 py-2 bg-slate-900 border border-white/10 hover:border-white/20 text-slate-300 hover:text-white rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer">
+              <i class="fi fi-rr-share text-xs"></i> Share Results
+            </button>
           </div>
 
           <!-- Layout: Sidebar + Main Content -->
@@ -566,12 +569,17 @@
               </h2>
               <p class="text-xs text-slate-500 mt-1">Rankings update automatically after match completion.</p>
             </div>
-            @if ((standingsData()?.progress?.live ?? 0) > 0) {
-              <div class="flex items-center gap-2 px-3 py-1.5 bg-rose-500/10 border border-rose-500/20 rounded-xl text-xs text-rose-400 font-bold">
-                <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
-                {{ standingsData()?.progress?.live }} Live · Auto-refreshing every 30s
-              </div>
-            }
+            <div class="flex items-center gap-3">
+              @if ((standingsData()?.progress?.live ?? 0) > 0) {
+                <div class="flex items-center gap-2 px-3 py-1.5 bg-rose-500/10 border border-rose-500/20 rounded-xl text-xs text-rose-400 font-bold">
+                  <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+                  {{ standingsData()?.progress?.live }} Live · Auto-refreshing every 30s
+                </div>
+              }
+              <button (click)="openShareModal('standings')" class="px-4 py-2 bg-slate-900 border border-white/10 hover:border-white/20 text-slate-300 hover:text-white rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer">
+                <i class="fi fi-rr-share text-xs"></i> Share Standings
+              </button>
+            </div>
           </div>
 
           <!-- 2-column layout -->
@@ -942,15 +950,20 @@
                     <h3 class="text-sm font-bold text-white flex items-center gap-2">
                       <i class="fi fi-rr-calendar text-violet-400"></i> Matches & Schedules
                     </h3>
-                    <div class="flex items-center gap-1.5">
-                      <label for="pub-team-filter" class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Team:</label>
-                      <select id="pub-team-filter" [ngModel]="selectedTeamFilter()" (ngModelChange)="selectedTeamFilter.set($event)"
-                        class="bg-slate-950 border border-white/10 focus:border-violet-500 rounded-lg px-2.5 py-1 text-[10px] text-white outline-none">
-                        <option value="all">All Teams</option>
-                        @for (t of event()?.teams; track t.id) {
-                          <option [value]="t.id">{{ t.name }}</option>
-                        }
-                      </select>
+                    <div class="flex items-center gap-3">
+                      <div class="flex items-center gap-1.5">
+                        <label for="pub-team-filter" class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Team:</label>
+                        <select id="pub-team-filter" [ngModel]="selectedTeamFilter()" (ngModelChange)="selectedTeamFilter.set($event)"
+                          class="bg-slate-950 border border-white/10 focus:border-violet-500 rounded-lg px-2.5 py-1 text-[10px] text-white outline-none">
+                          <option value="all">All Teams</option>
+                          @for (t of event()?.teams; track t.id) {
+                            <option [value]="t.id">{{ t.name }}</option>
+                          }
+                        </select>
+                      </div>
+                      <button (click)="openShareModal('fixtures')" class="p-1.5 bg-slate-950 border border-white/10 hover:border-white/20 text-slate-400 hover:text-white rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer">
+                        <i class="fi fi-rr-share text-[10px]"></i> Share
+                      </button>
                     </div>
                   </div>
 
@@ -1621,6 +1634,107 @@
             class="absolute top-4 right-4 w-9 h-9 rounded-full bg-slate-950/60 hover:bg-slate-950 text-white flex items-center justify-center transition-all cursor-pointer border border-white/10">
             <i class="fi fi-rr-cross text-xs"></i>
           </button>
+        </div>
+      </div>
+    }
+
+    <!-- ─── SHARE & QR CODE MODAL ─── -->
+    @if (isShareModalOpen()) {
+      <div class="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm transition-all" (click)="closeShareModal()">
+        <div class="relative w-full max-w-md overflow-hidden rounded-3xl border border-white/10 shadow-2xl bg-slate-900 p-6 flex flex-col gap-6" (click)="$event.stopPropagation()">
+          
+          <!-- Close Button -->
+          <button (click)="closeShareModal()" 
+            class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-950/60 hover:bg-slate-950 text-white flex items-center justify-center transition-all cursor-pointer border border-white/10">
+            <i class="fi fi-rr-cross text-[10px]"></i>
+          </button>
+
+          <!-- Modal Header -->
+          <div class="text-center">
+            <h3 class="text-base font-black text-white flex items-center justify-center gap-2">
+              <i class="fi fi-rr-share text-violet-400"></i> Share Event Portal
+            </h3>
+            <p class="text-xs text-slate-400 mt-1">Select what you want to share with others</p>
+          </div>
+
+          <!-- Share Scope Selector Tabs -->
+          <div class="flex p-1 bg-slate-950 border border-white/5 rounded-xl text-center">
+            <button (click)="shareTab.set('general')"
+              class="flex-1 text-[10px] font-black py-2 rounded-lg transition-all cursor-pointer uppercase tracking-wider"
+              [class]="shareTab() === 'general' ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white'">
+              Hub
+            </button>
+            <button (click)="shareTab.set('fixtures')"
+              class="flex-1 text-[10px] font-black py-2 rounded-lg transition-all cursor-pointer uppercase tracking-wider"
+              [class]="shareTab() === 'fixtures' ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white'">
+              Fixtures
+            </button>
+            <button (click)="shareTab.set('standings')"
+              class="flex-1 text-[10px] font-black py-2 rounded-lg transition-all cursor-pointer uppercase tracking-wider"
+              [class]="shareTab() === 'standings' ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white'">
+              Standings
+            </button>
+            <button (click)="shareTab.set('results')"
+              class="flex-1 text-[10px] font-black py-2 rounded-lg transition-all cursor-pointer uppercase tracking-wider"
+              [class]="shareTab() === 'results' ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white'">
+              Results
+            </button>
+          </div>
+
+          <!-- QR Code Display Card -->
+          <div class="flex flex-col items-center gap-3 bg-slate-950 p-5 rounded-2xl border border-white/5">
+            <div class="p-2 bg-white rounded-xl shadow-lg">
+              <img [src]="shareQrUrl()" alt="Event QR Code" class="w-48 h-48 block" />
+            </div>
+            <span class="text-[9px] font-black text-slate-500 uppercase tracking-wider">Scan QR Code for Instant Access</span>
+          </div>
+
+          <!-- Social Sharing Row -->
+          <div class="flex flex-col gap-2">
+            <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">Share via messaging</span>
+            <div class="grid grid-cols-5 gap-2">
+              <button (click)="shareSocial('whatsapp')" 
+                title="Share on WhatsApp"
+                class="py-2.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-white/5 text-slate-300 hover:text-emerald-400 transition-all flex items-center justify-center cursor-pointer text-sm">
+                <i class="fi fi-rr-messages text-base"></i>
+              </button>
+              <button (click)="shareSocial('twitter')" 
+                title="Share on Twitter / X"
+                class="py-2.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-white/5 text-slate-300 hover:text-sky-400 transition-all flex items-center justify-center cursor-pointer text-sm">
+                <i class="fi fi-rr-paper-plane text-base"></i>
+              </button>
+              <button (click)="shareSocial('facebook')" 
+                title="Share on Facebook"
+                class="py-2.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-white/5 text-slate-300 hover:text-indigo-400 transition-all flex items-center justify-center cursor-pointer text-sm">
+                <i class="fi fi-rr-users text-base"></i>
+              </button>
+              <button (click)="shareSocial('telegram')" 
+                title="Share on Telegram"
+                class="py-2.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-white/5 text-slate-300 hover:text-sky-300 transition-all flex items-center justify-center cursor-pointer text-sm">
+                <i class="fi fi-rr-send text-base"></i>
+              </button>
+              <button (click)="shareSocial('email')" 
+                title="Share via Email"
+                class="py-2.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-white/5 text-slate-300 hover:text-amber-400 transition-all flex items-center justify-center cursor-pointer text-sm">
+                <i class="fi fi-rr-envelope text-base"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Link Copy Bar -->
+          <div class="flex flex-col gap-2">
+            <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">Copy Link</span>
+            <div class="flex items-center gap-2 bg-slate-950 border border-white/5 rounded-xl p-1.5 pl-3">
+              <input type="text" [value]="shareUrl()" readonly 
+                class="flex-1 bg-transparent text-xs text-slate-400 outline-none select-all truncate" />
+              <button (click)="copyShareLink()" 
+                class="px-4 py-2 rounded-lg text-[10px] font-extrabold uppercase transition-all cursor-pointer tracking-wider"
+                [class]="copySuccess() ? 'bg-emerald-500 text-slate-950' : 'bg-violet-600 hover:bg-violet-500 text-white'">
+                {{ copySuccess() ? 'Copied' : 'Copy' }}
+              </button>
+            </div>
+          </div>
+
         </div>
       </div>
     }
