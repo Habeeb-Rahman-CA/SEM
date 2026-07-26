@@ -13,12 +13,12 @@ import {
 import { AuthService } from '../../services/auth.service';
 import { UiService } from '../../services/ui.service';
 import { AvatarComponent } from '../../shared/components/avatar/avatar';
-import { SportsManagementComponent } from './sports-management';
-import { RolesPermissionsComponent } from './roles-permissions';
-import { AuditLogsComponent } from './audit-logs';
-import { SystemHealthComponent } from './system-health';
-import { GlobalPreferencesComponent } from './global-preferences';
-import { WorkspacesManagementComponent } from './workspaces-management';
+import { SportsManagementComponent } from './sports-management/sports-management';
+import { RolesPermissionsComponent } from './roles-permissions/roles-permissions';
+import { AuditLogsComponent } from './audit-logs/audit-logs';
+import { SystemHealthComponent } from './system-health/system-health';
+import { GlobalPreferencesComponent } from './global-preferences/global-preferences';
+import { WorkspacesManagementComponent } from './workspaces-management/workspaces-management';
 
 @Component({
   selector: 'app-system-settings',

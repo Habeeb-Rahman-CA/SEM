@@ -1,10 +1,10 @@
 import { Component, signal, inject, OnInit, output } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { WorkspaceService, Workspace } from '../../services/workspace.service';
-import { AuthService } from '../../services/auth.service';
-import { UiService } from '../../services/ui.service';
-import { AvatarComponent } from '../../shared/components/avatar/avatar';
+import { WorkspaceService, Workspace } from '../../../services/workspace.service';
+import { AuthService } from '../../../services/auth.service';
+import { UiService } from '../../../services/ui.service';
+import { AvatarComponent } from '../../../shared/components/avatar/avatar';
 
 @Component({
   selector: 'app-workspaces-management',

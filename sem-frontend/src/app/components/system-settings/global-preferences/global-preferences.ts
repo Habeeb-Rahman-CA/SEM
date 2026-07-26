@@ -1,6 +1,6 @@
 import { Component, signal, inject, OnInit } from '@angular/core';
-import { WorkspaceService, SystemConfigMap } from '../../services/workspace.service';
-import { UiService } from '../../services/ui.service';
+import { WorkspaceService, SystemConfigMap } from '../../../services/workspace.service';
+import { UiService } from '../../../services/ui.service';
 
 @Component({
   selector: 'app-global-preferences',

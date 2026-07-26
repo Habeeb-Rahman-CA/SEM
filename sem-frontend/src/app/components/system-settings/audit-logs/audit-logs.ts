@@ -1,8 +1,8 @@
 import { Component, signal, inject, OnInit, output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
-import { WorkspaceService, AuditLog } from '../../services/workspace.service';
-import { UiService } from '../../services/ui.service';
+import { WorkspaceService, AuditLog } from '../../../services/workspace.service';
+import { UiService } from '../../../services/ui.service';
 
 @Component({
   selector: 'app-audit-logs',

@@ -1,7 +1,7 @@
 import { Component, signal, inject, OnInit, output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { WorkspaceService, Sport } from '../../services/workspace.service';
-import { UiService } from '../../services/ui.service';
+import { WorkspaceService, Sport } from '../../../services/workspace.service';
+import { UiService } from '../../../services/ui.service';
 
 @Component({
   selector: 'app-sports-management',

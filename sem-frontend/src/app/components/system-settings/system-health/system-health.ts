@@ -1,5 +1,5 @@
 import { Component, signal, inject, OnInit, output } from '@angular/core';
-import { WorkspaceService, SystemMetrics } from '../../services/workspace.service';
+import { WorkspaceService, SystemMetrics } from '../../../services/workspace.service';
 
 @Component({
   selector: 'app-system-health',

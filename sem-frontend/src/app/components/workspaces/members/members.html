@@ -1,10 +1,10 @@
-<div class="flex flex-col gap-8">
+<div class="flex flex-col h-full overflow-hidden gap-6">
 
   <!-- Invite Form -->
   <!-- Invite Panel -->
   @if (canInvite()) {
   <div
-    class="grid grid-cols-1 lg:grid-cols-2 gap-8 bg-slate-900 border border-white/10 rounded-2xl p-6 shadow-xl">
+    class="grid grid-cols-1 lg:grid-cols-2 gap-8 bg-slate-900 border border-white/10 rounded-2xl p-6 shadow-xl flex-shrink-0">
 
     <!-- Left Column: Invite Form -->
     <div class="flex flex-col justify-between">
@@ -105,8 +105,8 @@
   }
 
   <!-- Members Table -->
-  <div class="bg-slate-900 border border-white/10 rounded-2xl overflow-hidden flex flex-col gap-0">
-    <div class="px-6 py-4 border-b border-white/10 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+  <div class="bg-slate-900 border border-white/10 rounded-2xl overflow-hidden flex flex-col gap-0 flex-1 min-h-0">
+    <div class="px-6 py-4 border-b border-white/10 flex flex-col lg:flex-row lg:items-center justify-between gap-4 flex-shrink-0">
       <div>
         <h2 class="text-sm font-bold text-white">All Members</h2>
         <span class="text-xs text-slate-500">
@@ -167,7 +167,7 @@
       </div>
     </div>
     
-    <div class="divide-y divide-white/5">
+    <div class="divide-y divide-white/5 flex-1 overflow-y-auto min-h-0">
       @if (filteredMembers().length === 0) {
       <div class="px-6 py-12 text-center text-slate-500 text-xs">
         No members found matching the filters
@@ -228,7 +228,7 @@
 
     <!-- Paginator Footer -->
     @if (filteredMembers().length > 0) {
-      <div class="px-6 py-4 border-t border-white/10">
+      <div class="px-6 py-4 border-t border-white/10 flex-shrink-0 bg-slate-900">
         <app-paginator
           [currentPage]="page()"
           [pageSize]="pageSize()"

@@ -1,8 +1,8 @@
 import { Component, signal, inject, OnInit, output, input } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { WorkspaceService, Role, Permission } from '../../services/workspace.service';
-import { UiService } from '../../services/ui.service';
-import { roleBadgeClass } from '../../shared';
+import { WorkspaceService, Role, Permission } from '../../../services/workspace.service';
+import { UiService } from '../../../services/ui.service';
+import { roleBadgeClass } from '../../../shared';
 
 @Component({
   selector: 'app-roles-permissions',
