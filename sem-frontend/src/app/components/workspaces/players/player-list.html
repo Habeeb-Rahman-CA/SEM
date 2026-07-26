@@ -2,7 +2,7 @@
 <app-loading-spinner message="Loading player statistics..." [fullPage]="true" />
 } @else if (selectedPlayerForDetails(); as playerDetails) {
 <!-- ─── Player View Page (Detailed Stats) ─── -->
-<div class="flex flex-col gap-6 text-left animate-fadeIn">
+<div class="flex-1 overflow-y-auto min-h-0 flex flex-col gap-6 text-left animate-fadeIn">
   <!-- Header section with back button & basic player info -->
   <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-5">
     <div class="flex items-center gap-4">
@@ -124,8 +124,8 @@
   </div>
 </div>
 } @else {
-<div class="flex flex-col gap-6 text-left">
-  <div class="flex items-center justify-between border-b border-white/5 pb-4">
+<div class="h-full flex flex-col overflow-hidden text-left">
+  <div class="flex items-center justify-between border-b border-white/5 pb-4 flex-shrink-0">
     <div>
       <h2 class="text-xl font-bold text-white">Workspace Players</h2>
       <p class="text-xs text-slate-400 mt-1">Player profiles and career assignments across workspace teams.</p>
@@ -140,11 +140,13 @@
   </div>
 
   @if (players().length === 0) {
-  <app-empty-state iconClass="fi-rr-running" title="No players registered" message="Add your first player or use bulk import to get started.">
-  </app-empty-state>
+    <div class="flex-1 overflow-y-auto min-h-0">
+      <app-empty-state iconClass="fi-rr-running" title="No players registered" message="Add your first player or use bulk import to get started.">
+      </app-empty-state>
+    </div>
   } @else {
     <!-- Search and Filter Bar -->
-    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-slate-900/20 border border-white/5 p-4 rounded-2xl mb-4">
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-slate-900/20 border border-white/5 p-4 rounded-2xl mb-4 flex-shrink-0">
       <div class="text-xs text-slate-400 font-medium">
         @if (playerSearchQuery() || selectedTeamFilter() !== 'all') {
           Showing {{ filteredPlayers().length }} of {{ players().length }} players
@@ -191,10 +193,13 @@
     </div>
 
     @if (filteredPlayers().length === 0) {
-    <app-empty-state iconClass="fi-rr-search" title="No matching players" message="No players match your search criteria." />
+      <div class="flex-1 overflow-y-auto min-h-0">
+        <app-empty-state iconClass="fi-rr-search" title="No matching players" message="No players match your search criteria." />
+      </div>
     } @else {
-    <div class="flex flex-col gap-6">
-      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+    <div class="flex-1 min-h-0 flex flex-col gap-4 overflow-hidden">
+      <div class="flex-1 overflow-y-auto min-h-0 pr-1">
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
         @for (player of paginatedPlayers(); track player.id) {
         <div
           class="bg-slate-900 border rounded-2xl p-4 flex flex-col justify-between gap-3 group transition-all duration-300 relative overflow-hidden"
@@ -250,20 +255,21 @@
           </div>
         </div>
         }
+        </div>
       </div>
-
-      <!-- Pagination -->
-      <div class="bg-slate-900/40 border border-white/10 rounded-2xl p-4">
-        <app-paginator
-          [currentPage]="page()"
-          [pageSize]="pageSize()"
-          [total]="filteredPlayers().length"
-          [pageSizeOptions]="[12, 24, 48, 96]"
-          (pageChange)="page.set($event)"
-          (pageSizeChange)="pageSize.set($event)"
-          [showAlways]="true" />
-      </div>
-    </div>
+ 
+       <!-- Pagination -->
+       <div class="bg-slate-900/40 border border-white/10 rounded-2xl p-4 flex-shrink-0">
+         <app-paginator
+           [currentPage]="page()"
+           [pageSize]="pageSize()"
+           [total]="filteredPlayers().length"
+           [pageSizeOptions]="[12, 24, 48, 96]"
+           (pageChange)="page.set($event)"
+           (pageSizeChange)="pageSize.set($event)"
+           [showAlways]="true" />
+       </div>
+     </div>
     }
   }
 </div>

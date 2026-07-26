@@ -16,6 +16,12 @@ import { AvatarComponent } from '../../../shared/components/avatar/avatar';
 import { InitialsPipe } from '../../../shared/pipes/initials.pipe';
 import { getSportBadgeClass, getSportIconClass, formatMatchStatusDetail } from '../../../shared';
 
+// Standalone Modal Components
+import { EventModalComponent } from './event-modal';
+import { CompetitionModalComponent } from './competition-modal';
+import { FixturesModalComponent } from './fixtures-modal';
+import { LineupModalComponent } from './lineup-modal';
+
 @Component({
   selector: 'app-workspace-events',
   standalone: true,
@@ -26,7 +32,11 @@ import { getSportBadgeClass, getSportIconClass, formatMatchStatusDetail } from '
     CricketConsoleComponent,
     BadmintonConsoleComponent,
     AvatarComponent,
-    InitialsPipe
+    InitialsPipe,
+    EventModalComponent,
+    CompetitionModalComponent,
+    FixturesModalComponent,
+    LineupModalComponent
   ],
   templateUrl: './events.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -68,83 +78,20 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
   isLoadingStages = signal(false);
   isLoadingStats = signal(false);
   isLoadingCompetitionTeams = signal(false);
+  isResettingStages = signal(false);
 
   // Search
   eventSearchQuery = signal('');
 
-  // Event Modals
+  // Standalone Modal States
   isEventModalOpen = signal(false);
   editingEvent = signal<WorkspaceEvent | null>(null);
-  isUploadingEventLogo = signal(false);
 
-  newEventName = signal('');
-  newEventDescription = signal('');
-  newEventStartDate = signal('');
-  newEventEndDate = signal('');
-  newEventStatus = signal<string>('upcoming');
-  newEventLogoUrl = signal('');
-  selectedEventTeamIds = signal<string[]>([]);
-  isCreatingEvent = signal(false);
-  isUpdatingEvent = signal(false);
-
-  editEventName = signal('');
-  editEventDescription = signal('');
-  editEventStartDate = signal('');
-  editEventEndDate = signal('');
-  editEventStatus = signal<string>('upcoming');
-  editEventLogoUrl = signal('');
-
-  eventCreateError = signal('');
-  eventCreateSuccess = signal('');
-  eventUpdateError = signal('');
-  eventUpdateSuccess = signal('');
-
-  // Competition Modals
   isCompetitionModalOpen = signal(false);
   editingCompetition = signal<Competition | null>(null);
-  isCreatingCompetition = signal(false);
-  isUpdatingCompetition = signal(false);
 
-  newCompetitionName = signal('');
-  newCompetitionSportId = signal('');
-  newCompetitionStatus = signal<string>('upcoming');
-  newCompetitionPointsConfig = signal<PointsConfigEntry[]>([]);
-
-  editCompetitionName = signal('');
-  editCompetitionSportId = signal('');
-  editCompetitionStatus = signal<string>('upcoming');
-  editCompetitionPointsConfig = signal<PointsConfigEntry[]>([]);
-
-  competitionCreateError = signal('');
-  competitionCreateSuccess = signal('');
-  competitionUpdateError = signal('');
-  competitionUpdateSuccess = signal('');
-
-  // Fixtures Modal
   isGenerateFixturesModalOpen = signal(false);
-  isGeneratingFixturesSubmit = signal(false);
-  generateFixturesSubmitError = signal('');
-
-  newStageName = signal('Main Stage');
-  newStageType = signal<'league' | 'group' | 'knockout' | 'group_knockout'>('league');
-  newStageWinPoint = signal(3);
-  newStageDrawPoint = signal(1);
-  newStageTwoLegged = signal(false);
-  newStageLegs = signal(1);
-  newStageGamesPerTeam = signal(3);
-  newStageVenueId = signal('');
-  newStageGroupKnockoutSubtype = signal<'multiple_groups' | 'single_group'>('multiple_groups');
-  newStageGroupsCount = signal(2);
-  newStageAdvancingType = signal<'winner_and_runner' | 'winner'>('winner_and_runner');
-  newStageSingleGroupAdvancing = signal(2);
-  newStageAdvancingCount = signal(2);
-  selectedFixtureTeamIds = signal<string[]>([]);
-  competitionTeams = signal<CompetitionTeam[]>([]);
-  isResettingStages = signal(false);
-
-  // Lineup Modal
   isLineupModalOpen = signal(false);
-  lineupForm = signal<{ playerId: string; isPlaying: boolean; isGoalkeeper: boolean; teamId: string; player: Player }[]>([]);
 
   // Standings Group
   selectedPointsTableGroup = signal('Group A');
@@ -187,7 +134,6 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
         this.selectedStage.set(null);
         this.selectedMatch.set(null);
         this.matches.set([]);
-        this.competitionTeams.set([]);
         this.loadStages(comp.id);
         this.loadCompetitionTeams(comp.id);
       }
@@ -260,7 +206,7 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
     }
 
     const matchesList = this.matches();
-    const enrolledTeams = this.competitionTeams();
+    const enrolledTeams = this.teams(); // Using workspace teams enrolled or stages team mappings
     const currentGroup = this.selectedPointsTableGroup();
     const isMultipleGroups = stage.type === 'group_knockout' && stage.config?.groupKnockoutSubtype === 'multiple_groups';
 
@@ -288,14 +234,14 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
       pts: number;
     }>();
 
-    for (const ct of enrolledTeams) {
-      if (isMultipleGroups && !groupTeamIds.has(ct.teamId)) {
+    for (const t of enrolledTeams) {
+      if (isMultipleGroups && !groupTeamIds.has(t.id)) {
         continue;
       }
-      statsMap.set(ct.teamId, {
-        teamId: ct.teamId,
-        teamName: ct.team.name,
-        teamLogoUrl: ct.team.logoUrl,
+      statsMap.set(t.id, {
+        teamId: t.id,
+        teamName: t.name,
+        teamLogoUrl: t.logoUrl,
         played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, pts: 0
       });
     }
@@ -449,141 +395,27 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
     });
   }
 
-  toggleEventTeam(teamId: string) {
-    this.selectedEventTeamIds.update(prev =>
-      prev.includes(teamId) ? prev.filter(id => id !== teamId) : [...prev, teamId]
-    );
-  }
-
   onAddEvent() {
     this.editingEvent.set(null);
-    this.newEventName.set('');
-    this.newEventDescription.set('');
-    this.newEventStartDate.set('');
-    this.newEventEndDate.set('');
-    this.newEventStatus.set('upcoming');
-    this.newEventLogoUrl.set('');
-    this.selectedEventTeamIds.set([]);
-    this.eventCreateError.set('');
-    this.eventCreateSuccess.set('');
     this.isEventModalOpen.set(true);
-  }
-
-  closeEventModal() {
-    this.isEventModalOpen.set(false);
-    this.editingEvent.set(null);
-    this.newEventName.set('');
-    this.newEventDescription.set('');
-    this.newEventStartDate.set('');
-    this.newEventEndDate.set('');
-    this.newEventStatus.set('upcoming');
-    this.newEventLogoUrl.set('');
-    this.selectedEventTeamIds.set([]);
-    this.eventCreateError.set('');
-    this.eventCreateSuccess.set('');
-    this.editEventName.set('');
-    this.editEventDescription.set('');
-    this.editEventStartDate.set('');
-    this.editEventEndDate.set('');
-    this.editEventStatus.set('upcoming');
-    this.editEventLogoUrl.set('');
-    this.eventUpdateError.set('');
-    this.eventUpdateSuccess.set('');
-  }
-
-  onCreateEvent() {
-    const name = this.newEventName().trim();
-    const description = this.newEventDescription().trim();
-    const startDate = this.newEventStartDate();
-    const endDate = this.newEventEndDate();
-    const status = this.newEventStatus();
-    const ws = this.workspace();
-    if (!ws || !name) return;
-
-    this.isCreatingEvent.set(true);
-    this.eventCreateError.set('');
-    this.eventCreateSuccess.set('');
-
-    const payload = {
-      name,
-      description: description || undefined,
-      startDate: startDate ? new Date(startDate).toISOString() : undefined,
-      endDate: endDate ? new Date(endDate).toISOString() : undefined,
-      status,
-      logoUrl: this.newEventLogoUrl() || undefined,
-      teamIds: this.selectedEventTeamIds(),
-    };
-
-    this.eventService.createEvent(ws.id, payload).subscribe({
-      next: (event) => {
-        this.isCreatingEvent.set(false);
-        this.eventCreateSuccess.set(`Event "${event.name}" created successfully!`);
-        this.events.update(prev => [...prev, event]);
-        setTimeout(() => this.closeEventModal(), 1500);
-      },
-      error: (err) => {
-        this.isCreatingEvent.set(false);
-        this.eventCreateError.set(err.error?.message ?? 'Failed to create event.');
-      }
-    });
   }
 
   onEditEvent(event: WorkspaceEvent) {
     this.editingEvent.set(event);
-    this.editEventName.set(event.name);
-    this.editEventDescription.set(event.description ?? '');
-    this.editEventStartDate.set(this.formatToLocalDatetime(event.startDate));
-    this.editEventEndDate.set(this.formatToLocalDatetime(event.endDate));
-    this.editEventStatus.set(event.status);
-    this.editEventLogoUrl.set(event.logoUrl ?? '');
-    this.selectedEventTeamIds.set(event.teams?.map(t => t.id) || []);
-    this.eventUpdateError.set('');
-    this.eventUpdateSuccess.set('');
     this.isEventModalOpen.set(true);
   }
 
-  onUpdateEvent() {
-    const name = this.editEventName().trim();
-    const description = this.editEventDescription().trim();
-    const startDate = this.editEventStartDate();
-    const endDate = this.editEventEndDate();
-    const status = this.editEventStatus();
-    const ws = this.workspace();
-    const event = this.editingEvent();
-    if (!ws || !event || !name) return;
-
-    this.isUpdatingEvent.set(true);
-    this.eventUpdateError.set('');
-    this.eventUpdateSuccess.set('');
-
-    const payload = {
-      name,
-      description: description || undefined,
-      startDate: startDate ? new Date(startDate).toISOString() : null,
-      endDate: endDate ? new Date(endDate).toISOString() : null,
-      status,
-      logoUrl: this.editEventLogoUrl() || undefined,
-      teamIds: this.selectedEventTeamIds(),
-    };
-
-    this.eventService.updateEvent(ws.id, event.id, payload).subscribe({
-      next: (updated) => {
-        this.isUpdatingEvent.set(false);
-        this.eventUpdateSuccess.set(`Event updated successfully!`);
-        this.events.update(prev => prev.map(e => e.id === event.id ? updated : e));
-        
-        const curEvent = this.selectedEvent();
-        if (curEvent && curEvent.id === event.id) {
-          this.selectedEvent.set(updated);
-        }
-
-        setTimeout(() => this.closeEventModal(), 1500);
-      },
-      error: (err) => {
-        this.isUpdatingEvent.set(false);
-        this.eventUpdateError.set(err.error?.message ?? 'Failed to update event.');
+  onEventSaved(saved: WorkspaceEvent) {
+    const isEdit = !!this.editingEvent();
+    if (isEdit) {
+      this.events.update(prev => prev.map(e => e.id === saved.id ? saved : e));
+      const curEvent = this.selectedEvent();
+      if (curEvent && curEvent.id === saved.id) {
+        this.selectedEvent.set(saved);
       }
-    });
+    } else {
+      this.events.update(prev => [...prev, saved]);
+    }
   }
 
   async onDeleteEvent(event: WorkspaceEvent) {
@@ -618,29 +450,6 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
     });
   }
 
-  onEventLogoUpload(event: any, isEdit: boolean) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    this.isUploadingEventLogo.set(true);
-    this.workspaceService.uploadImage(file, 'event').subscribe({
-      next: (res) => {
-        this.isUploadingEventLogo.set(false);
-        if (isEdit) {
-          this.editEventLogoUrl.set(res.url);
-        } else {
-          this.newEventLogoUrl.set(res.url);
-        }
-        this.uiService.success('Event logo uploaded successfully.');
-      },
-      error: (err) => {
-        this.isUploadingEventLogo.set(false);
-        console.error(err);
-        this.uiService.error('Event logo upload failed.');
-      }
-    });
-  }
-
   // COMPETITIONS CRUD
   onSelectCompetition(comp: Competition) {
     this.selectedCompetition.set(comp);
@@ -649,7 +458,6 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
     this.selectedStage.set(null);
     this.selectedMatch.set(null);
     this.matches.set([]);
-    this.competitionTeams.set([]);
     this.loadStages(comp.id);
     this.loadCompetitionTeams(comp.id);
   }
@@ -662,133 +470,29 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
     this.selectedStage.set(null);
     this.selectedMatch.set(null);
     this.matches.set([]);
-    this.competitionTeams.set([]);
   }
 
   onAddCompetition() {
     this.editingCompetition.set(null);
-    this.newCompetitionName.set('');
-    this.newCompetitionSportId.set('');
-    this.newCompetitionStatus.set('upcoming');
-    this.newCompetitionPointsConfig.set([]);
-    this.competitionCreateError.set('');
-    this.competitionCreateSuccess.set('');
     this.isCompetitionModalOpen.set(true);
-  }
-
-  closeCompetitionModal() {
-    this.isCompetitionModalOpen.set(false);
-    this.editingCompetition.set(null);
-    this.newCompetitionName.set('');
-    this.newCompetitionSportId.set('');
-    this.newCompetitionStatus.set('upcoming');
-    this.newCompetitionPointsConfig.set([]);
-    this.competitionCreateError.set('');
-    this.competitionCreateSuccess.set('');
-    this.editCompetitionName.set('');
-    this.editCompetitionSportId.set('');
-    this.editCompetitionStatus.set('upcoming');
-    this.editCompetitionPointsConfig.set([]);
-    this.competitionUpdateError.set('');
-    this.competitionUpdateSuccess.set('');
-  }
-
-  addPointsRow(isEdit: boolean) {
-    const cfg = isEdit ? this.editCompetitionPointsConfig : this.newCompetitionPointsConfig;
-    const current = cfg();
-    const nextPosition = current.length > 0 ? Math.max(...current.map(r => r.position)) + 1 : 1;
-    const defaultLabels: Record<number, string> = { 1: 'Winner', 2: 'Runner-up', 3: '3rd Place', 4: '4th Place' };
-    cfg.set([...current, { position: nextPosition, label: defaultLabels[nextPosition] ?? `${nextPosition}th Place`, points: 0 }]);
-  }
-
-  removePointsRow(index: number, isEdit: boolean) {
-    const cfg = isEdit ? this.editCompetitionPointsConfig : this.newCompetitionPointsConfig;
-    cfg.update(rows => rows.filter((_, i) => i !== index));
-  }
-
-  updatePointsRow(index: number, field: keyof PointsConfigEntry, value: any, isEdit: boolean) {
-    const cfg = isEdit ? this.editCompetitionPointsConfig : this.newCompetitionPointsConfig;
-    cfg.update(rows => rows.map((r, i) => i === index ? { ...r, [field]: field === 'points' || field === 'position' ? Number(value) : value } : r));
-  }
-
-  onCreateCompetition() {
-    const name = this.newCompetitionName().trim();
-    const sportId = this.newCompetitionSportId();
-    const status = this.newCompetitionStatus();
-    const ws = this.workspace();
-    const event = this.selectedEvent();
-    if (!ws || !event || !name || !sportId) return;
-
-    this.isCreatingCompetition.set(true);
-    this.competitionCreateError.set('');
-    this.competitionCreateSuccess.set('');
-
-    const pointsConfig = this.newCompetitionPointsConfig();
-    const payload = {
-      name,
-      sportId,
-      status,
-      pointsConfig: pointsConfig.length > 0 ? pointsConfig : null,
-    };
-
-    this.competitionService.createCompetition(ws.id, event.id, payload).subscribe({
-      next: (comp) => {
-        this.isCreatingCompetition.set(false);
-        this.competitionCreateSuccess.set(`Competition "${comp.name}" created successfully!`);
-        this.competitions.update(prev => [...prev, comp]);
-        setTimeout(() => this.closeCompetitionModal(), 1500);
-      },
-      error: (err) => {
-        this.isCreatingCompetition.set(false);
-        this.competitionCreateError.set(err.error?.message ?? 'Failed to create competition.');
-      }
-    });
   }
 
   onEditCompetition(comp: Competition) {
     this.editingCompetition.set(comp);
-    this.editCompetitionName.set(comp.name);
-    this.editCompetitionSportId.set(comp.sportId);
-    this.editCompetitionStatus.set(comp.status);
-    this.editCompetitionPointsConfig.set(comp.pointsConfig ? [...comp.pointsConfig] : []);
-    this.competitionUpdateError.set('');
-    this.competitionUpdateSuccess.set('');
     this.isCompetitionModalOpen.set(true);
   }
 
-  onUpdateCompetition() {
-    const name = this.editCompetitionName().trim();
-    const sportId = this.editCompetitionSportId();
-    const status = this.editCompetitionStatus();
-    const ws = this.workspace();
-    const event = this.selectedEvent();
-    const comp = this.editingCompetition();
-    if (!ws || !event || !comp || !name || !sportId) return;
-
-    this.isUpdatingCompetition.set(true);
-    this.competitionUpdateError.set('');
-    this.competitionUpdateSuccess.set('');
-
-    const pointsConfig = this.editCompetitionPointsConfig();
-    const payload = {
-      name,
-      sportId,
-      status,
-      pointsConfig: pointsConfig.length > 0 ? pointsConfig : null,
-    };
-
-    this.competitionService.updateCompetition(ws.id, event.id, comp.id, payload).subscribe({
-      next: (updated) => {
-        this.isUpdatingCompetition.set(false);
-        this.competitionUpdateSuccess.set(`Competition updated successfully!`);
-        this.competitions.update(prev => prev.map(c => c.id === comp.id ? updated : c));
-        setTimeout(() => this.closeCompetitionModal(), 1500);
-      },
-      error: (err) => {
-        this.isUpdatingCompetition.set(false);
-        this.competitionUpdateError.set(err.error?.message ?? 'Failed to update competition.');
+  onCompetitionSaved(saved: Competition) {
+    const isEdit = !!this.editingCompetition();
+    if (isEdit) {
+      this.competitions.update(prev => prev.map(c => c.id === saved.id ? saved : c));
+      const curComp = this.selectedCompetition();
+      if (curComp && curComp.id === saved.id) {
+        this.selectedCompetition.set(saved);
       }
-    });
+    } else {
+      this.competitions.update(prev => [...prev, saved]);
+    }
   }
 
   async onDeleteCompetition(comp: Competition) {
@@ -1003,7 +707,7 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
     this.isLoadingCompetitionTeams.set(true);
     this.competitionService.getCompetitionTeams(ws.id, event.id, competitionId).subscribe({
       next: (ct) => {
-        this.competitionTeams.set(ct);
+        // Here we can load or store competition team mappings if needed
         this.isLoadingCompetitionTeams.set(false);
       },
       error: (err) => {
@@ -1039,169 +743,13 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
 
   // FIXTURE DRAFTING & GENERATION
   openGenerateFixturesModal() {
-    const comp = this.selectedCompetition();
-    const event = this.selectedEvent();
-    if (!comp || !event) return;
-
-    const eventTeamIds = event.teams?.map(t => t.id) || [];
-    this.selectedFixtureTeamIds.set(eventTeamIds);
-
-    const existingStages = this.stages();
-    if (existingStages.length > 0) {
-      const stage = existingStages[0];
-      this.newStageName.set(stage.name);
-      this.newStageType.set(stage.type === 'group' ? 'league' : stage.type as any);
-      this.newStageWinPoint.set(stage.config?.winPoint ?? 3);
-      this.newStageDrawPoint.set(stage.config?.drawPoint ?? 1);
-      this.newStageTwoLegged.set(stage.config?.twoLegged ?? false);
-      this.newStageGroupsCount.set(stage.config?.groupsCount ?? 2);
-      this.newStageAdvancingCount.set(stage.config?.advancingCount ?? 2);
-      this.newStageGamesPerTeam.set(stage.config?.gamesPerTeam ?? 3);
-      this.newStageLegs.set(stage.config?.legs ?? (stage.config?.twoLegged ? 2 : 1));
-      this.newStageGroupKnockoutSubtype.set(stage.config?.groupKnockoutSubtype ?? 'multiple_groups');
-      this.newStageAdvancingType.set(stage.config?.advancingType ?? 'winner_and_runner');
-      this.newStageSingleGroupAdvancing.set(stage.config?.singleGroupAdvancing ?? 2);
-      this.newStageVenueId.set(stage.config?.venueId ?? '');
-    } else {
-      this.newStageName.set('Main Stage');
-      this.newStageType.set('league');
-      this.newStageWinPoint.set(3);
-      this.newStageDrawPoint.set(1);
-      this.newStageTwoLegged.set(false);
-      this.newStageGroupsCount.set(2);
-      this.newStageAdvancingCount.set(2);
-      this.newStageGamesPerTeam.set(3);
-      this.newStageLegs.set(1);
-      this.newStageGroupKnockoutSubtype.set('multiple_groups');
-      this.newStageAdvancingType.set('winner_and_runner');
-      this.newStageSingleGroupAdvancing.set(2);
-      this.newStageVenueId.set('');
-    }
-
-    this.generateFixturesSubmitError.set('');
     this.isGenerateFixturesModalOpen.set(true);
   }
 
-  closeGenerateFixturesModal() {
-    this.isGenerateFixturesModalOpen.set(false);
-  }
-
-  toggleFixtureTeam(teamId: string) {
-    this.selectedFixtureTeamIds.update(ids => {
-      if (ids.includes(teamId)) {
-        return ids.filter(id => id !== teamId);
-      } else {
-        return [...ids, teamId];
-      }
-    });
-  }
-
-  async onGenerateFixturesSubmit() {
-    const ws = this.workspace();
-    const event = this.selectedEvent();
+  onFixturesGenerated() {
     const comp = this.selectedCompetition();
-    if (!ws || !event || !comp) return;
-
-    const selectedIds = this.selectedFixtureTeamIds();
-    if (selectedIds.length < 2) {
-      this.generateFixturesSubmitError.set('Please select at least 2 teams to participate.');
-      return;
-    }
-
-    const stageName = this.newStageName().trim();
-    if (!stageName) {
-      this.generateFixturesSubmitError.set('Please enter a stage name.');
-      return;
-    }
-
-    const existingStages = this.stages();
-    if (existingStages.length > 0) {
-      const confirmed = await this.uiService.confirm({
-        title: 'Regenerate Fixtures',
-        message: 'This will DELETE any existing matches and regenerate all fixtures randomly. Continue?',
-        confirmText: 'Regenerate',
-        type: 'warning',
-      });
-      if (!confirmed) return;
-    }
-
-    this.isGeneratingFixturesSubmit.set(true);
-    this.generateFixturesSubmitError.set('');
-
-    try {
-      const refreshedTeams = await firstValueFrom(this.competitionService.getCompetitionTeams(ws.id, event.id, comp.id));
-      this.competitionTeams.set(refreshedTeams);
-
-      const stagePayload: any = {
-        name: stageName,
-        type: this.newStageType(),
-        sequence: 1,
-        config: {}
-      };
-
-      if (this.newStageType() === 'league') {
-        stagePayload.config = {
-          winPoint: this.newStageWinPoint(),
-          drawPoint: this.newStageDrawPoint(),
-          legs: this.newStageLegs(),
-          twoLegged: this.newStageLegs() === 2
-        };
-      } else if (this.newStageType() === 'group') {
-        stagePayload.config = {
-          winPoint: this.newStageWinPoint(),
-          drawPoint: this.newStageDrawPoint(),
-          gamesPerTeam: this.newStageGamesPerTeam(),
-          legs: this.newStageLegs(),
-          twoLegged: this.newStageLegs() === 2
-        };
-      } else if (this.newStageType() === 'knockout') {
-        stagePayload.config = {
-          legs: this.newStageLegs(),
-          twoLegged: this.newStageLegs() === 2
-        };
-      } else if (this.newStageType() === 'group_knockout') {
-        stagePayload.config = {
-          winPoint: this.newStageWinPoint(),
-          drawPoint: this.newStageDrawPoint(),
-          legs: this.newStageLegs(),
-          twoLegged: this.newStageLegs() === 2,
-          groupKnockoutSubtype: this.newStageGroupKnockoutSubtype(),
-          groupsCount: this.newStageGroupKnockoutSubtype() === 'multiple_groups' ? this.newStageGroupsCount() : 1,
-          advancingType: this.newStageAdvancingType(),
-          singleGroupAdvancing: this.newStageSingleGroupAdvancing(),
-          advancingCount: this.newStageGroupKnockoutSubtype() === 'multiple_groups'
-            ? (this.newStageAdvancingType() === 'winner_and_runner' ? 2 : 1)
-            : this.newStageSingleGroupAdvancing()
-        };
-      }
-
-      if (this.newStageVenueId()) {
-        stagePayload.config.venueId = this.newStageVenueId();
-      }
-
-      if (existingStages.length > 0) {
-        await firstValueFrom(
-          this.competitionService.updateStage(ws.id, event.id, comp.id, existingStages[0].id, stagePayload)
-        );
-      } else {
-        await firstValueFrom(
-          this.competitionService.createStage(ws.id, event.id, comp.id, stagePayload)
-        );
-      }
-
-      const result = await firstValueFrom(
-        this.competitionService.generateFixtures(ws.id, event.id, comp.id)
-      );
-
-      this.uiService.success(`Fixtures generated successfully! Created ${result.matchesCreated} matches.`);
+    if (comp) {
       this.loadStages(comp.id);
-      
-      this.isGeneratingFixturesSubmit.set(false);
-      this.closeGenerateFixturesModal();
-    } catch (err: any) {
-      console.error('Failed to setup fixtures', err);
-      this.generateFixturesSubmitError.set(err.error?.message ?? 'Failed to setup fixtures and generate matches.');
-      this.isGeneratingFixturesSubmit.set(false);
     }
   }
 
@@ -1275,101 +823,11 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
   }
 
   openLineupModal() {
-    const match = this.selectedMatch();
-    if (!match) return;
-
-    const homePlayers = this.players().filter(p => p.teamId === match.homeTeamId);
-    const awayPlayers = this.players().filter(p => p.teamId === match.awayTeamId);
-    const currentLineup = this.matchLineup();
-
-    const form: { playerId: string; isPlaying: boolean; isGoalkeeper: boolean; teamId: string; player: Player }[] = [];
-
-    for (const p of homePlayers) {
-      const matchEntry = currentLineup.find(le => le.playerId === p.id);
-      form.push({
-        playerId: p.id,
-        teamId: p.teamId,
-        isPlaying: matchEntry ? matchEntry.isPlaying : false,
-        isGoalkeeper: matchEntry ? !!matchEntry.isGoalkeeper : false,
-        player: p
-      });
-    }
-
-    for (const p of awayPlayers) {
-      const matchEntry = currentLineup.find(le => le.playerId === p.id);
-      form.push({
-        playerId: p.id,
-        teamId: p.teamId,
-        isPlaying: matchEntry ? matchEntry.isPlaying : false,
-        isGoalkeeper: matchEntry ? !!matchEntry.isGoalkeeper : false,
-        player: p
-      });
-    }
-
-    this.lineupForm.set(form);
     this.isLineupModalOpen.set(true);
   }
 
-  getHomePlayersInForm(): any[] {
-    const match = this.selectedMatch();
-    if (!match) return [];
-    return this.lineupForm().filter(item => item.teamId === match.homeTeamId);
-  }
-
-  getAwayPlayersInForm(): any[] {
-    const match = this.selectedMatch();
-    if (!match) return [];
-    return this.lineupForm().filter(item => item.teamId === match.awayTeamId);
-  }
-
-  togglePlayerInLineup(playerId: string) {
-    this.lineupForm.update(prev => prev.map(item => {
-      if (item.playerId === playerId) {
-        const nextPlaying = !item.isPlaying;
-        return {
-          ...item,
-          isPlaying: nextPlaying,
-          isGoalkeeper: nextPlaying ? item.isGoalkeeper : false
-        };
-      }
-      return item;
-    }));
-  }
-
-  setGoalkeeper(teamId: string, playerId: string) {
-    this.lineupForm.update(prev => prev.map(item => {
-      if (item.teamId === teamId) {
-        return { ...item, isGoalkeeper: item.playerId === playerId };
-      }
-      return item;
-    }));
-  }
-
-  saveLineup() {
-    const match = this.selectedMatch();
-    const ws = this.workspace();
-    const event = this.selectedEvent();
-    const comp = this.selectedCompetition();
-    const stage = this.selectedStage();
-    if (!ws || !event || !comp || !stage || !match) return;
-
-    const payload = this.lineupForm().map(item => ({
-      playerId: item.playerId,
-      isPlaying: item.isPlaying,
-      isGoalkeeper: item.isGoalkeeper,
-      teamId: item.teamId
-    }));
-
-    this.competitionService.saveMatchLineup(ws.id, event.id, comp.id, stage.id, match.id, payload).subscribe({
-      next: (updatedLineup) => {
-        this.matchLineup.set(updatedLineup);
-        this.isLineupModalOpen.set(false);
-        this.uiService.success('Match lineup saved successfully!');
-      },
-      error: (err) => {
-        this.uiService.error(err.error?.message ?? 'Failed to save match lineup.');
-      }
-    });
+  onLineupSaved(updatedLineup: any[]) {
+    this.matchLineup.set(updatedLineup);
   }
 
   getKnockoutRounds(): string[] {

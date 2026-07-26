@@ -1,0 +1,168 @@
+<!-- Sports Master Data Management View -->
+<div class="grid grid-cols-1 gap-8">
+  <div class="bg-slate-900 border border-white/10 rounded-2xl p-6 shadow-xl flex flex-col gap-6 relative overflow-hidden">
+    <div class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-violet-500 to-indigo-500"></div>
+    <div>
+      <h2 class="text-lg font-bold text-white mb-1">Sports Master Data Management</h2>
+      <p class="text-xs text-slate-400">Add, edit, or remove sports supported across system tournaments and competitions.</p>
+    </div>
+
+    <!-- Create Sport Form -->
+    <div class="bg-slate-950 border border-white/5 rounded-xl p-5">
+      <h3 class="text-xs font-bold text-white mb-1">Add New Sport</h3>
+      <p class="text-[11px] text-slate-500 mb-4">Create a new sport category for tournaments (e.g. Football, Cricket, Basketball).</p>
+
+      @if (sportCreateSuccess()) {
+        <div class="mb-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-3 text-emerald-300 text-xs flex items-center gap-2">
+          <i class="fi fi-rr-check-circle text-emerald-400 text-sm"></i>
+          {{ sportCreateSuccess() }}
+        </div>
+      }
+      @if (sportCreateError()) {
+        <div class="mb-4 rounded-xl bg-rose-500/10 border border-rose-500/30 p-3 text-rose-300 text-xs flex items-center gap-2">
+          <i class="fi fi-rr-exclamation text-rose-400 text-sm"></i>
+          {{ sportCreateError() }}
+        </div>
+      }
+
+      <form (submit)="onCreateSport(); $event.preventDefault()" class="flex flex-col sm:flex-row gap-3 items-end">
+        <div class="flex-1 flex flex-col gap-1.5 w-full">
+          <label for="sport-name" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sport Name</label>
+          <input id="sport-name" type="text" placeholder="e.g. Basketball" autocomplete="off"
+            class="bg-slate-900 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 outline-none transition-all w-full"
+            [ngModel]="newSportName()" (ngModelChange)="newSportName.set($event)" name="sportName" required />
+        </div>
+        <div class="w-full sm:w-48 flex flex-col gap-1.5">
+          <label for="sport-code" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sport Code</label>
+          <input id="sport-code" type="text" placeholder="e.g. basketball" autocomplete="off"
+            class="bg-slate-900 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 outline-none transition-all w-full font-mono text-xs"
+            [ngModel]="newSportCode()" (ngModelChange)="newSportCode.set($event)" name="sportCode" required />
+        </div>
+        <div class="flex-1 flex flex-col gap-1.5 w-full">
+          <label for="sport-desc" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Description <span class="text-slate-600 font-normal normal-case">(optional)</span></label>
+          <input id="sport-desc" type="text" placeholder="Rules or details"
+            class="bg-slate-900 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 outline-none transition-all w-full"
+            [ngModel]="newSportDescription()" (ngModelChange)="newSportDescription.set($event)" name="sportDesc" />
+        </div>
+        <button type="submit"
+          [disabled]="isCreatingSport() || !newSportName().trim() || !newSportCode().trim()"
+          class="w-full sm:w-auto px-6 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 h-[42px]">
+          @if (isCreatingSport()) {
+            <i class="fi fi-rr-spinner animate-spin text-xs"></i>
+          } @else {
+            <i class="fi fi-rr-plus text-xs"></i> Add Sport
+          }
+        </button>
+      </form>
+    </div>
+
+    <!-- Sports Table -->
+    @if (isLoadingSports()) {
+      <div class="py-8 flex flex-col items-center justify-center gap-3">
+        <i class="fi fi-rr-spinner animate-spin text-violet-500 text-xl"></i>
+        <span class="text-xs text-slate-500">Loading sports master data...</span>
+      </div>
+    } @else {
+      <div class="bg-slate-950 border border-white/5 rounded-xl overflow-hidden">
+        <div class="px-6 py-4 border-b border-white/10 flex items-center justify-between">
+          <h3 class="text-xs font-bold text-white">Registered Sports</h3>
+          <span class="text-[11px] text-slate-500">{{ sports().length }} sport{{ sports().length !== 1 ? 's' : '' }}</span>
+        </div>
+
+        <div class="hidden sm:grid grid-cols-[1.5fr_1.5fr_2fr_180px] gap-4 px-6 py-2.5 border-b border-white/5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+          <span>Sport Name</span>
+          <span>Code Key</span>
+          <span>Description</span>
+          <span class="text-center">Actions</span>
+        </div>
+
+        <div class="divide-y divide-white/5">
+          @for (sport of sports(); track sport.id) {
+            <div class="grid grid-cols-1 sm:grid-cols-[1.5fr_1.5fr_2fr_180px] gap-3 sm:gap-4 px-6 py-4 items-center hover:bg-white/[0.02] transition-colors">
+              <div>
+                <p class="text-xs font-bold text-white flex items-center gap-2">
+                  <i class="fi fi-rr-trophy text-violet-400 text-xs"></i>
+                  {{ sport.name }}
+                </p>
+              </div>
+              <div>
+                <span class="text-[10px] font-mono bg-slate-900 border border-white/10 text-violet-300 px-2 py-0.5 rounded">
+                  {{ sport.code }}
+                </span>
+              </div>
+              <p class="text-xs text-slate-400 truncate">{{ sport.description || '—' }}</p>
+
+              <div class="flex items-center justify-center gap-2">
+                <button (click)="openEditSportModal(sport)" title="Edit Sport"
+                  class="p-1.5 text-violet-400 hover:text-violet-300 hover:bg-violet-500/10 rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1 text-[11px] font-bold">
+                  <i class="fi fi-rr-edit text-xs"></i> Edit
+                </button>
+
+                <button (click)="onDeleteSport(sport)" title="Delete Sport"
+                  class="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1 text-[11px] font-bold">
+                  <i class="fi fi-rr-trash text-xs"></i> Delete
+                </button>
+              </div>
+            </div>
+          } @empty {
+            <div class="p-6 text-center text-xs text-slate-500">
+              No sports found. Register your first sport master data above!
+            </div>
+          }
+        </div>
+      </div>
+    }
+  </div>
+</div>
+
+<!-- Edit Sport Modal -->
+@if (editingSport()) {
+  <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-md flex flex-col shadow-2xl relative overflow-hidden" (click)="$event.stopPropagation()">
+      <div class="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-violet-500 to-indigo-500"></div>
+
+      <div class="px-6 py-5 border-b border-white/5 flex items-center justify-between">
+        <div>
+          <h3 class="text-base font-bold text-white">Edit Sport Master Data</h3>
+          <p class="text-xs text-slate-400 mt-1">Update name, code, or description for this sport.</p>
+        </div>
+        <button (click)="closeEditSportModal()" class="text-slate-400 hover:text-white transition cursor-pointer">
+          <i class="fi fi-rr-cross text-sm"></i>
+        </button>
+      </div>
+
+      <form (submit)="onUpdateSport(); $event.preventDefault()" class="p-6 flex flex-col gap-4">
+        <div class="flex flex-col gap-1.5">
+          <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sport Name</label>
+          <input type="text" [ngModel]="editSportName()" (ngModelChange)="editSportName.set($event)" name="editSportName" required
+            class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-sm text-white outline-none transition-all" />
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+          <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sport Code</label>
+          <input type="text" [ngModel]="editSportCode()" (ngModelChange)="editSportCode.set($event)" name="editSportCode" required
+            class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-sm text-white font-mono text-xs outline-none transition-all" />
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+          <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Description</label>
+          <textarea [ngModel]="editSportDescription()" (ngModelChange)="editSportDescription.set($event)" name="editSportDesc" rows="3"
+            class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-sm text-white outline-none transition-all resize-none"></textarea>
+        </div>
+
+        <div class="pt-4 border-t border-white/5 flex items-center justify-end gap-3">
+          <button type="button" (click)="closeEditSportModal()" [disabled]="isUpdatingSport()"
+            class="px-4 py-2 text-xs font-bold text-slate-400 hover:text-white transition cursor-pointer disabled:opacity-50">
+            Cancel
+          </button>
+          <button type="submit" [disabled]="isUpdatingSport() || !editSportName().trim() || !editSportCode().trim()"
+            class="px-5 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-xs font-bold text-white rounded-xl transition-all cursor-pointer flex items-center gap-2">
+            @if (isUpdatingSport()) {
+              <i class="fi fi-rr-spinner animate-spin text-xs"></i> Updating...
+            } @else { Save Changes }
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
