@@ -863,4 +863,9 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
   getMatchesForRound(roundName: string): Match[] {
     return this.matches().filter(m => m.config?.round === roundName && (m.config?.leg === undefined || m.config?.leg === 1));
   }
+
+  openPublicPage(event: WorkspaceEvent) {
+    const url = `/public/events/${event.id}`;
+    window.open(url, '_blank');
+  }
 }

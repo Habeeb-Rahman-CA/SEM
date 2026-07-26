@@ -54,6 +54,7 @@ export class EventsService {
     }
     const event = this.eventRepo.create({
       name: dto.name,
+      slug: await this.generateUniqueSlug(dto.name),
       description: dto.description ?? null,
       startDate: dto.startDate ? new Date(dto.startDate) : null,
       endDate: dto.endDate ? new Date(dto.endDate) : null,
@@ -61,6 +62,13 @@ export class EventsService {
       logoUrl: dto.logoUrl ?? null,
       workspaceId,
       teams,
+      isPublic: dto.isPublic ?? false,
+      gallery: dto.gallery ?? null,
+      announcements: dto.announcements ?? null,
+      registrationStatus: dto.registrationStatus ?? 'open',
+      venue: dto.venue ?? null,
+      sport: dto.sport ?? null,
+      organizers: dto.organizers ?? null,
     });
     const saved = await this.eventRepo.save(event);
 
@@ -117,8 +125,12 @@ export class EventsService {
       }
     }
 
+    if (dto.name !== undefined && dto.name !== event.name) {
+      event.name = dto.name;
+      event.slug = await this.generateUniqueSlug(dto.name);
+    }
+
     Object.assign(event, {
-      ...(dto.name !== undefined && { name: dto.name }),
       ...(dto.description !== undefined && { description: dto.description }),
       ...(dto.startDate !== undefined && {
         startDate: dto.startDate ? new Date(dto.startDate) : null,
@@ -128,6 +140,13 @@ export class EventsService {
       }),
       ...(dto.status !== undefined && { status: dto.status }),
       ...(dto.logoUrl !== undefined && { logoUrl: dto.logoUrl }),
+      ...(dto.isPublic !== undefined && { isPublic: dto.isPublic }),
+      ...(dto.gallery !== undefined && { gallery: dto.gallery }),
+      ...(dto.announcements !== undefined && { announcements: dto.announcements }),
+      ...(dto.registrationStatus !== undefined && { registrationStatus: dto.registrationStatus }),
+      ...(dto.venue !== undefined && { venue: dto.venue }),
+      ...(dto.sport !== undefined && { sport: dto.sport }),
+      ...(dto.organizers !== undefined && { organizers: dto.organizers }),
     });
 
     const saved = await this.eventRepo.save(event);
@@ -306,5 +325,49 @@ export class EventsService {
         };
       })
       .sort((a, b) => b.points - a.points);
+  }
+
+  async getPublicEvent(eventIdOrSlug: string): Promise<Event> {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventIdOrSlug);
+    const event = await this.eventRepo.findOne({
+      where: isUuid ? { id: eventIdOrSlug } : { slug: eventIdOrSlug },
+      relations: {
+        teams: true,
+        competitions: {
+          sport: true,
+          stages: true,
+        },
+      },
+    });
+    if (!event) {
+      throw new NotFoundException('Event not found');
+    }
+    if (!event.isPublic) {
+      throw new NotFoundException('Event is not public');
+    }
+    return event;
+  }
+
+  private slugify(text: string): string {
+    return text
+      .toString()
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, '-')
+      .replace(/[^\w\-]+/g, '')
+      .replace(/\-\-+/g, '-')
+      .replace(/^-+/, '')
+      .replace(/-+$/, '');
+  }
+
+  private async generateUniqueSlug(name: string): Promise<string> {
+    const baseSlug = this.slugify(name) || 'event';
+    let slug = baseSlug;
+    let counter = 1;
+    while (await this.eventRepo.exists({ where: { slug } })) {
+      slug = `${baseSlug}-${counter}`;
+      counter++;
+    }
+    return slug;
   }
 }

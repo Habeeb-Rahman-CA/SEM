@@ -72,4 +72,24 @@ export class EventService {
       headers: this.headers,
     });
   }
+
+  getPublicEvent(eventId: string): Observable<WorkspaceEvent> {
+    return this.http.get<WorkspaceEvent>(`${environment.apiUrl}/public/events/${eventId}`);
+  }
+
+  getPublicCompetitions(eventId: string): Observable<any[]> {
+    return this.http.get<any[]>(`${environment.apiUrl}/public/events/${eventId}/competitions`);
+  }
+
+  getPublicStages(eventId: string, competitionId: string): Observable<any[]> {
+    return this.http.get<any[]>(`${environment.apiUrl}/public/events/${eventId}/competitions/${competitionId}/stages`);
+  }
+
+  getPublicMatches(eventId: string, competitionId: string, stageId: string): Observable<any[]> {
+    return this.http.get<any[]>(`${environment.apiUrl}/public/events/${eventId}/competitions/${competitionId}/stages/${stageId}/matches`);
+  }
+
+  getPublicCompetitionStats(eventId: string, competitionId: string): Observable<any> {
+    return this.http.get<any>(`${environment.apiUrl}/public/events/${eventId}/competitions/${competitionId}/stats`);
+  }
 }

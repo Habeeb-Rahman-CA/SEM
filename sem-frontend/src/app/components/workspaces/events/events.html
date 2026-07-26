@@ -1126,28 +1126,36 @@
                 }
               </div>
             </div>
-            <!-- Status Badge -->
-            @if (event.status === 'ongoing') {
-            <span
-              class="text-[10px] font-bold px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded-md border border-emerald-500/20">
-              Ongoing
-            </span>
-            } @else if (event.status === 'completed') {
-            <span
-              class="text-[10px] font-bold px-2 py-0.5 bg-blue-500/10 text-blue-400 rounded-md border border-blue-500/20">
-              Completed
-            </span>
-            } @else if (event.status === 'cancelled') {
-            <span
-              class="text-[10px] font-bold px-2 py-0.5 bg-rose-500/10 text-rose-400 rounded-md border border-rose-500/20">
-              Cancelled
-            </span>
-            } @else {
-            <span
-              class="text-[10px] font-bold px-2 py-0.5 bg-violet-500/10 text-violet-400 rounded-md border border-violet-500/20">
-              Upcoming
-            </span>
-            }
+            <!-- Status Badges -->
+            <div class="flex items-center gap-1.5">
+              @if (event.isPublic) {
+              <span
+                class="text-[10px] font-extrabold px-2 py-0.5 bg-violet-600/10 text-violet-400 rounded-md border border-violet-500/20 flex items-center gap-1">
+                <i class="fi fi-sr-eye text-[9px]"></i> Public
+              </span>
+              }
+              @if (event.status === 'ongoing') {
+              <span
+                class="text-[10px] font-bold px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded-md border border-emerald-500/20">
+                Ongoing
+              </span>
+              } @else if (event.status === 'completed') {
+              <span
+                class="text-[10px] font-bold px-2 py-0.5 bg-blue-500/10 text-blue-400 rounded-md border border-blue-500/20">
+                Completed
+              </span>
+              } @else if (event.status === 'cancelled') {
+              <span
+                class="text-[10px] font-bold px-2 py-0.5 bg-rose-500/10 text-rose-400 rounded-md border border-rose-500/20">
+                Cancelled
+              </span>
+              } @else {
+              <span
+                class="text-[10px] font-bold px-2 py-0.5 bg-violet-500/10 text-violet-400 rounded-md border border-violet-500/20">
+                Upcoming
+              </span>
+              }
+            </div>
           </div>
 
           <h4 class="text-base font-extrabold text-white group-hover:text-violet-400 transition-colors mt-1">
@@ -1178,10 +1186,19 @@
 
         <!-- Actions -->
         <div class="flex items-center justify-between gap-2 pt-3 border-t border-white/5">
-          <button (click)="onSelectEvent(event)"
-            class="px-2.5 py-1.5 text-[11px] font-bold text-violet-400 hover:text-white hover:bg-violet-600/20 border border-violet-500/10 hover:border-violet-500/30 rounded-lg transition-all cursor-pointer">
-            View Competitions
-          </button>
+          <div class="flex items-center gap-2">
+            <button (click)="onSelectEvent(event)"
+              class="px-2.5 py-1.5 text-[11px] font-bold text-violet-400 hover:text-white hover:bg-violet-600/20 border border-violet-500/10 hover:border-violet-500/30 rounded-lg transition-all cursor-pointer">
+              View Competitions
+            </button>
+            @if (event.isPublic) {
+            <button (click)="openPublicPage(event); $event.stopPropagation()"
+              title="Open Public Event Page"
+              class="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 border border-white/10 rounded-lg transition-all cursor-pointer flex items-center justify-center">
+              <i class="fi fi-rr-share text-xs"></i>
+            </button>
+            }
+          </div>
           @if (hasPermission('event.manage')) {
           <div class="flex items-center gap-2 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
             <button (click)="onEditEvent(event)"

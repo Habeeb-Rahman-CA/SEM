@@ -121,6 +121,14 @@ export interface WorkspaceEvent {
   createdAt: string;
   updatedAt: string;
   teams?: Team[];
+  competitions?: any[];
+  isPublic?: boolean;
+  gallery?: string[] | null;
+  announcements?: Array<{ id: string; title: string; content: string; createdAt: string }> | null;
+  registrationStatus?: string;
+  venue?: string | null;
+  sport?: string | null;
+  organizers?: string | null;
 }
 
 export interface Sport {

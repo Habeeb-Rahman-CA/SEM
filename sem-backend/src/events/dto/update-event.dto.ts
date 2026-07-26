@@ -7,6 +7,7 @@ import {
   IsIn,
   IsArray,
   IsUUID,
+  IsBoolean,
 } from 'class-validator';
 
 export class UpdateEventDto {
@@ -43,4 +44,37 @@ export class UpdateEventDto {
   @IsArray()
   @IsUUID('4', { each: true })
   teamIds?: string[];
+
+  @IsOptional()
+  @IsBoolean()
+  isPublic?: boolean;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  gallery?: string[];
+
+  @IsOptional()
+  @IsArray()
+  announcements?: Array<{ id: string; title: string; content: string; createdAt: string }>;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['open', 'closed', 'not_started'])
+  registrationStatus?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(150)
+  venue?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  sport?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  organizers?: string;
 }

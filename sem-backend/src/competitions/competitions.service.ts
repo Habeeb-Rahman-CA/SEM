@@ -820,4 +820,140 @@ export class CompetitionsService {
   ): Promise<Map<string, number>> {
     return this.bracketAdvancementService.getCompetitionRankings(competitionId);
   }
+
+  async getPublicCompetitions(eventId: string): Promise<Competition[]> {
+    const event = await this.eventRepo.findOne({ where: { id: eventId } });
+    if (!event || !event.isPublic) {
+      throw new NotFoundException('Event not found or is not public');
+    }
+    const competitions = await this.competitionRepo.find({
+      where: { eventId },
+      relations: { sport: true, stages: true },
+      order: { name: 'ASC' },
+    });
+
+    const allStageIds = competitions.flatMap((c) =>
+      (c.stages ?? []).map((s) => s.id),
+    );
+    const allMatchesMap = new Map<string, any[]>();
+
+    if (allStageIds.length > 0) {
+      const allMatches = await this.matchRepo.find({
+        where: { stageId: In(allStageIds) },
+        relations: { homeTeam: true, awayTeam: true },
+      });
+      for (const m of allMatches) {
+        if (!allMatchesMap.has(m.stageId)) allMatchesMap.set(m.stageId, []);
+        allMatchesMap.get(m.stageId)!.push(m);
+      }
+    }
+
+    return competitions.map((comp) => {
+      const compJson = JSON.parse(JSON.stringify(comp));
+      for (const stage of compJson.stages ?? []) {
+        stage.matches = allMatchesMap.get(stage.id) ?? [];
+      }
+      return compJson;
+    });
+  }
+
+  async getPublicStages(eventId: string, competitionId: string): Promise<CompetitionStage[]> {
+    const event = await this.eventRepo.findOne({ where: { id: eventId } });
+    if (!event || !event.isPublic) {
+      throw new NotFoundException('Event not found or is not public');
+    }
+    const compExists = await this.competitionRepo.exists({
+      where: { id: competitionId, eventId },
+    });
+    if (!compExists) {
+      throw new NotFoundException('Competition not found');
+    }
+    return this.stageRepo.find({
+      where: { competitionId },
+      order: { sequence: 'ASC', createdAt: 'ASC' },
+    });
+  }
+
+  async getPublicMatches(eventId: string, competitionId: string, stageId: string): Promise<Match[]> {
+    const event = await this.eventRepo.findOne({ where: { id: eventId } });
+    if (!event || !event.isPublic) {
+      throw new NotFoundException('Event not found or is not public');
+    }
+    const stage = await this.stageRepo.findOne({
+      where: { id: stageId, competitionId },
+    });
+    if (!stage) {
+      throw new NotFoundException('Stage not found');
+    }
+
+    const matches = await this.matchRepo.find({
+      where: { stageId },
+      relations: { homeTeam: true, awayTeam: true, venue: true },
+      order: { createdAt: 'ASC' },
+    });
+
+    const completedMatches = matches.filter((m) => m.status === 'completed');
+    if (completedMatches.length > 0) {
+      const matchIds = completedMatches.map((m) => m.id);
+      const matchPlayers = await this.matchPlayerRepo.find({
+        where: { matchId: In(matchIds), isPlaying: true },
+        relations: { player: { user: true }, team: true },
+      });
+
+      const playersByMatch = new Map<string, MatchPlayer[]>();
+      for (const mp of matchPlayers) {
+        if (!playersByMatch.has(mp.matchId)) {
+          playersByMatch.set(mp.matchId, []);
+        }
+        playersByMatch.get(mp.matchId)!.push(mp);
+      }
+
+      for (const m of matches) {
+        if (m.status !== 'completed') continue;
+        const players = playersByMatch.get(m.id) ?? [];
+        let maxRating = -1;
+        let mvpMp: MatchPlayer | null = null;
+        for (const mp of players) {
+          if (mp.rating !== null) {
+            const r = Number(mp.rating);
+            if (r > maxRating) {
+              maxRating = r;
+              mvpMp = mp;
+            }
+          }
+        }
+        if (mvpMp && maxRating >= 5.0) {
+          const playerName =
+            mvpMp.player?.user?.username ??
+            mvpMp.player?.jerseyNumber?.toString() ??
+            'Player';
+          (m as any).mvp = {
+            playerId: mvpMp.playerId,
+            playerName,
+            teamName: mvpMp.team?.name ?? 'Unknown',
+            rating: maxRating,
+          };
+        }
+      }
+    }
+
+    const statusWeight = {
+      live: 1,
+      scheduled: 2,
+      completed: 3,
+    };
+
+    return matches.sort((a, b) => {
+      const wA = statusWeight[a.status] || 99;
+      const wB = statusWeight[b.status] || 99;
+      if (wA !== wB) return wA - wB;
+      const timeA = a.createdAt?.getTime() || 0;
+      const timeB = b.createdAt?.getTime() || 0;
+      return timeA - timeB;
+    });
+  }
+
+  async getPublicCompetitionStats(eventId: string, competitionId: string): Promise<any> {
+    return this.statisticsRatingsService.getPublicCompetitionStats(eventId, competitionId);
+  }
 }
