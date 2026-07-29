@@ -1,8 +1,9 @@
 import { Component, input, signal, inject, computed } from '@angular/core';
-import { NgClass } from '@angular/common';
+import { NgClass, DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import {
+  WorkspaceService,
   Workspace,
   WorkspaceMember,
   Role,
@@ -14,18 +15,20 @@ import {
   CompetitionStage,
   CompetitionTeam,
   Match,
-  CompetitionStats
+  CompetitionStats,
+  Sport
 } from '../../../services/workspace.service';
 import { CompetitionService } from '../../../services/competition.service';
 
 @Component({
   selector: 'app-workspace-reports',
   standalone: true,
-  imports: [NgClass, FormsModule],
+  imports: [NgClass, FormsModule, DatePipe, DecimalPipe],
   templateUrl: './reports.html',
 })
 export class WorkspaceReportsComponent {
   private competitionService = inject(CompetitionService);
+  private workspaceService = inject(WorkspaceService);
 
   workspace = input.required<Workspace | null>();
   teams = input.required<Team[]>();
@@ -36,6 +39,15 @@ export class WorkspaceReportsComponent {
   roles = input.required<Role[]>();
 
   // State
+  reportType = signal<'workspace' | 'event' | 'competition' | 'team' | 'player'>('workspace');
+  selectedSport = signal<string>('');
+  dateFrom = signal<string>('');
+  dateTo = signal<string>('');
+  selectedTeamId = signal<string>('');
+  selectedPlayerId = signal<string>('');
+  
+  sports = signal<Sport[]>([]);
+
   selectedEventId = signal<string>('');
   selectedCompetitionId = signal<string>('');
   isLoadingCompetitions = signal<boolean>(false);
@@ -53,6 +65,91 @@ export class WorkspaceReportsComponent {
   isGeneratingWorkspaceReport = signal<boolean>(false);
   isGeneratingPlayerReport = signal<boolean>(false);
   isGeneratingCompExcel = signal<boolean>(false);
+  isGeneratingEventExcel = signal<boolean>(false);
+  isGeneratingTeamExcel = signal<boolean>(false);
+
+  isGeneratingExcel = computed(() => {
+    const type = this.reportType();
+    if (type === 'workspace') return this.isGeneratingWorkspaceReport();
+    if (type === 'event') return this.isGeneratingEventExcel();
+    if (type === 'competition') return this.isGeneratingCompExcel();
+    if (type === 'team') return this.isGeneratingTeamExcel();
+    if (type === 'player') return this.isGeneratingPlayerReport();
+    return false;
+  });
+
+  downloadExcelReport() {
+    const type = this.reportType();
+    if (type === 'workspace') this.downloadWorkspaceReport();
+    else if (type === 'event') this.downloadEventExcel();
+    else if (type === 'competition') this.downloadCompetitionExcel();
+    else if (type === 'team') this.downloadTeamExcel();
+    else if (type === 'player') this.downloadPlayerExcel();
+  }
+
+  ngOnInit() {
+    this.loadSports();
+  }
+
+  loadSports() {
+    this.workspaceService.getSports().subscribe({
+      next: (list) => this.sports.set(list),
+      error: (err) => console.error('Failed to load sports', err)
+    });
+  }
+
+  filteredEventsList = computed(() => {
+    let list = this.events();
+    const sportCode = this.selectedSport();
+    const from = this.dateFrom();
+    const to = this.dateTo();
+    if (sportCode) {
+      list = list.filter(e => e.sport?.toLowerCase() === sportCode.toLowerCase());
+    }
+    if (from) {
+      const fromDate = new Date(from);
+      list = list.filter(e => e.startDate && new Date(e.startDate) >= fromDate);
+    }
+    if (to) {
+      const toDate = new Date(to);
+      list = list.filter(e => e.endDate && new Date(e.endDate) <= toDate);
+    }
+    return list;
+  });
+
+  filteredCompetitionsList = computed(() => {
+    let list = this.competitions();
+    const sportCode = this.selectedSport();
+    if (sportCode) {
+      list = list.filter(c => c.sport?.code.toLowerCase() === sportCode.toLowerCase());
+    }
+    return list;
+  });
+
+  selectedTeam = computed(() => this.teams().find(t => t.id === this.selectedTeamId()));
+  teamRoster = computed(() => this.players().filter(p => p.teamId === this.selectedTeamId()));
+  teamMatches = computed(() => this.matches().filter(m => m.homeTeamId === this.selectedTeamId() || m.awayTeamId === this.selectedTeamId()));
+  teamStats = computed(() => {
+    const list = this.teamMatches();
+    const teamId = this.selectedTeamId();
+    let played = 0, won = 0, drawn = 0, lost = 0, gf = 0, ga = 0;
+    for (const m of list) {
+      if (m.status !== 'completed') continue;
+      played++;
+      const isHome = m.homeTeamId === teamId;
+      const tScore = isHome ? m.homeScore : m.awayScore;
+      const oScore = isHome ? m.awayScore : m.homeScore;
+      gf += tScore;
+      ga += oScore;
+      if (tScore > oScore) won++;
+      else if (tScore < oScore) lost++;
+      else drawn++;
+    }
+    const winRate = played > 0 ? (won / played) * 100 : 0;
+    return { played, won, drawn, lost, gf, ga, gd: gf - ga, winRate };
+  });
+
+  selectedPlayer = computed(() => this.players().find(p => p.id === this.selectedPlayerId()));
 
   onEventChange(eventId: string) {
     this.selectedEventId.set(eventId);
@@ -63,18 +160,62 @@ export class WorkspaceReportsComponent {
     this.competitionStats.set(null);
     this.competitionTeams = [];
 
+    if (!eventId) return;
+    this.loadEventDetails(eventId);
+  }
+
+  loadEventDetails(eventId: string) {
     const wsId = this.workspace()?.id;
     if (!wsId || !eventId) return;
 
-    this.isLoadingCompetitions.set(true);
+    this.isLoadingDetails.set(true);
     this.competitionService.getCompetitions(wsId, eventId).subscribe({
       next: (comps) => {
         this.competitions.set(comps);
-        this.isLoadingCompetitions.set(false);
+        if (comps.length === 0) {
+          this.stages.set([]);
+          this.matches.set([]);
+          this.isLoadingDetails.set(false);
+          return;
+        }
+
+        const stageRequests = comps.map(c => this.competitionService.getStages(wsId, eventId, c.id));
+        forkJoin(stageRequests).subscribe({
+          next: (stagesArrays) => {
+            const allStages = stagesArrays.flat();
+            this.stages.set(allStages);
+            if (allStages.length === 0) {
+              this.matches.set([]);
+              this.isLoadingDetails.set(false);
+              return;
+            }
+
+            const matchRequests = allStages.map(s => {
+              const comp = comps.find(c => c.id === s.competitionId);
+              if (!comp) return this.competitionService.getMatches(wsId, eventId, '', s.id);
+              return this.competitionService.getMatches(wsId, eventId, comp.id, s.id);
+            });
+
+            forkJoin(matchRequests).subscribe({
+              next: (matchesArrays) => {
+                this.matches.set(matchesArrays.flat());
+                this.isLoadingDetails.set(false);
+              },
+              error: (err) => {
+                console.error('Failed to load event matches', err);
+                this.isLoadingDetails.set(false);
+              }
+            });
+          },
+          error: (err) => {
+            console.error('Failed to load event stages', err);
+            this.isLoadingDetails.set(false);
+          }
+        });
       },
       error: (err) => {
-        console.error('Failed to load competitions', err);
-        this.isLoadingCompetitions.set(false);
+        console.error('Failed to load event competitions', err);
+        this.isLoadingDetails.set(false);
       }
     });
   }
@@ -519,24 +660,459 @@ export class WorkspaceReportsComponent {
     }
   }
 
+  async downloadEventExcel() {
+    const event = this.events().find(e => e.id === this.selectedEventId());
+    if (!event) return;
+
+    this.isGeneratingEventExcel.set(true);
+    try {
+      const XLSX = await import('xlsx-js-style') as any;
+      const wb = XLSX.utils.book_new();
+
+      const wsSummaryData = [
+        ['Event Name', event.name],
+        ['Sport Category', event.sport || 'N/A'],
+        ['Status', event.status.toUpperCase()],
+        ['Start Date', event.startDate ? new Date(event.startDate).toLocaleDateString() : 'N/A'],
+        ['End Date', event.endDate ? new Date(event.endDate).toLocaleDateString() : 'N/A'],
+        ['Description', event.description || 'N/A'],
+        ['Total Competitions', this.competitions().length],
+        ['Total Matches', this.matches().length]
+      ];
+      const wsSummary = XLSX.utils.aoa_to_sheet(wsSummaryData);
+
+      const compsData = this.competitions().map(c => ({
+        'Category Name': c.name,
+        'Sport': c.sport?.name || 'N/A',
+        'Status': c.status.toUpperCase(),
+        'Created Date': new Date(c.createdAt).toLocaleDateString()
+      }));
+      const wsComps = XLSX.utils.json_to_sheet(compsData);
+
+      const matchesData = this.matches().map(m => ({
+        'Competition': this.competitions().find(c => c.id === m.stageId)?.name || this.stages().find(s => s.id === m.stageId)?.name || 'N/A',
+        'Home Team': m.homeTeam?.name || 'TBD',
+        'Home Score': m.status === 'completed' ? m.homeScore : '-',
+        'Away Score': m.status === 'completed' ? m.awayScore : '-',
+        'Away Team': m.awayTeam?.name || 'TBD',
+        'Status': m.status.toUpperCase(),
+        'Venue': m.venue?.name || 'N/A'
+      }));
+      const wsMatches = XLSX.utils.json_to_sheet(matchesData);
+
+      const sheets = [
+        { name: 'Summary', ws: wsSummary, isAoa: true },
+        { name: 'Competitions', ws: wsComps },
+        { name: 'Matches', ws: wsMatches }
+      ];
+
+      for (const sheet of sheets) {
+        const range = XLSX.utils.decode_range(sheet.ws['!ref'] || 'A1:A1');
+        const cols: any[] = [];
+        for (let C = range.s.c; C <= range.e.c; ++C) {
+          let maxLen = 12;
+          for (let R = range.s.r; R <= range.e.r; ++R) {
+            const cell = sheet.ws[XLSX.utils.encode_cell({ r: R, c: C })];
+            if (cell && cell.v) {
+              maxLen = Math.max(maxLen, cell.v.toString().length);
+            }
+          }
+          cols.push({ wch: maxLen + 2 });
+        }
+        sheet.ws['!cols'] = cols;
+
+        const endRow = sheet.isAoa ? range.e.r : 0;
+        for (let R = 0; R <= endRow; ++R) {
+          if (sheet.isAoa && R > 0) continue;
+          for (let C = range.s.c; C <= range.e.c; ++C) {
+            const address = XLSX.utils.encode_cell({ r: R, c: C });
+            if (!sheet.ws[address]) continue;
+            
+            if (R === 0 || (sheet.isAoa && C === 0)) {
+              sheet.ws[address].s = {
+                fill: { fgColor: { rgb: '4F46E5' } },
+                font: { bold: true, color: { rgb: 'FFFFFF' }, name: 'Segoe UI', size: 10 },
+                alignment: { horizontal: 'left', vertical: 'center' }
+              };
+            } else {
+              sheet.ws[address].s = {
+                font: { name: 'Segoe UI', size: 10 },
+                alignment: { vertical: 'center' }
+              };
+            }
+          }
+        }
+
+        XLSX.utils.book_append_sheet(wb, sheet.ws, sheet.name);
+      }
+
+      XLSX.writeFile(wb, `${event.name.replace(/\s+/g, '_')}_event_report.xlsx`);
+    } catch (err) {
+      console.error('Failed to generate event report', err);
+    } finally {
+      this.isGeneratingEventExcel.set(false);
+    }
+  }
+
+  async downloadTeamExcel() {
+    const team = this.selectedTeam();
+    if (!team) return;
+
+    this.isGeneratingTeamExcel.set(true);
+    try {
+      const XLSX = await import('xlsx-js-style') as any;
+      const wb = XLSX.utils.book_new();
+
+      const stats = this.teamStats();
+
+      const wsSummaryData = [
+        ['Team Name', team.name],
+        ['Team Code', team.code],
+        ['Description', team.description || 'N/A'],
+        ['Created Date', new Date(team.createdAt).toLocaleDateString()],
+        [],
+        ['PERFORMANCE METRICS'],
+        ['Matches Played', stats.played],
+        ['Matches Won', stats.won],
+        ['Matches Drawn', stats.drawn],
+        ['Matches Lost', stats.lost],
+        ['Goals/Runs Scored (GF)', stats.gf],
+        ['Goals/Runs Conceded (GA)', stats.ga],
+        ['Goal/Run Difference (GD)', stats.gd],
+        ['Win Percentage', `${stats.winRate.toFixed(1)}%`]
+      ];
+      const wsSummary = XLSX.utils.aoa_to_sheet(wsSummaryData);
+
+      const rosterData = this.teamRoster().map(p => ({
+        'Player Username': p.user.username,
+        'Jersey Number': p.jerseyNumber || 'N/A',
+        'Registered Date': new Date(p.createdAt).toLocaleDateString()
+      }));
+      const wsRoster = XLSX.utils.json_to_sheet(rosterData);
+
+      const matchesData = this.teamMatches().map(m => {
+        const isHome = m.homeTeamId === team.id;
+        const opponent = isHome ? m.awayTeam?.name : m.homeTeam?.name;
+        const compName = this.competitions().find(c => c.id === m.stageId)?.name || this.stages().find(s => s.id === m.stageId)?.name || 'N/A';
+        
+        let scoreStr = '-';
+        let outcome = 'N/A';
+        if (m.status === 'completed') {
+          scoreStr = `${m.homeScore} - ${m.awayScore}`;
+          const tScore = isHome ? m.homeScore : m.awayScore;
+          const oScore = isHome ? m.awayScore : m.homeScore;
+          outcome = tScore > oScore ? 'WIN' : tScore < oScore ? 'LOSS' : 'DRAW';
+        }
+
+        return {
+          'Competition': compName,
+          'Opponent Team': opponent || 'TBD',
+          'Venue': m.venue?.name || 'N/A',
+          'Score': scoreStr,
+          'Outcome': outcome,
+          'Status': m.status.toUpperCase(),
+          'Scheduled Date': m.scheduledAt ? new Date(m.scheduledAt).toLocaleDateString() : 'N/A'
+        };
+      });
+      const wsMatches = XLSX.utils.json_to_sheet(matchesData);
+
+      const sheets = [
+        { name: 'Summary', ws: wsSummary, isAoa: true },
+        { name: 'Roster', ws: wsRoster },
+        { name: 'Match History', ws: wsMatches }
+      ];
+
+      for (const sheet of sheets) {
+        const range = XLSX.utils.decode_range(sheet.ws['!ref'] || 'A1:A1');
+        const cols: any[] = [];
+        for (let C = range.s.c; C <= range.e.c; ++C) {
+          let maxLen = 12;
+          for (let R = range.s.r; R <= range.e.r; ++R) {
+            const cell = sheet.ws[XLSX.utils.encode_cell({ r: R, c: C })];
+            if (cell && cell.v) {
+              maxLen = Math.max(maxLen, cell.v.toString().length);
+            }
+          }
+          cols.push({ wch: maxLen + 2 });
+        }
+        sheet.ws['!cols'] = cols;
+
+        for (let R = range.s.r; R <= range.e.r; ++R) {
+          for (let C = range.s.c; C <= range.e.c; ++C) {
+            const address = XLSX.utils.encode_cell({ r: R, c: C });
+            const cell = sheet.ws[address];
+            if (!cell) continue;
+
+            const val = cell.v ? cell.v.toString() : '';
+            const isHeaderRow = (!sheet.isAoa && R === 0) || 
+                                (sheet.isAoa && (R === 0 || C === 0 || val === 'PERFORMANCE METRICS'));
+
+            if (isHeaderRow) {
+              cell.s = {
+                fill: { fgColor: { rgb: val === 'PERFORMANCE METRICS' ? '1E1B4B' : '4F46E5' } },
+                font: { bold: true, color: { rgb: 'FFFFFF' }, name: 'Segoe UI', size: 10 },
+                alignment: { horizontal: 'left', vertical: 'center' }
+              };
+            } else {
+              cell.s = {
+                font: { name: 'Segoe UI', size: 10 },
+                alignment: { vertical: 'center' }
+              };
+            }
+          }
+        }
+
+        XLSX.utils.book_append_sheet(wb, sheet.ws, sheet.name);
+      }
+
+      XLSX.writeFile(wb, `${team.name.replace(/\s+/g, '_')}_team_report.xlsx`);
+    } catch (err) {
+      console.error('Failed to generate team report', err);
+    } finally {
+      this.isGeneratingTeamExcel.set(false);
+    }
+  }
+
+  async downloadPlayerExcel() {
+    const player = this.selectedPlayer();
+    if (!player) return;
+
+    this.isGeneratingPlayerReport.set(true);
+    try {
+      const XLSX = await import('xlsx-js-style') as any;
+      const wb = XLSX.utils.book_new();
+
+      const member = this.members().find(m => m.userId === player.userId);
+      const stats = this.competitionStats();
+
+      const ratedStats = stats?.topRated.find(r => r.playerId === player.id);
+      const mvpStats = stats?.mostMvps?.find(m => m.playerId === player.id);
+      const goalStats = stats?.topScorers?.find(s => s.playerId === player.id);
+      const runStats = stats?.topRuns?.find(r => r.playerId === player.id);
+      const assistStats = stats?.topAssists?.find(a => a.playerId === player.id);
+      const wicketStats = stats?.topWickets?.find(w => w.playerId === player.id);
+
+      const wsSummaryData = [
+        ['Player Username', player.user.username],
+        ['Jersey Number', player.jerseyNumber || 'N/A'],
+        ['Team Name', player.team?.name || 'N/A'],
+        ['Workspace Role', member?.role?.name || 'Viewer'],
+        ['Registered Date', new Date(player.createdAt).toLocaleDateString()],
+        [],
+        ['COMPETITION PERFORMANCE'],
+        ['Appearances', ratedStats?.appearances || 0],
+        ['Average Rating', ratedStats?.avgRating ? ratedStats.avgRating.toFixed(2) : 'N/A'],
+        ['MVPs Won', mvpStats?.mvps || 0]
+      ];
+
+      if (stats?.sportCode === 'football') {
+        wsSummaryData.push(['Goals Scored', goalStats?.goals || 0]);
+        wsSummaryData.push(['Assists Provided', assistStats?.assists || 0]);
+      } else if (stats?.sportCode === 'cricket') {
+        wsSummaryData.push(['Runs Scored', runStats?.runs || 0]);
+        wsSummaryData.push(['Wickets Taken', wicketStats?.wickets || 0]);
+      }
+
+      const wsSummary = XLSX.utils.aoa_to_sheet(wsSummaryData);
+
+      const range = XLSX.utils.decode_range(wsSummary['!ref'] || 'A1:A1');
+      const cols: any[] = [];
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        let maxLen = 12;
+        for (let R = range.s.r; R <= range.e.r; ++R) {
+          const cell = wsSummary[XLSX.utils.encode_cell({ r: R, c: C })];
+          if (cell && cell.v) {
+            maxLen = Math.max(maxLen, cell.v.toString().length);
+          }
+        }
+        cols.push({ wch: maxLen + 2 });
+      }
+      wsSummary['!cols'] = cols;
+
+      for (let R = range.s.r; R <= range.e.r; ++R) {
+        for (let C = range.s.c; C <= range.e.c; ++C) {
+          const address = XLSX.utils.encode_cell({ r: R, c: C });
+          const cell = wsSummary[address];
+          if (!cell) continue;
+
+          const val = cell.v ? cell.v.toString() : '';
+          const isHeader = R === 0 || C === 0 || val === 'COMPETITION PERFORMANCE';
+
+          if (isHeader) {
+            cell.s = {
+              fill: { fgColor: { rgb: val === 'COMPETITION PERFORMANCE' ? '1E1B4B' : '059669' } },
+              font: { bold: true, color: { rgb: 'FFFFFF' }, name: 'Segoe UI', size: 10 },
+              alignment: { horizontal: 'left', vertical: 'center' }
+            };
+          } else {
+            cell.s = {
+              font: { name: 'Segoe UI', size: 10 },
+              alignment: { vertical: 'center' }
+            };
+          }
+        }
+      }
+
+      XLSX.utils.book_append_sheet(wb, wsSummary, 'Player Profile');
+      XLSX.writeFile(wb, `${player.user.username}_player_report.xlsx`);
+    } catch (err) {
+      console.error('Failed to generate player report', err);
+    } finally {
+      this.isGeneratingPlayerReport.set(false);
+    }
+  }
+
+  downloadCSV() {
+    const type = this.reportType();
+    if (type === 'workspace') {
+      const headers = ['Team Name', 'Code', 'Description', 'Created Date'];
+      const rows = this.teams().map(t => [
+        t.name,
+        t.code,
+        t.description || '',
+        new Date(t.createdAt).toLocaleDateString()
+      ]);
+      this.exportToCSV(`${this.workspace()?.slug}_workspace_teams.csv`, headers, rows);
+    } else if (type === 'event') {
+      const event = this.events().find(e => e.id === this.selectedEventId());
+      if (!event) return;
+      const headers = ['Category Name', 'Sport', 'Status', 'Created Date'];
+      const rows = this.competitions().map(c => [
+        c.name,
+        c.sport?.name || 'N/A',
+        c.status.toUpperCase(),
+        new Date(c.createdAt).toLocaleDateString()
+      ]);
+      this.exportToCSV(`${event.name.replace(/\s+/g, '_')}_competitions.csv`, headers, rows);
+    } else if (type === 'competition') {
+      const comp = this.competitions().find(c => c.id === this.selectedCompetitionId());
+      if (!comp) return;
+      
+      const leagueStages = this.stages().filter(s => s.type === 'league' || s.type === 'group' || s.type === 'group_knockout');
+      if (leagueStages.length > 0) {
+        const headers = ['Stage', 'Rank', 'Team Name', 'Played', 'Won', 'Drawn', 'Lost', 'GF', 'GA', 'GD', 'Points'];
+        const rows: any[][] = [];
+        for (const stage of leagueStages) {
+          const standings = this.getStandingsForStage(stage);
+          standings.forEach((row, idx) => {
+            rows.push([
+              stage.name,
+              idx + 1,
+              row.teamName,
+              row.played,
+              row.won,
+              row.drawn,
+              row.lost,
+              row.gf,
+              row.ga,
+              row.gd,
+              row.pts
+            ]);
+          });
+        }
+        this.exportToCSV(`${comp.name.replace(/\s+/g, '_')}_standings.csv`, headers, rows);
+      } else {
+        const headers = ['Stage', 'Home Team', 'Home Score', 'Away Score', 'Away Team', 'Status'];
+        const rows = this.matches().map(m => [
+          this.stages().find(s => s.id === m.stageId)?.name || 'N/A',
+          m.homeTeam?.name || 'TBD',
+          m.status === 'completed' ? m.homeScore : '-',
+          m.status === 'completed' ? m.awayScore : '-',
+          m.awayTeam?.name || 'TBD',
+          m.status.toUpperCase()
+        ]);
+        this.exportToCSV(`${comp.name.replace(/\s+/g, '_')}_fixtures.csv`, headers, rows);
+      }
+    } else if (type === 'team') {
+      const team = this.selectedTeam();
+      if (!team) return;
+      const headers = ['Player Username', 'Jersey Number', 'Registered Date'];
+      const rows = this.teamRoster().map(p => [
+        p.user.username,
+        p.jerseyNumber || 'N/A',
+        new Date(p.createdAt).toLocaleDateString()
+      ]);
+      this.exportToCSV(`${team.name.replace(/\s+/g, '_')}_roster.csv`, headers, rows);
+    } else if (type === 'player') {
+      const player = this.selectedPlayer();
+      if (!player) return;
+      const member = this.members().find(m => m.userId === player.userId);
+      const stats = this.competitionStats();
+      const ratedStats = stats?.topRated.find(r => r.playerId === player.id);
+      const mvpStats = stats?.mostMvps?.find(m => m.playerId === player.id);
+      
+      const headers = ['Metric', 'Value'];
+      const rows = [
+        ['Username', player.user.username],
+        ['Jersey Number', player.jerseyNumber || 'N/A'],
+        ['Team Name', player.team?.name || 'N/A'],
+        ['Workspace Role', member?.role?.name || 'Viewer'],
+        ['Registered Date', new Date(player.createdAt).toLocaleDateString()],
+        ['Appearances', ratedStats?.appearances || 0],
+        ['Average Rating', ratedStats?.avgRating ? ratedStats.avgRating.toFixed(2) : 'N/A'],
+        ['MVPs Won', mvpStats?.mvps || 0]
+      ];
+      this.exportToCSV(`${player.user.username}_profile.csv`, headers, rows);
+    }
+  }
+
+  exportToCSV(filename: string, headers: string[], rows: any[][]) {
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => 
+        row.map(val => {
+          if (val === null || val === undefined) return '""';
+          const str = val.toString().replace(/"/g, '""');
+          return `"${str}"`;
+        }).join(',')
+      )
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', filename);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  }
+
   printOfficialReport() {
     const ws = this.workspace();
-    const event = this.events().find(e => e.id === this.selectedEventId());
-    const comp = this.competitions().find(c => c.id === this.selectedCompetitionId());
-    const stats = this.competitionStats();
-    if (!ws || !event || !comp) return;
+    if (!ws) return;
 
+    const type = this.reportType();
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
       alert('Please allow popups to generate the print preview.');
       return;
     }
 
+    let titleText = `Report - ${ws.name}`;
+    if (type === 'workspace') titleText = `Workspace Summary - ${ws.name}`;
+    else if (type === 'event') {
+      const event = this.events().find(e => e.id === this.selectedEventId());
+      if (event) titleText = `Event Report - ${event.name}`;
+    } else if (type === 'competition') {
+      const comp = this.competitions().find(c => c.id === this.selectedCompetitionId());
+      if (comp) titleText = `Tournament Report - ${comp.name}`;
+    } else if (type === 'team') {
+      const team = this.selectedTeam();
+      if (team) titleText = `Team Performance - ${team.name}`;
+    } else if (type === 'player') {
+      const player = this.selectedPlayer();
+      if (player) titleText = `Player Performance - ${player.user.username}`;
+    }
+
     let htmlContent = `
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Tournament Report - ${comp.name}</title>
+        <title>${titleText}</title>
         <link rel="stylesheet" href="https://cdn-uicons.flaticon.com/2.1.0/uicons-regular-rounded/css/uicons-regular-rounded.css">
         <style>
           body {
@@ -726,7 +1302,87 @@ export class WorkspaceReportsComponent {
           <button class="btn" onclick="window.print();"><i class="fi fi-rr-print"></i> Print / Save PDF</button>
           <button class="btn btn-secondary" onclick="window.close();">Close Window</button>
         </div>
+    `;
 
+    if (type === 'workspace') {
+      htmlContent += `
+        <div class="header-container">
+          <div>
+            <h1 class="title">Official Workspace Summary</h1>
+            <p class="subtitle">${ws.name} (/${ws.slug})</p>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-weight: 800; font-size: 14px; color: #4f46e5;">SEM Analytics</div>
+            <div style="font-size: 11px; color: #64748b; margin-top: 2px;">Report Generated: ${new Date().toLocaleDateString()}</div>
+          </div>
+        </div>
+
+        <div class="meta-grid">
+          <div class="meta-item"><span class="meta-label">Total Teams</span><span class="meta-value">${this.teams().length}</span></div>
+          <div class="meta-item"><span class="meta-label">Total Players</span><span class="meta-value">${this.players().length}</span></div>
+          <div class="meta-item"><span class="meta-label">Total Events</span><span class="meta-value">${this.events().length}</span></div>
+          <div class="meta-item"><span class="meta-label">Total Venues</span><span class="meta-value">${this.venues().length}</span></div>
+        </div>
+
+        <h2 class="section-title"><i class="fi fi-rr-users"></i> Registered Teams</h2>
+        <table>
+          <thead>
+            <tr><th>Team Name</th><th>Code</th><th>Description</th><th>Created Date</th></tr>
+          </thead>
+          <tbody>
+            ${this.teams().map(t => `<tr><td><b>${t.name}</b></td><td>${t.code}</td><td>${t.description || '-'}</td><td>${new Date(t.createdAt).toLocaleDateString()}</td></tr>`).join('')}
+          </tbody>
+        </table>
+
+        <h2 class="section-title"><i class="fi fi-rr-calendar"></i> Events Calendar</h2>
+        <table>
+          <thead>
+            <tr><th>Event Name</th><th>Status</th><th>Dates</th></tr>
+          </thead>
+          <tbody>
+            ${this.events().map(e => `<tr><td><b>${e.name}</b></td><td>${e.status.toUpperCase()}</td><td>${e.startDate ? new Date(e.startDate).toLocaleDateString() : '-'} to ${e.endDate ? new Date(e.endDate).toLocaleDateString() : '-'}</td></tr>`).join('')}
+          </tbody>
+        </table>
+      `;
+    } else if (type === 'event') {
+      const event = this.events().find(e => e.id === this.selectedEventId());
+      if (!event) return;
+      htmlContent += `
+        <div class="header-container">
+          <div>
+            <h1 class="title">Official Event Report</h1>
+            <p class="subtitle">${event.name}</p>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-weight: 800; font-size: 14px; color: #4f46e5;">${ws.name}</div>
+            <div style="font-size: 11px; color: #64748b; margin-top: 2px;">Report Generated: ${new Date().toLocaleDateString()}</div>
+          </div>
+        </div>
+
+        <div class="meta-grid">
+          <div class="meta-item"><span class="meta-label">Sport Category</span><span class="meta-value">${event.sport || 'General'}</span></div>
+          <div class="meta-item"><span class="meta-label">Dates</span><span class="meta-value">${event.startDate ? new Date(event.startDate).toLocaleDateString() : '-'} to ${event.endDate ? new Date(event.endDate).toLocaleDateString() : '-'}</span></div>
+          <div class="meta-item"><span class="meta-label">Organizers</span><span class="meta-value">${event.organizers || 'N/A'}</span></div>
+          <div class="meta-item"><span class="meta-label">Status</span><span class="meta-value" style="text-transform: capitalize;">${event.status}</span></div>
+        </div>
+
+        <h2 class="section-title">Competitions & Categories</h2>
+        <table>
+          <thead>
+            <tr><th>Category Name</th><th>Sport</th><th>Status</th><th>Total Matches</th></tr>
+          </thead>
+          <tbody>
+            ${this.competitions().map(c => `<tr><td><b>${c.name}</b></td><td>${c.sport?.name || '-'}</td><td>${c.status.toUpperCase()}</td><td>${this.matches().filter(m => this.stages().find(s => s.id === m.stageId)?.competitionId === c.id).length}</td></tr>`).join('')}
+          </tbody>
+        </table>
+      `;
+    } else if (type === 'competition') {
+      const event = this.events().find(e => e.id === this.selectedEventId());
+      const comp = this.competitions().find(c => c.id === this.selectedCompetitionId());
+      const stats = this.competitionStats();
+      if (!event || !comp) return;
+
+      htmlContent += `
         <div class="header-container">
           <div>
             <h1 class="title">Official Tournament Report</h1>
@@ -756,206 +1412,227 @@ export class WorkspaceReportsComponent {
             <span class="meta-value" style="text-transform: capitalize;">${comp.status}</span>
           </div>
         </div>
-    `;
+      `;
 
-    const leagueStages = this.stages().filter(s => s.type === 'league' || s.type === 'group' || s.type === 'group_knockout');
-    if (leagueStages.length > 0) {
-      htmlContent += `<h2 class="section-title"><i class="fi fi-rr-trophy"></i> Competition Standings</h2>`;
-      for (const stage of leagueStages) {
-        htmlContent += `
-          <h3 style="font-size: 13px; font-weight: 700; margin: 15px 0 8px 0; color: #475569;">Stage: ${stage.name}</h3>
-          <table>
-            <thead>
+      const leagueStages = this.stages().filter(s => s.type === 'league' || s.type === 'group' || s.type === 'group_knockout');
+      if (leagueStages.length > 0) {
+        htmlContent += `<h2 class="section-title"><i class="fi fi-rr-trophy"></i> Competition Standings</h2>`;
+        for (const stage of leagueStages) {
+          htmlContent += `
+            <h3 style="font-size: 13px; font-weight: 700; margin: 15px 0 8px 0; color: #475569;">Stage: ${stage.name}</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th class="rank">Pos</th>
+                  <th>Team</th>
+                  <th style="text-align: center;">P</th>
+                  <th style="text-align: center;">W</th>
+                  <th style="text-align: center;">D</th>
+                  <th style="text-align: center;">L</th>
+                  <th style="text-align: center;">GF</th>
+                  <th style="text-align: center;">GA</th>
+                  <th style="text-align: center;">GD</th>
+                  <th class="pts-col">Pts</th>
+                </tr>
+              </thead>
+              <tbody>
+          `;
+          
+          const standings = this.getStandingsForStage(stage);
+          standings.forEach((row, idx) => {
+            let medalIcon = '';
+            if (idx === 0) medalIcon = '<i class="fi fi-rr-medal text-amber-400" style="color:#d97706; margin-right:3px;"></i> ';
+            else if (idx === 1) medalIcon = '<i class="fi fi-rr-medal text-slate-300" style="color:#475569; margin-right:3px;"></i> ';
+            else if (idx === 2) medalIcon = '<i class="fi fi-rr-medal text-amber-600" style="color:#b45309; margin-right:3px;"></i> ';
+
+            htmlContent += `
               <tr>
-                <th class="rank">Pos</th>
-                <th>Team</th>
-                <th style="text-align: center;">P</th>
-                <th style="text-align: center;">W</th>
-                <th style="text-align: center;">D</th>
-                <th style="text-align: center;">L</th>
-                <th style="text-align: center;">GF</th>
-                <th style="text-align: center;">GA</th>
-                <th style="text-align: center;">GD</th>
-                <th class="pts-col">Pts</th>
+                <td class="rank">${medalIcon}${idx + 1}</td>
+                <td style="font-weight: 600;">${row.teamName}</td>
+                <td class="center-col">${row.played}</td>
+                <td class="center-col" style="color: #16a34a; font-weight: 600;">${row.won}</td>
+                <td class="center-col" style="color: #d97706;">${row.drawn}</td>
+                <td class="center-col" style="color: #dc2626;">${row.lost}</td>
+                <td class="center-col">${row.gf}</td>
+                <td class="center-col">${row.ga}</td>
+                <td class="center-col" style="font-weight: 600; color: ${row.gd > 0 ? '#16a34a' : row.gd < 0 ? '#dc2626' : '#475569'};">
+                  ${row.gd > 0 ? '+' + row.gd : row.gd}
+                </td>
+                <td class="pts-col">${row.pts}</td>
               </tr>
-            </thead>
-            <tbody>
-        `;
-        
-        const standings = this.getStandingsForStage(stage);
-        standings.forEach((row, idx) => {
-          let medalIcon = '';
-          if (idx === 0) medalIcon = '<i class="fi fi-rr-medal text-amber-400" style="color:#d97706; margin-right:3px;"></i> ';
-          else if (idx === 1) medalIcon = '<i class="fi fi-rr-medal text-slate-300" style="color:#475569; margin-right:3px;"></i> ';
-          else if (idx === 2) medalIcon = '<i class="fi fi-rr-medal text-amber-600" style="color:#b45309; margin-right:3px;"></i> ';
+            `;
+          });
 
           htmlContent += `
+              </tbody>
+            </table>
+          `;
+        }
+      }
+
+      if (this.matches().length > 0) {
+        htmlContent += `<h2 class="section-title"><i class="fi fi-rr-calendar"></i> Fixtures & Match Results</h2>`;
+        this.matches().forEach(m => {
+          const stageName = this.stages().find(s => s.id === m.stageId)?.name || 'N/A';
+          const roundName = m.config?.round ? `${m.config.round} ${m.config.leg ? '(Leg ' + m.config.leg + ')' : ''}` : 'N/A';
+          
+          let scoreDisplay = 'VS';
+          if (m.status === 'completed') {
+            scoreDisplay = `${m.homeScore} - ${m.awayScore}`;
+          } else if (m.status === 'live') {
+            scoreDisplay = `${m.homeScore} - ${m.awayScore} (LIVE)`;
+          }
+
+          htmlContent += `
+            <div class="match-row">
+              <div class="match-teams">
+                <span style="flex-grow: 1; text-align: right; max-width: 45%;">${m.homeTeam?.name || 'TBD'}</span>
+                <span class="match-score">${scoreDisplay}</span>
+                <span style="flex-grow: 1; text-align: left; max-width: 45%;">${m.awayTeam?.name || 'TBD'}</span>
+              </div>
+              <div class="match-meta">
+                <div style="font-weight: 700; color: #475569;">Stage: ${stageName} (${roundName})</div>
+                <div>${m.venue?.name || 'No Venue'} &middot; Status: <span style="text-transform: capitalize; font-weight: 600;">${m.status}</span></div>
+              </div>
+            </div>
+          `;
+        });
+      }
+
+      if (stats) {
+        htmlContent += `<h2 class="section-title"><i class="fi fi-rr-chart-pie"></i> Tournament Statistics</h2>`;
+        htmlContent += `<div class="leaderboards-grid">`;
+
+        htmlContent += `
+          <div>
+            <h3 style="font-size: 13px; font-weight: 700; color: #475569; margin-bottom: 8px;"><i class="fi fi-rr-star" style="color:#d97706;"></i> Top Rated Players</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th class="rank">#</th>
+                  <th>Player</th>
+                  <th>Team</th>
+                  <th style="text-align: center;">Rating</th>
+                </tr>
+              </thead>
+              <tbody>
+        `;
+        stats.topRated.slice(0, 5).forEach((p, idx) => {
+          htmlContent += `
             <tr>
-              <td class="rank">${medalIcon}${idx + 1}</td>
-              <td style="font-weight: 600;">${row.teamName}</td>
-              <td class="center-col">${row.played}</td>
-              <td class="center-col" style="color: #16a34a; font-weight: 600;">${row.won}</td>
-              <td class="center-col" style="color: #d97706;">${row.drawn}</td>
-              <td class="center-col" style="color: #dc2626;">${row.lost}</td>
-              <td class="center-col">${row.gf}</td>
-              <td class="center-col">${row.ga}</td>
-              <td class="center-col" style="font-weight: 600; color: ${row.gd > 0 ? '#16a34a' : row.gd < 0 ? '#dc2626' : '#475569'};">
-                ${row.gd > 0 ? '+' + row.gd : row.gd}
-              </td>
-              <td class="pts-col">${row.pts}</td>
+              <td class="rank">${idx + 1}</td>
+              <td style="font-weight: 600;">${p.playerName}</td>
+              <td>${p.teamName}</td>
+              <td style="text-align: center; font-weight: 700; color:#4f46e5;">${p.avgRating.toFixed(2)}</td>
             </tr>
           `;
         });
+        htmlContent += `</tbody></table></div>`;
 
-        htmlContent += `
-            </tbody>
-          </table>
-        `;
-      }
-    }
-
-    if (this.matches().length > 0) {
-      htmlContent += `<h2 class="section-title"><i class="fi fi-rr-calendar"></i> Fixtures & Match Results</h2>`;
-      this.matches().forEach(m => {
-        const stageName = this.stages().find(s => s.id === m.stageId)?.name || 'N/A';
-        const roundName = m.config?.round ? `${m.config.round} ${m.config.leg ? '(Leg ' + m.config.leg + ')' : ''}` : 'N/A';
-        
-        let scoreDisplay = 'VS';
-        if (m.status === 'completed') {
-          scoreDisplay = `${m.homeScore} - ${m.awayScore}`;
-        } else if (m.status === 'live') {
-          scoreDisplay = `${m.homeScore} - ${m.awayScore} (LIVE)`;
+        if (stats.mostMvps && stats.mostMvps.length > 0) {
+          htmlContent += `
+            <div>
+              <h3 style="font-size: 13px; font-weight: 700; color: #475569; margin-bottom: 8px;"><i class="fi fi-rr-crown" style="color:#d97706;"></i> Most MVPs</h3>
+              <table>
+                <thead>
+                  <tr>
+                    <th class="rank">#</th>
+                    <th>Player</th>
+                    <th>Team</th>
+                    <th style="text-align: center;">MVPs</th>
+                  </tr>
+                </thead>
+                <tbody>
+          `;
+          stats.mostMvps.slice(0, 5).forEach((p, idx) => {
+            htmlContent += `
+              <tr>
+                <td class="rank">${idx + 1}</td>
+                <td style="font-weight: 600;">${p.playerName}</td>
+                <td>${p.teamName}</td>
+                <td style="text-align: center; font-weight: 700; color:#4f46e5;">${p.mvps}</td>
+              </tr>
+            `;
+          });
+          htmlContent += `</tbody></table></div>`;
         }
-
-        htmlContent += `
-          <div class="match-row">
-            <div class="match-teams">
-              <span style="flex-grow: 1; text-align: right; max-width: 45%;">${m.homeTeam?.name || 'TBD'}</span>
-              <span class="match-score">${scoreDisplay}</span>
-              <span style="flex-grow: 1; text-align: left; max-width: 45%;">${m.awayTeam?.name || 'TBD'}</span>
-            </div>
-            <div class="match-meta">
-              <div style="font-weight: 700; color: #475569;">Stage: ${stageName} (${roundName})</div>
-              <div>${m.venue?.name || 'No Venue'} &middot; Status: <span style="text-transform: capitalize; font-weight: 600;">${m.status}</span></div>
-            </div>
-          </div>
-        `;
-      });
-    }
-
-    if (stats) {
-      htmlContent += `<h2 class="section-title"><i class="fi fi-rr-chart-pie"></i> Tournament Statistics & Awards</h2>`;
-      htmlContent += `<div class="leaderboards-grid">`;
+        htmlContent += `</div>`;
+      }
+    } else if (type === 'team') {
+      const team = this.selectedTeam();
+      if (!team) return;
+      const stats = this.teamStats();
 
       htmlContent += `
-        <div>
-          <h3 style="font-size: 13px; font-weight: 700; color: #475569; margin-bottom: 8px;"><i class="fi fi-rr-star" style="color:#d97706;"></i> Top Rated Players</h3>
-          <table>
-            <thead>
-              <tr>
-                <th class="rank">#</th>
-                <th>Player</th>
-                <th>Team</th>
-                <th style="text-align: center;">Rating</th>
-              </tr>
-            </thead>
-            <tbody>
+        <div class="header-container">
+          <div>
+            <h1 class="title">Team Performance Report</h1>
+            <p class="subtitle">${team.name} (${team.code})</p>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-weight: 800; font-size: 14px; color: #4f46e5;">${ws.name}</div>
+            <div style="font-size: 11px; color: #64748b; margin-top: 2px;">Report Generated: ${new Date().toLocaleDateString()}</div>
+          </div>
+        </div>
+
+        <div class="meta-grid">
+          <div class="meta-item"><span class="meta-label">Matches Played</span><span class="meta-value">${stats.played}</span></div>
+          <div class="meta-item"><span class="meta-label">Wins / Draws / Losses</span><span class="meta-value">${stats.won} W / ${stats.drawn} D / ${stats.lost} L</span></div>
+          <div class="meta-item"><span class="meta-label">Goals/Runs For/Against</span><span class="meta-value">${stats.gf} GF / ${stats.ga} GA (${stats.gd >= 0 ? '+' : ''}${stats.gd} GD)</span></div>
+          <div class="meta-item"><span class="meta-label">Win Percentage</span><span class="meta-value">${stats.winRate.toFixed(1)}%</span></div>
+        </div>
+
+        <h2 class="section-title">Active Roster</h2>
+        <table>
+          <thead>
+            <tr><th>Player Name</th><th>Jersey Number</th><th>Registered Date</th></tr>
+          </thead>
+          <tbody>
+            ${this.teamRoster().map(p => `<tr><td><b>${p.user.username}</b></td><td>${p.jerseyNumber || '-'}</td><td>${new Date(p.createdAt).toLocaleDateString()}</td></tr>`).join('')}
+          </tbody>
+        </table>
       `;
-      stats.topRated.slice(0, 5).forEach((p, idx) => {
-        htmlContent += `
-          <tr>
-            <td class="rank">${idx + 1}</td>
-            <td style="font-weight: 600;">${p.playerName}</td>
-            <td>${p.teamName}</td>
-            <td style="text-align: center; font-weight: 700; color:#4f46e5;">${p.avgRating.toFixed(2)}</td>
-          </tr>
-        `;
-      });
-      htmlContent += `</tbody></table></div>`;
+    } else if (type === 'player') {
+      const player = this.selectedPlayer();
+      if (!player) return;
+      const member = this.members().find(m => m.userId === player.userId);
+      const stats = this.competitionStats();
+      const ratedStats = stats?.topRated.find(r => r.playerId === player.id);
+      const mvpStats = stats?.mostMvps?.find(m => m.playerId === player.id);
 
-      if (stats.mostMvps && stats.mostMvps.length > 0) {
-        htmlContent += `
+      htmlContent += `
+        <div class="header-container">
           <div>
-            <h3 style="font-size: 13px; font-weight: 700; color: #475569; margin-bottom: 8px;"><i class="fi fi-rr-crown" style="color:#d97706;"></i> Most MVPs</h3>
-            <table>
-              <thead>
-                <tr>
-                  <th class="rank">#</th>
-                  <th>Player</th>
-                  <th>Team</th>
-                  <th style="text-align: center;">MVPs</th>
-                </tr>
-              </thead>
-              <tbody>
-        `;
-        stats.mostMvps.slice(0, 5).forEach((p, idx) => {
-          htmlContent += `
-            <tr>
-              <td class="rank">${idx + 1}</td>
-              <td style="font-weight: 600;">${p.playerName}</td>
-              <td>${p.teamName}</td>
-              <td style="text-align: center; font-weight: 700; color:#4f46e5;">${p.mvps}</td>
-            </tr>
-          `;
-        });
-        htmlContent += `</tbody></table></div>`;
-      }
+            <h1 class="title">Player Performance Report</h1>
+            <p class="subtitle">${player.user.username}</p>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-weight: 800; font-size: 14px; color: #4f46e5;">${ws.name}</div>
+            <div style="font-size: 11px; color: #64748b; margin-top: 2px;">Report Generated: ${new Date().toLocaleDateString()}</div>
+          </div>
+        </div>
 
-      if (comp.sport?.code === 'football' && stats.topScorers && stats.topScorers.length > 0) {
-        htmlContent += `
-          <div>
-            <h3 style="font-size: 13px; font-weight: 700; color: #475569; margin-bottom: 8px;"><i class="fi fi-rr-football"></i> Top Scorers</h3>
-            <table>
-              <thead>
-                <tr>
-                  <th class="rank">#</th>
-                  <th>Player</th>
-                  <th>Team</th>
-                  <th style="text-align: center;">Goals</th>
-                </tr>
-              </thead>
-              <tbody>
-        `;
-        stats.topScorers.slice(0, 5).forEach((p, idx) => {
-          htmlContent += `
-            <tr>
-              <td class="rank">${idx + 1}</td>
-              <td style="font-weight: 600;">${p.playerName}</td>
-              <td>${p.teamName}</td>
-              <td style="text-align: center; font-weight: 700; color: #16a34a;">${p.goals}</td>
-            </tr>
-          `;
-        });
-        htmlContent += `</tbody></table></div>`;
-      } else if (comp.sport?.code === 'cricket' && stats.topRuns && stats.topRuns.length > 0) {
-        htmlContent += `
-          <div>
-            <h3 style="font-size: 13px; font-weight: 700; color: #475569; margin-bottom: 8px;"><i class="fi fi-rr-bowling"></i> Top Run Scorers</h3>
-            <table>
-              <thead>
-                <tr>
-                  <th class="rank">#</th>
-                  <th>Player</th>
-                  <th>Team</th>
-                  <th style="text-align: center;">Runs</th>
-                </tr>
-              </thead>
-              <tbody>
-        `;
-        stats.topRuns.slice(0, 5).forEach((p, idx) => {
-          htmlContent += `
-            <tr>
-              <td class="rank">${idx + 1}</td>
-              <td style="font-weight: 600;">${p.playerName}</td>
-              <td>${p.teamName}</td>
-              <td style="text-align: center; font-weight: 700; color: #16a34a;">${p.runs}</td>
-            </tr>
-          `;
-        });
-        htmlContent += `</tbody></table></div>`;
-      }
+        <div class="meta-grid">
+          <div class="meta-item"><span class="meta-label">Jersey Number</span><span class="meta-value">${player.jerseyNumber || 'N/A'}</span></div>
+          <div class="meta-item"><span class="meta-label">Current Team</span><span class="meta-value">${player.team?.name || 'N/A'}</span></div>
+          <div class="meta-item"><span class="meta-label">Workspace Role</span><span class="meta-value">${member?.role?.name || 'Viewer'}</span></div>
+          <div class="meta-item"><span class="meta-label">Registered Date</span><span class="meta-value">${new Date(player.createdAt).toLocaleDateString()}</span></div>
+        </div>
 
-      htmlContent += `</div>`;
+        <h2 class="section-title">Competition Statistics Summary</h2>
+        <table>
+          <thead>
+            <tr><th>Appearances</th><th>Average Rating</th><th>MVPs Won</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="center-col"><b>${ratedStats?.appearances || 0}</b></td>
+              <td class="center-col"><b>${ratedStats?.avgRating ? ratedStats.avgRating.toFixed(2) : 'N/A'}</b></td>
+              <td class="center-col"><b>${mvpStats?.mvps || 0}</b></td>
+            </tr>
+          </tbody>
+        </table>
+      `;
     }
 
     htmlContent += `
