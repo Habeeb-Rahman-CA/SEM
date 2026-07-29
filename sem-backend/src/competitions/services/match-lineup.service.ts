@@ -305,6 +305,43 @@ export class MatchLineupService {
       }
     }
 
+    try {
+      const members = await this.workspacesService.getMembers(
+        workspaceId,
+        userId,
+      );
+      const member = members.find((m) => m.userId === userId);
+      const username = member?.user?.username || 'Official';
+
+      await this.workspacesService.logAudit(
+        `Save Match Lineup: ${matchDetails?.homeTeam?.name ?? 'Home'} vs ${matchDetails?.awayTeam?.name ?? 'Away'}`,
+        'WORKSPACE',
+        'Match',
+        matchId,
+        userId,
+        username,
+        JSON.stringify(lineups),
+      );
+    } catch (auditErr) {
+      console.error('Failed to log audit for saveMatchLineup:', auditErr);
+    }
+
+    try {
+      const matchPopulated = await this.matchRepo.findOne({
+        where: { id: matchId },
+        relations: { homeTeam: true, awayTeam: true, venue: true },
+      });
+      if (matchPopulated) {
+        this.eventsGateway.sendMatchUpdate(
+          matchId,
+          workspaceId,
+          matchPopulated,
+        );
+      }
+    } catch (wsErr) {
+      console.error('Failed to send match update for lineup save:', wsErr);
+    }
+
     return result;
   }
 
@@ -418,12 +455,14 @@ export class MatchLineupService {
             mvpMp.player?.user?.username ??
             mvpMp.player?.jerseyNumber?.toString() ??
             'Player';
-          (m as any).mvp = {
-            playerId: mvpMp.playerId,
-            playerName,
-            teamName: mvpMp.team?.name ?? 'Unknown',
-            rating: maxRating,
-          };
+          Object.assign(m, {
+            mvp: {
+              playerId: mvpMp.playerId,
+              playerName,
+              teamName: mvpMp.team?.name ?? 'Unknown',
+              rating: maxRating,
+            },
+          });
         }
       }
     }
@@ -475,7 +514,9 @@ export class MatchLineupService {
 
     const lockCheck = this.matchLockService.isLocked(matchId, userId);
     if (lockCheck.locked) {
-      throw new ConflictException(`Match is locked by official ${lockCheck.username}`);
+      throw new ConflictException(
+        `Match is locked by official ${lockCheck.username}`,
+      );
     }
 
     const oldStatus = match.status;
@@ -493,7 +534,7 @@ export class MatchLineupService {
       match.config = { ...match.config, ...dto.config };
     }
     if (dto.liveData !== undefined) {
-      match.liveData = dto.liveData;
+      match.liveData = dto.liveData as Record<string, unknown>;
     }
 
     const saved = await this.matchRepo.save(match);
@@ -571,7 +612,11 @@ export class MatchLineupService {
       }
     }
 
-    if (dto.scheduledAt !== undefined && oldScheduledAt && new Date(dto.scheduledAt).getTime() !== new Date(oldScheduledAt).getTime()) {
+    if (
+      dto.scheduledAt !== undefined &&
+      oldScheduledAt &&
+      new Date(dto.scheduledAt).getTime() !== new Date(oldScheduledAt).getTime()
+    ) {
       await this.workspacesService.sendNotificationToMany(
         allPlayers,
         NotificationType.MATCH_DELAYED,
@@ -581,7 +626,9 @@ export class MatchLineupService {
           matchId: populated.id,
           homeTeamName: populated.homeTeam?.name,
           awayTeamName: populated.awayTeam?.name,
-          scheduledAt: populated.scheduledAt ? populated.scheduledAt.toISOString() : null,
+          scheduledAt: populated.scheduledAt
+            ? populated.scheduledAt.toISOString()
+            : null,
           oldScheduledAt: oldScheduledAt.toISOString(),
           eventId: eventId,
         },
@@ -617,6 +664,27 @@ export class MatchLineupService {
       );
     }
 
+    try {
+      const members = await this.workspacesService.getMembers(
+        workspaceId,
+        userId,
+      );
+      const member = members.find((m) => m.userId === userId);
+      const username = member?.user?.username || 'Official';
+
+      await this.workspacesService.logAudit(
+        `Update Match: ${populated.homeTeam?.name ?? 'Home'} vs ${populated.awayTeam?.name ?? 'Away'} (Score: ${populated.homeScore} - ${populated.awayScore}, Status: ${populated.status})`,
+        'WORKSPACE',
+        'Match',
+        matchId,
+        userId,
+        username,
+        JSON.stringify(dto),
+      );
+    } catch (auditErr) {
+      console.error('Failed to log audit for updateMatch:', auditErr);
+    }
+
     this.eventsGateway.sendMatchUpdate(populated.id, workspaceId, populated);
 
     return populated;
@@ -640,7 +708,7 @@ export class MatchLineupService {
         event.announcements = announcements;
         await this.eventRepo.save(event);
       }
-    } catch (err) {
+    } catch {
       // Don't fail the match update if announcement fails
     }
   }

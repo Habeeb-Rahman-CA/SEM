@@ -70,8 +70,17 @@ export class NotificationsService {
     this.eventsGateway.sendNotification(userId, saved);
 
     // Asynchronously send corresponding email notification
-    this.triggerEmailNotification(userId, type, message, workspaceId, metadata).catch((err) => {
-      this.logger.error(`Failed to trigger email notification: ${err.message}`, err.stack);
+    this.triggerEmailNotification(
+      userId,
+      type,
+      message,
+      workspaceId,
+      metadata,
+    ).catch((err) => {
+      this.logger.error(
+        `Failed to trigger email notification: ${err.message}`,
+        err.stack,
+      );
     });
   }
 
@@ -104,8 +113,17 @@ export class NotificationsService {
 
     // Asynchronously send email notifications to all recipients
     for (const uid of uniqueIds) {
-      this.triggerEmailNotification(uid, type, message, workspaceId, metadata).catch((err) => {
-        this.logger.error(`Failed to trigger email notification: ${err.message}`, err.stack);
+      this.triggerEmailNotification(
+        uid,
+        type,
+        message,
+        workspaceId,
+        metadata,
+      ).catch((err) => {
+        this.logger.error(
+          `Failed to trigger email notification: ${err.message}`,
+          err.stack,
+        );
       });
     }
   }
@@ -125,20 +143,27 @@ export class NotificationsService {
     if (!user || !user.username) return;
 
     // Check if username is an email address, or fallback
-    const email = user.username.includes('@') ? user.username : `${user.username}@sem-event.com`;
+    const email = user.username.includes('@')
+      ? user.username
+      : `${user.username}@sem-event.com`;
 
     // 2. Fetch workspace branding
     let workspaceName = 'Sports Event Management';
     let logoUrl: string | null = null;
     if (workspaceId) {
-      const ws = await this.workspaceRepo.findOne({ where: { id: workspaceId } });
+      const ws = await this.workspaceRepo.findOne({
+        where: { id: workspaceId },
+      });
       if (ws) {
         workspaceName = ws.name;
         logoUrl = ws.logoUrl;
       }
     }
 
-    const frontendUrl = this.configService.get<string>('FRONTEND_URL', 'http://localhost:4200');
+    const frontendUrl = this.configService.get<string>(
+      'FRONTEND_URL',
+      'http://localhost:4200',
+    );
     const viewUrl = `${frontendUrl}${workspaceId ? `/public/events/${metadata?.eventId ?? ''}` : ''}`;
 
     // 3. Match type to email template
@@ -173,7 +198,9 @@ export class NotificationsService {
           logoUrl,
           metadata?.homeTeamName || 'Home Team',
           metadata?.awayTeamName || 'Away Team',
-          metadata?.scheduledAt ? new Date(metadata.scheduledAt).toLocaleString() : 'TBD',
+          metadata?.scheduledAt
+            ? new Date(metadata.scheduledAt).toLocaleString()
+            : 'TBD',
           metadata?.venueName || 'Venue TBD',
           metadata?.competitionName || 'Competition',
           metadata?.competitionName || 'Event',
@@ -236,7 +263,9 @@ export class NotificationsService {
           logoUrl,
           metadata?.homeTeamName || 'Home Team',
           metadata?.awayTeamName || 'Away Team',
-          metadata?.scheduledAt ? new Date(metadata.scheduledAt).toLocaleString() : 'TBD',
+          metadata?.scheduledAt
+            ? new Date(metadata.scheduledAt).toLocaleString()
+            : 'TBD',
           viewUrl,
         );
         break;
@@ -294,7 +323,9 @@ export class NotificationsService {
       let workspaceName = 'Sports Event Management';
       let logoUrl: string | null = null;
       if (workspaceId) {
-        const ws = await this.workspaceRepo.findOne({ where: { id: workspaceId } });
+        const ws = await this.workspaceRepo.findOne({
+          where: { id: workspaceId },
+        });
         if (ws) {
           workspaceName = ws.name;
           logoUrl = ws.logoUrl;
@@ -306,7 +337,8 @@ export class NotificationsService {
         where: { workspaceId: workspaceId ? workspaceId : IsNull() },
       });
       const alreadyReminded = existing.some(
-        (n) => n.metadata?.matchId === match.id && n.metadata?.isReminder === true,
+        (n) =>
+          n.metadata?.matchId === match.id && n.metadata?.isReminder === true,
       );
       if (alreadyReminded) continue;
 
@@ -323,17 +355,24 @@ export class NotificationsService {
       const awayUserIds = awayPlayers.map((p) => p.userId).filter(Boolean);
       const allPlayerIds = [...new Set([...homeUserIds, ...awayUserIds])];
 
-      const matchTimeStr = match.scheduledAt ? match.scheduledAt.toLocaleString() : 'TBD';
+      const matchTimeStr = match.scheduledAt
+        ? match.scheduledAt.toLocaleString()
+        : 'TBD';
       const venueName = match.venue?.name || 'TBD';
       const compName = match.stage?.competition?.name || 'Competition';
       const eventName = event?.name || 'Event';
-      const frontendUrl = this.configService.get<string>('FRONTEND_URL', 'http://localhost:4200');
+      const frontendUrl = this.configService.get<string>(
+        'FRONTEND_URL',
+        'http://localhost:4200',
+      );
       const viewUrl = `${frontendUrl}${event ? `/public/events/${event.id}` : ''}`;
 
       for (const userId of allPlayerIds) {
         const user = await this.usersService.findOneById(userId);
         if (!user || !user.username) continue;
-        const email = user.username.includes('@') ? user.username : `${user.username}@sem-event.com`;
+        const email = user.username.includes('@')
+          ? user.username
+          : `${user.username}@sem-event.com`;
 
         // Send email reminder
         await this.emailService.sendReminderEmail(

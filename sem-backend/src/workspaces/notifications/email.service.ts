@@ -22,7 +22,9 @@ export class EmailService {
       });
       this.logger.log('SMTP Transporter initialized successfully');
     } else {
-      this.logger.warn('SMTP credentials not fully configured. Email notifications will be logged to console.');
+      this.logger.warn(
+        'SMTP credentials not fully configured. Email notifications will be logged to console.',
+      );
     }
   }
 
@@ -30,7 +32,10 @@ export class EmailService {
    * General email send utility
    */
   async sendEmail(to: string, subject: string, html: string): Promise<boolean> {
-    const from = this.configService.get<string>('SMTP_FROM', '"SEM Platform" <noreply@sem-event.com>');
+    const from = this.configService.get<string>(
+      'SMTP_FROM',
+      '"SEM Platform" <noreply@sem-event.com>',
+    );
     if (this.transporter) {
       try {
         await this.transporter.sendMail({
@@ -42,11 +47,16 @@ export class EmailService {
         this.logger.log(`Email successfully sent to ${to}`);
         return true;
       } catch (err) {
-        this.logger.error(`Failed to send email to ${to}: ${err.message}`, err.stack);
+        this.logger.error(
+          `Failed to send email to ${to}: ${err.message}`,
+          err.stack,
+        );
         return false;
       }
     } else {
-      this.logger.log(`[MOCK EMAIL SENT]\nTo: ${to}\nSubject: ${subject}\nContent Summary: ${html.substring(0, 400).replace(/<[^>]*>/g, '')}...`);
+      this.logger.log(
+        `[MOCK EMAIL SENT]\nTo: ${to}\nSubject: ${subject}\nContent Summary: ${html.substring(0, 400).replace(/<[^>]*>/g, '')}...`,
+      );
       return true;
     }
   }
@@ -60,7 +70,7 @@ export class EmailService {
     logoUrl?: string | null,
     primaryColor = '#7c3aed',
   ): string {
-    const logoImg = logoUrl 
+    const logoImg = logoUrl
       ? `<img src="${logoUrl}" alt="${workspaceName} Logo" style="max-height: 48px; border-radius: 8px;" />`
       : `<span style="font-size: 20px; font-weight: 800; letter-spacing: -0.5px;">${workspaceName}</span>`;
 

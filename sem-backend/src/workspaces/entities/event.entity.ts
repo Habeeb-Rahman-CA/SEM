@@ -62,9 +62,19 @@ export class Event extends AuditableEntity {
   gallery: string[] | null;
 
   @Column({ name: 'announcements', type: 'jsonb', nullable: true })
-  announcements: Array<{ id: string; title: string; content: string; createdAt: Date }> | null;
+  announcements: Array<{
+    id: string;
+    title: string;
+    content: string;
+    createdAt: Date;
+  }> | null;
 
-  @Column({ name: 'registration_status', type: 'varchar', length: 50, default: 'open' })
+  @Column({
+    name: 'registration_status',
+    type: 'varchar',
+    length: 50,
+    default: 'open',
+  })
   registrationStatus: string;
 
   @Column({ type: 'varchar', length: 150, nullable: true })

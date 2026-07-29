@@ -1,4 +1,10 @@
-import { IsNotEmpty, IsUUID, IsOptional, IsObject, IsString } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsUUID,
+  IsOptional,
+  IsObject,
+  IsString,
+} from 'class-validator';
 import { MatchType } from '../../workspaces/entities/match.entity';
 
 export class CreateMatchDto {

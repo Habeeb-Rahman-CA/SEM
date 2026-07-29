@@ -326,7 +326,7 @@ describe('Events & Competitions Controller (e2e)', () => {
         duplicateVenues: true,
         duplicateTeams: true,
         duplicatePointSystems: true,
-        duplicateSettings: true
+        duplicateSettings: true,
       })
       .expect(201);
 
@@ -337,7 +337,9 @@ describe('Events & Competitions Controller (e2e)', () => {
 
     // Verify that the competition, stage, and team enrollments were copied to the new event
     const compsRes = await request(app.getHttpServer())
-      .get(`/workspaces/${workspaceId}/events/${duplicatedEventId}/competitions`)
+      .get(
+        `/workspaces/${workspaceId}/events/${duplicatedEventId}/competitions`,
+      )
       .set('Authorization', `Bearer ${jwtToken}`)
       .expect(200);
 
@@ -515,7 +517,7 @@ describe('Events & Competitions Controller (e2e)', () => {
       .patch(`/workspaces/${workspaceId}/events/${eventId}`)
       .set('Authorization', `Bearer ${jwtToken}`)
       .send({
-        status: 'completed'
+        status: 'completed',
       })
       .expect(200);
 
@@ -556,6 +558,8 @@ describe('Events & Competitions Controller (e2e)', () => {
       .set('Authorization', `Bearer ${jwtToken}`)
       .expect(200);
 
-    expect(activeRes.body.some((e: any) => e.id === duplicatedEventId)).toBe(false);
+    expect(activeRes.body.some((e: any) => e.id === duplicatedEventId)).toBe(
+      false,
+    );
   });
 });

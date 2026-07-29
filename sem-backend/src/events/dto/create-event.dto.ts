@@ -57,7 +57,12 @@ export class CreateEventDto {
 
   @IsOptional()
   @IsArray()
-  announcements?: Array<{ id: string; title: string; content: string; createdAt: string }>;
+  announcements?: Array<{
+    id: string;
+    title: string;
+    content: string;
+    createdAt: string;
+  }>;
 
   @IsOptional()
   @IsString()

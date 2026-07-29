@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, signal, inject, computed, effect, model, input, ChangeDetectionStrategy } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, Subscription } from 'rxjs';
 import { WorkspaceService, Workspace, WorkspaceMember, Team, Player, WorkspaceEvent, Sport, Competition, CompetitionStage, CompetitionTeam, Match, PointsConfigEntry, MatchPlayer, CompetitionStats } from '../../../services/workspace.service';
 import { VenueService, Venue } from '../../../services/venue.service';
 import { AuthService } from '../../../services/auth.service';
@@ -54,6 +54,7 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
   private socketService = inject(SocketService);
   private eventService = inject(EventService);
   private competitionService = inject(CompetitionService);
+  private matchUpdatedSub: Subscription | null = null;
 
   // INPUTS & MODELS (Bound to parent state for deep linking & sync)
   workspace = input.required<Workspace | null>();
@@ -194,11 +195,24 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
         console.error('Failed to parse saved filters', e);
       }
     }
+    this.matchUpdatedSub = this.socketService.matchUpdated$.subscribe((updatedMatch) => {
+      if (updatedMatch) {
+        this.matches.update(prev => prev.map(m => m.id === updatedMatch.id ? updatedMatch : m));
+        const currentMatch = this.selectedMatch();
+        if (currentMatch && currentMatch.id === updatedMatch.id) {
+          this.selectedMatch.set(updatedMatch);
+          this.loadMatchLineup(currentMatch.id);
+        }
+      }
+    });
   }
 
   ngOnDestroy() {
     if (this.currentSubscribedMatchId) {
       this.socketService.unsubscribeMatch(this.currentSubscribedMatchId);
+    }
+    if (this.matchUpdatedSub) {
+      this.matchUpdatedSub.unsubscribe();
     }
     const match = this.selectedMatch();
     if (match) {

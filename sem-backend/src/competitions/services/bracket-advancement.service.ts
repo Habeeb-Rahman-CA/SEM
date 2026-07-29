@@ -34,11 +34,15 @@ export class BracketAdvancementService {
   async getCompetitionRankings(
     competitionId: string,
   ): Promise<Map<string, number>> {
-    return this.competitionRankingsService.getCompetitionRankings(competitionId);
+    return this.competitionRankingsService.getCompetitionRankings(
+      competitionId,
+    );
   }
 
   async checkAndAutoCompleteCompetition(competitionId: string): Promise<void> {
-    return this.competitionCompletionService.checkAndAutoCompleteCompetition(competitionId);
+    return this.competitionCompletionService.checkAndAutoCompleteCompetition(
+      competitionId,
+    );
   }
 
   async advanceGroupStageWinners(stage: CompetitionStage): Promise<void> {
@@ -371,7 +375,10 @@ export class BracketAdvancementService {
     stage: CompetitionStage,
     teamIds: string[],
   ): Promise<void> {
-    return this.matchGenerationService.generateKnockoutStageMatches(stage, teamIds);
+    return this.matchGenerationService.generateKnockoutStageMatches(
+      stage,
+      teamIds,
+    );
   }
 
   async advanceTeamsBetweenStages(

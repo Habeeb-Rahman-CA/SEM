@@ -41,7 +41,7 @@ describe('MatchLockService', () => {
     it('should allow another user to acquire the lock if it has expired', () => {
       jest.useFakeTimers();
       service.acquireLock('match1', 'user1', 'User One');
-      
+
       // Fast-forward time by 61 seconds
       jest.advanceTimersByTime(61000);
 

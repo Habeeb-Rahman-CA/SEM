@@ -55,7 +55,9 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
         if (userId) {
           // Join a room for the user to receive private notifications
           await client.join(`user:${userId}`);
-          this.logger.log(`Client authenticated: ${client.id} (User: ${userId})`);
+          this.logger.log(
+            `Client authenticated: ${client.id} (User: ${userId})`,
+          );
         }
       } catch (authErr) {
         this.logger.warn(

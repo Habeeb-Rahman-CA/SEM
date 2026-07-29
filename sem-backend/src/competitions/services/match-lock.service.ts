@@ -11,11 +11,19 @@ export class MatchLockService {
   private locks = new Map<string, LockInfo>();
   private readonly LOCK_TIMEOUT_MS = 60000; // 60 seconds timeout
 
-  acquireLock(matchId: string, userId: string, username: string): { success: boolean; lockedBy?: string; expiresAt?: number } {
+  acquireLock(
+    matchId: string,
+    userId: string,
+    username: string,
+  ): { success: boolean; lockedBy?: string; expiresAt?: number } {
     const now = Date.now();
     const currentLock = this.locks.get(matchId);
 
-    if (currentLock && currentLock.expiresAt > now && currentLock.userId !== userId) {
+    if (
+      currentLock &&
+      currentLock.expiresAt > now &&
+      currentLock.userId !== userId
+    ) {
       return {
         success: false,
         lockedBy: currentLock.username,
@@ -45,11 +53,18 @@ export class MatchLockService {
     return false;
   }
 
-  isLocked(matchId: string, userId: string): { locked: boolean; username?: string } {
+  isLocked(
+    matchId: string,
+    userId: string,
+  ): { locked: boolean; username?: string } {
     const now = Date.now();
     const currentLock = this.locks.get(matchId);
 
-    if (currentLock && currentLock.expiresAt > now && currentLock.userId !== userId) {
+    if (
+      currentLock &&
+      currentLock.expiresAt > now &&
+      currentLock.userId !== userId
+    ) {
       return {
         locked: true,
         username: currentLock.username,

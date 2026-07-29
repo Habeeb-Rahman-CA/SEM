@@ -58,7 +58,8 @@ export class EventsController {
   @Get('search')
   @ApiOperation({
     summary: 'Advanced Search & Filter Events',
-    description: 'Enables advanced filtering by sport, organizer, workspace, status, venue, date range, and competition name, plus custom sorting.',
+    description:
+      'Enables advanced filtering by sport, organizer, workspace, status, venue, date range, and competition name, plus custom sorting.',
   })
   @ApiParam(WS)
   @ApiResponse({ status: 200, description: 'Filtered array of events' })
@@ -138,7 +139,8 @@ export class EventsController {
   @Patch(':eventId/archive')
   @ApiOperation({
     summary: 'Archive an event',
-    description: 'Archives the specified event to keep historical data organized.',
+    description:
+      'Archives the specified event to keep historical data organized.',
   })
   @ApiParam(WS)
   @ApiParam(EV)
@@ -156,7 +158,8 @@ export class EventsController {
   @Patch(':eventId/restore')
   @ApiOperation({
     summary: 'Restore an archived event',
-    description: 'Restores the specified event from the archive to active status.',
+    description:
+      'Restores the specified event from the archive to active status.',
   })
   @ApiParam(WS)
   @ApiParam(EV)
@@ -212,14 +215,11 @@ export class EventsController {
     @Body() dto: DuplicateEventDto,
     @Request() req: any,
   ) {
-    return this.eventsService.duplicateEvent(
-      workspaceId,
-      eventId,
-      dto,
-      req.user.id,
-    ).catch(err => {
-      console.error('DUPLICATION ERROR:', err);
-      throw err;
-    });
+    return this.eventsService
+      .duplicateEvent(workspaceId, eventId, dto, req.user.id)
+      .catch((err) => {
+        console.error('DUPLICATION ERROR:', err);
+        throw err;
+      });
   }
 }
