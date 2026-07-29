@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
@@ -20,6 +21,7 @@ import { StatisticsRatingsService } from './statistics-ratings.service';
 import { BracketAdvancementService } from './bracket-advancement.service';
 import { SportEngineRegistry } from '../sports/sport-engine.registry';
 import { EventsGateway } from '../../workspaces/events.gateway';
+import { MatchLockService } from './match-lock.service';
 
 @Injectable()
 export class MatchLineupService {
@@ -39,6 +41,7 @@ export class MatchLineupService {
     private readonly bracketAdvancementService: BracketAdvancementService,
     private readonly sportEngineRegistry: SportEngineRegistry,
     private readonly eventsGateway: EventsGateway,
+    private readonly matchLockService: MatchLockService,
   ) {}
 
   async createMatch(
@@ -470,6 +473,11 @@ export class MatchLineupService {
       throw new NotFoundException(`Match "${matchId}" not found in this stage`);
     }
 
+    const lockCheck = this.matchLockService.isLocked(matchId, userId);
+    if (lockCheck.locked) {
+      throw new ConflictException(`Match is locked by official ${lockCheck.username}`);
+    }
+
     const oldStatus = match.status;
     const oldScheduledAt = match.scheduledAt;
     const oldVenueId = match.venueId;
@@ -489,6 +497,7 @@ export class MatchLineupService {
     }
 
     const saved = await this.matchRepo.save(match);
+    this.matchLockService.forceReleaseLock(matchId);
 
     const populated = (await this.matchRepo.findOne({
       where: { id: saved.id },

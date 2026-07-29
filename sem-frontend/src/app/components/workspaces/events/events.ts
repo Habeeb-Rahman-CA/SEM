@@ -200,6 +200,10 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
     if (this.currentSubscribedMatchId) {
       this.socketService.unsubscribeMatch(this.currentSubscribedMatchId);
     }
+    const match = this.selectedMatch();
+    if (match) {
+      this.releaseActiveLock(match);
+    }
   }
 
   // COMPUTED SIGNALS
@@ -947,9 +951,100 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
   }
 
   // MATCHES & LINEUP
+  private lockInterval: any = null;
+
   onSelectMatch(match: Match | null) {
-    this.selectedMatch.set(match);
-    this.matchLineup.set([]);
+    const previousMatch = this.selectedMatch();
+    if (previousMatch) {
+      this.releaseActiveLock(previousMatch);
+    }
+
+    if (!match) {
+      this.selectedMatch.set(null);
+      this.matchLineup.set([]);
+      return;
+    }
+
+    const canScoreValue = this.hasPermission('match.score');
+    if (match.status === 'completed' || !canScoreValue) {
+      this.selectedMatch.set(match);
+      this.matchLineup.set([]);
+      return;
+    }
+
+    const ws = this.workspace();
+    const event = this.selectedEvent();
+    const comp = this.selectedCompetition();
+    const stage = this.selectedStage();
+
+    if (!ws || !event || !comp || !stage) {
+      this.selectedMatch.set(match);
+      this.matchLineup.set([]);
+      return;
+    }
+
+    this.competitionService.acquireMatchLock(ws.id, event.id, comp.id, stage.id, match.id).subscribe({
+      next: (res) => {
+        if (res.success) {
+          this.selectedMatch.set(match);
+          this.matchLineup.set([]);
+          this.startLockHeartbeat(match);
+        } else {
+          this.uiService.error(
+            `This match is currently locked/being edited by ${res.lockedBy || 'another official'}.`
+          );
+        }
+      },
+      error: (err) => {
+        this.uiService.error(
+          err.error?.message || 'Failed to acquire edit lock. The match may be currently edited by another official.'
+        );
+      }
+    });
+  }
+
+  startLockHeartbeat(match: Match) {
+    this.stopLockHeartbeat();
+    const ws = this.workspace();
+    const event = this.selectedEvent();
+    const comp = this.selectedCompetition();
+    const stage = this.selectedStage();
+    if (!ws || !event || !comp || !stage) return;
+
+    this.lockInterval = setInterval(() => {
+      this.competitionService.acquireMatchLock(ws.id, event.id, comp.id, stage.id, match.id).subscribe({
+        error: (err) => {
+          console.warn('Failed to renew match lock', err);
+          this.uiService.error(err.error?.message || 'Lock expired or lost. Another official may have taken over.');
+          this.stopLockHeartbeat();
+          this.selectedMatch.set(null);
+          this.matchLineup.set([]);
+        }
+      });
+    }, 20000);
+  }
+
+  stopLockHeartbeat() {
+    if (this.lockInterval) {
+      clearInterval(this.lockInterval);
+      this.lockInterval = null;
+    }
+  }
+
+  releaseActiveLock(match: Match) {
+    this.stopLockHeartbeat();
+    const ws = this.workspace();
+    const event = this.selectedEvent();
+    const comp = this.selectedCompetition();
+    const stage = this.selectedStage();
+    if (!ws || !event || !comp || !stage) return;
+
+    const canScoreValue = this.hasPermission('match.score');
+    if (match.status !== 'completed' && canScoreValue) {
+      this.competitionService.releaseMatchLock(ws.id, event.id, comp.id, stage.id, match.id).subscribe({
+        error: (err) => console.warn('Failed to release match lock', err)
+      });
+    }
   }
 
   onMatchUpdated(updated: any) {

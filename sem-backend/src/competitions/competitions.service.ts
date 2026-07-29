@@ -28,6 +28,7 @@ import { CreateStageDto } from './dto/create-stage.dto';
 import { UpdateStageDto } from './dto/update-stage.dto';
 import { CreateMatchDto } from './dto/create-match.dto';
 import { UpdateMatchDto } from './dto/update-match.dto';
+import { MatchLockService } from './services/match-lock.service';
 
 @Injectable()
 export class CompetitionsService {
@@ -59,6 +60,7 @@ export class CompetitionsService {
     private readonly matchLineupService: MatchLineupService,
     private readonly statisticsRatingsService: StatisticsRatingsService,
     private readonly bracketAdvancementService: BracketAdvancementService,
+    private readonly matchLockService: MatchLockService,
   ) {}
 
   // ─── Validation Helpers ───────────────────────────────────────────────────
@@ -668,6 +670,34 @@ export class CompetitionsService {
       dto,
       userId,
     );
+  }
+
+  async acquireMatchLock(
+    workspaceId: string,
+    matchId: string,
+    userId: string,
+    username: string,
+  ): Promise<{ success: boolean; lockedBy?: string; expiresAt?: number }> {
+    await this.workspacesService.ensurePermission(
+      workspaceId,
+      userId,
+      'match.score',
+    );
+    return this.matchLockService.acquireLock(matchId, userId, username);
+  }
+
+  async releaseMatchLock(
+    workspaceId: string,
+    matchId: string,
+    userId: string,
+  ): Promise<{ success: boolean }> {
+    await this.workspacesService.ensurePermission(
+      workspaceId,
+      userId,
+      'match.score',
+    );
+    const success = this.matchLockService.releaseLock(matchId, userId);
+    return { success };
   }
 
   async removeMatch(
