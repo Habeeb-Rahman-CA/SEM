@@ -1057,7 +1057,24 @@
            (matchUpdated)="onMatchUpdated($event)"
            (openLineupModal)="openLineupModal()">
          </app-badminton-console>
-        }
+         } @else {
+          <app-generic-console
+            [workspaceId]="workspace()!.id"
+            [eventId]="selectedEvent()!.id"
+            [competitionId]="selectedCompetition()!.id"
+            [stageId]="selectedStage()!.id"
+            [stage]="selectedStage()"
+            [match]="match"
+            [players]="players()"
+            [teams]="teams()"
+            [matchLineup]="matchLineup()"
+            [canScore]="canScoreValue"
+            [sport]="selectedCompetition()?.sport"
+            (matchCompleted)="onMatchCompleted()"
+            (matchUpdated)="onMatchUpdated($event)"
+            (openLineupModal)="openLineupModal()">
+          </app-generic-console>
+         }
       }
     }
     </div>

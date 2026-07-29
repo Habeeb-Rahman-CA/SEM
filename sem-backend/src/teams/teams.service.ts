@@ -270,14 +270,33 @@ export class TeamsService {
     let allTimeRalliesWon = 0;
     let allTimeRalliesLost = 0;
     let allTimeMvps = 0;
+    // Volleyball
+    let allTimeKills = 0;
+    let allTimeBlocks = 0;
+    // Basketball
+    let allTimePoints = 0;
+    let allTimeRebounds = 0;
+    // Table Tennis
+    let allTimeTtSetsWon = 0;
+    let allTimeAces = 0;
+    // Chess
+    let allTimeChessWins = 0;
+    let allTimeTotalMoves = 0;
+    // Kabaddi
+    let allTimeRaidPoints = 0;
+    let allTimeTacklePoints = 0;
+    // Throwball
+    let allTimeCatches = 0;
+    let allTimeDrops = 0;
+    // Athletics — no aggregate makes sense except appearances; skip
 
     // Process goals & other stats from matches
     for (const m of matches) {
       const sport = m.stage?.competition?.sport?.code ?? 'football';
       const liveData = m.liveData || {};
+      const isHome = m.homeTeamId === teamId;
 
       if (sport === 'football') {
-        const isHome = m.homeTeamId === teamId;
         allTimeGoals += isHome ? m.homeScore : m.awayScore;
 
         const events = liveData.events || [];
@@ -314,7 +333,6 @@ export class TeamsService {
         }
       } else if (sport === 'badminton') {
         const rallies = liveData.rallies || [];
-        const isHome = m.homeTeamId === teamId;
         for (const r of rallies) {
           if (r.winnerSide === 'none') continue;
           if (isHome) {
@@ -324,6 +342,58 @@ export class TeamsService {
             if (r.winnerSide === 'away') allTimeRalliesWon++;
             else allTimeRalliesLost++;
           }
+        }
+      } else if (sport === 'volleyball') {
+        const rallies = liveData.rallies || [];
+        for (const r of rallies) {
+          if (r.type === 'kill') allTimeKills++;
+          if (r.type === 'block') allTimeBlocks++;
+        }
+      } else if (sport === 'basketball') {
+        allTimePoints += isHome
+          ? (liveData.homeScore ?? m.homeScore ?? 0)
+          : (liveData.awayScore ?? m.awayScore ?? 0);
+        const events = liveData.events || [];
+        for (const ev of events) {
+          if (ev.type === 'rebound') allTimeRebounds++;
+        }
+      } else if (sport === 'table_tennis') {
+        const sets = liveData.sets || [];
+        for (const s of sets) {
+          if (isHome && s.homeScore > s.awayScore) allTimeTtSetsWon++;
+          if (!isHome && s.awayScore > s.homeScore) allTimeTtSetsWon++;
+          if (s.aces) allTimeAces += s.aces;
+        }
+      } else if (sport === 'chess') {
+        const result = liveData.result;
+        if (result) {
+          if (
+            (isHome && result === 'home_win') ||
+            (!isHome && result === 'away_win')
+          ) {
+            allTimeChessWins++;
+          }
+          allTimeTotalMoves += liveData.totalMoves ?? 0;
+        }
+      } else if (sport === 'kabaddi') {
+        const events = liveData.events || [];
+        for (const ev of events) {
+          const isTeamEvent = isHome
+            ? ev.teamSide === 'home'
+            : ev.teamSide === 'away';
+          if (!isTeamEvent) continue;
+          if (ev.type === 'raid_success') allTimeRaidPoints += ev.points ?? 1;
+          if (ev.type === 'tackle_success') allTimeTacklePoints += ev.points ?? 1;
+        }
+      } else if (sport === 'throwball') {
+        const events = liveData.events || [];
+        for (const ev of events) {
+          const isTeamEvent = isHome
+            ? ev.teamSide === 'home'
+            : ev.teamSide === 'away';
+          if (!isTeamEvent) continue;
+          if (ev.type === 'catch') allTimeCatches++;
+          if (ev.type === 'drop') allTimeDrops++;
         }
       }
     }
@@ -372,6 +442,13 @@ export class TeamsService {
       football: null,
       cricket: null,
       badminton: null,
+      volleyball: null,
+      basketball: null,
+      athletics: null,
+      table_tennis: null,
+      chess: null,
+      kabaddi: null,
+      throwball: null,
     };
 
     for (const [sport, playersMap] of sportRatings.entries()) {
@@ -413,13 +490,26 @@ export class TeamsService {
       let compRalliesWon = 0;
       let compRalliesLost = 0;
       let compMvps = 0;
+      let compKills = 0;
+      let compBlocks = 0;
+      let compPoints = 0;
+      let compRebounds = 0;
+      let compTtSetsWon = 0;
+      let compAces = 0;
+      let compChessWins = 0;
+      let compTotalMoves = 0;
+      let compRaidPoints = 0;
+      let compTacklePoints = 0;
+      let compCatches = 0;
+      let compDrops = 0;
 
       for (const m of compMatches) {
         const liveData = m.liveData || {};
-        if (comp.sport?.code === 'football') {
-          const isHome = m.homeTeamId === teamId;
-          compGoals += isHome ? m.homeScore : m.awayScore;
+        const isHome = m.homeTeamId === teamId;
+        const sportCode = comp.sport?.code;
 
+        if (sportCode === 'football') {
+          compGoals += isHome ? m.homeScore : m.awayScore;
           const events = liveData.events || [];
           for (const ev of events) {
             const isSelfAssist =
@@ -436,7 +526,7 @@ export class TeamsService {
               compAssists++;
             }
           }
-        } else if (comp.sport?.code === 'cricket') {
+        } else if (sportCode === 'cricket') {
           const inningsList = liveData.inningsData || [];
           for (const inn of inningsList) {
             const batStats = inn.batsmanStats || {};
@@ -452,9 +542,8 @@ export class TeamsService {
               }
             }
           }
-        } else if (comp.sport?.code === 'badminton') {
+        } else if (sportCode === 'badminton') {
           const rallies = liveData.rallies || [];
-          const isHome = m.homeTeamId === teamId;
           for (const r of rallies) {
             if (r.winnerSide === 'none') continue;
             if (isHome) {
@@ -464,6 +553,58 @@ export class TeamsService {
               if (r.winnerSide === 'away') compRalliesWon++;
               else compRalliesLost++;
             }
+          }
+        } else if (sportCode === 'volleyball') {
+          const rallies = liveData.rallies || [];
+          for (const r of rallies) {
+            if (r.type === 'kill') compKills++;
+            if (r.type === 'block') compBlocks++;
+          }
+        } else if (sportCode === 'basketball') {
+          compPoints += isHome
+            ? (liveData.homeScore ?? m.homeScore ?? 0)
+            : (liveData.awayScore ?? m.awayScore ?? 0);
+          const events = liveData.events || [];
+          for (const ev of events) {
+            if (ev.type === 'rebound') compRebounds++;
+          }
+        } else if (sportCode === 'table_tennis') {
+          const sets = liveData.sets || [];
+          for (const s of sets) {
+            if (isHome && s.homeScore > s.awayScore) compTtSetsWon++;
+            if (!isHome && s.awayScore > s.homeScore) compTtSetsWon++;
+            if (s.aces) compAces += s.aces;
+          }
+        } else if (sportCode === 'chess') {
+          const result = liveData.result;
+          if (result) {
+            if (
+              (isHome && result === 'home_win') ||
+              (!isHome && result === 'away_win')
+            ) {
+              compChessWins++;
+            }
+            compTotalMoves += liveData.totalMoves ?? 0;
+          }
+        } else if (sportCode === 'kabaddi') {
+          const events = liveData.events || [];
+          for (const ev of events) {
+            const isTeamEvent = isHome
+              ? ev.teamSide === 'home'
+              : ev.teamSide === 'away';
+            if (!isTeamEvent) continue;
+            if (ev.type === 'raid_success') compRaidPoints += ev.points ?? 1;
+            if (ev.type === 'tackle_success') compTacklePoints += ev.points ?? 1;
+          }
+        } else if (sportCode === 'throwball') {
+          const events = liveData.events || [];
+          for (const ev of events) {
+            const isTeamEvent = isHome
+              ? ev.teamSide === 'home'
+              : ev.teamSide === 'away';
+            if (!isTeamEvent) continue;
+            if (ev.type === 'catch') compCatches++;
+            if (ev.type === 'drop') compDrops++;
           }
         }
       }
@@ -524,12 +665,33 @@ export class TeamsService {
         competitionName: comp.name,
         sportCode: comp.sport?.code ?? 'football',
         gamesPlayed: compMatches.length,
+        // Football
         goals: compGoals,
         assists: compAssists,
+        // Cricket
         runs: compRuns,
         wickets: compWickets,
+        // Badminton
         ralliesWon: compRalliesWon,
         ralliesLost: compRalliesLost,
+        // Volleyball
+        kills: compKills,
+        blocks: compBlocks,
+        // Basketball
+        points: compPoints,
+        rebounds: compRebounds,
+        // Table Tennis
+        setsWon: compTtSetsWon,
+        aces: compAces,
+        // Chess
+        chessWins: compChessWins,
+        totalMoves: compTotalMoves,
+        // Kabaddi
+        raidPoints: compRaidPoints,
+        tacklePoints: compTacklePoints,
+        // Throwball
+        catches: compCatches,
+        drops: compDrops,
         mvps: compMvps,
         bestPlayer: compBestPlayer,
       });
@@ -548,12 +710,33 @@ export class TeamsService {
       allTime: {
         participations: competitionIds.length,
         totalGames: matches.length,
+        // Football
         goals: allTimeGoals,
         assists: allTimeAssists,
+        // Cricket
         runs: allTimeRuns,
         wickets: allTimeWickets,
+        // Badminton
         ralliesWon: allTimeRalliesWon,
         ralliesLost: allTimeRalliesLost,
+        // Volleyball
+        kills: allTimeKills,
+        blocks: allTimeBlocks,
+        // Basketball
+        points: allTimePoints,
+        rebounds: allTimeRebounds,
+        // Table Tennis
+        setsWon: allTimeTtSetsWon,
+        aces: allTimeAces,
+        // Chess
+        chessWins: allTimeChessWins,
+        totalMoves: allTimeTotalMoves,
+        // Kabaddi
+        raidPoints: allTimeRaidPoints,
+        tacklePoints: allTimeTacklePoints,
+        // Throwball
+        catches: allTimeCatches,
+        drops: allTimeDrops,
         mvps: allTimeMvps,
       },
       bestPlayers,

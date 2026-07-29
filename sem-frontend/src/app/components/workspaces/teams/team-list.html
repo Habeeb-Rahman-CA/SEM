@@ -49,44 +49,42 @@
 
         <!-- Sport Specific Aggregates Grid -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <!-- Football Stats -->
+          <!-- Football -->
           <div class="bg-slate-900 border border-white/10 rounded-2xl p-5 shadow-xl flex flex-col gap-4">
             <h3 class="text-xs font-bold text-white flex items-center gap-2 border-b border-white/5 pb-2 uppercase tracking-wide">
-              <i class="fi fi-rr-football text-violet-400"></i> Football Metrics
+              <i class="fi fi-rr-football text-violet-400"></i> Football
             </h3>
             <div class="grid grid-cols-2 gap-3">
               <div class="bg-slate-950/40 p-3 rounded-xl border border-white/5">
-                <p class="text-[9px] text-slate-400 uppercase font-semibold">Total Goals</p>
+                <p class="text-[9px] text-slate-400 uppercase font-semibold">Goals</p>
                 <p class="text-lg font-black text-emerald-400">{{ teamDetails.allTime.goals }}</p>
               </div>
               <div class="bg-slate-950/40 p-3 rounded-xl border border-white/5">
-                <p class="text-[9px] text-slate-400 uppercase font-semibold">Total Assists</p>
+                <p class="text-[9px] text-slate-400 uppercase font-semibold">Assists</p>
                 <p class="text-lg font-black text-blue-400">{{ teamDetails.allTime.assists }}</p>
               </div>
             </div>
           </div>
-
-          <!-- Cricket Stats -->
+          <!-- Cricket -->
           <div class="bg-slate-900 border border-white/10 rounded-2xl p-5 shadow-xl flex flex-col gap-4">
             <h3 class="text-xs font-bold text-white flex items-center gap-2 border-b border-white/5 pb-2 uppercase tracking-wide">
-              <i class="fi fi-rr-cricket text-violet-400"></i> Cricket Metrics
+              <i class="fi fi-rr-cricket text-violet-400"></i> Cricket
             </h3>
             <div class="grid grid-cols-2 gap-3">
               <div class="bg-slate-950/40 p-3 rounded-xl border border-white/5">
-                <p class="text-[9px] text-slate-400 uppercase font-semibold">Total Runs</p>
+                <p class="text-[9px] text-slate-400 uppercase font-semibold">Runs</p>
                 <p class="text-lg font-black text-emerald-400">{{ teamDetails.allTime.runs }}</p>
               </div>
               <div class="bg-slate-950/40 p-3 rounded-xl border border-white/5">
-                <p class="text-[9px] text-slate-400 uppercase font-semibold">Total Wickets</p>
+                <p class="text-[9px] text-slate-400 uppercase font-semibold">Wickets</p>
                 <p class="text-lg font-black text-blue-400">{{ teamDetails.allTime.wickets }}</p>
               </div>
             </div>
           </div>
-
-          <!-- Badminton Stats -->
+          <!-- Badminton -->
           <div class="bg-slate-900 border border-white/10 rounded-2xl p-5 shadow-xl flex flex-col gap-4">
             <h3 class="text-xs font-bold text-white flex items-center gap-2 border-b border-white/5 pb-2 uppercase tracking-wide">
-              <i class="fi fi-rr-play text-violet-400"></i> Badminton Metrics
+              <i class="fi fi-rr-play text-violet-400"></i> Badminton
             </h3>
             <div class="grid grid-cols-2 gap-3">
               <div class="bg-slate-950/40 p-3 rounded-xl border border-white/5">
@@ -96,6 +94,102 @@
               <div class="bg-slate-950/40 p-3 rounded-xl border border-white/5">
                 <p class="text-[9px] text-slate-400 uppercase font-semibold">Rallies Lost</p>
                 <p class="text-lg font-black text-rose-400">{{ teamDetails.allTime.ralliesLost }}</p>
+              </div>
+            </div>
+          </div>
+          <!-- Volleyball -->
+          <div class="bg-slate-900 border border-white/10 rounded-2xl p-5 shadow-xl flex flex-col gap-4">
+            <h3 class="text-xs font-bold text-white flex items-center gap-2 border-b border-white/5 pb-2 uppercase tracking-wide">
+              <i class="fi fi-rr-volleyball text-violet-400"></i> Volleyball
+            </h3>
+            <div class="grid grid-cols-2 gap-3">
+              <div class="bg-slate-950/40 p-3 rounded-xl border border-white/5">
+                <p class="text-[9px] text-slate-400 uppercase font-semibold">Kills</p>
+                <p class="text-lg font-black text-emerald-400">{{ teamDetails.allTime.kills }}</p>
+              </div>
+              <div class="bg-slate-950/40 p-3 rounded-xl border border-white/5">
+                <p class="text-[9px] text-slate-400 uppercase font-semibold">Blocks</p>
+                <p class="text-lg font-black text-blue-400">{{ teamDetails.allTime.blocks }}</p>
+              </div>
+            </div>
+          </div>
+          <!-- Basketball -->
+          <div class="bg-slate-900 border border-white/10 rounded-2xl p-5 shadow-xl flex flex-col gap-4">
+            <h3 class="text-xs font-bold text-white flex items-center gap-2 border-b border-white/5 pb-2 uppercase tracking-wide">
+              <i class="fi fi-rr-basketball text-violet-400"></i> Basketball
+            </h3>
+            <div class="grid grid-cols-2 gap-3">
+              <div class="bg-slate-950/40 p-3 rounded-xl border border-white/5">
+                <p class="text-[9px] text-slate-400 uppercase font-semibold">Points</p>
+                <p class="text-lg font-black text-emerald-400">{{ teamDetails.allTime.points }}</p>
+              </div>
+              <div class="bg-slate-950/40 p-3 rounded-xl border border-white/5">
+                <p class="text-[9px] text-slate-400 uppercase font-semibold">Rebounds</p>
+                <p class="text-lg font-black text-blue-400">{{ teamDetails.allTime.rebounds }}</p>
+              </div>
+            </div>
+          </div>
+          <!-- Kabaddi -->
+          <div class="bg-slate-900 border border-white/10 rounded-2xl p-5 shadow-xl flex flex-col gap-4">
+            <h3 class="text-xs font-bold text-white flex items-center gap-2 border-b border-white/5 pb-2 uppercase tracking-wide">
+              <i class="fi fi-rr-running text-violet-400"></i> Kabaddi
+            </h3>
+            <div class="grid grid-cols-2 gap-3">
+              <div class="bg-slate-950/40 p-3 rounded-xl border border-white/5">
+                <p class="text-[9px] text-slate-400 uppercase font-semibold">Raid Points</p>
+                <p class="text-lg font-black text-emerald-400">{{ teamDetails.allTime.raidPoints }}</p>
+              </div>
+              <div class="bg-slate-950/40 p-3 rounded-xl border border-white/5">
+                <p class="text-[9px] text-slate-400 uppercase font-semibold">Tackle Points</p>
+                <p class="text-lg font-black text-blue-400">{{ teamDetails.allTime.tacklePoints }}</p>
+              </div>
+            </div>
+          </div>
+          <!-- Throwball -->
+          <div class="bg-slate-900 border border-white/10 rounded-2xl p-5 shadow-xl flex flex-col gap-4">
+            <h3 class="text-xs font-bold text-white flex items-center gap-2 border-b border-white/5 pb-2 uppercase tracking-wide">
+              <i class="fi fi-rr-ball text-violet-400"></i> Throwball
+            </h3>
+            <div class="grid grid-cols-2 gap-3">
+              <div class="bg-slate-950/40 p-3 rounded-xl border border-white/5">
+                <p class="text-[9px] text-slate-400 uppercase font-semibold">Catches</p>
+                <p class="text-lg font-black text-emerald-400">{{ teamDetails.allTime.catches }}</p>
+              </div>
+              <div class="bg-slate-950/40 p-3 rounded-xl border border-white/5">
+                <p class="text-[9px] text-slate-400 uppercase font-semibold">Drops</p>
+                <p class="text-lg font-black text-rose-400">{{ teamDetails.allTime.drops }}</p>
+              </div>
+            </div>
+          </div>
+          <!-- Table Tennis -->
+          <div class="bg-slate-900 border border-white/10 rounded-2xl p-5 shadow-xl flex flex-col gap-4">
+            <h3 class="text-xs font-bold text-white flex items-center gap-2 border-b border-white/5 pb-2 uppercase tracking-wide">
+              <i class="fi fi-rr-table-tennis text-violet-400"></i> Table Tennis
+            </h3>
+            <div class="grid grid-cols-2 gap-3">
+              <div class="bg-slate-950/40 p-3 rounded-xl border border-white/5">
+                <p class="text-[9px] text-slate-400 uppercase font-semibold">Sets Won</p>
+                <p class="text-lg font-black text-emerald-400">{{ teamDetails.allTime.setsWon }}</p>
+              </div>
+              <div class="bg-slate-950/40 p-3 rounded-xl border border-white/5">
+                <p class="text-[9px] text-slate-400 uppercase font-semibold">Aces</p>
+                <p class="text-lg font-black text-blue-400">{{ teamDetails.allTime.aces }}</p>
+              </div>
+            </div>
+          </div>
+          <!-- Chess -->
+          <div class="bg-slate-900 border border-white/10 rounded-2xl p-5 shadow-xl flex flex-col gap-4">
+            <h3 class="text-xs font-bold text-white flex items-center gap-2 border-b border-white/5 pb-2 uppercase tracking-wide">
+              <i class="fi fi-rr-chess text-violet-400"></i> Chess
+            </h3>
+            <div class="grid grid-cols-2 gap-3">
+              <div class="bg-slate-950/40 p-3 rounded-xl border border-white/5">
+                <p class="text-[9px] text-slate-400 uppercase font-semibold">Wins</p>
+                <p class="text-lg font-black text-emerald-400">{{ teamDetails.allTime.chessWins }}</p>
+              </div>
+              <div class="bg-slate-950/40 p-3 rounded-xl border border-white/5">
+                <p class="text-[9px] text-slate-400 uppercase font-semibold">Total Moves</p>
+                <p class="text-lg font-black text-blue-400">{{ teamDetails.allTime.totalMoves }}</p>
               </div>
             </div>
           </div>
@@ -187,13 +281,16 @@
             <div>
               <h4 class="text-sm font-bold text-white">{{ c.competitionName }}</h4>
               <p class="text-[10px] text-slate-500 uppercase font-bold mt-0.5 flex items-center gap-1">
-                @if (c.sportCode === 'football') {
-                  <i class="fi fi-rr-football text-violet-400"></i> Football
-                } @else if (c.sportCode === 'cricket') {
-                  <i class="fi fi-rr-cricket text-violet-400"></i> Cricket
-                } @else {
-                  <i class="fi fi-rr-play text-violet-400"></i> Badminton
-                }
+                @if (c.sportCode === 'football') { <i class="fi fi-rr-football text-violet-400"></i> Football }
+                @else if (c.sportCode === 'cricket') { <i class="fi fi-rr-cricket text-violet-400"></i> Cricket }
+                @else if (c.sportCode === 'volleyball') { <i class="fi fi-rr-volleyball text-violet-400"></i> Volleyball }
+                @else if (c.sportCode === 'basketball') { <i class="fi fi-rr-basketball text-violet-400"></i> Basketball }
+                @else if (c.sportCode === 'athletics') { <i class="fi fi-rr-running text-violet-400"></i> Athletics }
+                @else if (c.sportCode === 'table_tennis') { <i class="fi fi-rr-table-tennis text-violet-400"></i> Table Tennis }
+                @else if (c.sportCode === 'chess') { <i class="fi fi-rr-chess text-violet-400"></i> Chess }
+                @else if (c.sportCode === 'kabaddi') { <i class="fi fi-rr-running text-violet-400"></i> Kabaddi }
+                @else if (c.sportCode === 'throwball') { <i class="fi fi-rr-ball text-violet-400"></i> Throwball }
+                @else { <i class="fi fi-rr-play text-violet-400"></i> Badminton }
               </p>
             </div>
             <div class="flex items-center gap-3 text-xs font-semibold text-slate-300">
@@ -217,7 +314,6 @@
             </div>
           </div>
           }
-
           @if (c.sportCode === 'cricket') {
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-left">
             <div class="bg-slate-950/40 p-2.5 rounded-xl border border-white/5">
@@ -230,7 +326,6 @@
             </div>
           </div>
           }
-
           @if (c.sportCode === 'badminton') {
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-left">
             <div class="bg-slate-950/40 p-2.5 rounded-xl border border-white/5">
@@ -243,7 +338,86 @@
             </div>
           </div>
           }
-
+          @if (c.sportCode === 'volleyball') {
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-left">
+            <div class="bg-slate-950/40 p-2.5 rounded-xl border border-white/5">
+              <span class="text-[9px] text-slate-400 uppercase font-semibold">Kills</span>
+              <p class="text-base font-black text-emerald-400 mt-0.5">{{ c.kills }}</p>
+            </div>
+            <div class="bg-slate-950/40 p-2.5 rounded-xl border border-white/5">
+              <span class="text-[9px] text-slate-400 uppercase font-semibold">Blocks</span>
+              <p class="text-base font-black text-blue-400 mt-0.5">{{ c.blocks }}</p>
+            </div>
+          </div>
+          }
+          @if (c.sportCode === 'basketball') {
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-left">
+            <div class="bg-slate-950/40 p-2.5 rounded-xl border border-white/5">
+              <span class="text-[9px] text-slate-400 uppercase font-semibold">Points</span>
+              <p class="text-base font-black text-emerald-400 mt-0.5">{{ c.points }}</p>
+            </div>
+            <div class="bg-slate-950/40 p-2.5 rounded-xl border border-white/5">
+              <span class="text-[9px] text-slate-400 uppercase font-semibold">Rebounds</span>
+              <p class="text-base font-black text-blue-400 mt-0.5">{{ c.rebounds }}</p>
+            </div>
+          </div>
+          }
+          @if (c.sportCode === 'table_tennis') {
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-left">
+            <div class="bg-slate-950/40 p-2.5 rounded-xl border border-white/5">
+              <span class="text-[9px] text-slate-400 uppercase font-semibold">Sets Won</span>
+              <p class="text-base font-black text-emerald-400 mt-0.5">{{ c.setsWon }}</p>
+            </div>
+            <div class="bg-slate-950/40 p-2.5 rounded-xl border border-white/5">
+              <span class="text-[9px] text-slate-400 uppercase font-semibold">Aces</span>
+              <p class="text-base font-black text-blue-400 mt-0.5">{{ c.aces }}</p>
+            </div>
+          </div>
+          }
+          @if (c.sportCode === 'chess') {
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-left">
+            <div class="bg-slate-950/40 p-2.5 rounded-xl border border-white/5">
+              <span class="text-[9px] text-slate-400 uppercase font-semibold">Wins</span>
+              <p class="text-base font-black text-emerald-400 mt-0.5">{{ c.chessWins }}</p>
+            </div>
+            <div class="bg-slate-950/40 p-2.5 rounded-xl border border-white/5">
+              <span class="text-[9px] text-slate-400 uppercase font-semibold">Total Moves</span>
+              <p class="text-base font-black text-blue-400 mt-0.5">{{ c.totalMoves }}</p>
+            </div>
+          </div>
+          }
+          @if (c.sportCode === 'kabaddi') {
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-left">
+            <div class="bg-slate-950/40 p-2.5 rounded-xl border border-white/5">
+              <span class="text-[9px] text-slate-400 uppercase font-semibold">Raid Points</span>
+              <p class="text-base font-black text-emerald-400 mt-0.5">{{ c.raidPoints }}</p>
+            </div>
+            <div class="bg-slate-950/40 p-2.5 rounded-xl border border-white/5">
+              <span class="text-[9px] text-slate-400 uppercase font-semibold">Tackle Points</span>
+              <p class="text-base font-black text-blue-400 mt-0.5">{{ c.tacklePoints }}</p>
+            </div>
+          </div>
+          }
+          @if (c.sportCode === 'throwball') {
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-left">
+            <div class="bg-slate-950/40 p-2.5 rounded-xl border border-white/5">
+              <span class="text-[9px] text-slate-400 uppercase font-semibold">Catches</span>
+              <p class="text-base font-black text-emerald-400 mt-0.5">{{ c.catches }}</p>
+            </div>
+            <div class="bg-slate-950/40 p-2.5 rounded-xl border border-white/5">
+              <span class="text-[9px] text-slate-400 uppercase font-semibold">Drops</span>
+              <p class="text-base font-black text-rose-400 mt-0.5">{{ c.drops }}</p>
+            </div>
+          </div>
+          }
+          @if (c.sportCode === 'athletics') {
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-left">
+            <div class="bg-slate-950/40 p-2.5 rounded-xl border border-white/5">
+              <span class="text-[9px] text-slate-400 uppercase font-semibold">Best Position</span>
+              <p class="text-base font-black text-amber-400 mt-0.5">N/A</p>
+            </div>
+          </div>
+          }
           <!-- Competition Best Player for Team -->
           @if (c.bestPlayer; as bp) {
           <div class="flex items-center gap-3 bg-slate-950/20 p-2.5 border border-white/5 rounded-xl mt-1 max-w-sm">

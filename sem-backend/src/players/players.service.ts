@@ -263,12 +263,33 @@ export class PlayersService {
     let allTimeMvps = 0;
     let totalRatingSum = 0;
     let ratedGamesCount = 0;
+    // Volleyball
+    let allTimeKills = 0;
+    let allTimeBlocks = 0;
+    // Basketball
+    let allTimePoints = 0;
+    let allTimeRebounds = 0;
+    // Table Tennis
+    let allTimeTtSetsWon = 0;
+    let allTimeAces = 0;
+    // Chess
+    let allTimeChessWins = 0;
+    let allTimeTotalMoves = 0;
+    // Kabaddi
+    let allTimeRaidPoints = 0;
+    let allTimeTacklePoints = 0;
+    // Throwball
+    let allTimeCatches = 0;
+    let allTimeDrops = 0;
+    // Athletics
+    let allTimeBestPosition: number | null = null;
 
     // Process career stats
     for (const cmp of completedMatchPlayers) {
       const m = cmp.match;
       const sport = m?.stage?.competition?.sport?.code ?? 'football';
       const liveData = m?.liveData || {};
+      const isHome = m?.homeTeamId === player.teamId;
 
       // MVP calculation
       if (cmp.rating !== null) {
@@ -322,7 +343,6 @@ export class PlayersService {
         }
       } else if (sport === 'badminton') {
         const rallies = liveData.rallies || [];
-        const isHome = m?.homeTeamId === player.teamId;
         for (const r of rallies) {
           if (r.winnerSide === 'none') continue;
           if (isHome) {
@@ -331,6 +351,51 @@ export class PlayersService {
           } else {
             if (r.winnerSide === 'away') allTimeRalliesWon++;
             else allTimeRalliesLost++;
+          }
+        }
+      } else if (sport === 'volleyball') {
+        const ps = (liveData.playerStats || {})[player.id] ||
+                   (liveData.playerStats || {})[player.userId] || {};
+        allTimeKills += ps.kills ?? 0;
+        allTimeBlocks += ps.blocks ?? 0;
+      } else if (sport === 'basketball') {
+        const ps = (liveData.playerStats || {})[player.id] ||
+                   (liveData.playerStats || {})[player.userId] || {};
+        allTimePoints += ps.points ?? 0;
+        allTimeRebounds += ps.rebounds ?? 0;
+      } else if (sport === 'table_tennis') {
+        const ps = (liveData.playerStats || {})[player.id] ||
+                   (liveData.playerStats || {})[player.userId] || {};
+        allTimeTtSetsWon += ps.setsWon ?? 0;
+        allTimeAces += ps.aces ?? 0;
+      } else if (sport === 'chess') {
+        const result = liveData.result;
+        if (result) {
+          if (
+            (isHome && result === 'home_win') ||
+            (!isHome && result === 'away_win')
+          ) {
+            allTimeChessWins++;
+          }
+          allTimeTotalMoves += liveData.totalMoves ?? 0;
+        }
+      } else if (sport === 'kabaddi') {
+        const ps = (liveData.playerStats || {})[player.id] ||
+                   (liveData.playerStats || {})[player.userId] || {};
+        allTimeRaidPoints += ps.raidPoints ?? 0;
+        allTimeTacklePoints += ps.tacklePoints ?? 0;
+      } else if (sport === 'throwball') {
+        const ps = (liveData.playerStats || {})[player.id] ||
+                   (liveData.playerStats || {})[player.userId] || {};
+        allTimeCatches += ps.catches ?? 0;
+        allTimeDrops += ps.drops ?? 0;
+      } else if (sport === 'athletics') {
+        const ps = (liveData.playerStats || {})[player.id] ||
+                   (liveData.playerStats || {})[player.userId] || {};
+        const pos = ps.position ?? null;
+        if (pos !== null) {
+          if (allTimeBestPosition === null || pos < allTimeBestPosition) {
+            allTimeBestPosition = pos;
           }
         }
       }
@@ -358,10 +423,24 @@ export class PlayersService {
       let compMvps = 0;
       let compRatingSum = 0;
       let compRatedCount = 0;
+      let compKills = 0;
+      let compBlocks = 0;
+      let compPoints = 0;
+      let compRebounds = 0;
+      let compTtSetsWon = 0;
+      let compAces = 0;
+      let compChessWins = 0;
+      let compTotalMoves = 0;
+      let compRaidPoints = 0;
+      let compTacklePoints = 0;
+      let compCatches = 0;
+      let compDrops = 0;
+      let compBestPosition: number | null = null;
 
       for (const cmp of compMatchPlayers) {
         const m = cmp.match;
         const liveData = m?.liveData || {};
+        const isHome = m?.homeTeamId === player.teamId;
 
         if (cmp.rating !== null) {
           const rVal = Number(cmp.rating);
@@ -414,7 +493,6 @@ export class PlayersService {
           }
         } else if (comp.sport?.code === 'badminton') {
           const rallies = liveData.rallies || [];
-          const isHome = m?.homeTeamId === player.teamId;
           for (const r of rallies) {
             if (r.winnerSide === 'none') continue;
             if (isHome) {
@@ -423,6 +501,51 @@ export class PlayersService {
             } else {
               if (r.winnerSide === 'away') compRalliesWon++;
               else compRalliesLost++;
+            }
+          }
+        } else if (comp.sport?.code === 'volleyball') {
+          const ps = (liveData.playerStats || {})[player.id] ||
+                     (liveData.playerStats || {})[player.userId] || {};
+          compKills += ps.kills ?? 0;
+          compBlocks += ps.blocks ?? 0;
+        } else if (comp.sport?.code === 'basketball') {
+          const ps = (liveData.playerStats || {})[player.id] ||
+                     (liveData.playerStats || {})[player.userId] || {};
+          compPoints += ps.points ?? 0;
+          compRebounds += ps.rebounds ?? 0;
+        } else if (comp.sport?.code === 'table_tennis') {
+          const ps = (liveData.playerStats || {})[player.id] ||
+                     (liveData.playerStats || {})[player.userId] || {};
+          compTtSetsWon += ps.setsWon ?? 0;
+          compAces += ps.aces ?? 0;
+        } else if (comp.sport?.code === 'chess') {
+          const result = liveData.result;
+          if (result) {
+            if (
+              (isHome && result === 'home_win') ||
+              (!isHome && result === 'away_win')
+            ) {
+              compChessWins++;
+            }
+            compTotalMoves += liveData.totalMoves ?? 0;
+          }
+        } else if (comp.sport?.code === 'kabaddi') {
+          const ps = (liveData.playerStats || {})[player.id] ||
+                     (liveData.playerStats || {})[player.userId] || {};
+          compRaidPoints += ps.raidPoints ?? 0;
+          compTacklePoints += ps.tacklePoints ?? 0;
+        } else if (comp.sport?.code === 'throwball') {
+          const ps = (liveData.playerStats || {})[player.id] ||
+                     (liveData.playerStats || {})[player.userId] || {};
+          compCatches += ps.catches ?? 0;
+          compDrops += ps.drops ?? 0;
+        } else if (comp.sport?.code === 'athletics') {
+          const ps = (liveData.playerStats || {})[player.id] ||
+                     (liveData.playerStats || {})[player.userId] || {};
+          const pos = ps.position ?? null;
+          if (pos !== null) {
+            if (compBestPosition === null || pos < compBestPosition) {
+              compBestPosition = pos;
             }
           }
         }
@@ -439,6 +562,19 @@ export class PlayersService {
         wickets: compWickets,
         ralliesWon: compRalliesWon,
         ralliesLost: compRalliesLost,
+        kills: compKills,
+        blocks: compBlocks,
+        points: compPoints,
+        rebounds: compRebounds,
+        setsWon: compTtSetsWon,
+        aces: compAces,
+        chessWins: compChessWins,
+        totalMoves: compTotalMoves,
+        raidPoints: compRaidPoints,
+        tacklePoints: compTacklePoints,
+        catches: compCatches,
+        drops: compDrops,
+        bestPosition: compBestPosition,
         mvps: compMvps,
         avgRating:
           compRatedCount > 0
@@ -473,6 +609,19 @@ export class PlayersService {
         wickets: allTimeWickets,
         ralliesWon: allTimeRalliesWon,
         ralliesLost: allTimeRalliesLost,
+        kills: allTimeKills,
+        blocks: allTimeBlocks,
+        points: allTimePoints,
+        rebounds: allTimeRebounds,
+        setsWon: allTimeTtSetsWon,
+        aces: allTimeAces,
+        chessWins: allTimeChessWins,
+        totalMoves: allTimeTotalMoves,
+        raidPoints: allTimeRaidPoints,
+        tacklePoints: allTimeTacklePoints,
+        catches: allTimeCatches,
+        drops: allTimeDrops,
+        bestPosition: allTimeBestPosition,
         mvps: allTimeMvps,
         avgRating: allTimeAvgRating,
       },

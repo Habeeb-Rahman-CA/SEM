@@ -12,6 +12,7 @@ import { CompetitionService } from '../../../services/competition.service';
 import { FootballConsoleComponent } from '../consoles/football-console/football-console';
 import { CricketConsoleComponent } from '../consoles/cricket-console/cricket-console';
 import { BadmintonConsoleComponent } from '../consoles/badminton-console/badminton-console';
+import { GenericConsoleComponent } from '../consoles/generic-console/generic-console';
 import { AvatarComponent } from '../../../shared/components/avatar/avatar';
 import { InitialsPipe } from '../../../shared/pipes/initials.pipe';
 import { getSportBadgeClass, getSportIconClass, formatMatchStatusDetail } from '../../../shared';
@@ -33,6 +34,7 @@ import { DuplicateEventModalComponent } from './duplicate-event-modal';
     FootballConsoleComponent,
     CricketConsoleComponent,
     BadmintonConsoleComponent,
+    GenericConsoleComponent,
     AvatarComponent,
     InitialsPipe,
     EventModalComponent,

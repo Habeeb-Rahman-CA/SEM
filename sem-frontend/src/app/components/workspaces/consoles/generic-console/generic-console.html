@@ -1,0 +1,127 @@
+<div class="flex flex-col gap-6 animate-fadeIn">
+
+  <!-- Header -->
+  <div class="flex items-center justify-between border-b border-white/5 pb-4">
+    <div class="flex items-center gap-3">
+      <i class="fi fi-rr-trophy text-violet-400 text-lg"></i>
+      <div>
+        <h3 class="text-sm font-bold text-white">{{ sportName }} Console</h3>
+        <p class="text-[10px] text-slate-400 mt-0.5">Live scoring &amp; match management</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      @if (match.status === 'live') {
+        <span class="text-[10px] font-bold px-2.5 py-1 bg-rose-500/10 text-rose-400 border border-rose-500/20 rounded-lg animate-pulse uppercase">LIVE</span>
+      } @else if (match.status === 'completed') {
+        <span class="text-[10px] font-bold px-2.5 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg uppercase">Completed</span>
+      } @else {
+        <span class="text-[10px] font-bold px-2.5 py-1 bg-slate-800 text-slate-400 border border-white/5 rounded-lg uppercase">Scheduled</span>
+      }
+    </div>
+  </div>
+
+  <!-- Scoreboard -->
+  <div class="bg-slate-900 border border-white/10 rounded-2xl p-6 shadow-xl">
+    <div class="flex items-center justify-center gap-8">
+      <!-- Home Team -->
+      <div class="flex-1 flex flex-col items-center gap-2 text-center">
+        <app-avatar [name]="homeTeam?.name || 'Home'" [logoUrl]="homeTeam?.logoUrl"
+          customClass="w-14 h-14 rounded-xl border border-white/10" textClass="text-sm font-extrabold text-white" />
+        <p class="text-sm font-bold text-white truncate max-w-[120px]">{{ homeTeam?.name || 'Home Team' }}</p>
+      </div>
+
+      <!-- Score Display -->
+      <div class="flex flex-col items-center gap-3">
+        <div class="flex items-center gap-4 bg-slate-950 border border-white/10 rounded-2xl px-8 py-4">
+          <span class="text-4xl font-black text-white">{{ match.homeScore ?? 0 }}</span>
+          <span class="text-slate-600 font-bold text-lg">:</span>
+          <span class="text-4xl font-black text-white">{{ match.awayScore ?? 0 }}</span>
+        </div>
+        @if (match.status === 'scheduled' && canScore) {
+          <button (click)="onStartMatch()"
+            class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1.5">
+            <i class="fi fi-rr-play"></i> Start Match
+          </button>
+        }
+      </div>
+
+      <!-- Away Team -->
+      <div class="flex-1 flex flex-col items-center gap-2 text-center">
+        <app-avatar [name]="awayTeam?.name || 'Away'" [logoUrl]="awayTeam?.logoUrl"
+          customClass="w-14 h-14 rounded-xl border border-white/10" textClass="text-sm font-extrabold text-white" />
+        <p class="text-sm font-bold text-white truncate max-w-[120px]">{{ awayTeam?.name || 'Away Team' }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Score Entry (only for live/scheduled non-completed) -->
+  @if (match.status !== 'completed' && canScore) {
+  <div class="bg-slate-900 border border-white/10 rounded-2xl p-5 shadow-xl flex flex-col gap-4">
+    <h4 class="text-xs font-bold text-white uppercase tracking-wide flex items-center gap-2">
+      <i class="fi fi-rr-edit text-violet-400"></i> Update Score
+    </h4>
+    <div class="grid grid-cols-2 gap-4">
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[10px] text-slate-400 font-bold uppercase">{{ homeTeam?.name || 'Home' }}</label>
+        <input type="number" min="0"
+          [ngModel]="homeScoreInput()" (ngModelChange)="homeScoreInput.set($event)"
+          class="bg-slate-950 border border-white/10 focus:border-violet-500 rounded-xl px-3 py-2 text-white text-sm font-bold outline-none transition-all" />
+      </div>
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[10px] text-slate-400 font-bold uppercase">{{ awayTeam?.name || 'Away' }}</label>
+        <input type="number" min="0"
+          [ngModel]="awayScoreInput()" (ngModelChange)="awayScoreInput.set($event)"
+          class="bg-slate-950 border border-white/10 focus:border-violet-500 rounded-xl px-3 py-2 text-white text-sm font-bold outline-none transition-all" />
+      </div>
+    </div>
+    <button (click)="onUpdateScore()" [disabled]="isSaving()"
+      class="self-start px-4 py-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1.5">
+      <i class="fi fi-rr-refresh"></i> {{ isSaving() ? 'Saving...' : 'Update Score' }}
+    </button>
+  </div>
+
+  <!-- MVP Picker -->
+  @if (playingLineup.length > 0) {
+  <div class="bg-slate-900 border border-white/10 rounded-2xl p-5 shadow-xl flex flex-col gap-4">
+    <h4 class="text-xs font-bold text-white uppercase tracking-wide flex items-center gap-2">
+      <i class="fi fi-rr-trophy text-amber-400"></i> Select MVP
+    </h4>
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+      @for (mp of playingLineup; track mp.playerId) {
+        <button
+          (click)="selectedMvpId.set(selectedMvpId() === mp.playerId ? null : mp.playerId)"
+          class="p-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer text-left flex items-center gap-2"
+          [class]="selectedMvpId() === mp.playerId
+            ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
+            : 'bg-slate-950/40 border-white/5 text-slate-300 hover:border-white/10'">
+          <app-avatar [name]="getPlayerName(mp.playerId)"
+            customClass="w-6 h-6 rounded-full flex-shrink-0" textClass="text-[8px] font-bold text-white" />
+          <span class="truncate">{{ getPlayerName(mp.playerId) }}</span>
+          @if (selectedMvpId() === mp.playerId) {
+            <i class="fi fi-rr-trophy text-amber-400 ml-auto"></i>
+          }
+        </button>
+      }
+    </div>
+  </div>
+  }
+
+  <!-- Complete Match -->
+  <div class="flex justify-end">
+    <button (click)="onCompleteMatch()" [disabled]="isCompleting()"
+      class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-2">
+      <i class="fi fi-rr-check"></i> {{ isCompleting() ? 'Completing...' : 'Complete Match' }}
+    </button>
+  </div>
+  }
+
+  <!-- Lineup -->
+  @if (canScore) {
+  <div class="flex justify-start">
+    <button (click)="openLineupModal.emit()"
+      class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold rounded-xl border border-white/5 transition-all cursor-pointer flex items-center gap-1.5">
+      <i class="fi fi-rr-users-alt"></i> Manage Lineup
+    </button>
+  </div>
+  }
+</div>

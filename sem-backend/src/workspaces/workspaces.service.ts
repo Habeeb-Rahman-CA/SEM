@@ -90,6 +90,41 @@ export class WorkspacesService implements OnModuleInit {
         code: 'badminton',
         description: 'Racket sport played with shuttlecocks',
       },
+      {
+        name: 'Volleyball',
+        code: 'volleyball',
+        description: 'Team sport played over a net',
+      },
+      {
+        name: 'Basketball',
+        code: 'basketball',
+        description: 'Court game where teams shoot a ball into a hoop',
+      },
+      {
+        name: 'Athletics',
+        code: 'athletics',
+        description: 'Track and field events',
+      },
+      {
+        name: 'Table Tennis',
+        code: 'table_tennis',
+        description: 'Racket sport played on a flat table split by a net',
+      },
+      {
+        name: 'Chess',
+        code: 'chess',
+        description: 'Board game of strategic skill for two players',
+      },
+      {
+        name: 'Kabaddi',
+        code: 'kabaddi',
+        description: 'Contact sport played between two teams of seven players',
+      },
+      {
+        name: 'Throwball',
+        code: 'throwball',
+        description: 'Non-contact ball sport played over a net',
+      },
     ];
 
     for (const s of defaultSports) {
