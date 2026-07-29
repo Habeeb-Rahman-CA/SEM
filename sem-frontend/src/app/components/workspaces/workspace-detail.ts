@@ -143,6 +143,7 @@ export class WorkspaceDetailComponent implements OnInit {
   // ── Workspace Dashboard Overview Signals ─────────────────────────────────────
   overviewLiveMatches = signal<any[]>([]);
   overviewUpcomingMatches = signal<any[]>([]);
+  overviewCompletedMatches = signal<any[]>([]);
   overviewRunningCompetitions = signal<any[]>([]);
   overviewTopScorers = signal<any[]>([]);
   overviewTopRatedPlayers = signal<any[]>([]);
@@ -425,6 +426,11 @@ export class WorkspaceDetailComponent implements OnInit {
           prev.map((m) => (m.id === updatedMatch.id ? updatedMatch : m))
         );
 
+        // Update in overviewCompletedMatches
+        this.overviewCompletedMatches.update((prev) =>
+          prev.map((m) => (m.id === updatedMatch.id ? updatedMatch : m))
+        );
+
         // 4. Update selectedMatch if currently viewing this match in live console
         if (this.selectedMatch()?.id === updatedMatch.id) {
           this.selectedMatch.set(updatedMatch);
@@ -512,6 +518,12 @@ export class WorkspaceDetailComponent implements OnInit {
           m.stage?.competition?.event?.workspaceId === workspaceId
         );
         this.overviewUpcomingMatches.set(upcoming);
+
+        const completed = (data.completedMatches || []).filter((m: any) =>
+          m.workspaceId === workspaceId ||
+          m.stage?.competition?.event?.workspaceId === workspaceId
+        );
+        this.overviewCompletedMatches.set(completed);
 
         const runningComps = (data.runningCompetitions || []).filter((c: any) =>
           c.event?.workspaceId === workspaceId || c.workspaceId === workspaceId

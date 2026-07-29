@@ -15,6 +15,7 @@ export class WorkspaceDashboardComponent {
 
   liveMatches = input<any[]>([]);
   upcomingMatches = input<any[]>([]);
+  completedMatches = input<any[]>([]);
   runningCompetitions = input<any[]>([]);
   topScorers = input<any[]>([]);
   topRatedPlayers = input<any[]>([]);
@@ -128,18 +129,39 @@ export class WorkspaceDashboardComponent {
       });
     }
 
-    // Task 6: Live matches running too long
-    const liveMatches = this.liveMatches();
-    for (const match of liveMatches) {
+    // Task 6: Delayed Matches
+    const now = new Date();
+    const delayed = this.upcomingMatches().filter(m => m.scheduledAt && new Date(m.scheduledAt) < now);
+    for (const match of delayed) {
       const matchName = `${match.homeTeam?.name || 'TBD'} vs ${match.awayTeam?.name || 'TBD'}`;
       tasks.push({
-        id: `live-${match.id}`,
-        title: `Match In Progress`,
-        description: `"${matchName}" is currently live. Enter scoring console to log events.`,
-        actionLabel: 'Score Match',
+        id: `delayed-${match.id}`,
+        title: `Delayed Match: ${matchName}`,
+        description: `Scheduled to start at ${new Date(match.scheduledAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} but has not started yet.`,
+        actionLabel: 'Start Match',
         actionTab: 'events',
-        severity: 'info',
-        icon: 'fi fi-rr-play-alt',
+        severity: 'error',
+        icon: 'fi fi-rr-clock',
+        match,
+      });
+    }
+
+    // Task 7: Live matches running too long / unfinished matches
+    const liveMatches = this.liveMatches();
+    const twoHoursAgo = Date.now() - 2 * 60 * 60 * 1000;
+    for (const match of liveMatches) {
+      const matchName = `${match.homeTeam?.name || 'TBD'} vs ${match.awayTeam?.name || 'TBD'}`;
+      const isTooLong = match.updatedAt && new Date(match.updatedAt).getTime() < twoHoursAgo;
+      tasks.push({
+        id: `live-${match.id}`,
+        title: isTooLong ? `Unfinished Match Alert: ${matchName}` : `Match In Progress`,
+        description: isTooLong
+          ? `Match has been live for over 2 hours. Please check status or finalize the score.`
+          : `"${matchName}" is currently live. Enter scoring console to log events.`,
+        actionLabel: isTooLong ? 'Review Score' : 'Score Match',
+        actionTab: 'events',
+        severity: isTooLong ? 'warning' : 'info',
+        icon: isTooLong ? 'fi fi-rr-time-forward' : 'fi fi-rr-play-alt',
         match,
       });
     }
@@ -230,6 +252,11 @@ export class WorkspaceDashboardComponent {
     return t > 0 ? (this.players().length / t).toFixed(1) : '0.0';
   });
 
+  activeOfficials = computed(() => {
+    const officialsRoles = ['owner', 'administrator', 'referee', 'statistician'];
+    return this.members().filter(m => m.status === 'joined' && m.role && officialsRoles.includes(m.role.slug));
+  });
+
   venueUtilization = computed(() => {
     const list: any[] = [];
     const venues = this.venues();
@@ -282,7 +309,7 @@ export class WorkspaceDashboardComponent {
 
   // ─── Actions ───
   onTaskAction(task: any) {
-    if (task.id.startsWith('live-') && task.match) {
+    if ((task.id.startsWith('live-') || task.id.startsWith('delayed-')) && task.match) {
       this.enterLiveMatch.emit(task.match);
     } else if (task.actionTab) {
       this.activeTab.set(task.actionTab);
