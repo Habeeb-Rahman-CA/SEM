@@ -21,28 +21,25 @@ export class SocketService {
     // React to token changes to establish or close websocket connection
     effect(() => {
       const token = this.authService.token();
-      const authenticated = this.authService.isAuthenticated();
-
-      if (authenticated && token) {
-        this.connect(token);
-      } else {
-        this.disconnect();
-      }
+      this.connect(token);
     });
   }
 
-  private connect(token: string) {
+  private connect(token: string | null) {
     if (this.socket) {
       this.socket.disconnect();
     }
 
     const wsUrl = environment.apiUrl.replace('/api', '');
-    this.socket = io(wsUrl, {
-      auth: {
-        token
-      },
+    const options: any = {
       transports: ['websocket', 'polling']
-    });
+    };
+    if (token) {
+      options.auth = {
+        token
+      };
+    }
+    this.socket = io(wsUrl, options);
 
     this.socket.on('connect', () => {
       console.log('Socket.IO connected:', this.socket?.id);

@@ -162,8 +162,12 @@ export class EventsService {
       ...(dto.logoUrl !== undefined && { logoUrl: dto.logoUrl }),
       ...(dto.isPublic !== undefined && { isPublic: dto.isPublic }),
       ...(dto.gallery !== undefined && { gallery: dto.gallery }),
-      ...(dto.announcements !== undefined && { announcements: dto.announcements }),
-      ...(dto.registrationStatus !== undefined && { registrationStatus: dto.registrationStatus }),
+      ...(dto.announcements !== undefined && {
+        announcements: dto.announcements,
+      }),
+      ...(dto.registrationStatus !== undefined && {
+        registrationStatus: dto.registrationStatus,
+      }),
       ...(dto.venue !== undefined && { venue: dto.venue }),
       ...(dto.sport !== undefined && { sport: dto.sport }),
       ...(dto.organizers !== undefined && { organizers: dto.organizers }),
@@ -388,7 +392,10 @@ export class EventsService {
   }
 
   async getPublicEvent(eventIdOrSlug: string): Promise<Event> {
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventIdOrSlug);
+    const isUuid =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        eventIdOrSlug,
+      );
     const event = await this.eventRepo.findOne({
       where: isUuid ? { id: eventIdOrSlug } : { slug: eventIdOrSlug },
       relations: {
@@ -457,16 +464,32 @@ export class EventsService {
     const newEvent = this.eventRepo.create({
       name: dto.name,
       slug: await this.generateUniqueSlug(dto.name),
-      description: dto.duplicateSettings !== false ? sourceEvent.description : null,
-      startDate: dto.startDate ? new Date(dto.startDate) : (dto.duplicateSettings !== false ? sourceEvent.startDate : null),
-      endDate: dto.endDate ? new Date(dto.endDate) : (dto.duplicateSettings !== false ? sourceEvent.endDate : null),
+      description:
+        dto.duplicateSettings !== false ? sourceEvent.description : null,
+      startDate: dto.startDate
+        ? new Date(dto.startDate)
+        : dto.duplicateSettings !== false
+          ? sourceEvent.startDate
+          : null,
+      endDate: dto.endDate
+        ? new Date(dto.endDate)
+        : dto.duplicateSettings !== false
+          ? sourceEvent.endDate
+          : null,
       status: 'upcoming', // Always start as upcoming by default
       logoUrl: dto.duplicateSettings !== false ? sourceEvent.logoUrl : null,
       isPublic: dto.duplicateSettings !== false ? sourceEvent.isPublic : false,
-      registrationStatus: dto.duplicateSettings !== false ? sourceEvent.registrationStatus : 'open',
-      venue: (dto.duplicateVenues !== false || dto.duplicateSettings !== false) ? sourceEvent.venue : null,
+      registrationStatus:
+        dto.duplicateSettings !== false
+          ? sourceEvent.registrationStatus
+          : 'open',
+      venue:
+        dto.duplicateVenues !== false || dto.duplicateSettings !== false
+          ? sourceEvent.venue
+          : null,
       sport: dto.duplicateSettings !== false ? sourceEvent.sport : null,
-      organizers: dto.duplicateSettings !== false ? sourceEvent.organizers : null,
+      organizers:
+        dto.duplicateSettings !== false ? sourceEvent.organizers : null,
       workspaceId,
       teams: dto.duplicateTeams !== false ? sourceEvent.teams : [],
       isArchived: false,
@@ -478,9 +501,12 @@ export class EventsService {
 
     // 4. Optionally duplicate competitions
     if (dto.duplicateCompetitions !== false) {
-      const originalCompetitions = await this.eventRepo.manager.find(Competition, {
-        where: { eventId },
-      });
+      const originalCompetitions = await this.eventRepo.manager.find(
+        Competition,
+        {
+          where: { eventId },
+        },
+      );
 
       for (const origComp of originalCompetitions) {
         const newComp = this.eventRepo.manager.create(Competition, {
@@ -488,16 +514,23 @@ export class EventsService {
           eventId: savedEvent.id,
           sportId: origComp.sportId,
           status: 'upcoming',
-          pointsConfig: dto.duplicatePointSystems !== false ? origComp.pointsConfig : null,
+          pointsConfig:
+            dto.duplicatePointSystems !== false ? origComp.pointsConfig : null,
         });
 
-        const savedComp = await this.eventRepo.manager.save(Competition, newComp);
+        const savedComp = await this.eventRepo.manager.save(
+          Competition,
+          newComp,
+        );
 
         // Optionally duplicate teams enrollment
         if (dto.duplicateTeams !== false) {
-          const origCompTeams = await this.eventRepo.manager.find(CompetitionTeam, {
-            where: { competitionId: origComp.id },
-          });
+          const origCompTeams = await this.eventRepo.manager.find(
+            CompetitionTeam,
+            {
+              where: { competitionId: origComp.id },
+            },
+          );
 
           for (const origCt of origCompTeams) {
             const newCt = this.eventRepo.manager.create(CompetitionTeam, {
@@ -510,9 +543,12 @@ export class EventsService {
 
         // Optionally duplicate stages
         if (dto.duplicateStages !== false) {
-          const originalStages = await this.eventRepo.manager.find(CompetitionStage, {
-            where: { competitionId: origComp.id },
-          });
+          const originalStages = await this.eventRepo.manager.find(
+            CompetitionStage,
+            {
+              where: { competitionId: origComp.id },
+            },
+          );
 
           for (const origStage of originalStages) {
             const newStage = this.eventRepo.manager.create(CompetitionStage, {
@@ -552,7 +588,8 @@ export class EventsService {
     const userWorkspaces = await this.workspacesService.findAllForUser(userId);
     const allowedWorkspaceIds = userWorkspaces.map((w) => w.id);
 
-    const qb = this.eventRepo.createQueryBuilder('event')
+    const qb = this.eventRepo
+      .createQueryBuilder('event')
       .leftJoinAndSelect('event.competitions', 'competition')
       .leftJoinAndSelect('event.teams', 'team')
       .leftJoinAndSelect('event.workspace', 'workspace');
@@ -562,10 +599,14 @@ export class EventsService {
       if (allowedWorkspaceIds.length === 0) {
         return [];
       }
-      qb.andWhere('event.workspaceId IN (:...allowedWorkspaceIds)', { allowedWorkspaceIds });
+      qb.andWhere('event.workspaceId IN (:...allowedWorkspaceIds)', {
+        allowedWorkspaceIds,
+      });
     } else if (wsFilter) {
       if (!allowedWorkspaceIds.includes(wsFilter)) {
-        throw new ForbiddenException('Not a member of the requested filter workspace');
+        throw new ForbiddenException(
+          'Not a member of the requested filter workspace',
+        );
       }
       qb.andWhere('event.workspaceId = :wsFilter', { wsFilter });
     } else {
@@ -603,11 +644,15 @@ export class EventsService {
     }
 
     if (dto.startDate) {
-      qb.andWhere('event.startDate >= :startDate', { startDate: new Date(dto.startDate) });
+      qb.andWhere('event.startDate >= :startDate', {
+        startDate: new Date(dto.startDate),
+      });
     }
 
     if (dto.endDate) {
-      qb.andWhere('event.endDate <= :endDate', { endDate: new Date(dto.endDate) });
+      qb.andWhere('event.endDate <= :endDate', {
+        endDate: new Date(dto.endDate),
+      });
     }
 
     if (dto.competitionName) {
@@ -618,8 +663,17 @@ export class EventsService {
 
     const sortBy = dto.sortBy || 'name';
     const sortOrder = dto.sortOrder || 'ASC';
-    const allowedSortFields = ['name', 'startDate', 'endDate', 'status', 'sport', 'venue'];
-    const orderField = allowedSortFields.includes(sortBy) ? `event.${sortBy}` : 'event.name';
+    const allowedSortFields = [
+      'name',
+      'startDate',
+      'endDate',
+      'status',
+      'sport',
+      'venue',
+    ];
+    const orderField = allowedSortFields.includes(sortBy)
+      ? `event.${sortBy}`
+      : 'event.name';
     const orderDirection = ['ASC', 'DESC'].includes(sortOrder.toUpperCase())
       ? (sortOrder.toUpperCase() as 'ASC' | 'DESC')
       : 'ASC';

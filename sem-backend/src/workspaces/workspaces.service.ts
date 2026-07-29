@@ -520,6 +520,21 @@ export class WorkspacesService implements OnModuleInit {
       });
     }
 
+    let completedMatches: Match[] = [];
+    if (stageIds.length > 0) {
+      completedMatches = await this.matchRepo.find({
+        where: { stageId: In(stageIds), status: 'completed' },
+        relations: {
+          homeTeam: true,
+          awayTeam: true,
+          venue: true,
+          stage: { competition: { event: true, sport: true } },
+        },
+        order: { updatedAt: 'DESC' },
+        take: 8,
+      });
+    }
+
     const runningCompetitions: any[] = [];
     for (const comp of competitions) {
       const compStages = stages.filter((s) => s.competitionId === comp.id);
@@ -734,6 +749,7 @@ export class WorkspacesService implements OnModuleInit {
       workspaces,
       liveMatches,
       upcomingMatches,
+      completedMatches,
       runningCompetitions,
       topScorers,
       topRatedPlayers,

@@ -14,7 +14,8 @@ export class PublicEventsController {
   @Get(':eventId')
   @ApiOperation({
     summary: 'Get public event details',
-    description: 'Returns the details of a published event without authentication.',
+    description:
+      'Returns the details of a published event without authentication.',
   })
   @ApiParam({ name: 'eventId', description: 'Event UUID' })
   @ApiResponse({ status: 200, description: 'Event details' })
@@ -54,7 +55,11 @@ export class PublicEventsController {
     @Param('competitionId') competitionId: string,
     @Param('stageId') stageId: string,
   ) {
-    return this.competitionsService.getPublicMatches(eventId, competitionId, stageId);
+    return this.competitionsService.getPublicMatches(
+      eventId,
+      competitionId,
+      stageId,
+    );
   }
 
   @Get(':eventId/competitions/:competitionId/stats')
@@ -66,7 +71,10 @@ export class PublicEventsController {
     @Param('eventId') eventId: string,
     @Param('competitionId') competitionId: string,
   ) {
-    return this.competitionsService.getPublicCompetitionStats(eventId, competitionId);
+    return this.competitionsService.getPublicCompetitionStats(
+      eventId,
+      competitionId,
+    );
   }
 
   @Get(':eventId/competitions/:competitionId/stages/:stageId/standings')
@@ -74,20 +82,32 @@ export class PublicEventsController {
   @ApiParam({ name: 'eventId', description: 'Event UUID' })
   @ApiParam({ name: 'competitionId', description: 'Competition UUID' })
   @ApiParam({ name: 'stageId', description: 'Stage UUID' })
-  @ApiResponse({ status: 200, description: 'League table and/or knockout bracket progress' })
+  @ApiResponse({
+    status: 200,
+    description: 'League table and/or knockout bracket progress',
+  })
   async getPublicStandings(
     @Param('eventId') eventId: string,
     @Param('competitionId') competitionId: string,
     @Param('stageId') stageId: string,
   ) {
-    return this.competitionsService.getPublicStandings(eventId, competitionId, stageId);
+    return this.competitionsService.getPublicStandings(
+      eventId,
+      competitionId,
+      stageId,
+    );
   }
 
   @Get(':eventId/competitions/:competitionId/results')
-  @ApiOperation({ summary: 'Get public completed match results for a competition' })
+  @ApiOperation({
+    summary: 'Get public completed match results for a competition',
+  })
   @ApiParam({ name: 'eventId', description: 'Event UUID' })
   @ApiParam({ name: 'competitionId', description: 'Competition UUID' })
-  @ApiResponse({ status: 200, description: 'Completed results grouped by date with MVP and player stats' })
+  @ApiResponse({
+    status: 200,
+    description: 'Completed results grouped by date with MVP and player stats',
+  })
   async getPublicResults(
     @Param('eventId') eventId: string,
     @Param('competitionId') competitionId: string,

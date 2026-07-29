@@ -66,7 +66,10 @@ export class CompetitionCompletionService {
         );
 
         try {
-          const rankings = await this.competitionRankingsService.getCompetitionRankings(competitionId);
+          const rankings =
+            await this.competitionRankingsService.getCompetitionRankings(
+              competitionId,
+            );
           let championTeamId: string | null = null;
           let runnerUpTeamId: string | null = null;
           for (const [tId, pos] of rankings.entries()) {

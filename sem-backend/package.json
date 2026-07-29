@@ -1,10 +1,10 @@
 {
-  "name": "sem-backend",
-  "version": "0.0.1",
-  "description": "",
-  "author": "",
+  "name": "sports-event-management-backend",
+  "version": "1.2.0",
+  "description": "NestJS Backend API service for the Sports Event Management (SEM) Platform, supplying live scoring gateways, concurrency locks, and advanced reporting exports.",
+  "author": "Sports Event Management Team",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "MIT",
   "scripts": {
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",

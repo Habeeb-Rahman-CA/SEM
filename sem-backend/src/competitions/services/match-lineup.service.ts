@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
@@ -19,6 +20,8 @@ import { UpdateMatchDto } from '../dto/update-match.dto';
 import { StatisticsRatingsService } from './statistics-ratings.service';
 import { BracketAdvancementService } from './bracket-advancement.service';
 import { SportEngineRegistry } from '../sports/sport-engine.registry';
+import { EventsGateway } from '../../workspaces/events.gateway';
+import { MatchLockService } from './match-lock.service';
 
 @Injectable()
 export class MatchLineupService {
@@ -37,6 +40,8 @@ export class MatchLineupService {
     private readonly statisticsRatingsService: StatisticsRatingsService,
     private readonly bracketAdvancementService: BracketAdvancementService,
     private readonly sportEngineRegistry: SportEngineRegistry,
+    private readonly eventsGateway: EventsGateway,
+    private readonly matchLockService: MatchLockService,
   ) {}
 
   async createMatch(
@@ -300,6 +305,43 @@ export class MatchLineupService {
       }
     }
 
+    try {
+      const members = await this.workspacesService.getMembers(
+        workspaceId,
+        userId,
+      );
+      const member = members.find((m) => m.userId === userId);
+      const username = member?.user?.username || 'Official';
+
+      await this.workspacesService.logAudit(
+        `Save Match Lineup: ${matchDetails?.homeTeam?.name ?? 'Home'} vs ${matchDetails?.awayTeam?.name ?? 'Away'}`,
+        'WORKSPACE',
+        'Match',
+        matchId,
+        userId,
+        username,
+        JSON.stringify(lineups),
+      );
+    } catch (auditErr) {
+      console.error('Failed to log audit for saveMatchLineup:', auditErr);
+    }
+
+    try {
+      const matchPopulated = await this.matchRepo.findOne({
+        where: { id: matchId },
+        relations: { homeTeam: true, awayTeam: true, venue: true },
+      });
+      if (matchPopulated) {
+        this.eventsGateway.sendMatchUpdate(
+          matchId,
+          workspaceId,
+          matchPopulated,
+        );
+      }
+    } catch (wsErr) {
+      console.error('Failed to send match update for lineup save:', wsErr);
+    }
+
     return result;
   }
 
@@ -413,12 +455,14 @@ export class MatchLineupService {
             mvpMp.player?.user?.username ??
             mvpMp.player?.jerseyNumber?.toString() ??
             'Player';
-          (m as any).mvp = {
-            playerId: mvpMp.playerId,
-            playerName,
-            teamName: mvpMp.team?.name ?? 'Unknown',
-            rating: maxRating,
-          };
+          Object.assign(m, {
+            mvp: {
+              playerId: mvpMp.playerId,
+              playerName,
+              teamName: mvpMp.team?.name ?? 'Unknown',
+              rating: maxRating,
+            },
+          });
         }
       }
     }
@@ -468,7 +512,16 @@ export class MatchLineupService {
       throw new NotFoundException(`Match "${matchId}" not found in this stage`);
     }
 
+    const lockCheck = this.matchLockService.isLocked(matchId, userId);
+    if (lockCheck.locked) {
+      throw new ConflictException(
+        `Match is locked by official ${lockCheck.username}`,
+      );
+    }
+
     const oldStatus = match.status;
+    const oldScheduledAt = match.scheduledAt;
+    const oldVenueId = match.venueId;
 
     if (dto.homeScore !== undefined) match.homeScore = dto.homeScore;
     if (dto.awayScore !== undefined) match.awayScore = dto.awayScore;
@@ -481,25 +534,26 @@ export class MatchLineupService {
       match.config = { ...match.config, ...dto.config };
     }
     if (dto.liveData !== undefined) {
-      match.liveData = dto.liveData;
+      match.liveData = dto.liveData as Record<string, unknown>;
     }
 
     const saved = await this.matchRepo.save(match);
+    this.matchLockService.forceReleaseLock(matchId);
 
     const populated = (await this.matchRepo.findOne({
       where: { id: saved.id },
       relations: { homeTeam: true, awayTeam: true, venue: true },
     }))!;
 
-    if (dto.status !== undefined && dto.status !== oldStatus) {
-      const homePlayers = await this.workspacesService.getTeamPlayerUserIds(
-        populated.homeTeamId!,
-      );
-      const awayPlayers = await this.workspacesService.getTeamPlayerUserIds(
-        populated.awayTeamId!,
-      );
-      const allPlayers = [...homePlayers, ...awayPlayers];
+    const homePlayers = populated.homeTeamId
+      ? await this.workspacesService.getTeamPlayerUserIds(populated.homeTeamId)
+      : [];
+    const awayPlayers = populated.awayTeamId
+      ? await this.workspacesService.getTeamPlayerUserIds(populated.awayTeamId)
+      : [];
+    const allPlayers = [...homePlayers, ...awayPlayers];
 
+    if (dto.status !== undefined && dto.status !== oldStatus) {
       if (dto.status === 'live') {
         await this.workspacesService.sendNotificationToMany(
           allPlayers,
@@ -510,7 +564,14 @@ export class MatchLineupService {
             matchId: populated.id,
             homeTeamName: populated.homeTeam?.name,
             awayTeamName: populated.awayTeam?.name,
+            eventId: eventId,
           },
+        );
+
+        await this.addEventAnnouncement(
+          eventId,
+          `Match Live: ${populated.homeTeam?.name ?? 'Home'} vs ${populated.awayTeam?.name ?? 'Away'}`,
+          `The match between ${populated.homeTeam?.name ?? 'Home'} and ${populated.awayTeam?.name ?? 'Away'} has officially started. Follow live now!`,
         );
       } else if (dto.status === 'completed') {
         await this.workspacesService.sendNotificationToMany(
@@ -524,7 +585,14 @@ export class MatchLineupService {
             awayScore: populated.awayScore,
             homeTeamName: populated.homeTeam?.name,
             awayTeamName: populated.awayTeam?.name,
+            eventId: eventId,
           },
+        );
+
+        await this.addEventAnnouncement(
+          eventId,
+          `Match Result: ${populated.homeTeam?.name ?? 'Home'} ${populated.homeScore} - ${populated.awayScore} ${populated.awayTeam?.name ?? 'Away'}`,
+          `The match has finished. Final score: ${populated.homeTeam?.name ?? 'Home'} ${populated.homeScore}, ${populated.awayTeam?.name ?? 'Away'} ${populated.awayScore}.`,
         );
 
         await this.statisticsRatingsService.autoRateMatchPlayers(saved);
@@ -544,6 +612,104 @@ export class MatchLineupService {
       }
     }
 
+    if (
+      dto.scheduledAt !== undefined &&
+      oldScheduledAt &&
+      new Date(dto.scheduledAt).getTime() !== new Date(oldScheduledAt).getTime()
+    ) {
+      await this.workspacesService.sendNotificationToMany(
+        allPlayers,
+        NotificationType.MATCH_DELAYED,
+        `Match rescheduled/delayed: ${populated.homeTeam?.name ?? 'Home'} vs ${populated.awayTeam?.name ?? 'Away'} is now scheduled for ${populated.scheduledAt ? populated.scheduledAt.toLocaleString() : 'TBD'}.`,
+        workspaceId,
+        {
+          matchId: populated.id,
+          homeTeamName: populated.homeTeam?.name,
+          awayTeamName: populated.awayTeam?.name,
+          scheduledAt: populated.scheduledAt
+            ? populated.scheduledAt.toISOString()
+            : null,
+          oldScheduledAt: oldScheduledAt.toISOString(),
+          eventId: eventId,
+        },
+      );
+
+      await this.addEventAnnouncement(
+        eventId,
+        `Match Delayed/Rescheduled: ${populated.homeTeam?.name ?? 'Home'} vs ${populated.awayTeam?.name ?? 'Away'}`,
+        `The match schedule has been updated. New time: ${populated.scheduledAt ? populated.scheduledAt.toLocaleString() : 'TBD'}.`,
+      );
+    }
+
+    if (dto.venueId !== undefined && oldVenueId && dto.venueId !== oldVenueId) {
+      await this.workspacesService.sendNotificationToMany(
+        allPlayers,
+        NotificationType.MATCH_VENUE_CHANGED,
+        `Match venue changed: ${populated.homeTeam?.name ?? 'Home'} vs ${populated.awayTeam?.name ?? 'Away'} will now be played at ${populated.venue?.name ?? 'Venue TBD'}.`,
+        workspaceId,
+        {
+          matchId: populated.id,
+          homeTeamName: populated.homeTeam?.name,
+          awayTeamName: populated.awayTeam?.name,
+          venueName: populated.venue?.name,
+          oldVenueId,
+          eventId: eventId,
+        },
+      );
+
+      await this.addEventAnnouncement(
+        eventId,
+        `Venue Change: ${populated.homeTeam?.name ?? 'Home'} vs ${populated.awayTeam?.name ?? 'Away'}`,
+        `The venue for this match has been updated. The match will now be played at ${populated.venue?.name ?? 'Venue TBD'}.`,
+      );
+    }
+
+    try {
+      const members = await this.workspacesService.getMembers(
+        workspaceId,
+        userId,
+      );
+      const member = members.find((m) => m.userId === userId);
+      const username = member?.user?.username || 'Official';
+
+      await this.workspacesService.logAudit(
+        `Update Match: ${populated.homeTeam?.name ?? 'Home'} vs ${populated.awayTeam?.name ?? 'Away'} (Score: ${populated.homeScore} - ${populated.awayScore}, Status: ${populated.status})`,
+        'WORKSPACE',
+        'Match',
+        matchId,
+        userId,
+        username,
+        JSON.stringify(dto),
+      );
+    } catch (auditErr) {
+      console.error('Failed to log audit for updateMatch:', auditErr);
+    }
+
+    this.eventsGateway.sendMatchUpdate(populated.id, workspaceId, populated);
+
     return populated;
+  }
+
+  private async addEventAnnouncement(
+    eventId: string,
+    title: string,
+    content: string,
+  ): Promise<void> {
+    try {
+      const event = await this.eventRepo.findOne({ where: { id: eventId } });
+      if (event) {
+        const announcements = event.announcements || [];
+        announcements.unshift({
+          id: Math.random().toString(36).substring(2, 9),
+          title,
+          content,
+          createdAt: new Date(),
+        });
+        event.announcements = announcements;
+        await this.eventRepo.save(event);
+      }
+    } catch {
+      // Don't fail the match update if announcement fails
+    }
   }
 }

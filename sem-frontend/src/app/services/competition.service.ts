@@ -220,6 +220,34 @@ export class CompetitionService {
     );
   }
 
+  acquireMatchLock(
+    workspaceId: string,
+    eventId: string,
+    competitionId: string,
+    stageId: string,
+    matchId: string
+  ): Observable<{ success: boolean; lockedBy?: string; expiresAt?: number }> {
+    return this.http.post<{ success: boolean; lockedBy?: string; expiresAt?: number }>(
+      `${this.apiUrl}/${workspaceId}/events/${eventId}/competitions/${competitionId}/stages/${stageId}/matches/${matchId}/lock`,
+      {},
+      { headers: this.headers }
+    );
+  }
+
+  releaseMatchLock(
+    workspaceId: string,
+    eventId: string,
+    competitionId: string,
+    stageId: string,
+    matchId: string
+  ): Observable<{ success: boolean }> {
+    return this.http.post<{ success: boolean }>(
+      `${this.apiUrl}/${workspaceId}/events/${eventId}/competitions/${competitionId}/stages/${stageId}/matches/${matchId}/unlock`,
+      {},
+      { headers: this.headers }
+    );
+  }
+
   // ─── Lineups ──────────────────────────────────────────────────────────────
 
   getMatchLineup(

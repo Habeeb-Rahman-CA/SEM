@@ -28,6 +28,7 @@ import { CreateStageDto } from './dto/create-stage.dto';
 import { UpdateStageDto } from './dto/update-stage.dto';
 import { CreateMatchDto } from './dto/create-match.dto';
 import { UpdateMatchDto } from './dto/update-match.dto';
+import { MatchLockService } from './services/match-lock.service';
 
 @Injectable()
 export class CompetitionsService {
@@ -59,6 +60,7 @@ export class CompetitionsService {
     private readonly matchLineupService: MatchLineupService,
     private readonly statisticsRatingsService: StatisticsRatingsService,
     private readonly bracketAdvancementService: BracketAdvancementService,
+    private readonly matchLockService: MatchLockService,
   ) {}
 
   // ─── Validation Helpers ───────────────────────────────────────────────────
@@ -670,6 +672,34 @@ export class CompetitionsService {
     );
   }
 
+  async acquireMatchLock(
+    workspaceId: string,
+    matchId: string,
+    userId: string,
+    username: string,
+  ): Promise<{ success: boolean; lockedBy?: string; expiresAt?: number }> {
+    await this.workspacesService.ensurePermission(
+      workspaceId,
+      userId,
+      'match.score',
+    );
+    return this.matchLockService.acquireLock(matchId, userId, username);
+  }
+
+  async releaseMatchLock(
+    workspaceId: string,
+    matchId: string,
+    userId: string,
+  ): Promise<{ success: boolean }> {
+    await this.workspacesService.ensurePermission(
+      workspaceId,
+      userId,
+      'match.score',
+    );
+    const success = this.matchLockService.releaseLock(matchId, userId);
+    return { success };
+  }
+
   async removeMatch(
     workspaceId: string,
     eventId: string,
@@ -857,7 +887,10 @@ export class CompetitionsService {
     });
   }
 
-  async getPublicStages(eventId: string, competitionId: string): Promise<CompetitionStage[]> {
+  async getPublicStages(
+    eventId: string,
+    competitionId: string,
+  ): Promise<CompetitionStage[]> {
     const event = await this.eventRepo.findOne({ where: { id: eventId } });
     if (!event || !event.isPublic) {
       throw new NotFoundException('Event not found or is not public');
@@ -874,7 +907,11 @@ export class CompetitionsService {
     });
   }
 
-  async getPublicMatches(eventId: string, competitionId: string, stageId: string): Promise<Match[]> {
+  async getPublicMatches(
+    eventId: string,
+    competitionId: string,
+    stageId: string,
+  ): Promise<Match[]> {
     const event = await this.eventRepo.findOne({ where: { id: eventId } });
     if (!event || !event.isPublic) {
       throw new NotFoundException('Event not found or is not public');
@@ -892,9 +929,11 @@ export class CompetitionsService {
       order: { createdAt: 'ASC' },
     });
 
-    const completedMatches = matches.filter((m) => m.status === 'completed');
-    if (completedMatches.length > 0) {
-      const matchIds = completedMatches.map((m) => m.id);
+    const relevantMatches = matches.filter(
+      (m) => m.status === 'completed' || m.status === 'live',
+    );
+    if (relevantMatches.length > 0) {
+      const matchIds = relevantMatches.map((m) => m.id);
       const matchPlayers = await this.matchPlayerRepo.find({
         where: { matchId: In(matchIds), isPlaying: true },
         relations: { player: { user: true }, team: true },
@@ -909,30 +948,46 @@ export class CompetitionsService {
       }
 
       for (const m of matches) {
-        if (m.status !== 'completed') continue;
+        if (m.status !== 'completed' && m.status !== 'live') continue;
         const players = playersByMatch.get(m.id) ?? [];
-        let maxRating = -1;
-        let mvpMp: MatchPlayer | null = null;
-        for (const mp of players) {
-          if (mp.rating !== null) {
-            const r = Number(mp.rating);
-            if (r > maxRating) {
-              maxRating = r;
-              mvpMp = mp;
+
+        // Attach players roster for the frontend to easily map user IDs to usernames
+        (m as any).players = players.map((mp) => ({
+          playerId: mp.playerId,
+          playerUserId: mp.player?.userId,
+          playerName:
+            mp.player?.user?.username ??
+            mp.player?.jerseyNumber?.toString() ??
+            'Player',
+          teamId: mp.teamId,
+          jerseyNumber: mp.player?.jerseyNumber,
+          isPlaying: mp.isPlaying,
+        }));
+
+        if (m.status === 'completed') {
+          let maxRating = -1;
+          let mvpMp: MatchPlayer | null = null;
+          for (const mp of players) {
+            if (mp.rating !== null) {
+              const r = Number(mp.rating);
+              if (r > maxRating) {
+                maxRating = r;
+                mvpMp = mp;
+              }
             }
           }
-        }
-        if (mvpMp && maxRating >= 5.0) {
-          const playerName =
-            mvpMp.player?.user?.username ??
-            mvpMp.player?.jerseyNumber?.toString() ??
-            'Player';
-          (m as any).mvp = {
-            playerId: mvpMp.playerId,
-            playerName,
-            teamName: mvpMp.team?.name ?? 'Unknown',
-            rating: maxRating,
-          };
+          if (mvpMp && maxRating >= 5.0) {
+            const playerName =
+              mvpMp.player?.user?.username ??
+              mvpMp.player?.jerseyNumber?.toString() ??
+              'Player';
+            (m as any).mvp = {
+              playerId: mvpMp.playerId,
+              playerName,
+              teamName: mvpMp.team?.name ?? 'Unknown',
+              rating: maxRating,
+            };
+          }
         }
       }
     }
@@ -953,8 +1008,14 @@ export class CompetitionsService {
     });
   }
 
-  async getPublicCompetitionStats(eventId: string, competitionId: string): Promise<any> {
-    return this.statisticsRatingsService.getPublicCompetitionStats(eventId, competitionId);
+  async getPublicCompetitionStats(
+    eventId: string,
+    competitionId: string,
+  ): Promise<any> {
+    return this.statisticsRatingsService.getPublicCompetitionStats(
+      eventId,
+      competitionId,
+    );
   }
 
   async getPublicStandings(
@@ -967,7 +1028,9 @@ export class CompetitionsService {
       throw new NotFoundException('Event not found or is not public');
     }
 
-    const stage = await this.stageRepo.findOne({ where: { id: stageId, competitionId } });
+    const stage = await this.stageRepo.findOne({
+      where: { id: stageId, competitionId },
+    });
     if (!stage) throw new NotFoundException('Stage not found');
 
     const matches = await this.matchRepo.find({
@@ -981,8 +1044,12 @@ export class CompetitionsService {
       relations: { team: true },
     });
 
-    const isLeague = stage.type === 'league' || stage.type === 'group' || stage.type === 'group_knockout';
-    const isKnockout = stage.type === 'knockout' || stage.type === 'group_knockout';
+    const isLeague =
+      stage.type === 'league' ||
+      stage.type === 'group' ||
+      stage.type === 'group_knockout';
+    const isKnockout =
+      stage.type === 'knockout' || stage.type === 'group_knockout';
 
     const winPts: number = (stage.config as any)?.winPoint ?? 3;
     const drawPts: number = (stage.config as any)?.drawPoint ?? 1;
@@ -990,31 +1057,50 @@ export class CompetitionsService {
     // ─── League / Group Table ───────────────────────────────────────────────
     let table: any[] = [];
     if (isLeague) {
-      const statsMap = new Map<string, {
-        teamId: string; teamName: string; teamLogoUrl: string | null;
-        played: number; won: number; drawn: number; lost: number;
-        gf: number; ga: number; gd: number; pts: number;
-        group?: string;
-      }>();
+      const statsMap = new Map<
+        string,
+        {
+          teamId: string;
+          teamName: string;
+          teamLogoUrl: string | null;
+          played: number;
+          won: number;
+          drawn: number;
+          lost: number;
+          gf: number;
+          ga: number;
+          gd: number;
+          pts: number;
+          group?: string;
+        }
+      >();
 
       for (const ct of competitionTeams) {
         statsMap.set(ct.teamId, {
           teamId: ct.teamId,
           teamName: ct.team?.name ?? 'Unknown',
           teamLogoUrl: ct.team?.logoUrl ?? null,
-          played: 0, won: 0, drawn: 0, lost: 0,
-          gf: 0, ga: 0, gd: 0, pts: 0,
+          played: 0,
+          won: 0,
+          drawn: 0,
+          lost: 0,
+          gf: 0,
+          ga: 0,
+          gd: 0,
+          pts: 0,
         });
       }
 
       for (const m of matches) {
-        if (m.status !== 'completed') continue;
+        if (m.status !== 'completed' && m.status !== 'live') continue;
         if (!m.homeTeamId || !m.awayTeamId) continue;
 
         // Only count group-stage matches if group_knockout
         if (stage.type === 'group_knockout') {
           const round = (m.config as any)?.round ?? '';
-          const isGroupMatch = round.toLowerCase().includes('group') || round.toLowerCase().includes('stage');
+          const isGroupMatch =
+            round.toLowerCase().includes('group') ||
+            round.toLowerCase().includes('stage');
           if (!isGroupMatch) continue;
         }
 
@@ -1022,27 +1108,61 @@ export class CompetitionsService {
         let a = statsMap.get(m.awayTeamId);
 
         if (!h && m.homeTeam) {
-          h = { teamId: m.homeTeamId, teamName: m.homeTeam.name, teamLogoUrl: m.homeTeam.logoUrl ?? null, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, pts: 0 };
+          h = {
+            teamId: m.homeTeamId,
+            teamName: m.homeTeam.name,
+            teamLogoUrl: m.homeTeam.logoUrl ?? null,
+            played: 0,
+            won: 0,
+            drawn: 0,
+            lost: 0,
+            gf: 0,
+            ga: 0,
+            gd: 0,
+            pts: 0,
+          };
           statsMap.set(m.homeTeamId, h);
         }
         if (!a && m.awayTeam) {
-          a = { teamId: m.awayTeamId, teamName: m.awayTeam.name, teamLogoUrl: m.awayTeam.logoUrl ?? null, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, pts: 0 };
+          a = {
+            teamId: m.awayTeamId,
+            teamName: m.awayTeam.name,
+            teamLogoUrl: m.awayTeam.logoUrl ?? null,
+            played: 0,
+            won: 0,
+            drawn: 0,
+            lost: 0,
+            gf: 0,
+            ga: 0,
+            gd: 0,
+            pts: 0,
+          };
           statsMap.set(m.awayTeamId, a);
         }
         if (!h || !a) continue;
 
-        h.played++; a.played++;
-        h.gf += m.homeScore; h.ga += m.awayScore;
-        a.gf += m.awayScore; a.ga += m.homeScore;
-        h.gd = h.gf - h.ga; a.gd = a.gf - a.ga;
+        h.played++;
+        a.played++;
+        h.gf += m.homeScore;
+        h.ga += m.awayScore;
+        a.gf += m.awayScore;
+        a.ga += m.homeScore;
+        h.gd = h.gf - h.ga;
+        a.gd = a.gf - a.ga;
 
         if (m.homeScore > m.awayScore) {
-          h.won++; h.pts += winPts; a.lost++;
+          h.won++;
+          h.pts += winPts;
+          a.lost++;
         } else if (m.homeScore < m.awayScore) {
-          a.won++; a.pts += winPts; h.lost++;
+          a.won++;
+          a.pts += winPts;
+          h.lost++;
         } else {
-          h.drawn++; h.pts += drawPts;
-          a.drawn++; a.pts += drawPts;
+          h.drawn++;
+          h.pts += drawPts;
+          a.drawn++;
+          a.pts += drawPts;
         }
       }
 
@@ -1061,23 +1181,42 @@ export class CompetitionsService {
     let bracket: any[] = [];
     if (isKnockout) {
       const roundOrder = [
-        'round of 32', 'round of 16', 'round of 8',
-        'quarter-final', 'semi-final', 'final',
-        'third place match', '3rd place match',
+        'round of 32',
+        'round of 16',
+        'round of 8',
+        'quarter-final',
+        'semi-final',
+        'final',
+        'third place match',
+        '3rd place match',
       ];
 
       const roundsMap = new Map<string, any[]>();
       for (const m of matches) {
         const round: string = (m.config as any)?.round ?? 'Unknown';
         if (stage.type === 'group_knockout') {
-          const isGroup = round.toLowerCase().includes('group') || round.toLowerCase().includes('stage');
+          const isGroup =
+            round.toLowerCase().includes('group') ||
+            round.toLowerCase().includes('stage');
           if (isGroup) continue;
         }
         if (!roundsMap.has(round)) roundsMap.set(round, []);
         roundsMap.get(round)!.push({
           id: m.id,
-          homeTeam: m.homeTeam ? { id: m.homeTeamId, name: m.homeTeam.name, logoUrl: m.homeTeam.logoUrl } : null,
-          awayTeam: m.awayTeam ? { id: m.awayTeamId, name: m.awayTeam.name, logoUrl: m.awayTeam.logoUrl } : null,
+          homeTeam: m.homeTeam
+            ? {
+                id: m.homeTeamId,
+                name: m.homeTeam.name,
+                logoUrl: m.homeTeam.logoUrl,
+              }
+            : null,
+          awayTeam: m.awayTeam
+            ? {
+                id: m.awayTeamId,
+                name: m.awayTeam.name,
+                logoUrl: m.awayTeam.logoUrl,
+              }
+            : null,
           homeScore: m.homeScore,
           awayScore: m.awayScore,
           status: m.status,
@@ -1087,29 +1226,39 @@ export class CompetitionsService {
       }
 
       const sortedRounds = Array.from(roundsMap.keys()).sort((a, b) => {
-        const aLow = a.toLowerCase(); const bLow = b.toLowerCase();
-        const ia = roundOrder.findIndex(o => aLow.includes(o));
-        const ib = roundOrder.findIndex(o => bLow.includes(o));
+        const aLow = a.toLowerCase();
+        const bLow = b.toLowerCase();
+        const ia = roundOrder.findIndex((o) => aLow.includes(o));
+        const ib = roundOrder.findIndex((o) => bLow.includes(o));
         if (ia !== -1 && ib !== -1) return ia - ib;
         if (ia !== -1) return -1;
         if (ib !== -1) return 1;
         return a.localeCompare(b);
       });
 
-      bracket = sortedRounds.map(round => ({ round, matches: roundsMap.get(round)! }));
+      bracket = sortedRounds.map((round) => ({
+        round,
+        matches: roundsMap.get(round)!,
+      }));
     }
 
     // ─── Stage metadata ──────────────────────────────────────────────────────
     const totalMatches = matches.length;
-    const completedMatches = matches.filter(m => m.status === 'completed').length;
-    const liveMatches = matches.filter(m => m.status === 'live').length;
+    const completedMatches = matches.filter(
+      (m) => m.status === 'completed',
+    ).length;
+    const liveMatches = matches.filter((m) => m.status === 'live').length;
 
     return {
       stageId,
       stageName: stage.name,
       stageType: stage.type,
       pointsConfig: { winPts, drawPts },
-      progress: { total: totalMatches, completed: completedMatches, live: liveMatches },
+      progress: {
+        total: totalMatches,
+        completed: completedMatches,
+        live: liveMatches,
+      },
       isCompleted: totalMatches > 0 && completedMatches === totalMatches,
       table,
       bracket,
@@ -1134,7 +1283,12 @@ export class CompetitionsService {
       order: { sequence: 'ASC', createdAt: 'ASC' },
     });
     const stageIds = stages.map((s) => s.id);
-    if (stageIds.length === 0) return { competition: comp.name, sportCode: comp.sport?.code ?? '', results: [] };
+    if (stageIds.length === 0)
+      return {
+        competition: comp.name,
+        sportCode: comp.sport?.code ?? '',
+        results: [],
+      };
 
     const stageMap = new Map(stages.map((s) => [s.id, s]));
 
@@ -1145,7 +1299,12 @@ export class CompetitionsService {
       order: { createdAt: 'DESC' },
     });
 
-    if (matches.length === 0) return { competition: comp.name, sportCode: comp.sport?.code ?? '', results: [] };
+    if (matches.length === 0)
+      return {
+        competition: comp.name,
+        sportCode: comp.sport?.code ?? '',
+        results: [],
+      };
 
     // Enrich with player stats
     const matchIds = matches.map((m) => m.id);
@@ -1178,7 +1337,10 @@ export class CompetitionsService {
             maxRating = r;
             mvp = {
               playerId: mp.playerId,
-              playerName: mp.player?.user?.username ?? mp.player?.jerseyNumber?.toString() ?? 'Player',
+              playerName:
+                mp.player?.user?.username ??
+                mp.player?.jerseyNumber?.toString() ??
+                'Player',
               teamName: mp.team?.name ?? 'Unknown',
               rating: r,
             };
@@ -1206,11 +1368,13 @@ export class CompetitionsService {
         if (liveData && Array.isArray(liveData.events)) {
           const userId = mp.player?.userId;
           for (const event of liveData.events) {
-            const isPlayer = (event.playerId === mp.playerId) ||
-                             (userId && event.playerUserId === userId) ||
-                             (username && event.playerUsername === username);
-            const isAssister = (event.assistPlayerId === mp.playerId) ||
-                               (userId && event.assistPlayerUserId === userId);
+            const isPlayer =
+              event.playerId === mp.playerId ||
+              (userId && event.playerUserId === userId) ||
+              (username && event.playerUsername === username);
+            const isAssister =
+              event.assistPlayerId === mp.playerId ||
+              (userId && event.assistPlayerUserId === userId);
 
             if (isPlayer) {
               if (event.type === 'goal') {
@@ -1222,14 +1386,21 @@ export class CompetitionsService {
               } else if (event.type === 'card') {
                 if (event.cardType === 'yellow') {
                   stats.yellowCards = (stats.yellowCards ?? 0) + 1;
-                } else if (event.cardType === 'red' || event.cardType === 'second_yellow') {
+                } else if (
+                  event.cardType === 'red' ||
+                  event.cardType === 'second_yellow'
+                ) {
                   stats.redCards = (stats.redCards ?? 0) + 1;
                 }
               } else if (event.type === 'rally' || event.type === 'rally_won') {
                 stats.ralliesWon = (stats.ralliesWon ?? 0) + 1;
               }
             }
-            if (isAssister && event.type === 'goal' && event.goalType !== 'own_goal') {
+            if (
+              isAssister &&
+              event.type === 'goal' &&
+              event.goalType !== 'own_goal'
+            ) {
               stats.assists = (stats.assists ?? 0) + 1;
             }
           }
@@ -1246,7 +1417,10 @@ export class CompetitionsService {
         .slice(0, 3)
         .map((mp) => ({
           playerId: mp.playerId,
-          playerName: mp.player?.user?.username ?? mp.player?.jerseyNumber?.toString() ?? 'Player',
+          playerName:
+            mp.player?.user?.username ??
+            mp.player?.jerseyNumber?.toString() ??
+            'Player',
           jerseyNumber: mp.player?.jerseyNumber ?? null,
           rating: Number(mp.rating),
           stats: getPlayerStats(mp, liveData),
@@ -1258,7 +1432,10 @@ export class CompetitionsService {
         .slice(0, 3)
         .map((mp) => ({
           playerId: mp.playerId,
-          playerName: mp.player?.user?.username ?? mp.player?.jerseyNumber?.toString() ?? 'Player',
+          playerName:
+            mp.player?.user?.username ??
+            mp.player?.jerseyNumber?.toString() ??
+            'Player',
           jerseyNumber: mp.player?.jerseyNumber ?? null,
           rating: Number(mp.rating),
           stats: getPlayerStats(mp, liveData),
@@ -1268,22 +1445,37 @@ export class CompetitionsService {
 
       return {
         id: m.id,
-        homeTeam: m.homeTeam ? { id: m.homeTeamId, name: m.homeTeam.name, logoUrl: m.homeTeam.logoUrl } : null,
-        awayTeam: m.awayTeam ? { id: m.awayTeamId, name: m.awayTeam.name, logoUrl: m.awayTeam.logoUrl } : null,
+        homeTeam: m.homeTeam
+          ? {
+              id: m.homeTeamId,
+              name: m.homeTeam.name,
+              logoUrl: m.homeTeam.logoUrl,
+            }
+          : null,
+        awayTeam: m.awayTeam
+          ? {
+              id: m.awayTeamId,
+              name: m.awayTeam.name,
+              logoUrl: m.awayTeam.logoUrl,
+            }
+          : null,
         homeScore: m.homeScore,
         awayScore: m.awayScore,
         winner,
         scheduledAt: (m as any).scheduledAt ?? null,
         completedAt: m.updatedAt ?? m.createdAt,
-        venue: m.venue ? { name: m.venue.name, location: (m.venue as any).location ?? null } : null,
-        stage: stage ? { id: stage.id, name: stage.name, type: stage.type } : null,
+        venue: m.venue
+          ? { name: m.venue.name, location: (m.venue as any).location ?? null }
+          : null,
+        stage: stage
+          ? { id: stage.id, name: stage.name, type: stage.type }
+          : null,
         round: (m.config as any)?.round ?? null,
         mvp,
         homePerformers,
         awayPerformers,
       };
     });
-
 
     // Group results by date (using scheduledAt or completedAt)
     const grouped = new Map<string, any[]>();

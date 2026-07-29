@@ -22,7 +22,9 @@ export class EmailService {
       });
       this.logger.log('SMTP Transporter initialized successfully');
     } else {
-      this.logger.warn('SMTP credentials not fully configured. Email notifications will be logged to console.');
+      this.logger.warn(
+        'SMTP credentials not fully configured. Email notifications will be logged to console.',
+      );
     }
   }
 
@@ -30,7 +32,10 @@ export class EmailService {
    * General email send utility
    */
   async sendEmail(to: string, subject: string, html: string): Promise<boolean> {
-    const from = this.configService.get<string>('SMTP_FROM', '"SEM Platform" <noreply@sem-event.com>');
+    const from = this.configService.get<string>(
+      'SMTP_FROM',
+      '"SEM Platform" <noreply@sem-event.com>',
+    );
     if (this.transporter) {
       try {
         await this.transporter.sendMail({
@@ -42,11 +47,16 @@ export class EmailService {
         this.logger.log(`Email successfully sent to ${to}`);
         return true;
       } catch (err) {
-        this.logger.error(`Failed to send email to ${to}: ${err.message}`, err.stack);
+        this.logger.error(
+          `Failed to send email to ${to}: ${err.message}`,
+          err.stack,
+        );
         return false;
       }
     } else {
-      this.logger.log(`[MOCK EMAIL SENT]\nTo: ${to}\nSubject: ${subject}\nContent Summary: ${html.substring(0, 400).replace(/<[^>]*>/g, '')}...`);
+      this.logger.log(
+        `[MOCK EMAIL SENT]\nTo: ${to}\nSubject: ${subject}\nContent Summary: ${html.substring(0, 400).replace(/<[^>]*>/g, '')}...`,
+      );
       return true;
     }
   }
@@ -60,7 +70,7 @@ export class EmailService {
     logoUrl?: string | null,
     primaryColor = '#7c3aed',
   ): string {
-    const logoImg = logoUrl 
+    const logoImg = logoUrl
       ? `<img src="${logoUrl}" alt="${workspaceName} Logo" style="max-height: 48px; border-radius: 8px;" />`
       : `<span style="font-size: 20px; font-weight: 800; letter-spacing: -0.5px;">${workspaceName}</span>`;
 
@@ -306,6 +316,139 @@ export class EmailService {
         <a href="${viewUrl}" class="button">View Final Standings</a>
       </div>
       <p>Congratulations to the winners and congratulations to all teams for a great tournament!</p>
+    `;
+    const html = this.wrapTemplate(content, workspaceName, logoUrl);
+    return this.sendEmail(to, subject, html);
+  }
+
+  /**
+   * 7. Match Start Announcement Email Template
+   */
+  async sendMatchStartEmail(
+    to: string,
+    workspaceName: string,
+    logoUrl: string | null,
+    homeTeam: string,
+    awayTeam: string,
+    viewUrl: string,
+  ): Promise<boolean> {
+    const subject = `Match Started: ${homeTeam} vs ${awayTeam}`;
+    const content = `
+      <h1 style="color: #10b981;">Match is Live!</h1>
+      <p>Hello,</p>
+      <p>The match between <strong>${homeTeam}</strong> and <strong>${awayTeam}</strong> has officially started.</p>
+      
+      <div class="card" style="border-color: #10b981;">
+        <h3 style="margin-bottom: 10px; color: #10b981;">Match Details</h3>
+        <p style="margin-bottom: 8px;"><strong>Fixture:</strong> ${homeTeam} vs ${awayTeam}</p>
+        <p style="margin-bottom: 0;"><strong>Status:</strong> <span class="badge" style="background-color: #10b981; color: #052e16;">Live</span></p>
+      </div>
+
+      <p>Follow live scores, events, and stats on the match hub portal:</p>
+      <div style="text-align: center;">
+        <a href="${viewUrl}" class="button">Go to Match Hub</a>
+      </div>
+    `;
+    const html = this.wrapTemplate(content, workspaceName, logoUrl);
+    return this.sendEmail(to, subject, html);
+  }
+
+  /**
+   * 8. Match Result Announcement Email Template
+   */
+  async sendMatchResultEmail(
+    to: string,
+    workspaceName: string,
+    logoUrl: string | null,
+    homeTeam: string,
+    awayTeam: string,
+    homeScore: number,
+    awayScore: number,
+    viewUrl: string,
+  ): Promise<boolean> {
+    const subject = `Match Completed: ${homeTeam} ${homeScore} - ${awayScore} ${awayTeam}`;
+    const content = `
+      <h1>Match Completed!</h1>
+      <p>Hello,</p>
+      <p>The match between <strong>${homeTeam}</strong> and <strong>${awayTeam}</strong> has concluded. Here are the final scores:</p>
+      
+      <div class="card">
+        <h3 style="margin-bottom: 15px; color: #a78bfa; text-align: center;">Final Score</h3>
+        <div style="font-size: 22px; font-weight: 800; text-align: center; color: #ffffff;">
+          ${homeTeam} <span style="color: #a78bfa;">${homeScore}</span> : <span style="color: #a78bfa;">${awayScore}</span> ${awayTeam}
+        </div>
+      </div>
+
+      <p>View full stats, player performances, and updated standings on the portal:</p>
+      <div style="text-align: center;">
+        <a href="${viewUrl}" class="button">View Match Results</a>
+      </div>
+    `;
+    const html = this.wrapTemplate(content, workspaceName, logoUrl);
+    return this.sendEmail(to, subject, html);
+  }
+
+  /**
+   * 9. Match Delay Announcement Email Template
+   */
+  async sendMatchDelayEmail(
+    to: string,
+    workspaceName: string,
+    logoUrl: string | null,
+    homeTeam: string,
+    awayTeam: string,
+    newTime: string,
+    viewUrl: string,
+  ): Promise<boolean> {
+    const subject = `Match Delayed: ${homeTeam} vs ${awayTeam}`;
+    const content = `
+      <h1 style="color: #f59e0b;">Match Delayed / Rescheduled</h1>
+      <p>Hello,</p>
+      <p>Please be advised that the match between <strong>${homeTeam}</strong> and <strong>${awayTeam}</strong> has been delayed or rescheduled by the organizers.</p>
+      
+      <div class="card" style="border-color: #f59e0b;">
+        <h3 style="margin-bottom: 10px; color: #f59e0b;">Rescheduled Details</h3>
+        <p style="margin-bottom: 8px;"><strong>Fixture:</strong> ${homeTeam} vs ${awayTeam}</p>
+        <p style="margin-bottom: 0;"><strong>New Scheduled Time:</strong> ${newTime}</p>
+      </div>
+
+      <p>Check the updated schedule and match details on the portal:</p>
+      <div style="text-align: center;">
+        <a href="${viewUrl}" class="button">View Updated Fixture</a>
+      </div>
+    `;
+    const html = this.wrapTemplate(content, workspaceName, logoUrl);
+    return this.sendEmail(to, subject, html);
+  }
+
+  /**
+   * 10. Match Venue Change Announcement Email Template
+   */
+  async sendVenueChangeEmail(
+    to: string,
+    workspaceName: string,
+    logoUrl: string | null,
+    homeTeam: string,
+    awayTeam: string,
+    newVenue: string,
+    viewUrl: string,
+  ): Promise<boolean> {
+    const subject = `Match Venue Changed: ${homeTeam} vs ${awayTeam}`;
+    const content = `
+      <h1 style="color: #f59e0b;">Match Venue Changed</h1>
+      <p>Hello,</p>
+      <p>Please note that the venue for the match between <strong>${homeTeam}</strong> and <strong>${awayTeam}</strong> has been changed.</p>
+      
+      <div class="card" style="border-color: #f59e0b;">
+        <h3 style="margin-bottom: 10px; color: #f59e0b;">New Venue Details</h3>
+        <p style="margin-bottom: 8px;"><strong>Fixture:</strong> ${homeTeam} vs ${awayTeam}</p>
+        <p style="margin-bottom: 0;"><strong>New Venue:</strong> ${newVenue}</p>
+      </div>
+
+      <p>Check the match hub for location maps and directions:</p>
+      <div style="text-align: center;">
+        <a href="${viewUrl}" class="button">Go to Match Hub</a>
+      </div>
     `;
     const html = this.wrapTemplate(content, workspaceName, logoUrl);
     return this.sendEmail(to, subject, html);

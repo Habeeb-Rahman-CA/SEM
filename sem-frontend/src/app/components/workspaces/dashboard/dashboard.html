@@ -485,6 +485,59 @@
         }
       </div>
 
+      <!-- 5. COMPLETED MATCHES -->
+      <div class="space-y-3">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-extrabold text-white tracking-tight flex items-center gap-2">
+            <i class="fi fi-rr-checkbox text-emerald-400 text-sm"></i>
+            Completed Matches
+          </h2>
+          <span class="text-[11px] text-slate-400">Finished fixtures</span>
+        </div>
+
+        @if (completedMatches().length > 0) {
+          <div class="space-y-2">
+            @for (match of completedMatches(); track match.id) {
+              <div (click)="enterLiveMatch.emit(match)"
+                class="group p-3 rounded-xl bg-slate-900/90 border border-white/10 hover:border-emerald-500/50 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer">
+                
+                <div class="flex items-center gap-2.5">
+                  <span class="px-2 py-0.5 text-[9px] font-extrabold rounded-md border uppercase tracking-wider flex items-center gap-1"
+                        [ngClass]="getSportBadgeClass(match.stage?.competition?.sport?.code)">
+                    <i [class]="getSportIconClass(match.stage?.competition?.sport?.code)"></i>
+                    {{ match.stage?.competition?.sport?.name || 'Sport' }}
+                  </span>
+                  <div>
+                    <span class="text-xs font-bold text-white block truncate max-w-[150px]">{{ match.stage?.competition?.name }}</span>
+                    <span class="text-[10px] text-slate-400 flex items-center gap-1">
+                      <i class="fi fi-rr-marker text-[9px] text-slate-500"></i>
+                      {{ match.venue?.name || 'Stadium Venue' }}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Teams Score -->
+                <div class="flex items-center gap-3 font-bold text-xs text-slate-200">
+                  <span class="text-right truncate max-w-[90px]">{{ match.homeTeam?.name || 'Home' }}</span>
+                  <span class="px-2.5 py-1 rounded bg-slate-800 text-[10px] font-black text-white font-mono">
+                    {{ match.homeScore ?? 0 }} - {{ match.awayScore ?? 0 }}
+                  </span>
+                  <span class="text-left truncate max-w-[90px]">{{ match.awayTeam?.name || 'Away' }}</span>
+                </div>
+
+                <button class="px-3 py-1 rounded-lg bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/30 text-xs font-bold transition flex items-center gap-1 self-end sm:self-center">
+                  Review Match <i class="fi fi-rr-angle-small-right text-xs"></i>
+                </button>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="p-4 rounded-xl bg-slate-900/50 border border-white/10 text-center text-xs text-slate-400">
+            No completed matches in this workspace yet.
+          </div>
+        }
+      </div>
+
     </div>
 
     <!-- RIGHT PANEL: Contextual Panel (Quick Actions, Stats, Recent Activity, Leaderboards) -->
@@ -566,6 +619,30 @@
               <span class="text-sm font-black text-white">{{ totalCompletedMatchesCount() }}</span>
               <span class="text-[10px] text-slate-500 block">Matches total</span>
             </div>
+          </div>
+
+          <!-- Active Workspace Officials -->
+          <div>
+            <span class="text-[10px] font-extrabold uppercase text-slate-500 tracking-wider block mb-2">Active Officials ({{ activeOfficials().length }})</span>
+            @if (activeOfficials().length > 0) {
+              <div class="space-y-1.5 max-h-[180px] overflow-y-auto pr-1">
+                @for (official of activeOfficials(); track official.id) {
+                  <div class="flex items-center justify-between p-2 rounded-lg bg-slate-950/60 border border-white/5 text-xs">
+                    <div class="flex items-center gap-2">
+                      <div class="w-5 h-5 rounded-full bg-violet-500/10 border border-violet-500/30 flex items-center justify-center text-[10px] text-violet-400 font-bold uppercase shrink-0">
+                        {{ official.user?.username?.slice(0, 2) || 'OF' }}
+                      </div>
+                      <span class="font-bold text-white truncate max-w-[120px]">{{ official.user?.username }}</span>
+                    </div>
+                    <span class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-violet-500/10 text-violet-300 border border-violet-500/20">
+                      {{ official.role?.name }}
+                    </span>
+                  </div>
+                }
+              </div>
+            } @else {
+              <p class="text-[10px] text-slate-500 text-center py-2">No officials assigned to this workspace.</p>
+            }
           </div>
 
           <!-- Venue Utilization -->

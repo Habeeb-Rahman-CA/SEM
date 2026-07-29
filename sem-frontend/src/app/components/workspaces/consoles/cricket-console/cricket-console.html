@@ -1,6 +1,98 @@
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
   <!-- Left Columns: Live Console Controls & Visuals -->
   <div class="lg:col-span-2 flex flex-col gap-6">
+    <!-- Mode Selector Segment -->
+    <div class="flex flex-col sm:flex-row items-center justify-between bg-slate-900 border border-white/10 rounded-2xl p-4 gap-4 shadow-xl">
+      <div class="flex items-center gap-3">
+        <span class="text-xs font-black text-white uppercase tracking-wider">Console Mode:</span>
+        <div class="flex items-center gap-1.5 p-1 bg-slate-950/60 border border-white/5 rounded-xl">
+          <button (click)="consoleMode.set('referee')"
+            class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[10px] font-extrabold uppercase tracking-wider transition-all cursor-pointer border-0"
+            [class]="consoleMode() === 'referee' ? 'bg-violet-600 text-white shadow-md shadow-violet-650/20' : 'text-slate-400 hover:text-white hover:bg-white/5'">
+            <i class="fi fi-rr-referee"></i> Referee Mode
+          </button>
+          <button (click)="consoleMode.set('statistician')"
+            class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[10px] font-extrabold uppercase tracking-wider transition-all cursor-pointer border-0"
+            [class]="consoleMode() === 'statistician' ? 'bg-violet-600 text-white shadow-md shadow-violet-650/20' : 'text-slate-400 hover:text-white hover:bg-white/5'">
+            <i class="fi fi-rr-chart-bar"></i> Statistician Mode
+          </button>
+        </div>
+      </div>
+      @if (consoleMode() === 'statistician' && hasUnpublishedBalls()) {
+        <button (click)="onPublishCricketStats()"
+          class="w-full sm:w-auto px-5 py-2.5 bg-emerald-600 hover:bg-emerald-550 text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-emerald-650/20 border-0">
+          <i class="fi fi-rr-checkbox"></i> Validate & Publish Balls
+        </button>
+      }
+    </div>
+
+    <!-- Referee Mode Quick Input Console -->
+    @if (consoleMode() === 'referee') {
+      @if (match().status !== 'completed' && canScore() && match().liveData?.tossWinnerId) {
+        <div class="p-6 rounded-2xl bg-slate-900 border border-white/10 flex flex-col gap-6 shadow-xl">
+          <div class="flex items-center justify-between border-b border-white/5 pb-4">
+            <h4 class="text-xs font-black text-white uppercase tracking-widest flex items-center gap-2">
+              <i class="fi fi-rr-referee text-violet-400"></i> One-Touch Quick Ball Input
+            </h4>
+            <span class="text-[10px] font-extrabold text-slate-400 bg-slate-950 border border-white/5 px-2.5 py-1 rounded-lg">
+              Innings {{ match().liveData?.currentInnings || 1 }}
+            </span>
+          </div>
+
+          <!-- Quick Score Buttons -->
+          <div class="grid grid-cols-3 sm:grid-cols-6 gap-3">
+            <button (click)="onRecordCricketBall(0, 0, false, 'normal')"
+              class="h-16 rounded-2xl bg-slate-950 hover:bg-slate-800 border border-white/10 flex flex-col items-center justify-center gap-1 transition-all cursor-pointer border-0">
+              <span class="text-lg font-black text-white">0</span>
+              <span class="text-[8px] font-bold text-slate-500 uppercase">Dot</span>
+            </button>
+            <button (click)="onRecordCricketBall(1, 0, false, 'normal')"
+              class="h-16 rounded-2xl bg-slate-950 hover:bg-slate-800 border border-white/10 flex flex-col items-center justify-center gap-1 transition-all cursor-pointer border-0">
+              <span class="text-lg font-black text-white">1</span>
+              <span class="text-[8px] font-bold text-slate-500 uppercase">Run</span>
+            </button>
+            <button (click)="onRecordCricketBall(2, 0, false, 'normal')"
+              class="h-16 rounded-2xl bg-slate-950 hover:bg-slate-800 border border-white/10 flex flex-col items-center justify-center gap-1 transition-all cursor-pointer border-0">
+              <span class="text-lg font-black text-white">2</span>
+              <span class="text-[8px] font-bold text-slate-500 uppercase">Runs</span>
+            </button>
+            <button (click)="onRecordCricketBall(3, 0, false, 'normal')"
+              class="h-16 rounded-2xl bg-slate-950 hover:bg-slate-800 border border-white/10 flex flex-col items-center justify-center gap-1 transition-all cursor-pointer border-0">
+              <span class="text-lg font-black text-white">3</span>
+              <span class="text-[8px] font-bold text-slate-500 uppercase">Runs</span>
+            </button>
+            <button (click)="onRecordCricketBall(4, 0, false, 'normal')"
+              class="h-16 rounded-2xl bg-emerald-950/40 hover:bg-emerald-900/40 border border-emerald-500/20 flex flex-col items-center justify-center gap-1 transition-all cursor-pointer border-0">
+              <span class="text-lg font-black text-emerald-400">4</span>
+              <span class="text-[8px] font-bold text-emerald-500 uppercase">Four</span>
+            </button>
+            <button (click)="onRecordCricketBall(6, 0, false, 'normal')"
+              class="h-16 rounded-2xl bg-violet-950/40 hover:bg-violet-900/40 border border-violet-500/20 flex flex-col items-center justify-center gap-1 transition-all cursor-pointer border-0">
+              <span class="text-lg font-black text-violet-400">6</span>
+              <span class="text-[8px] font-bold text-violet-500 uppercase">Six</span>
+            </button>
+          </div>
+
+          <!-- Extras & Wickets Quick Buttons -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <button (click)="onRecordCricketBall(0, 1, false, 'wide')"
+              class="h-14 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 flex items-center justify-center gap-2 transition-all cursor-pointer border-0">
+              <span class="text-xs font-black text-amber-400 uppercase tracking-wider">Wide Ball (+1)</span>
+            </button>
+            <button (click)="onRecordCricketBall(0, 1, false, 'no-ball')"
+              class="h-14 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 flex items-center justify-center gap-2 transition-all cursor-pointer border-0">
+              <span class="text-xs font-black text-amber-400 uppercase tracking-wider">No Ball (+1)</span>
+            </button>
+            <button (click)="onRecordCricketBall(0, 0, true, 'normal', 'Bowled')"
+              class="h-14 rounded-2xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 flex items-center justify-center gap-2 transition-all cursor-pointer border-0">
+              <i class="fi fi-rr-trash text-rose-400"></i>
+              <span class="text-xs font-black text-rose-400 uppercase tracking-wider">Wicket!</span>
+            </button>
+          </div>
+        </div>
+      }
+    }
+
     <!-- Header Score Board -->
               <div
                 class="bg-slate-900 border border-white/10 rounded-2xl p-6 shadow-xl flex flex-col items-center justify-center gap-4 relative overflow-hidden">
@@ -26,10 +118,20 @@
                       <span class="text-sm font-bold text-slate-500">:</span>
                       <span class="text-3xl font-black text-white tracking-wider">{{ match().awayScore }}</span>
                     </div>
+                    @if (consoleMode() === 'statistician' && hasUnpublishedBalls()) {
+                      <div class="text-[9px] font-extrabold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/25">
+                        Draft: {{ draftHomeScore() }} - {{ draftAwayScore() }}
+                      </div>
+                    }
                     @let currentInnings = match().liveData?.currentInnings;
                     <span class="text-xs font-bold text-slate-400">
                       Innings: {{ currentInnings || 0 }}
                     </span>
+                    @if (consoleMode() === 'statistician' && hasUnpublishedBalls() && draftInningsStats()) {
+                      <div class="text-[9px] font-bold text-amber-400/80 bg-amber-500/5 px-2 py-0.5 rounded border border-amber-500/10 mt-0.5">
+                        Draft Innings: {{ draftInningsStats()?.runs }}/{{ draftInningsStats()?.wickets }} ({{ draftInningsStats()?.overs }}.{{ draftInningsStats()?.balls }} ov)
+                      </div>
+                    }
                   </div>
 
                   <!-- Away Team name -->
@@ -71,7 +173,7 @@
                 }
               </div>
     
-    @if (match().status !== 'completed' && canScore()) {
+    @if (consoleMode() === 'statistician' && match().status !== 'completed' && canScore()) {
       <div class="bg-slate-900 border border-white/10 rounded-2xl p-6 flex flex-col gap-6">
 
                 @if (!match().liveData?.tossWinnerId) {
@@ -406,103 +508,262 @@
     }
   </div>
 
-  <!-- Right Column: Live Feed / Statistics -->
-  <div class="flex flex-col gap-6 sticky top-24">
-    <div class="bg-slate-900 border border-white/10 rounded-2xl p-6 shadow-xl flex flex-col gap-5">
-      <!-- Toss Details -->
-                  @if (match().liveData?.tossWinnerId) {
-                  @let twName = match().liveData.tossWinnerId === match().homeTeamId ? match().homeTeam?.name :
-                  match().awayTeam?.name;
-                  <div class="flex gap-2 items-start text-left border-b border-white/5 pb-2 text-xs">
-                    <span class="text-xs text-emerald-400"><i class="fi fi-rr-coin"></i></span>
-                    <span class="text-xs text-slate-300">Toss won by <strong>{{ twName }}</strong>, elected to
-                      <strong>{{ match().liveData.tossChoice }}</strong>.</span>
-                  </div>
-                  }
+  <!-- Right Column: Match Timeline Panel (Cricket) -->
+  <div class="flex flex-col gap-6">
+    <div class="bg-slate-900 border border-white/10 rounded-2xl shadow-xl flex flex-col gap-0 overflow-hidden">
 
-                  <!-- Completed/Active Innings Deliveries & Summaries -->
-                  @for (inn of match().liveData?.inningsData || []; track inn.inningsNumber) {
-                  <!-- Innings Header -->
-                  <div
-                    class="text-[10px] font-extrabold text-violet-400 uppercase tracking-widest mt-3 border-b border-white/5 pb-1 flex justify-between items-center">
-                    <span>Innings {{ inn.inningsNumber }} Live Log</span>
-                    <span class="text-slate-500 font-semibold">{{ inn.runs }}/{{ inn.wickets }} ({{ inn.overs }}.{{
-                      inn.balls }} Ov)</span>
-                  </div>
+      <!-- Panel Header -->
+      <div class="px-5 py-4 border-b border-white/5 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i class="fi fi-rr-time-past text-violet-400"></i>
+          <h3 class="text-sm font-bold text-white">Ball-by-Ball Timeline</h3>
+          @if (totalBallsCount > 0) {
+            <span class="px-2 py-0.5 bg-violet-500/10 border border-violet-500/20 text-violet-400 text-[10px] font-black rounded-full">
+              {{ totalBallsCount }} deliveries
+            </span>
+          }
+          @if ((match().liveData?.inningsData || []).length > 0) {
+            <span class="px-2 py-0.5 bg-slate-800 border border-white/10 text-slate-400 text-[10px] font-black rounded-full">
+              {{ (match().liveData?.inningsData || []).length }} Innings
+            </span>
+          }
+        </div>
+        <button (click)="showTimelinePanel.set(!showTimelinePanel())"
+          class="h-7 w-7 rounded-lg bg-white/5 border border-white/5 text-slate-400 hover:text-white hover:bg-white/10 transition-all flex items-center justify-center cursor-pointer">
+          <i [class]="showTimelinePanel() ? 'fi fi-rr-angle-up text-xs' : 'fi fi-rr-angle-down text-xs'"></i>
+        </button>
+      </div>
 
-                  <!-- Completed Innings summary -->
-                  @if (inn.completed) {
-                  <div
-                    class="flex flex-col gap-1 text-left border-l-2 border-rose-500 pl-2 py-1 bg-rose-500/5 my-1.5 rounded-r">
-                    <span class="text-[9px] font-bold text-rose-400 uppercase">Innings {{ inn.inningsNumber }}
-                      Completed</span>
-                    <span class="text-[11px] text-white">
-                      {{ inn.battingTeamId === match().homeTeamId ? match().homeTeam?.name : match().awayTeam?.name }}:
-                      <strong>{{ inn.runs }}/{{ inn.wickets }}</strong> in {{ inn.overs }} overs
-                    </span>
-                  </div>
-                  }
+      <!-- Filter Bar -->
+      <div class="px-5 py-3 border-b border-white/5 flex flex-wrap gap-2 bg-slate-950/30">
+        <!-- Innings filter -->
+        <select [value]="timelineFilterInnings()"
+          (change)="timelineFilterInnings.set(+$any($event.target).value)"
+          class="flex-1 min-w-[100px] bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-[10px] font-bold text-white outline-none">
+          <option value="0">All Innings</option>
+          @for (inn of match().liveData?.inningsData || []; track inn.inningsNumber) {
+            <option [value]="inn.inningsNumber">Innings {{ inn.inningsNumber }}</option>
+          }
+        </select>
 
-                  <!-- Innings Ball-by-ball history -->
-                  @if (inn.ballsHistory && inn.ballsHistory.length > 0) {
-                  <div class="flex flex-col gap-1.5 mt-1.5">
-                    @for (ball of [...inn.ballsHistory].reverse(); track ball.ballNumber) {
-                    <div
-                      class="flex items-center justify-between bg-slate-950/40 border border-white/5 rounded-lg p-1.5 hover:border-white/10 transition-all text-xs">
-                      <div class="flex items-center gap-2">
-                        <!-- Ball badge indicator -->
-                        <span
-                          class="px-1.5 py-0.5 rounded bg-violet-600/10 border border-violet-500/20 text-violet-300 font-bold text-[9px]">
-                          {{ ball.ballNumber }}
-                        </span>
-                        <!-- Event outcome badge -->
-                        @if (ball.wicket) {
-                        <span
-                          class="px-1 py-0.5 rounded bg-rose-500/25 border border-rose-500/30 text-rose-400 font-bold text-[8px] uppercase tracking-wider">
-                          WKT@if (ball.wicketType) { ({{ ball.wicketType }}) }
-                        </span>
-                        } @else if (ball.ballType === 'wide') {
-                        <span
-                          class="px-1 py-0.5 rounded bg-amber-500/20 border border-amber-500/30 text-amber-400 font-bold text-[8px] uppercase">WD</span>
-                        } @else if (ball.ballType === 'no-ball') {
-                        <span
-                          class="px-1 py-0.5 rounded bg-amber-500/20 border border-amber-500/30 text-amber-400 font-bold text-[8px] uppercase">NB</span>
-                        } @else if (ball.ballType === 'free-hit') {
-                        <span
-                          class="px-1 py-0.5 rounded bg-blue-500/25 border border-blue-500/30 text-blue-400 font-bold text-[8px] uppercase">FH</span>
-                        } @else if (ball.ballType === 'bye') {
-                        <span
-                          class="px-1 py-0.5 rounded bg-slate-700/30 border border-slate-500/30 text-slate-300 font-bold text-[8px] uppercase">BYE
-                          (+{{ ball.extras }})</span>
-                        } @else if (ball.ballType === 'leg-bye') {
-                        <span
-                          class="px-1 py-0.5 rounded bg-slate-700/30 border border-slate-500/30 text-slate-300 font-bold text-[8px] uppercase">LBYE
-                          (+{{ ball.extras }})</span>
-                        } @else if (ball.runs === 0) {
-                        <span
-                          class="px-1 py-0.5 rounded bg-slate-800 border border-white/5 text-slate-400 font-semibold text-[8px] uppercase">DOT</span>
-                        } @else {
-                        <span
-                          class="px-1 py-0.5 rounded bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 font-extrabold text-[8px]">+{{
-                          ball.runs }}</span>
-                        }
-                        <!-- Bowler & Batsman Details -->
-                        <div class="text-slate-300 font-medium text-[10px] truncate max-w-[150px]"
-                          [title]="ball.bowler + ' to ' + ball.striker">
-                          <span class="text-slate-400">{{ ball.bowler }}</span> → <span class="font-bold text-white">{{
-                            ball.striker }}</span>
-                        </div>
-                      </div>
-                      @if (ball.timestamp) {
-                      <span class="text-[9px] text-slate-500">{{ ball.timestamp | date:'shortTime' }}</span>
-                      }
+        <!-- Ball Type filter -->
+        <select [value]="timelineFilterBallType()"
+          (change)="timelineFilterBallType.set($any($event.target).value)"
+          class="flex-1 min-w-[100px] bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-[10px] font-bold text-white outline-none">
+          <option value="all">All Types</option>
+          <option value="dot">Dot Ball</option>
+          <option value="runs">Runs</option>
+          <option value="wide">Wide</option>
+          <option value="no-ball">No Ball</option>
+          <option value="bye">Bye</option>
+          <option value="leg-bye">Leg Bye</option>
+          <option value="wicket">Wicket</option>
+          <option value="free-hit">Free Hit</option>
+        </select>
+
+        <!-- Bowler filter -->
+        <select [value]="timelineFilterBowler()"
+          (change)="timelineFilterBowler.set($any($event.target).value)"
+          class="flex-1 min-w-[100px] bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-[10px] font-bold text-white outline-none">
+          <option value="all">All Bowlers</option>
+          @for (name of timelineBowlerNames; track name) {
+            <option [value]="name">{{ name }}</option>
+          }
+        </select>
+
+        <!-- Batsman filter -->
+        <select [value]="timelineFilterBatsman()"
+          (change)="timelineFilterBatsman.set($any($event.target).value)"
+          class="flex-1 min-w-[100px] bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-[10px] font-bold text-white outline-none">
+          <option value="all">All Batsmen</option>
+          @for (name of timelineBatsmanNames; track name) {
+            <option [value]="name">{{ name }}</option>
+          }
+        </select>
+
+        @if (timelineFilterInnings() !== 0 || timelineFilterBallType() !== 'all' || timelineFilterBowler() !== 'all' || timelineFilterBatsman() !== 'all') {
+          <button (click)="timelineFilterInnings.set(0); timelineFilterBallType.set('all'); timelineFilterBowler.set('all'); timelineFilterBatsman.set('all')"
+            class="px-2.5 py-1.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[10px] font-bold cursor-pointer hover:bg-rose-500/20 transition-all flex items-center gap-1">
+            <i class="fi fi-rr-cross text-[8px]"></i> Clear
+          </button>
+        }
+      </div>
+
+      <!-- Ball list -->
+      <div class="flex flex-col gap-0 max-h-[460px] overflow-y-auto no-scrollbar divide-y divide-white/[0.04]">
+        @for (ball of filteredBalls(); track ball._originalIndex + '_' + ball._inningsNumber) {
+          <div class="flex items-start gap-3 px-5 py-3 hover:bg-white/[0.02] transition-colors group">
+            <!-- Ball Badge -->
+            <div class="flex-shrink-0 w-10 h-10 rounded-full bg-slate-950 border border-white/10 flex items-center justify-center text-[9px] font-black shadow-sm"
+              [class]="ball.wicket ? 'text-rose-400' : ball.runs === 6 ? 'text-violet-400' : ball.runs === 4 ? 'text-emerald-400' : 'text-slate-400'">
+              {{ ball.ballNumber }}
+            </div>
+
+            <!-- Content -->
+            <div class="flex-1 flex flex-col gap-0.5 min-w-0">
+              <div class="flex items-center gap-2 flex-wrap">
+                <!-- Ball type badge -->
+                @if (ball.wicket) {
+                  <span class="px-1.5 py-0.5 rounded bg-rose-500/20 border border-rose-500/30 text-rose-400 font-black text-[9px] uppercase flex items-center gap-0.5">
+                    <i class="fi fi-rr-circle-xmark text-[8px]"></i> WKT @if (ball.wicketType) { ({{ ball.wicketType }}) }
+                  </span>
+                } @else if (ball.ballType === 'wide') {
+                  <span class="px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-500/25 text-amber-400 font-black text-[9px] uppercase">WD +{{ ball.extras }}</span>
+                } @else if (ball.ballType === 'no-ball') {
+                  <span class="px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-500/25 text-amber-400 font-black text-[9px] uppercase">NB +{{ ball.extras }}</span>
+                } @else if (ball.ballType === 'free-hit') {
+                  <span class="px-1.5 py-0.5 rounded bg-blue-500/20 border border-blue-500/25 text-blue-400 font-black text-[9px] uppercase">FREE HIT</span>
+                } @else if (ball.ballType === 'bye') {
+                  <span class="px-1.5 py-0.5 rounded bg-slate-700/40 border border-slate-500/25 text-slate-300 font-black text-[9px] uppercase">BYE +{{ ball.extras }}</span>
+                } @else if (ball.ballType === 'leg-bye') {
+                  <span class="px-1.5 py-0.5 rounded bg-slate-700/40 border border-slate-500/25 text-slate-300 font-black text-[9px] uppercase">LBYE +{{ ball.extras }}</span>
+                } @else if (ball.runs === 0) {
+                  <span class="px-1.5 py-0.5 rounded bg-slate-800 border border-white/5 text-slate-400 font-black text-[9px] uppercase">DOT</span>
+                } @else {
+                  <span class="px-1.5 py-0.5 rounded font-black text-[9px] uppercase"
+                    [class]="ball.runs === 6 ? 'bg-violet-500/20 border border-violet-500/25 text-violet-400' : ball.runs === 4 ? 'bg-emerald-500/20 border border-emerald-500/25 text-emerald-400' : 'bg-slate-700/30 border border-white/5 text-white'">
+                    +{{ ball.runs }}
+                  </span>
+                }
+                <span class="text-[8px] px-1.5 py-0.5 bg-slate-800 border border-white/5 text-slate-400 rounded font-bold uppercase">
+                  Inn {{ ball._inningsNumber }}
+                </span>
+                @if (ball._audit?.length > 0) {
+                  <span class="text-[8px] px-1.5 py-0.5 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded font-bold uppercase flex items-center gap-0.5">
+                    <i class="fi fi-rr-pen-field text-[8px]"></i> Edited
+                  </span>
+                }
+                @if (ball.published === false) {
+                  <span class="text-[8px] px-1.5 py-0.5 bg-amber-600/25 border border-amber-500/30 text-amber-400 rounded font-bold uppercase flex items-center gap-0.5">
+                    <i class="fi fi-rr-time-past text-[8px]"></i> Draft
+                  </span>
+                }
+              </div>
+
+              <div class="text-[10px] text-slate-400 font-medium leading-tight">
+                <span class="text-slate-500">Bowler:</span> <span class="text-slate-300 font-semibold">{{ ball.bowler }}</span>
+                &nbsp;→&nbsp;
+                <span class="text-slate-500">Striker:</span> <span class="font-bold text-white">{{ ball.striker }}</span>
+                @if (ball.timestamp) {
+                  <span class="text-slate-600 ml-1">· {{ ball.timestamp | date:'HH:mm:ss' }}</span>
+                }
+                @if (ball._note) {
+                  <span class="block text-slate-500 mt-0.5 italic">"{{ ball._note }}"</span>
+                }
+              </div>
+
+              @if (ball._audit?.length > 0) {
+                <div class="mt-1.5 flex flex-col gap-0.5 pl-2 border-l-2 border-amber-500/20">
+                  @for (a of ball._audit; track $index) {
+                    <div class="text-[9px] text-slate-500">
+                      <i class="fi fi-rr-time-forward text-[8px] text-amber-400"></i>
+                      <span class="font-bold text-amber-400/80">{{ a.action }}</span>
+                      @if (a.previousNote) { — note was "{{ a.previousNote }}" }
+                      <span class="text-slate-600"> · {{ a.at | date:'HH:mm:ss' }}</span>
                     </div>
-                    }
-                  </div>
-                  } @else {
-                  <p class="text-[10px] text-slate-500 text-center py-2">No deliveries recorded yet.</p>
                   }
-                  }
+                </div>
+              }
+            </div>
+
+            @if (canScore()) {
+              <div class="flex-shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button (click)="openEditBall(ball)"
+                  class="h-7 w-7 rounded-lg bg-slate-800 border border-white/5 text-slate-400 hover:text-amber-400 hover:border-amber-500/30 hover:bg-amber-500/10 transition-all flex items-center justify-center cursor-pointer"
+                  title="Add/edit note">
+                  <i class="fi fi-rr-pen-field text-[10px]"></i>
+                </button>
+                <button (click)="deleteBall(ball._inningsNumber, ball._originalIndex)"
+                  class="h-7 w-7 rounded-lg bg-slate-800 border border-white/5 text-slate-400 hover:text-rose-400 hover:border-rose-500/30 hover:bg-rose-500/10 transition-all flex items-center justify-center cursor-pointer"
+                  title="Archive ball">
+                  <i class="fi fi-rr-trash text-[10px]"></i>
+                </button>
+              </div>
+            }
+          </div>
+        } @empty {
+          <div class="py-10 text-center flex flex-col items-center gap-2 text-slate-500">
+            <i class="fi fi-rr-time-past text-2xl"></i>
+            <span class="text-xs font-semibold">
+              @if (timelineFilterInnings() !== 0 || timelineFilterBallType() !== 'all' || timelineFilterBowler() !== 'all' || timelineFilterBatsman() !== 'all') {
+                No deliveries match the current filters.
+              } @else {
+                No deliveries recorded yet.
+              }
+            </span>
+          </div>
+        }
+      </div>
+
+      <!-- Deleted Balls Audit Archive -->
+      @if (canScore() && match().liveData?._deletedBalls?.length > 0) {
+        <div class="px-5 py-3 border-t border-white/5 bg-slate-950/30">
+          <div class="text-[9px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-1.5 mb-2">
+            <i class="fi fi-rr-archive text-[9px]"></i> Audit Archive ({{ match().liveData?._deletedBalls?.length }} deleted)
+          </div>
+          <div class="flex flex-col gap-1">
+            @for (d of match().liveData?._deletedBalls; track $index) {
+              <div class="flex items-center gap-2 text-[9px] text-slate-600 font-medium bg-slate-950/40 border border-white/[0.03] rounded-lg px-3 py-1.5">
+                <i class="fi fi-rr-trash text-[9px] text-slate-700"></i>
+                <span class="text-slate-500 font-bold">{{ d.ballNumber }}</span> Inn {{ d._inningsNumber }}
+                · <span [class]="d.wicket ? 'text-rose-400' : 'text-slate-400'">{{ d.wicket ? 'WICKET' : (d.ballType || 'ball') }}</span>
+                · {{ d._deletedAt | date:'HH:mm:ss' }}
+              </div>
+            }
+          </div>
+        </div>
+      }
+
     </div>
   </div>
 </div>
+
+<!-- ─── EDIT BALL NOTE MODAL (Cricket) ─── -->
+@if (editingBall()) {
+  <div class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+    <div (click)="cancelEditBall()" class="absolute inset-0 bg-slate-950/80 backdrop-blur-lg"></div>
+    <div class="relative z-10 w-full max-w-sm bg-slate-900 border border-white/10 rounded-2xl shadow-2xl shadow-black/80 overflow-hidden">
+      <div class="px-6 py-4 border-b border-white/5 flex items-center justify-between bg-slate-950/30">
+        <div class="flex items-center gap-2">
+          <i class="fi fi-rr-pen-field text-amber-400 text-sm"></i>
+          <h3 class="text-sm font-black text-white">Edit Ball Note</h3>
+        </div>
+        <button (click)="cancelEditBall()"
+          class="h-7 w-7 rounded-lg bg-white/5 border border-white/5 text-slate-400 hover:text-white hover:bg-white/10 transition-all flex items-center justify-center cursor-pointer">
+          <i class="fi fi-rr-cross text-xs"></i>
+        </button>
+      </div>
+      <div class="p-6 flex flex-col gap-5">
+        <div class="flex flex-col gap-1.5">
+          <label class="text-[10px] font-black uppercase tracking-widest text-slate-400">Ball</label>
+          <div class="px-3 py-2 bg-slate-950/60 border border-white/5 rounded-xl text-xs font-bold text-slate-300">
+            {{ editingBall().ballNumber }} — Inn {{ editingBall()._inningsNumber }} — {{ editingBall().bowler }} → {{ editingBall().striker }}
+          </div>
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <label class="text-[10px] font-black uppercase tracking-widest text-slate-400"><i class="fi fi-rr-memo text-violet-400"></i> Scorer Note</label>
+          <textarea [value]="editBallNote()"
+            (input)="editBallNote.set($any($event.target).value)"
+            placeholder="Add a correction note or clarification…"
+            rows="2"
+            class="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 outline-none focus:border-violet-500/50 transition-colors resize-none"></textarea>
+        </div>
+        <div class="flex items-start gap-2 text-[10px] text-amber-400 bg-amber-500/5 border border-amber-500/15 rounded-xl px-3 py-2.5">
+          <i class="fi fi-rr-exclamation-triangle text-amber-400 flex-shrink-0 mt-0.5"></i>
+          <span>Notes are logged with an audit timestamp for transparency.</span>
+        </div>
+      </div>
+      <div class="px-6 py-4 border-t border-white/5 bg-slate-950/30 flex items-center justify-end gap-3">
+        <button (click)="cancelEditBall()"
+          class="px-4 py-2 bg-slate-800 border border-white/10 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl text-xs font-bold transition-all cursor-pointer">
+          Cancel
+        </button>
+        <button (click)="saveEditedBall()"
+          class="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shadow-md shadow-violet-600/20">
+          <i class="fi fi-rr-check text-xs"></i> Save Note
+        </button>
+      </div>
+    </div>
+  </div>
+}
+

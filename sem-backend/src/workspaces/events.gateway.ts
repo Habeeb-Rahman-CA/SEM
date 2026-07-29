@@ -38,8 +38,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
         client.handshake.headers?.authorization?.split(' ')[1];
 
       if (!token) {
-        this.logger.warn(`Client connected without token: ${client.id}`);
-        client.disconnect();
+        this.logger.log(`Guest client connected: ${client.id}`);
         return;
       }
 
@@ -48,22 +47,27 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
         'JWT_SECRET',
         'super-secret-key-12345',
       );
-      const payload = await this.jwtService.verifyAsync(token, { secret });
-      client.data.user = payload;
+      try {
+        const payload = await this.jwtService.verifyAsync(token, { secret });
+        client.data.user = payload;
 
-      const userId = payload.sub || payload.id;
-      if (!userId) {
-        throw new Error('User ID not found in token payload');
+        const userId = payload.sub || payload.id;
+        if (userId) {
+          // Join a room for the user to receive private notifications
+          await client.join(`user:${userId}`);
+          this.logger.log(
+            `Client authenticated: ${client.id} (User: ${userId})`,
+          );
+        }
+      } catch (authErr) {
+        this.logger.warn(
+          `WS connection authentication failed (connecting as guest): ${authErr.message}`,
+        );
       }
-
-      // Join a room for the user to receive private notifications
-      await client.join(`user:${userId}`);
-      this.logger.log(`Client authenticated: ${client.id} (User: ${userId})`);
     } catch (err) {
       this.logger.error(
-        `Authentication failed for client ${client.id}: ${err.message}`,
+        `Error in connection handling for client ${client.id}: ${err.message}`,
       );
-      client.disconnect();
     }
   }
 

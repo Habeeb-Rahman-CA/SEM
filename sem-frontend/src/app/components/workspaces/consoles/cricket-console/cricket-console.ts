@@ -1,4 +1,4 @@
-import { Component, input, output, signal, inject, effect } from '@angular/core';
+import { Component, input, output, signal, inject, effect, computed } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Match, Player, Team, MatchPlayer, CompetitionStage } from '../../../../services/workspace.service';
@@ -36,6 +36,78 @@ export class CricketConsoleComponent {
   cricketNonStriker = signal<string>('');
   cricketStatsTab = signal<'batting' | 'bowling'>('batting');
   cricketWicketType = signal<string>('Bowled');
+  consoleMode = signal<'referee' | 'statistician'>('referee');
+
+  hasUnpublishedBalls = computed(() => {
+    const match = this.match();
+    if (!match || !match.liveData || !match.liveData.inningsData) return false;
+    const currentInnings = match.liveData.currentInnings || 1;
+    const innings = match.liveData.inningsData[currentInnings - 1];
+    if (!innings || !innings.ballsHistory) return false;
+    return innings.ballsHistory.some((b: any) => b.published === false);
+  });
+
+  draftInningsStats = computed(() => {
+    const match = this.match();
+    if (!match || !match.liveData || !match.liveData.inningsData) return null;
+    const currentInnings = match.liveData.currentInnings || 1;
+    const innings = match.liveData.inningsData[currentInnings - 1];
+    if (!innings) return null;
+
+    let runs = innings.runs || 0;
+    let wickets = innings.wickets || 0;
+    let ballsCount = (innings.overs || 0) * 6 + (innings.balls || 0);
+
+    const draftBalls = (innings.ballsHistory || []).filter((b: any) => b.published === false);
+    for (const ball of draftBalls) {
+      runs += (ball.runs || 0) + (ball.extras || 0);
+      if (ball.wicket && ball.wicketType !== 'Retired Hurt') {
+        wickets++;
+      }
+      if (ball.ballType !== 'wide' && ball.ballType !== 'no-ball') {
+        ballsCount++;
+      }
+    }
+
+    const overs = Math.floor(ballsCount / 6);
+    const balls = ballsCount % 6;
+
+    return { runs, wickets, overs, balls };
+  });
+
+  draftHomeScore = computed(() => {
+    const match = this.match();
+    if (!match) return 0;
+    const live = match.liveData;
+    if (!live || !live.inningsData) return match.homeScore;
+
+    const homeInnings = live.inningsData.find((i: any) => i.battingTeamId === match.homeTeamId);
+    if (!homeInnings) return 0;
+
+    let runs = homeInnings.runs || 0;
+    const draftBalls = (homeInnings.ballsHistory || []).filter((b: any) => b.published === false);
+    for (const ball of draftBalls) {
+      runs += (ball.runs || 0) + (ball.extras || 0);
+    }
+    return runs;
+  });
+
+  draftAwayScore = computed(() => {
+    const match = this.match();
+    if (!match) return 0;
+    const live = match.liveData;
+    if (!live || !live.inningsData) return match.awayScore;
+
+    const awayInnings = live.inningsData.find((i: any) => i.battingTeamId === match.awayTeamId);
+    if (!awayInnings) return 0;
+
+    let runs = awayInnings.runs || 0;
+    const draftBalls = (awayInnings.ballsHistory || []).filter((b: any) => b.published === false);
+    for (const ball of draftBalls) {
+      runs += (ball.runs || 0) + (ball.extras || 0);
+    }
+    return runs;
+  });
 
   constructor() {
     effect(() => {
@@ -192,16 +264,50 @@ export class CricketConsoleComponent {
     const match = this.match();
     if (!match) return;
 
-    if (!this.cricketBowler() || !this.cricketStriker() || !this.cricketNonStriker()) {
-      this.uiService.error('Please select Bowler, Striker, and Non-Striker before recording a ball.');
-      return;
-    }
+    const isDraft = this.consoleMode() === 'statistician';
+
+    // Fallbacks to enable quick scoring without strict selection
+    const striker = this.cricketStriker() || 'Batter 1';
+    const nonStriker = this.cricketNonStriker() || 'Batter 2';
+    const bowler = this.cricketBowler() || 'Bowler';
 
     const live = { ...match.liveData };
     const inningsIndex = (live.currentInnings ?? 1) - 1;
     if (!live.inningsData || !live.inningsData[inningsIndex]) return;
 
     const innings = { ...live.inningsData[inningsIndex] };
+
+    if (!innings.ballsHistory) {
+      innings.ballsHistory = [];
+    }
+    const ballNumber = this.getCricketBallNumber(innings.ballsHistory);
+    const newBall = {
+      ballNumber,
+      bowler,
+      striker,
+      nonStriker,
+      runs,
+      extras: extraRuns,
+      wicket,
+      ballType,
+      wicketType,
+      published: !isDraft,
+      timestamp: new Date().toISOString()
+    };
+    innings.ballsHistory.push(newBall);
+
+    if (isDraft) {
+      live.inningsData[inningsIndex] = innings;
+      this.competitionService.updateMatch(this.workspaceId(), this.eventId(), this.competitionId(), this.stageId(), match.id, {
+        liveData: live,
+      }).subscribe({
+        next: (updated) => {
+          this.matchUpdated.emit(updated);
+          this.uiService.success('Draft ball recorded. Don\'t forget to Validate & Publish!');
+        }
+      });
+      return;
+    }
 
     innings.runs += runs + extraRuns;
     innings.extraRuns = (innings.extraRuns ?? 0) + extraRuns;
@@ -221,24 +327,6 @@ export class CricketConsoleComponent {
       }
     }
 
-    if (!innings.ballsHistory) {
-      innings.ballsHistory = [];
-    }
-    const ballNumber = this.getCricketBallNumber(innings.ballsHistory);
-    innings.ballsHistory.push({
-      ballNumber,
-      bowler: this.cricketBowler() || 'Unknown Bowler',
-      striker: this.cricketStriker() || 'Unknown Batter',
-      nonStriker: this.cricketNonStriker() || 'Unknown Batter',
-      runs,
-      extras: extraRuns,
-      wicket,
-      ballType,
-      wicketType,
-      timestamp: new Date().toISOString()
-    });
-
-    const striker = this.cricketStriker() || 'Unknown Batter';
     if (!innings.batsmanStats) innings.batsmanStats = {};
     if (!innings.batsmanStats[striker]) {
       innings.batsmanStats[striker] = { runs: 0, balls: 0, fours: 0, sixes: 0 };
@@ -250,7 +338,6 @@ export class CricketConsoleComponent {
       if (runs === 6) innings.batsmanStats[striker].sixes += 1;
     }
 
-    const bowler = this.cricketBowler() || 'Unknown Bowler';
     if (!innings.bowlerStats) innings.bowlerStats = {};
     if (!innings.bowlerStats[bowler]) {
       innings.bowlerStats[bowler] = { overs: 0, balls: 0, runsConceded: 0, wickets: 0, extraRuns: 0, maidens: 0, currentOverRuns: 0 };
@@ -504,5 +591,314 @@ export class CricketConsoleComponent {
   getPlayersForTeam(teamId: string | null): Player[] {
     if (!teamId) return [];
     return this.players().filter(p => p.teamId === teamId);
+  }
+
+  // ─── Match Timeline Management (Cricket Ball History) ────────────────────
+
+  timelineFilterInnings = signal<number>(0);    // 0 = All innings
+  timelineFilterBallType = signal<string>('all'); // ball type filter
+  timelineFilterBowler = signal<string>('all');
+  timelineFilterBatsman = signal<string>('all');
+  showTimelinePanel = signal<boolean>(true);
+
+  get totalBallsCount(): number {
+    const innings = this.match()?.liveData?.inningsData || [];
+    return innings.reduce((acc: number, inn: any) => acc + (inn.ballsHistory?.length || 0), 0);
+  }
+
+  editingBall = signal<any | null>(null);
+  editBallNote = signal<string>('');
+
+  /** All unique bowler names across all innings */
+  get timelineBowlerNames(): string[] {
+    const innings: any[] = this.match()?.liveData?.inningsData ?? [];
+    const names = new Set<string>();
+    for (const inn of innings) {
+      for (const ball of (inn.ballsHistory ?? [])) {
+        if (ball.bowler) names.add(ball.bowler);
+      }
+    }
+    return Array.from(names);
+  }
+
+  /** All unique batsman names across all innings */
+  get timelineBatsmanNames(): string[] {
+    const innings: any[] = this.match()?.liveData?.inningsData ?? [];
+    const names = new Set<string>();
+    for (const inn of innings) {
+      for (const ball of (inn.ballsHistory ?? [])) {
+        if (ball.striker) names.add(ball.striker);
+      }
+    }
+    return Array.from(names);
+  }
+
+  /** All ball-history entries across innings, filtered and indexed for display */
+  filteredBalls = computed(() => {
+    const innings: any[] = this.match()?.liveData?.inningsData ?? [];
+    const inningsFilter = this.timelineFilterInnings();
+    const typeFilter = this.timelineFilterBallType();
+    const bowlerFilter = this.timelineFilterBowler();
+    const batsmanFilter = this.timelineFilterBatsman();
+
+    const results: any[] = [];
+    for (const inn of innings) {
+      if (inningsFilter !== 0 && inn.inningsNumber !== inningsFilter) continue;
+      const balls: any[] = inn.ballsHistory ?? [];
+      const reversed = [...balls].reverse();
+      for (let i = 0; i < reversed.length; i++) {
+        const ball = reversed[i];
+        if (typeFilter !== 'all' && ball.ballType !== typeFilter) continue;
+        if (bowlerFilter !== 'all' && ball.bowler !== bowlerFilter) continue;
+        if (batsmanFilter !== 'all' && ball.striker !== batsmanFilter) continue;
+        results.push({
+          ...ball,
+          _inningsNumber: inn.inningsNumber,
+          _originalIndex: balls.length - 1 - i, // index in the original (non-reversed) array
+        });
+      }
+    }
+    return results;
+  });
+
+  openEditBall(ball: any) {
+    this.editingBall.set({ ...ball });
+    this.editBallNote.set(ball._note ?? '');
+  }
+
+  cancelEditBall() {
+    this.editingBall.set(null);
+  }
+
+  saveEditedBall() {
+    const match = this.match();
+    const editing = this.editingBall();
+    if (!match || !editing) return;
+
+    const live = { ...match.liveData };
+    const inningsIdx = editing._inningsNumber - 1;
+    if (!live.inningsData || !live.inningsData[inningsIdx]) return;
+
+    const balls = [...live.inningsData[inningsIdx].ballsHistory];
+    const ballIdx: number = editing._originalIndex;
+    const original = { ...balls[ballIdx] };
+
+    const auditEntry = {
+      action: 'edited',
+      at: new Date().toISOString(),
+      previousNote: original._note ?? null,
+    };
+
+    balls[ballIdx] = {
+      ...balls[ballIdx],
+      _note: this.editBallNote() || undefined,
+      _audit: Array.isArray(balls[ballIdx]._audit)
+        ? [...balls[ballIdx]._audit, auditEntry]
+        : [auditEntry],
+    };
+
+    const updatedInnings = [...live.inningsData];
+    updatedInnings[inningsIdx] = { ...updatedInnings[inningsIdx], ballsHistory: balls };
+    live.inningsData = updatedInnings;
+
+    this.competitionService
+      .updateMatch(
+        this.workspaceId(), this.eventId(), this.competitionId(),
+        this.stageId(), match.id, { liveData: live },
+      )
+      .subscribe({
+        next: (updated) => {
+          this.matchUpdated.emit(updated);
+          this.editingBall.set(null);
+          this.uiService.success('Ball updated and audit trail recorded.');
+        },
+        error: () => this.uiService.error('Failed to update ball.'),
+      });
+  }
+
+  /**
+   * Soft-delete a ball delivery by moving it to a _deletedBalls audit archive.
+   * Note: score is NOT auto-recalculated — use "Undo Last Ball" for score correction.
+   */
+  deleteBall(inningsNumber: number, originalIndex: number) {
+    const match = this.match();
+    if (!match) return;
+
+    const live = { ...match.liveData };
+    const inningsIdx = inningsNumber - 1;
+    if (!live.inningsData || !live.inningsData[inningsIdx]) return;
+
+    const balls = [...live.inningsData[inningsIdx].ballsHistory];
+    if (originalIndex < 0 || originalIndex >= balls.length) return;
+
+    const removed = { ...balls[originalIndex] };
+
+    const deletedEntry = {
+      ...removed,
+      _inningsNumber: inningsNumber,
+      _deletedAt: new Date().toISOString(),
+      _action: 'deleted',
+    };
+    live._deletedBalls = Array.isArray(live._deletedBalls)
+      ? [...live._deletedBalls, deletedEntry]
+      : [deletedEntry];
+
+    balls.splice(originalIndex, 1);
+    const updatedInnings = [...live.inningsData];
+    updatedInnings[inningsIdx] = { ...updatedInnings[inningsIdx], ballsHistory: balls };
+    live.inningsData = updatedInnings;
+
+    this.competitionService
+      .updateMatch(
+        this.workspaceId(), this.eventId(), this.competitionId(),
+        this.stageId(), match.id, { liveData: live },
+      )
+      .subscribe({
+        next: (updated) => {
+          this.matchUpdated.emit(updated);
+          this.uiService.success('Ball removed from timeline.');
+        },
+        error: () => this.uiService.error('Failed to remove ball.'),
+      });
+  }
+
+  onPublishCricketStats() {
+    const match = this.match();
+    if (!match) return;
+
+    const live = { ...match.liveData };
+    const inningsIndex = (live.currentInnings ?? 1) - 1;
+    if (!live.inningsData || !live.inningsData[inningsIndex]) return;
+
+    const innings = { ...live.inningsData[inningsIndex] };
+    const balls = innings.ballsHistory || [];
+
+    // Reset stats to replay all balls (published and draft)
+    innings.runs = 0;
+    innings.wickets = 0;
+    innings.overs = 0;
+    innings.balls = 0;
+    innings.extraRuns = 0;
+    innings.batsmanStats = {};
+    innings.bowlerStats = {};
+
+    for (const ball of balls) {
+      ball.published = true;
+
+      innings.runs += ball.runs + ball.extras;
+      innings.extraRuns = (innings.extraRuns ?? 0) + ball.extras;
+
+      if (ball.wicket) {
+        if (ball.wicketType !== 'Retired Hurt') {
+          innings.wickets += 1;
+        }
+      }
+
+      if (ball.ballType !== 'wide' && ball.ballType !== 'no-ball') {
+        innings.balls += 1;
+        if (innings.balls >= 6) {
+          innings.overs += 1;
+          innings.balls = 0;
+        }
+      }
+
+      const striker = ball.striker || 'Unknown Batter';
+      if (!innings.batsmanStats[striker]) {
+        innings.batsmanStats[striker] = { runs: 0, balls: 0, fours: 0, sixes: 0 };
+      }
+      if (ball.ballType !== 'wide') {
+        innings.batsmanStats[striker].balls += 1;
+        innings.batsmanStats[striker].runs += ball.runs;
+        if (ball.runs === 4) innings.batsmanStats[striker].fours += 1;
+        if (ball.runs === 6) innings.batsmanStats[striker].sixes += 1;
+      }
+
+      const bowler = ball.bowler || 'Unknown Bowler';
+      if (!innings.bowlerStats[bowler]) {
+        innings.bowlerStats[bowler] = { overs: 0, balls: 0, runsConceded: 0, wickets: 0, extraRuns: 0, maidens: 0, currentOverRuns: 0 };
+      }
+      const bowlerRunsConceded = (ball.ballType === 'bye' || ball.ballType === 'leg-bye') ? ball.runs : (ball.runs + ball.extras);
+      innings.bowlerStats[bowler].runsConceded += bowlerRunsConceded;
+      innings.bowlerStats[bowler].currentOverRuns = (innings.bowlerStats[bowler].currentOverRuns || 0) + bowlerRunsConceded;
+
+      const bowlerExtraRuns = (ball.ballType === 'bye' || ball.ballType === 'leg-bye') ? 0 : ball.extras;
+      innings.bowlerStats[bowler].extraRuns += bowlerExtraRuns;
+
+      if (ball.wicket) {
+        const bowlerGetsWicket = ball.wicketType !== 'Run Out' && ball.wicketType !== 'Retired Hurt';
+        if (bowlerGetsWicket) {
+          innings.bowlerStats[bowler].wickets += 1;
+        }
+      }
+
+      if (ball.ballType !== 'wide' && ball.ballType !== 'no-ball') {
+        innings.bowlerStats[bowler].balls += 1;
+        if (innings.bowlerStats[bowler].balls >= 6) {
+          innings.bowlerStats[bowler].overs += 1;
+          innings.bowlerStats[bowler].balls = 0;
+          if (innings.bowlerStats[bowler].currentOverRuns === 0) {
+            innings.bowlerStats[bowler].maidens = (innings.bowlerStats[bowler].maidens || 0) + 1;
+          }
+          innings.bowlerStats[bowler].currentOverRuns = 0;
+        }
+      }
+    }
+
+    live.inningsData[inningsIndex] = innings;
+
+    const homeInnings = live.inningsData.find((i: any) => i.battingTeamId === match.homeTeamId);
+    const homeScore = homeInnings ? homeInnings.runs : 0;
+    const awayInnings = live.inningsData.find((i: any) => i.battingTeamId === match.awayTeamId);
+    const awayScore = awayInnings ? awayInnings.runs : 0;
+
+    const targetOvers = match.config.overs ?? 20;
+    const firstInnings = live.inningsData[0];
+    const targetChased = (live.currentInnings === 2 && firstInnings && innings.runs > firstInnings.runs);
+
+    let nextStatus = match.status;
+
+    if (innings.wickets >= 10 || innings.overs >= targetOvers || targetChased) {
+      innings.completed = true;
+      if (live.currentInnings === 1) {
+        live.currentInnings = 2;
+        live.inningsData.push({
+          inningsNumber: 2,
+          battingTeamId: innings.bowlingTeamId,
+          bowlingTeamId: innings.battingTeamId,
+          runs: 0,
+          wickets: 0,
+          overs: 0,
+          balls: 0,
+          batsmanStats: {},
+          bowlerStats: {},
+          extraRuns: 0,
+          completed: false,
+          ballsHistory: []
+        });
+        this.cricketStriker.set('');
+        this.cricketNonStriker.set('');
+        this.cricketBowler.set('');
+      } else {
+        nextStatus = 'completed';
+        this.cricketStriker.set('');
+        this.cricketNonStriker.set('');
+        this.cricketBowler.set('');
+      }
+    }
+
+    this.competitionService.updateMatch(this.workspaceId(), this.eventId(), this.competitionId(), this.stageId(), match.id, {
+      homeScore,
+      awayScore,
+      status: nextStatus,
+      liveData: live,
+    }).subscribe({
+      next: (updated) => {
+        this.matchUpdated.emit(updated);
+        this.uiService.success('Cricket statistics validated and published to live scoreboards!');
+        if (nextStatus === 'completed') {
+          this.matchCompleted.emit();
+        }
+      }
+    });
   }
 }

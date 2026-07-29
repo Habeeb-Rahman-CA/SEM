@@ -257,10 +257,17 @@
       <!-- Breadcrumbs & Navigation -->
       <div class="flex items-center justify-between border-b border-white/5 pb-4">
         <div class="flex items-center gap-3">
+          @if (selectedMatch()) {
+          <button (click)="onSelectMatch(null)"
+            class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white hover:text-slate-950 text-xs font-bold rounded-xl cursor-pointer transition-all border border-white/5">
+            ← Back to Matches
+          </button>
+          } @else {
           <button (click)="onDeselectCompetition()"
             class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white hover:text-slate-950 text-xs font-bold rounded-xl cursor-pointer transition-all border border-white/5">
             ← Back to Competitions
           </button>
+          }
           <div class="flex items-center gap-1.5 text-xs text-slate-400">
             <span class="text-white font-semibold text-sm">{{ selectedCompetition()?.name }}</span>
             @if (selectedStage()) {

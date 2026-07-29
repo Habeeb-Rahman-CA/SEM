@@ -22,6 +22,7 @@ import { CompetitionRankingsService } from './services/competition-rankings.serv
 import { MatchGenerationService } from './services/match-generation.service';
 import { CompetitionCompletionService } from './services/competition-completion.service';
 import { SportEngineRegistry } from './sports/sport-engine.registry';
+import { MatchLockService } from './services/match-lock.service';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { SportEngineRegistry } from './sports/sport-engine.registry';
     MatchGenerationService,
     CompetitionCompletionService,
     SportEngineRegistry,
+    MatchLockService,
   ],
   exports: [
     CompetitionsService,
@@ -62,6 +64,7 @@ import { SportEngineRegistry } from './sports/sport-engine.registry';
     MatchGenerationService,
     CompetitionCompletionService,
     SportEngineRegistry,
+    MatchLockService,
   ],
 })
 export class CompetitionsModule {}

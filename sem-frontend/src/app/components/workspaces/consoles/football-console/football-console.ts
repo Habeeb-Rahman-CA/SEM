@@ -1,14 +1,15 @@
-import { Component, input, output, signal, inject, effect, OnDestroy } from '@angular/core';
+import { Component, input, output, signal, inject, effect, OnDestroy, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Match, Player, Team, MatchPlayer, CompetitionStage } from '../../../../services/workspace.service';
 import { CompetitionService } from '../../../../services/competition.service';
 import { UiService } from '../../../../services/ui.service';
 import { AvatarComponent } from '../../../../shared/components/avatar/avatar';
+import { DatePipe } from '@angular/common';
 
 @Component({
   selector: 'app-football-console',
   standalone: true,
-  imports: [FormsModule, AvatarComponent],
+  imports: [FormsModule, AvatarComponent, DatePipe],
   templateUrl: './football-console.html',
 })
 export class FootballConsoleComponent implements OnDestroy {
@@ -35,6 +36,32 @@ export class FootballConsoleComponent implements OnDestroy {
   enableExtraTime = signal<boolean>(false);
   extraTimeHalfDuration = signal<number>(15);
   enablePenaltyShootout = signal<boolean>(false);
+  consoleMode = signal<'referee' | 'statistician'>('referee');
+
+  hasUnpublishedEvents = computed(() => {
+    const events = this.match()?.liveData?.events || [];
+    return events.some((e: any) => e.published === false);
+  });
+
+  draftHomeScore = computed(() => {
+    let score = this.match()?.homeScore || 0;
+    const draftGoals = (this.match()?.liveData?.events || []).filter((e: any) => e.published === false && e.type === 'goal');
+    for (const dg of draftGoals) {
+      const isHomeGoal = (dg.goalType === 'own_goal') ? (dg.teamId === this.match()?.awayTeamId) : (dg.teamId === this.match()?.homeTeamId);
+      if (isHomeGoal) score++;
+    }
+    return score;
+  });
+
+  draftAwayScore = computed(() => {
+    let score = this.match()?.awayScore || 0;
+    const draftGoals = (this.match()?.liveData?.events || []).filter((e: any) => e.published === false && e.type === 'goal');
+    for (const dg of draftGoals) {
+      const isAwayGoal = (dg.goalType === 'own_goal') ? (dg.teamId === this.match()?.homeTeamId) : (dg.teamId === this.match()?.awayTeamId);
+      if (isAwayGoal) score++;
+    }
+    return score;
+  });
 
   constructor() {
     effect(() => {
@@ -331,6 +358,7 @@ export class FootballConsoleComponent implements OnDestroy {
     const match = this.match();
     if (!match) return;
 
+    const isDraft = this.consoleMode() === 'statistician';
     const live = { ...match.liveData };
     const currentMin = Math.floor(this.localElapsedSeconds() / 60) + 1;
 
@@ -344,23 +372,26 @@ export class FootballConsoleComponent implements OnDestroy {
       assistPlayerUserId: (assistId && assistId !== 'unregistered') ? assistId : undefined,
       assistPlayerName: (assistId === 'unregistered') ? assistCustomName : undefined,
       minute: currentMin,
+      published: !isDraft,
     });
 
     const isHome = teamId === match.homeTeamId;
     let newHomeScore = match.homeScore;
     let newAwayScore = match.awayScore;
 
-    if (goalType === 'own_goal') {
-      if (isHome) {
-        newAwayScore += 1;
+    if (!isDraft) {
+      if (goalType === 'own_goal') {
+        if (isHome) {
+          newAwayScore += 1;
+        } else {
+          newHomeScore += 1;
+        }
       } else {
-        newHomeScore += 1;
-      }
-    } else {
-      if (isHome) {
-        newHomeScore += 1;
-      } else {
-        newAwayScore += 1;
+        if (isHome) {
+          newHomeScore += 1;
+        } else {
+          newAwayScore += 1;
+        }
       }
     }
 
@@ -373,6 +404,9 @@ export class FootballConsoleComponent implements OnDestroy {
     }).subscribe({
       next: (updated) => {
         this.matchUpdated.emit(updated);
+        if (isDraft) {
+          this.uiService.success('Draft goal recorded. Don\'t forget to Validate & Publish!');
+        }
       }
     });
   }
@@ -381,6 +415,7 @@ export class FootballConsoleComponent implements OnDestroy {
     const match = this.match();
     if (!match) return;
 
+    const isDraft = this.consoleMode() === 'statistician';
     const live = { ...match.liveData };
     const currentMin = Math.floor(this.localElapsedSeconds() / 60) + 1;
 
@@ -402,6 +437,7 @@ export class FootballConsoleComponent implements OnDestroy {
       playerUserId: playerId,
       cardType: finalCardType,
       minute: currentMin,
+      published: !isDraft,
     });
 
     live.elapsedSeconds = this.localElapsedSeconds();
@@ -411,6 +447,9 @@ export class FootballConsoleComponent implements OnDestroy {
     }).subscribe({
       next: (updated) => {
         this.matchUpdated.emit(updated);
+        if (isDraft) {
+          this.uiService.success('Draft card recorded. Don\'t forget to Validate & Publish!');
+        }
       }
     });
   }
@@ -419,6 +458,7 @@ export class FootballConsoleComponent implements OnDestroy {
     const match = this.match();
     if (!match) return;
 
+    const isDraft = this.consoleMode() === 'statistician';
     const live = { ...match.liveData };
     const currentMin = Math.floor(this.localElapsedSeconds() / 60) + 1;
 
@@ -430,6 +470,7 @@ export class FootballConsoleComponent implements OnDestroy {
       playerUserId: kickerId,
       outcome,
       minute: currentMin,
+      published: !isDraft,
     });
 
     let newHomeScore = match.homeScore;
@@ -442,12 +483,15 @@ export class FootballConsoleComponent implements OnDestroy {
         teamId,
         playerUserId: kickerId,
         minute: currentMin,
+        published: !isDraft,
       });
 
-      if (teamId === match.homeTeamId) {
-        newHomeScore += 1;
-      } else {
-        newAwayScore += 1;
+      if (!isDraft) {
+        if (teamId === match.homeTeamId) {
+          newHomeScore += 1;
+        } else {
+          newAwayScore += 1;
+        }
       }
     }
 
@@ -460,6 +504,9 @@ export class FootballConsoleComponent implements OnDestroy {
     }).subscribe({
       next: (updated) => {
         this.matchUpdated.emit(updated);
+        if (isDraft) {
+          this.uiService.success('Draft penalty recorded. Don\'t forget to Validate & Publish!');
+        }
       }
     });
   }
@@ -468,6 +515,7 @@ export class FootballConsoleComponent implements OnDestroy {
     const match = this.match();
     if (!match) return;
 
+    const isDraft = this.consoleMode() === 'statistician';
     const live = { ...match.liveData };
     const currentMin = Math.floor(this.localElapsedSeconds() / 60) + 1;
 
@@ -478,7 +526,8 @@ export class FootballConsoleComponent implements OnDestroy {
       playerOutId,
       playerInId,
       reason,
-      minute: currentMin
+      minute: currentMin,
+      published: !isDraft,
     });
 
     live.elapsedSeconds = this.localElapsedSeconds();
@@ -488,6 +537,9 @@ export class FootballConsoleComponent implements OnDestroy {
     }).subscribe({
       next: (updated) => {
         this.matchUpdated.emit(updated);
+        if (isDraft) {
+          this.uiService.success('Draft substitution recorded.');
+        }
       }
     });
   }
@@ -496,6 +548,7 @@ export class FootballConsoleComponent implements OnDestroy {
     const match = this.match();
     if (!match) return;
 
+    const isDraft = this.consoleMode() === 'statistician';
     const live = { ...match.liveData };
     const currentMin = Math.floor(this.localElapsedSeconds() / 60) + 1;
 
@@ -504,7 +557,8 @@ export class FootballConsoleComponent implements OnDestroy {
       type: 'offside',
       teamId,
       playerUserId: playerId,
-      minute: currentMin
+      minute: currentMin,
+      published: !isDraft,
     });
 
     live.elapsedSeconds = this.localElapsedSeconds();
@@ -514,6 +568,9 @@ export class FootballConsoleComponent implements OnDestroy {
     }).subscribe({
       next: (updated) => {
         this.matchUpdated.emit(updated);
+        if (isDraft) {
+          this.uiService.success('Draft offside recorded.');
+        }
       }
     });
   }
@@ -522,6 +579,7 @@ export class FootballConsoleComponent implements OnDestroy {
     const match = this.match();
     if (!match) return;
 
+    const isDraft = this.consoleMode() === 'statistician';
     const live = { ...match.liveData };
     const currentMin = Math.floor(this.localElapsedSeconds() / 60) + 1;
 
@@ -532,7 +590,8 @@ export class FootballConsoleComponent implements OnDestroy {
       playerUserId: committedById,
       opponentPlayerUserId: againstId,
       foulType,
-      minute: currentMin
+      minute: currentMin,
+      published: !isDraft,
     });
 
     live.elapsedSeconds = this.localElapsedSeconds();
@@ -542,6 +601,9 @@ export class FootballConsoleComponent implements OnDestroy {
     }).subscribe({
       next: (updated) => {
         this.matchUpdated.emit(updated);
+        if (isDraft) {
+          this.uiService.success('Draft foul recorded.');
+        }
       }
     });
   }
@@ -918,5 +980,331 @@ export class FootballConsoleComponent implements OnDestroy {
     }
 
     return teamPlayers;
+  }
+
+  // ─── Match Timeline Management ──────────────────────────────────────────────
+
+  // Filter state
+  timelineFilterType = signal<string>('all');
+  timelineFilterPlayer = signal<string>('all');
+  showTimelinePanel = signal<boolean>(false);
+
+  // Edit modal state
+  editingEvent = signal<any | null>(null);
+  editEventMinute = signal<number>(0);
+  editEventNote = signal<string>('');
+
+  /** Returns all event types present in the current match events. */
+  get timelineEventTypes(): string[] {
+    const events: any[] = this.match()?.liveData?.events ?? [];
+    const types = new Set(events.map((e: any) => e.type));
+    return Array.from(types);
+  }
+
+  /** Returns all unique player user-IDs referenced in any event. */
+  get timelinePlayerIds(): string[] {
+    const events: any[] = this.match()?.liveData?.events ?? [];
+    const ids = new Set<string>();
+    for (const e of events) {
+      if (e.playerUserId) ids.add(e.playerUserId);
+      if (e.playerOutId) ids.add(e.playerOutId);
+      if (e.playerInId) ids.add(e.playerInId);
+      if (e.assistPlayerUserId) ids.add(e.assistPlayerUserId);
+    }
+    return Array.from(ids);
+  }
+
+  /** Filtered, chronologically sorted events for the timeline panel. */
+  filteredTimelineEvents = computed(() => {
+    const events: any[] = this.match()?.liveData?.events ?? [];
+    const typeFilter = this.timelineFilterType();
+    const playerFilter = this.timelineFilterPlayer();
+
+    return events
+      .map((e, originalIndex) => ({ ...e, _originalIndex: originalIndex }))
+      .filter((e) => {
+        if (typeFilter !== 'all' && e.type !== typeFilter) return false;
+        if (playerFilter !== 'all') {
+          const matchesPlayer =
+            e.playerUserId === playerFilter ||
+            e.playerOutId === playerFilter ||
+            e.playerInId === playerFilter ||
+            e.assistPlayerUserId === playerFilter;
+          if (!matchesPlayer) return false;
+        }
+        return true;
+      })
+      .sort((a, b) => (a.minute ?? 0) - (b.minute ?? 0));
+  });
+
+  /** Human-readable label for an event type. */
+  getEventTypeLabel(type: string): string {
+    const labels: Record<string, string> = {
+      goal: 'Goal',
+      card: 'Card',
+      substitution: 'Substitution',
+      offside: 'Offside',
+      foul: 'Foul',
+      free_kick: 'Free Kick',
+      corner_kick: 'Corner Kick',
+      throw_in: 'Throw In',
+      goal_kick: 'Goal Kick',
+      injury: 'Injury',
+      penalty: 'Penalty',
+      shootout_penalty: 'Shootout Penalty',
+    };
+    return labels[type] ?? type;
+  }
+
+  /** Look up a player's display name by their user ID. */
+  getPlayerNameById(userId: string | undefined): string {
+    if (!userId) return '—';
+    const player = this.players().find((p) => p.userId === userId);
+    return player ? (player.user?.username ?? userId) : userId;
+  }
+
+  /** Open the edit dialog for a specific timeline event. */
+  openEditEvent(event: any) {
+    this.editingEvent.set({ ...event });
+    this.editEventMinute.set(event.minute ?? 0);
+    this.editEventNote.set(event._note ?? '');
+  }
+
+  /** Close the edit dialog without saving. */
+  cancelEditEvent() {
+    this.editingEvent.set(null);
+  }
+
+  /**
+   * Persist the edited minute / note for the event back into liveData.
+   * Appends an audit entry to the event's _audit array with the original
+   * values, timestamp, and (if available) the current user's identity.
+   */
+  saveEditedEvent() {
+    const match = this.match();
+    const editing = this.editingEvent();
+    if (!match || !editing) return;
+
+    const live = { ...match.liveData };
+    if (!live.events) return;
+
+    const idx: number = editing._originalIndex;
+    const original = { ...live.events[idx] };
+
+    // Build audit trail entry
+    const auditEntry = {
+      action: 'edited',
+      at: new Date().toISOString(),
+      previousMinute: original.minute,
+      previousNote: original._note ?? null,
+    };
+
+    live.events = live.events.map((e: any, i: number) => {
+      if (i !== idx) return e;
+      const audit: any[] = Array.isArray(e._audit) ? [...e._audit, auditEntry] : [auditEntry];
+      return {
+        ...e,
+        minute: this.editEventMinute(),
+        _note: this.editEventNote() || undefined,
+        _audit: audit,
+      };
+    });
+
+    this.competitionService
+      .updateMatch(
+        this.workspaceId(), this.eventId(), this.competitionId(),
+        this.stageId(), match.id, { liveData: live },
+      )
+      .subscribe({
+        next: (updated) => {
+          this.matchUpdated.emit(updated);
+          this.editingEvent.set(null);
+          this.uiService.success('Event updated and audit trail recorded.');
+        },
+        error: () => this.uiService.error('Failed to update event.'),
+      });
+  }
+
+  /**
+   * Remove an event by its original array index.
+   * Appends a soft-deleted marker to the match's _deletedEvents audit log
+   * rather than permanently discarding the record.
+   */
+  deleteEvent(originalIndex: number) {
+    const match = this.match();
+    if (!match) return;
+
+    const live = { ...match.liveData };
+    if (!live.events || originalIndex < 0 || originalIndex >= live.events.length) return;
+
+    const removedEvent = { ...live.events[originalIndex] };
+
+    // Archive into audit log
+    const deletedEntry = {
+      ...removedEvent,
+      _deletedAt: new Date().toISOString(),
+      _action: 'deleted',
+    };
+    live._deletedEvents = Array.isArray(live._deletedEvents)
+      ? [...live._deletedEvents, deletedEntry]
+      : [deletedEntry];
+
+    // Remove from active events
+    live.events = live.events.filter((_: any, i: number) => i !== originalIndex);
+
+    // If a goal event is being removed, adjust the score
+    if (removedEvent.type === 'goal') {
+      const isHome = removedEvent.teamId === match.homeTeamId;
+      const isOwnGoal = removedEvent.goalType === 'own_goal';
+      let newHomeScore = match.homeScore;
+      let newAwayScore = match.awayScore;
+      if (isOwnGoal) {
+        // own goal for home team → credited to away; undo means away loses 1
+        if (isHome) newAwayScore = Math.max(0, newAwayScore - 1);
+        else newHomeScore = Math.max(0, newHomeScore - 1);
+      } else {
+        if (isHome) newHomeScore = Math.max(0, newHomeScore - 1);
+        else newAwayScore = Math.max(0, newAwayScore - 1);
+      }
+      this.competitionService
+        .updateMatch(
+          this.workspaceId(), this.eventId(), this.competitionId(),
+          this.stageId(), match.id,
+          { homeScore: newHomeScore, awayScore: newAwayScore, liveData: live },
+        )
+        .subscribe({
+          next: (updated) => {
+            this.matchUpdated.emit(updated);
+            this.uiService.success('Goal event removed and score adjusted.');
+          },
+          error: () => this.uiService.error('Failed to remove event.'),
+        });
+      return;
+    }
+
+    this.competitionService
+      .updateMatch(
+        this.workspaceId(), this.eventId(), this.competitionId(),
+        this.stageId(), match.id, { liveData: live },
+      )
+      .subscribe({
+        next: (updated) => {
+          this.matchUpdated.emit(updated);
+          this.uiService.success('Event removed.');
+        },
+        error: () => this.uiService.error('Failed to remove event.'),
+      });
+  }
+
+  onRefereeGoal(teamId: string, delta: number) {
+    const match = this.match();
+    if (!match) return;
+
+    const isHome = teamId === match.homeTeamId;
+    let newHomeScore = Math.max(0, match.homeScore + (isHome ? delta : 0));
+    let newAwayScore = Math.max(0, match.awayScore + (isHome ? 0 : delta));
+
+    const live = { ...match.liveData };
+    if (!live.events) live.events = [];
+
+    if (delta > 0) {
+      const currentMin = Math.floor(this.localElapsedSeconds() / 60) + 1;
+      live.events.push({
+        type: 'goal',
+        goalType: 'normal',
+        teamId,
+        minute: currentMin,
+        playerName: 'Quick Goal',
+        published: true,
+      });
+    } else {
+      const lastGoalIdx = [...live.events].reverse().findIndex(e => e.type === 'goal' && e.teamId === teamId);
+      if (lastGoalIdx !== -1) {
+        const actualIdx = live.events.length - 1 - lastGoalIdx;
+        const removed = live.events.splice(actualIdx, 1)[0];
+        const deletedEntry = {
+          ...removed,
+          _deletedAt: new Date().toISOString(),
+          _action: 'deleted',
+        };
+        live._deletedEvents = Array.isArray(live._deletedEvents)
+          ? [...live._deletedEvents, deletedEntry]
+          : [deletedEntry];
+      }
+    }
+
+    live.elapsedSeconds = this.localElapsedSeconds();
+
+    this.competitionService.updateMatch(this.workspaceId(), this.eventId(), this.competitionId(), this.stageId(), match.id, {
+      homeScore: newHomeScore,
+      awayScore: newAwayScore,
+      liveData: live,
+    }).subscribe({
+      next: (updated) => {
+        this.matchUpdated.emit(updated);
+      }
+    });
+  }
+
+  onRefereeCard(teamId: string, cardType: 'yellow' | 'red') {
+    const match = this.match();
+    if (!match) return;
+
+    const live = { ...match.liveData };
+    if (!live.events) live.events = [];
+    const currentMin = Math.floor(this.localElapsedSeconds() / 60) + 1;
+
+    live.events.push({
+      type: 'card',
+      teamId,
+      cardType,
+      minute: currentMin,
+      playerName: 'Quick Card',
+      published: true,
+    });
+
+    live.elapsedSeconds = this.localElapsedSeconds();
+
+    this.competitionService.updateMatch(this.workspaceId(), this.eventId(), this.competitionId(), this.stageId(), match.id, {
+      liveData: live,
+    }).subscribe({
+      next: (updated) => {
+        this.matchUpdated.emit(updated);
+      }
+    });
+  }
+
+  onPublishStats() {
+    const match = this.match();
+    if (!match) return;
+
+    const live = { ...match.liveData };
+    if (!live.events) live.events = [];
+
+    // Compute draft scores first
+    let newHomeScore = match.homeScore;
+    let newAwayScore = match.awayScore;
+
+    const draftGoals = live.events.filter((e: any) => e.published === false && e.type === 'goal');
+    for (const dg of draftGoals) {
+      const isHomeGoal = (dg.goalType === 'own_goal') ? (dg.teamId === match.awayTeamId) : (dg.teamId === match.homeTeamId);
+      if (isHomeGoal) newHomeScore++;
+      else newAwayScore++;
+    }
+
+    // Now publish all events
+    live.events = live.events.map((e: any) => ({ ...e, published: true }));
+    live.elapsedSeconds = this.localElapsedSeconds();
+
+    this.competitionService.updateMatch(this.workspaceId(), this.eventId(), this.competitionId(), this.stageId(), match.id, {
+      homeScore: newHomeScore,
+      awayScore: newAwayScore,
+      liveData: live,
+    }).subscribe({
+      next: (updated) => {
+        this.matchUpdated.emit(updated);
+        this.uiService.success('Statistics validated and published successfully!');
+      }
+    });
   }
 }

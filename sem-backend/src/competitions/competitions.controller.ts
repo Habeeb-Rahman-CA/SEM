@@ -493,6 +493,59 @@ export class CompetitionsController {
     );
   }
 
+  @Post(
+    'events/:eventId/competitions/:competitionId/stages/:stageId/matches/:matchId/lock',
+  )
+  @ApiOperation({ summary: 'Acquire or renew edit lock on a match' })
+  @ApiParam(WS)
+  @ApiParam(EV)
+  @ApiParam(COMP)
+  @ApiParam(STG)
+  @ApiParam(MATCH)
+  @ApiResponse(R200('Lock status'))
+  @ApiResponse(R403)
+  acquireMatchLock(
+    @Param('workspaceId') workspaceId: string,
+    @Param('eventId') eventId: string,
+    @Param('competitionId') competitionId: string,
+    @Param('stageId') stageId: string,
+    @Param('matchId') matchId: string,
+    @Request() req: any,
+  ) {
+    return this.competitionsService.acquireMatchLock(
+      workspaceId,
+      matchId,
+      req.user.id,
+      req.user.name || req.user.username || 'Official',
+    );
+  }
+
+  @Post(
+    'events/:eventId/competitions/:competitionId/stages/:stageId/matches/:matchId/unlock',
+  )
+  @ApiOperation({ summary: 'Manually release edit lock on a match' })
+  @ApiParam(WS)
+  @ApiParam(EV)
+  @ApiParam(COMP)
+  @ApiParam(STG)
+  @ApiParam(MATCH)
+  @ApiResponse(R200('Lock released status'))
+  @ApiResponse(R403)
+  releaseMatchLock(
+    @Param('workspaceId') workspaceId: string,
+    @Param('eventId') eventId: string,
+    @Param('competitionId') competitionId: string,
+    @Param('stageId') stageId: string,
+    @Param('matchId') matchId: string,
+    @Request() req: any,
+  ) {
+    return this.competitionsService.releaseMatchLock(
+      workspaceId,
+      matchId,
+      req.user.id,
+    );
+  }
+
   @Delete(
     'events/:eventId/competitions/:competitionId/stages/:stageId/matches/:matchId',
   )
