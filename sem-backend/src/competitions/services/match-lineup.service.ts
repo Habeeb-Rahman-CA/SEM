@@ -19,6 +19,7 @@ import { UpdateMatchDto } from '../dto/update-match.dto';
 import { StatisticsRatingsService } from './statistics-ratings.service';
 import { BracketAdvancementService } from './bracket-advancement.service';
 import { SportEngineRegistry } from '../sports/sport-engine.registry';
+import { EventsGateway } from '../../workspaces/events.gateway';
 
 @Injectable()
 export class MatchLineupService {
@@ -37,6 +38,7 @@ export class MatchLineupService {
     private readonly statisticsRatingsService: StatisticsRatingsService,
     private readonly bracketAdvancementService: BracketAdvancementService,
     private readonly sportEngineRegistry: SportEngineRegistry,
+    private readonly eventsGateway: EventsGateway,
   ) {}
 
   async createMatch(
@@ -543,6 +545,8 @@ export class MatchLineupService {
         );
       }
     }
+
+    this.eventsGateway.sendMatchUpdate(populated.id, workspaceId, populated);
 
     return populated;
   }

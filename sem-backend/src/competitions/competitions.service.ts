@@ -892,9 +892,9 @@ export class CompetitionsService {
       order: { createdAt: 'ASC' },
     });
 
-    const completedMatches = matches.filter((m) => m.status === 'completed');
-    if (completedMatches.length > 0) {
-      const matchIds = completedMatches.map((m) => m.id);
+    const relevantMatches = matches.filter((m) => m.status === 'completed' || m.status === 'live');
+    if (relevantMatches.length > 0) {
+      const matchIds = relevantMatches.map((m) => m.id);
       const matchPlayers = await this.matchPlayerRepo.find({
         where: { matchId: In(matchIds), isPlaying: true },
         relations: { player: { user: true }, team: true },
@@ -909,30 +909,43 @@ export class CompetitionsService {
       }
 
       for (const m of matches) {
-        if (m.status !== 'completed') continue;
+        if (m.status !== 'completed' && m.status !== 'live') continue;
         const players = playersByMatch.get(m.id) ?? [];
-        let maxRating = -1;
-        let mvpMp: MatchPlayer | null = null;
-        for (const mp of players) {
-          if (mp.rating !== null) {
-            const r = Number(mp.rating);
-            if (r > maxRating) {
-              maxRating = r;
-              mvpMp = mp;
+        
+        // Attach players roster for the frontend to easily map user IDs to usernames
+        (m as any).players = players.map(mp => ({
+          playerId: mp.playerId,
+          playerUserId: mp.player?.userId,
+          playerName: mp.player?.user?.username ?? mp.player?.jerseyNumber?.toString() ?? 'Player',
+          teamId: mp.teamId,
+          jerseyNumber: mp.player?.jerseyNumber,
+          isPlaying: mp.isPlaying,
+        }));
+
+        if (m.status === 'completed') {
+          let maxRating = -1;
+          let mvpMp: MatchPlayer | null = null;
+          for (const mp of players) {
+            if (mp.rating !== null) {
+              const r = Number(mp.rating);
+              if (r > maxRating) {
+                maxRating = r;
+                mvpMp = mp;
+              }
             }
           }
-        }
-        if (mvpMp && maxRating >= 5.0) {
-          const playerName =
-            mvpMp.player?.user?.username ??
-            mvpMp.player?.jerseyNumber?.toString() ??
-            'Player';
-          (m as any).mvp = {
-            playerId: mvpMp.playerId,
-            playerName,
-            teamName: mvpMp.team?.name ?? 'Unknown',
-            rating: maxRating,
-          };
+          if (mvpMp && maxRating >= 5.0) {
+            const playerName =
+              mvpMp.player?.user?.username ??
+              mvpMp.player?.jerseyNumber?.toString() ??
+              'Player';
+            (m as any).mvp = {
+              playerId: mvpMp.playerId,
+              playerName,
+              teamName: mvpMp.team?.name ?? 'Unknown',
+              rating: maxRating,
+            };
+          }
         }
       }
     }

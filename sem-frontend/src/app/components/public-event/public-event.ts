@@ -6,6 +6,7 @@ import { interval, Subscription } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 import { EventService } from '../../services/event.service';
 import { WorkspaceEvent } from '../../services/workspace.service';
+import { SocketService } from '../../services/socket.service';
 import { AvatarComponent } from '../../shared/components/avatar/avatar';
 import { getSportBadgeClass, getSportIconClass } from '../../shared';
 
@@ -18,13 +19,20 @@ import { getSportBadgeClass, getSportIconClass } from '../../shared';
 export class PublicEventComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private eventService = inject(EventService);
+  private socketService = inject(SocketService);
 
   private pollSub: Subscription | null = null;
+  private socketSub: Subscription | null = null;
 
   eventId = signal<string | null>(null);
   event = signal<WorkspaceEvent | null>(null);
   isLoading = signal<boolean>(true);
   error = signal<string | null>(null);
+
+  // Selected Match for Live Scoreboard Modal
+  selectedLiveMatch = signal<any | null>(null);
+  liveClockSeconds = signal<number>(0);
+  private clockInterval: any = null;
 
   // Tabs navigation
   activeTab = signal<'overview' | 'competitions' | 'standings' | 'results' | 'stats' | 'gallery' | 'announcements'>('overview');
@@ -222,6 +230,54 @@ export class PublicEventComponent implements OnInit, OnDestroy {
         this.isLoading.set(false);
       }
     });
+
+    // Subscribe to real-time match updates via Socket.IO
+    this.socketSub = this.socketService.matchUpdated$.subscribe((updatedMatch) => {
+      if (!updatedMatch) return;
+      
+      // Update matches list
+      this.matches.update(list => 
+        list.map(m => m.id === updatedMatch.id ? { ...m, ...updatedMatch } : m)
+      );
+
+      // Update selected live match details
+      this.selectedLiveMatch.update(m => {
+        if (m && m.id === updatedMatch.id) {
+          // Restart live clock with the fresh liveData
+          this.startLiveClock(updatedMatch);
+          return { ...m, ...updatedMatch };
+        }
+        return m;
+      });
+
+      // Update results tab data
+      this.resultsData.update(data => {
+        if (!data || !data.groupedResults) return data;
+        const updatedGrouped = data.groupedResults.map((group: any) => ({
+          ...group,
+          matches: group.matches.map((m: any) => m.id === updatedMatch.id ? { ...m, ...updatedMatch } : m)
+        }));
+        return { ...data, groupedResults: updatedGrouped };
+      });
+
+      // Update standings tab data (bracket)
+      this.standingsData.update(data => {
+        if (!data) return data;
+        let updatedBracket = data.bracket;
+        if (data.bracket) {
+          updatedBracket = data.bracket.map((roundBlock: any) => ({
+            ...roundBlock,
+            matches: roundBlock.matches.map((m: any) => m.id === updatedMatch.id ? { ...m, ...updatedMatch } : m)
+          }));
+        }
+        return { ...data, bracket: updatedBracket };
+      });
+
+      // If a match is completed, reload standings from server to refresh points/bracket advancement
+      if (updatedMatch.status === 'completed' && this.activeTab() === 'standings') {
+        this.loadStandings();
+      }
+    });
   }
 
   loadPublicEvent(id: string) {
@@ -231,6 +287,10 @@ export class PublicEventComponent implements OnInit, OnDestroy {
       next: (evt) => {
         this.event.set(evt);
         this.isLoading.set(false);
+
+        if (evt.workspaceId) {
+          this.socketService.subscribeWorkspace(evt.workspaceId);
+        }
 
         // Check query parameters to select target competition or tab
         const tab = this.route.snapshot.queryParamMap.get('tab') as any;
@@ -665,6 +725,63 @@ export class PublicEventComponent implements OnInit, OnDestroy {
     });
   }
 
+  openLiveScoreboard(match: any) {
+    this.selectedLiveMatch.set(match);
+    this.socketService.subscribeMatch(match.id);
+    this.startLiveClock(match);
+  }
+
+  closeLiveScoreboard() {
+    const match = this.selectedLiveMatch();
+    if (match) {
+      this.socketService.unsubscribeMatch(match.id);
+    }
+    this.selectedLiveMatch.set(null);
+    this.stopLiveClock();
+  }
+
+  startLiveClock(match: any) {
+    this.stopLiveClock();
+    if (match.status !== 'live' || match.sport?.code !== 'football') return;
+    
+    const liveData = match.liveData || {};
+    const baseSeconds = liveData.elapsedSeconds || 0;
+    const isRunning = liveData.timerRunning;
+    const lastStarted = liveData.timerLastStarted;
+
+    if (isRunning && lastStarted) {
+      const startMs = new Date(lastStarted).getTime();
+      const updateClock = () => {
+        const diffSec = Math.floor((Date.now() - startMs) / 1000);
+        this.liveClockSeconds.set(baseSeconds + diffSec);
+      };
+      updateClock();
+      this.clockInterval = setInterval(updateClock, 1000);
+    } else {
+      this.liveClockSeconds.set(baseSeconds);
+    }
+  }
+
+  stopLiveClock() {
+    if (this.clockInterval) {
+      clearInterval(this.clockInterval);
+      this.clockInterval = null;
+    }
+  }
+
+  formatFootballClock(totalSeconds: number): string {
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
+
+  getPlayerName(match: any, playerUserId: string | undefined, defaultName: string | undefined): string {
+    if (defaultName) return defaultName;
+    if (!playerUserId) return 'Unknown Player';
+    const player = match.players?.find((p: any) => p.playerUserId === playerUserId || p.playerId === playerUserId);
+    return player ? player.playerName : 'Player';
+  }
+
   private stopPolling() {
     if (this.pollSub) {
       this.pollSub.unsubscribe();
@@ -674,6 +791,18 @@ export class PublicEventComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.stopPolling();
+    this.stopLiveClock();
+    if (this.socketSub) {
+      this.socketSub.unsubscribe();
+    }
+    const evt = this.event();
+    if (evt?.workspaceId) {
+      this.socketService.unsubscribeWorkspace(evt.workspaceId);
+    }
+    const match = this.selectedLiveMatch();
+    if (match) {
+      this.socketService.unsubscribeMatch(match.id);
+    }
   }
 
   // Helper to get position colour class
