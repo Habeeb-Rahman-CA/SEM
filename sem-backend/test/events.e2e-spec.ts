@@ -9,12 +9,15 @@ describe('Events & Competitions Controller (e2e)', () => {
   let jwtToken: string;
   let workspaceId: string;
   let eventId: string;
+  let duplicatedEventId: string;
   let sportId: string;
   let competitionId: string;
   let stageId: string;
   let teamAId: string;
   let teamBId: string;
   let matchId: string;
+  let eventName: string;
+  let duplicatedEventName: string;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -26,6 +29,8 @@ describe('Events & Competitions Controller (e2e)', () => {
 
     // Register and login to obtain JWT token
     const username = `testuser_${Date.now()}`;
+    eventName = `Annual Sports Meet ${Date.now()}`;
+    duplicatedEventName = `${eventName} - Copied`;
     const password = 'password123';
 
     await request(app.getHttpServer())
@@ -91,7 +96,7 @@ describe('Events & Competitions Controller (e2e)', () => {
       .post(`/workspaces/${workspaceId}/events`)
       .set('Authorization', `Bearer ${jwtToken}`)
       .send({
-        name: 'Annual Sports Meet 2028',
+        name: eventName,
         description: 'E2E Testing Event',
         startDate: new Date().toISOString(),
         endDate: new Date(Date.now() + 86400000).toISOString(),
@@ -100,7 +105,7 @@ describe('Events & Competitions Controller (e2e)', () => {
       .expect(201);
 
     expect(res.body).toHaveProperty('id');
-    expect(res.body.name).toBe('Annual Sports Meet 2028');
+    expect(res.body.name).toBe(eventName);
     expect(res.body.status).toBe('upcoming');
     eventId = res.body.id;
   });
@@ -310,6 +315,44 @@ describe('Events & Competitions Controller (e2e)', () => {
     expect(res.body.liveData.elapsedSeconds).toBe(300);
   });
 
+  it('should duplicate the event along with competitions, stages, point configs, and team enrollments', async () => {
+    const res = await request(app.getHttpServer())
+      .post(`/workspaces/${workspaceId}/events/${eventId}/duplicate`)
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .send({
+        name: duplicatedEventName,
+        duplicateCompetitions: true,
+        duplicateStages: true,
+        duplicateVenues: true,
+        duplicateTeams: true,
+        duplicatePointSystems: true,
+        duplicateSettings: true
+      })
+      .expect(201);
+
+    expect(res.body).toHaveProperty('id');
+    expect(res.body.name).toBe(duplicatedEventName);
+    expect(res.body.status).toBe('upcoming');
+    duplicatedEventId = res.body.id;
+
+    // Verify that the competition, stage, and team enrollments were copied to the new event
+    const compsRes = await request(app.getHttpServer())
+      .get(`/workspaces/${workspaceId}/events/${duplicatedEventId}/competitions`)
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .expect(200);
+
+    expect(compsRes.body.length).toBe(1);
+    const dupComp = compsRes.body[0];
+    expect(dupComp.name).toBe('Inter-House Football Championship');
+
+    // Stages copy check
+    expect(dupComp.stages.length).toBe(1);
+    expect(dupComp.stages[0].name).toBe('Group Play v2');
+
+    // Verify matches are excluded (results/matches excluded)
+    expect(dupComp.stages[0].matches.length).toBe(0);
+  });
+
   it('should delete the match', async () => {
     await request(app.getHttpServer())
       .delete(
@@ -466,5 +509,19 @@ describe('Events & Competitions Controller (e2e)', () => {
       .expect(200);
 
     expect(archivedRes.body.some((e: any) => e.id === eventId)).toBe(false);
+  });
+
+  it('should delete the duplicated event', async () => {
+    await request(app.getHttpServer())
+      .delete(`/workspaces/${workspaceId}/events/${duplicatedEventId}`)
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .expect(204);
+
+    const activeRes = await request(app.getHttpServer())
+      .get(`/workspaces/${workspaceId}/events`)
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .expect(200);
+
+    expect(activeRes.body.some((e: any) => e.id === duplicatedEventId)).toBe(false);
   });
 });

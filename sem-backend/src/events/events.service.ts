@@ -7,9 +7,13 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { Event } from '../workspaces/entities/event.entity';
 import { Team } from '../workspaces/entities/team.entity';
+import { Competition } from '../workspaces/entities/competition.entity';
+import { CompetitionStage } from '../workspaces/entities/competition-stage.entity';
+import { CompetitionTeam } from '../workspaces/entities/competition-team.entity';
 import { WorkspacesService } from '../workspaces/workspaces.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
+import { DuplicateEventDto } from './dto/duplicate-event.dto';
 import { NotificationType } from '../workspaces/entities/notification.entity';
 import { CompetitionsService } from '../competitions/competitions.service';
 
@@ -423,5 +427,118 @@ export class EventsService {
       counter++;
     }
     return slug;
+  }
+
+  async duplicateEvent(
+    workspaceId: string,
+    eventId: string,
+    dto: DuplicateEventDto,
+    userId: string,
+  ): Promise<Event> {
+    // 1. Ensure permission
+    await this.workspacesService.ensurePermission(
+      workspaceId,
+      userId,
+      'event.manage',
+    );
+
+    // 2. Retrieve original event
+    const sourceEvent = await this.eventRepo.findOne({
+      where: { id: eventId, workspaceId },
+      relations: { teams: true },
+    });
+    if (!sourceEvent) {
+      throw new NotFoundException('Source event not found in this workspace');
+    }
+
+    // 3. Create new Event entity
+    const newEvent = this.eventRepo.create({
+      name: dto.name,
+      slug: await this.generateUniqueSlug(dto.name),
+      description: dto.duplicateSettings !== false ? sourceEvent.description : null,
+      startDate: dto.startDate ? new Date(dto.startDate) : (dto.duplicateSettings !== false ? sourceEvent.startDate : null),
+      endDate: dto.endDate ? new Date(dto.endDate) : (dto.duplicateSettings !== false ? sourceEvent.endDate : null),
+      status: 'upcoming', // Always start as upcoming by default
+      logoUrl: dto.duplicateSettings !== false ? sourceEvent.logoUrl : null,
+      isPublic: dto.duplicateSettings !== false ? sourceEvent.isPublic : false,
+      registrationStatus: dto.duplicateSettings !== false ? sourceEvent.registrationStatus : 'open',
+      venue: (dto.duplicateVenues !== false || dto.duplicateSettings !== false) ? sourceEvent.venue : null,
+      sport: dto.duplicateSettings !== false ? sourceEvent.sport : null,
+      organizers: dto.duplicateSettings !== false ? sourceEvent.organizers : null,
+      workspaceId,
+      teams: dto.duplicateTeams !== false ? sourceEvent.teams : [],
+      isArchived: false,
+      gallery: null,
+      announcements: null,
+    });
+
+    const savedEvent = await this.eventRepo.save(newEvent);
+
+    // 4. Optionally duplicate competitions
+    if (dto.duplicateCompetitions !== false) {
+      const originalCompetitions = await this.eventRepo.manager.find(Competition, {
+        where: { eventId },
+      });
+
+      for (const origComp of originalCompetitions) {
+        const newComp = this.eventRepo.manager.create(Competition, {
+          name: origComp.name,
+          eventId: savedEvent.id,
+          sportId: origComp.sportId,
+          status: 'upcoming',
+          pointsConfig: dto.duplicatePointSystems !== false ? origComp.pointsConfig : null,
+        });
+
+        const savedComp = await this.eventRepo.manager.save(Competition, newComp);
+
+        // Optionally duplicate teams enrollment
+        if (dto.duplicateTeams !== false) {
+          const origCompTeams = await this.eventRepo.manager.find(CompetitionTeam, {
+            where: { competitionId: origComp.id },
+          });
+
+          for (const origCt of origCompTeams) {
+            const newCt = this.eventRepo.manager.create(CompetitionTeam, {
+              competitionId: savedComp.id,
+              teamId: origCt.teamId,
+            });
+            await this.eventRepo.manager.save(CompetitionTeam, newCt);
+          }
+        }
+
+        // Optionally duplicate stages
+        if (dto.duplicateStages !== false) {
+          const originalStages = await this.eventRepo.manager.find(CompetitionStage, {
+            where: { competitionId: origComp.id },
+          });
+
+          for (const origStage of originalStages) {
+            const newStage = this.eventRepo.manager.create(CompetitionStage, {
+              name: origStage.name,
+              type: origStage.type,
+              sequence: origStage.sequence,
+              competitionId: savedComp.id,
+              config: origStage.config,
+            });
+            await this.eventRepo.manager.save(CompetitionStage, newStage);
+          }
+        }
+      }
+    }
+
+    // 5. Notify workspace members of new event
+    const memberIds = await this.workspacesService.getWorkspaceMemberUserIds(
+      workspaceId,
+      userId,
+    );
+    await this.workspacesService.sendNotificationToMany(
+      memberIds,
+      NotificationType.EVENT_CREATED,
+      `New event "${savedEvent.name}" has been created via duplication.`,
+      workspaceId,
+      { eventId: savedEvent.id, eventName: savedEvent.name },
+    );
+
+    return savedEvent;
   }
 }

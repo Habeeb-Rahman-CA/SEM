@@ -22,6 +22,7 @@ import { CompetitionModalComponent } from './competition-modal';
 import { FixturesModalComponent } from './fixtures-modal';
 import { LineupModalComponent } from './lineup-modal';
 import { ScheduleMatchModalComponent } from './schedule-match-modal';
+import { DuplicateEventModalComponent } from './duplicate-event-modal';
 
 @Component({
   selector: 'app-workspace-events',
@@ -38,7 +39,8 @@ import { ScheduleMatchModalComponent } from './schedule-match-modal';
     CompetitionModalComponent,
     FixturesModalComponent,
     LineupModalComponent,
-    ScheduleMatchModalComponent
+    ScheduleMatchModalComponent,
+    DuplicateEventModalComponent
   ],
   templateUrl: './events.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -92,6 +94,9 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
   // Standalone Modal States
   isEventModalOpen = signal(false);
   editingEvent = signal<WorkspaceEvent | null>(null);
+
+  isDuplicateEventModalOpen = signal(false);
+  duplicatingEvent = signal<WorkspaceEvent | null>(null);
 
   isCompetitionModalOpen = signal(false);
   editingCompetition = signal<Competition | null>(null);
@@ -449,6 +454,19 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
       } else {
         this.events.update(prev => [...prev, saved]);
       }
+    }
+  }
+
+  openDuplicateEventModal(event: WorkspaceEvent) {
+    this.duplicatingEvent.set(event);
+    this.isDuplicateEventModalOpen.set(true);
+  }
+
+  onEventDuplicated(saved: WorkspaceEvent) {
+    if (saved.isArchived) {
+      this.archivedEvents.update(prev => [...prev, saved]);
+    } else {
+      this.events.update(prev => [...prev, saved]);
     }
   }
 

@@ -41,6 +41,28 @@ export class EventService {
     );
   }
 
+  duplicateEvent(
+    workspaceId: string,
+    eventId: string,
+    payload: {
+      name: string;
+      startDate?: string;
+      endDate?: string;
+      duplicateCompetitions?: boolean;
+      duplicateStages?: boolean;
+      duplicateVenues?: boolean;
+      duplicateTeams?: boolean;
+      duplicatePointSystems?: boolean;
+      duplicateSettings?: boolean;
+    }
+  ): Observable<WorkspaceEvent> {
+    return this.http.post<WorkspaceEvent>(
+      `${this.apiUrl}/${workspaceId}/events/${eventId}/duplicate`,
+      payload,
+      { headers: this.headers }
+    );
+  }
+
   createEvent(
     workspaceId: string,
     payload: {

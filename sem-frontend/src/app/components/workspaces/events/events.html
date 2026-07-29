@@ -1253,6 +1253,10 @@
                 class="px-2 py-1 text-[10px] font-bold text-amber-400 hover:text-white hover:bg-amber-600/20 border border-amber-500/10 hover:border-amber-500/30 rounded-md transition-all cursor-pointer">
                 Archive
               </button>
+              <button (click)="openDuplicateEventModal(event)"
+                class="px-2 py-1 text-[10px] font-bold text-violet-400 hover:text-white hover:bg-violet-600/20 border border-violet-500/10 hover:border-violet-500/30 rounded-md transition-all cursor-pointer">
+                Duplicate
+              </button>
               <button (click)="onEditEvent(event)"
                 class="px-2 py-1 text-[10px] font-bold text-slate-400 hover:text-white hover:bg-slate-800 border border-white/10 rounded-md transition-all cursor-pointer">
                 Edit
@@ -1282,6 +1286,7 @@
   </div>
   }
   <app-event-modal [(isOpen)]="isEventModalOpen" [workspace]="workspace()" [teams]="teams()" [editingEvent]="editingEvent()" (eventSaved)="onEventSaved($event)" />
+  <app-duplicate-event-modal [(isOpen)]="isDuplicateEventModalOpen" [workspace]="workspace()" [targetEvent]="duplicatingEvent()" (eventDuplicated)="onEventDuplicated($event)" />
   <app-competition-modal [(isOpen)]="isCompetitionModalOpen" [workspace]="workspace()" [selectedEvent]="selectedEvent()" [editingCompetition]="editingCompetition()" [sports]="sports()" (competitionSaved)="onCompetitionSaved($event)" />
   <app-fixtures-modal [(isOpen)]="isGenerateFixturesModalOpen" [workspace]="workspace()" [selectedEvent]="selectedEvent()" [selectedCompetition]="selectedCompetition()" [teams]="teams()" [venues]="venues()" [stages]="stages()" (fixturesGenerated)="onFixturesGenerated()" />
   <app-lineup-modal [(isOpen)]="isLineupModalOpen" [workspace]="workspace()" [selectedEvent]="selectedEvent()" [selectedCompetition]="selectedCompetition()" [selectedStage]="selectedStage()" [selectedMatch]="selectedMatch()" [players]="players()" [matchLineup]="matchLineup()" (lineupSaved)="onLineupSaved($event)" />

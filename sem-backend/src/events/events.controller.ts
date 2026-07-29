@@ -22,6 +22,7 @@ import {
 import { EventsService } from './events.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
+import { DuplicateEventDto } from './dto/duplicate-event.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 const WS = { name: 'workspaceId', description: 'Workspace UUID' };
@@ -173,5 +174,34 @@ export class EventsController {
       eventId,
       req.user.id,
     );
+  }
+
+  @Post(':eventId/duplicate')
+  @ApiOperation({
+    summary: 'Duplicate an existing event',
+    description:
+      'Creates a copy of an existing event inside the workspace, optionally duplicating competitions, stages, venues, teams, point configurations, and settings while excluding results.',
+  })
+  @ApiParam(WS)
+  @ApiParam(EV)
+  @ApiResponse({ status: 201, description: 'Event duplicated successfully' })
+  @ApiResponse({ status: 400, description: 'Validation error' })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
+  @ApiResponse({ status: 404, description: 'Event not found' })
+  duplicateEvent(
+    @Param('workspaceId') workspaceId: string,
+    @Param('eventId') eventId: string,
+    @Body() dto: DuplicateEventDto,
+    @Request() req: any,
+  ) {
+    return this.eventsService.duplicateEvent(
+      workspaceId,
+      eventId,
+      dto,
+      req.user.id,
+    ).catch(err => {
+      console.error('DUPLICATION ERROR:', err);
+      throw err;
+    });
   }
 }
