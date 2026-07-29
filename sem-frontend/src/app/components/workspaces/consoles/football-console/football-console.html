@@ -1,6 +1,96 @@
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
   <!-- Left Columns: Live Console Controls & Visuals -->
   <div class="lg:col-span-2 flex flex-col gap-6">
+    <!-- Mode Selector Segment -->
+    <div class="flex flex-col sm:flex-row items-center justify-between bg-slate-900 border border-white/10 rounded-2xl p-4 gap-4 shadow-xl">
+      <div class="flex items-center gap-3">
+        <span class="text-xs font-black text-white uppercase tracking-wider">Console Mode:</span>
+        <div class="flex items-center gap-1.5 p-1 bg-slate-950/60 border border-white/5 rounded-xl">
+          <button (click)="consoleMode.set('referee')"
+            class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[10px] font-extrabold uppercase tracking-wider transition-all cursor-pointer border-0"
+            [class]="consoleMode() === 'referee' ? 'bg-violet-600 text-white shadow-md shadow-violet-650/20' : 'text-slate-400 hover:text-white hover:bg-white/5'">
+            <i class="fi fi-rr-referee"></i> Referee Mode
+          </button>
+          <button (click)="consoleMode.set('statistician')"
+            class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[10px] font-extrabold uppercase tracking-wider transition-all cursor-pointer border-0"
+            [class]="consoleMode() === 'statistician' ? 'bg-violet-600 text-white shadow-md shadow-violet-650/20' : 'text-slate-400 hover:text-white hover:bg-white/5'">
+            <i class="fi fi-rr-chart-bar"></i> Statistician Mode
+          </button>
+        </div>
+      </div>
+      @if (consoleMode() === 'statistician' && hasUnpublishedEvents()) {
+        <button (click)="onPublishStats()"
+          class="w-full sm:w-auto px-5 py-2.5 bg-emerald-600 hover:bg-emerald-550 text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-emerald-650/20 border-0">
+          <i class="fi fi-rr-checkbox"></i> Validate & Publish Stats
+        </button>
+      }
+    </div>
+
+    <!-- Referee Mode Quick Input Console -->
+    @if (consoleMode() === 'referee') {
+      @if (match().status !== 'completed' && canScore()) {
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Home Team Quick Entry Card -->
+          <div class="p-6 rounded-2xl bg-slate-900 border border-white/10 flex flex-col items-center gap-4 text-center shadow-xl">
+            <app-avatar [name]="match().homeTeam?.name || 'HM'" [logoUrl]="match().homeTeam?.logoUrl" customClass="w-16 h-16 rounded-2xl" textClass="text-lg font-bold text-white" />
+            <span class="text-sm font-black text-white">{{ match().homeTeam?.name || 'Home Team' }}</span>
+            
+            <div class="flex items-center gap-4">
+              <button (click)="onRefereeGoal(match().homeTeamId!, -1)"
+                class="w-12 h-12 rounded-xl bg-slate-950 hover:bg-slate-800 border border-white/10 flex items-center justify-center text-lg text-white font-extrabold transition-all cursor-pointer">
+                -1
+              </button>
+              <span class="text-4xl font-black text-white w-12">{{ match().homeScore }}</span>
+              <button (click)="onRefereeGoal(match().homeTeamId!, 1)"
+                class="w-12 h-12 rounded-xl bg-violet-600 hover:bg-violet-550 flex items-center justify-center text-lg text-white font-extrabold shadow-md shadow-violet-650/20 transition-all cursor-pointer">
+                +1
+              </button>
+            </div>
+
+            <div class="flex gap-2 w-full mt-2">
+              <button (click)="onRefereeCard(match().homeTeamId!, 'yellow')"
+                class="flex-1 py-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 border-0">
+                <span class="w-2.5 h-3.5 bg-amber-400 rounded-sm"></span> Yellow Card
+              </button>
+              <button (click)="onRefereeCard(match().homeTeamId!, 'red')"
+                class="flex-1 py-3 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 border-0">
+                <span class="w-2.5 h-3.5 bg-rose-500 rounded-sm"></span> Red Card
+              </button>
+            </div>
+          </div>
+
+          <!-- Away Team Quick Entry Card -->
+          <div class="p-6 rounded-2xl bg-slate-900 border border-white/10 flex flex-col items-center gap-4 text-center shadow-xl">
+            <app-avatar [name]="match().awayTeam?.name || 'AW'" [logoUrl]="match().awayTeam?.logoUrl" customClass="w-16 h-16 rounded-2xl" textClass="text-lg font-bold text-white" />
+            <span class="text-sm font-black text-white">{{ match().awayTeam?.name || 'Away Team' }}</span>
+            
+            <div class="flex items-center gap-4">
+              <button (click)="onRefereeGoal(match().awayTeamId!, -1)"
+                class="w-12 h-12 rounded-xl bg-slate-950 hover:bg-slate-800 border border-white/10 flex items-center justify-center text-lg text-white font-extrabold transition-all cursor-pointer">
+                -1
+              </button>
+              <span class="text-4xl font-black text-white w-12">{{ match().awayScore }}</span>
+              <button (click)="onRefereeGoal(match().awayTeamId!, 1)"
+                class="w-12 h-12 rounded-xl bg-violet-600 hover:bg-violet-550 flex items-center justify-center text-lg text-white font-extrabold shadow-md shadow-violet-650/20 transition-all cursor-pointer">
+                +1
+              </button>
+            </div>
+
+            <div class="flex gap-2 w-full mt-2">
+              <button (click)="onRefereeCard(match().awayTeamId!, 'yellow')"
+                class="flex-1 py-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 border-0">
+                <span class="w-2.5 h-3.5 bg-amber-400 rounded-sm"></span> Yellow Card
+              </button>
+              <button (click)="onRefereeCard(match().awayTeamId!, 'red')"
+                class="flex-1 py-3 bg-rose-500/10 hover:bg-rose-500/20 text-rose-455 border border-rose-500/20 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 border-0">
+                <span class="w-2.5 h-3.5 bg-rose-500 rounded-sm"></span> Red Card
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+    }
+
     <!-- Header Score Board -->
               <div
                 class="bg-slate-900 border border-white/10 rounded-2xl p-6 shadow-xl flex flex-col items-center justify-center gap-4 relative overflow-hidden">
@@ -47,6 +137,11 @@
                       <span class="text-sm font-bold text-slate-500">:</span>
                       <span class="text-3xl font-black text-white tracking-wider">{{ match().awayScore }}</span>
                     </div>
+                    @if (consoleMode() === 'statistician' && hasUnpublishedEvents()) {
+                      <div class="text-[9px] font-extrabold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/25">
+                        Draft: {{ draftHomeScore() }} - {{ draftAwayScore() }}
+                      </div>
+                    }
                     @if (match().liveData?.shootoutHomeScore || match().liveData?.shootoutAwayScore
                     || match().liveData?.currentHalf === 5) {
                     <span
@@ -125,7 +220,7 @@
                 }
               </div>
     
-    @if (match().status !== 'completed' && canScore()) {
+    @if (consoleMode() === 'statistician' && match().status !== 'completed' && canScore()) {
       <div class="bg-slate-900 border border-white/10 rounded-2xl p-6 flex flex-col gap-6">
                 @if (!match().liveData?.started) {
                 <!-- Football Match Configuration Panel -->
@@ -760,6 +855,11 @@
                 @if (ev._audit?.length > 0) {
                   <span class="text-[8px] px-1.5 py-0.5 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded font-bold uppercase flex items-center gap-0.5">
                     <i class="fi fi-rr-pen-field text-[8px]"></i> Edited
+                  </span>
+                }
+                @if (ev.published === false) {
+                  <span class="text-[8px] px-1.5 py-0.5 bg-amber-600/25 border border-amber-500/30 text-amber-400 rounded font-bold uppercase flex items-center gap-0.5">
+                    <i class="fi fi-rr-time-past text-[8px]"></i> Draft
                   </span>
                 }
               </div>

@@ -43,6 +43,113 @@ export class BadmintonConsoleComponent implements OnDestroy {
   badmintonDuration = signal<number>(0);
   badmintonTimerRunning = signal<boolean>(false);
   badmintonTimerInterval: any = null;
+  consoleMode = signal<'referee' | 'statistician'>('referee');
+
+  hasUnpublishedRallies = computed(() => {
+    const match = this.match();
+    if (!match || !match.liveData || !match.liveData.rallies) return false;
+    return match.liveData.rallies.some((r: any) => r.published === false);
+  });
+
+  draftSetsScore = computed(() => {
+    const match = this.match();
+    if (!match || !match.liveData) return [];
+    
+    // start with a copy of official sets score
+    const sets = (match.liveData.setsScore || []).map((s: any) => ({ ...s }));
+    if (sets.length === 0) {
+      sets.push({ home: 0, away: 0 });
+    }
+
+    let currentSet = match.liveData.currentSet || 1;
+    let homeSetsWon = match.liveData.homeSetsWon || 0;
+    let awaySetsWon = match.liveData.awaySetsWon || 0;
+
+    const draftRallies = (match.liveData.rallies || []).filter((r: any) => r.published === false);
+    for (const rally of draftRallies) {
+      if (rally.winnerSide === 'none') continue;
+      const setIdx = rally.set - 1;
+      while (sets.length <= setIdx) {
+        sets.push({ home: 0, away: 0 });
+      }
+      if (rally.winnerSide === 'home') {
+        sets[setIdx].home += 1;
+      } else if (rally.winnerSide === 'away') {
+        sets[setIdx].away += 1;
+      }
+
+      const homeScore = sets[setIdx].home;
+      const awayScore = sets[setIdx].away;
+      const setsToWin = match.config.setsToWin ?? 2;
+      let setWon = false;
+      let setWinner: 'home' | 'away' | null = null;
+
+      if ((homeScore >= 21 && homeScore - awayScore >= 2) || homeScore === 30) {
+        setWon = true;
+        setWinner = 'home';
+      } else if ((awayScore >= 21 && awayScore - homeScore >= 2) || awayScore === 30) {
+        setWon = true;
+        setWinner = 'away';
+      }
+
+      if (setWon) {
+        if (setWinner === 'home') homeSetsWon++;
+        else awaySetsWon++;
+
+        if (homeSetsWon < setsToWin && awaySetsWon < setsToWin) {
+          if (sets.length <= setIdx + 1) {
+            sets.push({ home: 0, away: 0 });
+          }
+        }
+      }
+    }
+
+    return sets;
+  });
+
+  draftHomeSetsWon = computed(() => {
+    const match = this.match();
+    if (!match || !match.liveData) return 0;
+    
+    const sets = this.draftSetsScore();
+    const setsToWin = match.config.setsToWin ?? 2;
+    let homeWon = 0;
+    let awayWon = 0;
+
+    for (const set of sets) {
+      const h = set.home;
+      const a = set.away;
+      if ((h >= 21 && h - a >= 2) || h === 30) {
+        homeWon++;
+      } else if ((a >= 21 && a - h >= 2) || a === 30) {
+        awayWon++;
+      }
+      if (homeWon >= setsToWin || awayWon >= setsToWin) break;
+    }
+    return homeWon;
+  });
+
+  draftAwaySetsWon = computed(() => {
+    const match = this.match();
+    if (!match || !match.liveData) return 0;
+    
+    const sets = this.draftSetsScore();
+    const setsToWin = match.config.setsToWin ?? 2;
+    let homeWon = 0;
+    let awayWon = 0;
+
+    for (const set of sets) {
+      const h = set.home;
+      const a = set.away;
+      if ((h >= 21 && h - a >= 2) || h === 30) {
+        homeWon++;
+      } else if ((a >= 21 && a - h >= 2) || a === 30) {
+        awayWon++;
+      }
+      if (homeWon >= setsToWin || awayWon >= setsToWin) break;
+    }
+    return awayWon;
+  });
 
   constructor() {
     effect(() => {
@@ -120,6 +227,7 @@ export class BadmintonConsoleComponent implements OnDestroy {
     const match = this.match();
     if (!match) return;
 
+    const isDraft = this.consoleMode() === 'statistician';
     const live = match.liveData ? { ...match.liveData } : {};
     if (!live.setsScore) {
       live.setsScore = [{ home: 0, away: 0 }];
@@ -139,13 +247,6 @@ export class BadmintonConsoleComponent implements OnDestroy {
     }
 
     const setScore = { ...live.setsScore[setIndex] };
-    if (winnerSide === 'home') {
-      setScore.home += 1;
-    } else {
-      setScore.away += 1;
-    }
-    live.setsScore[setIndex] = setScore;
-
     const server = this.badmintonServer() || 'Unknown';
     const receiver = this.badmintonReceiver() || 'Unknown';
     const reason = this.badmintonReason() || 'Winner';
@@ -163,8 +264,28 @@ export class BadmintonConsoleComponent implements OnDestroy {
       winnerSide,
       reason,
       duration,
-      scoreAfter: { home: setScore.home, away: setScore.away }
+      scoreAfter: { home: isDraft ? setScore.home : setScore.home + (winnerSide === 'home' ? 1 : 0), away: isDraft ? setScore.away : setScore.away + (winnerSide === 'away' ? 1 : 0) },
+      published: !isDraft,
     });
+
+    if (isDraft) {
+      this.competitionService.updateMatch(this.workspaceId(), this.eventId(), this.competitionId(), this.stageId(), match.id, {
+        liveData: live,
+      }).subscribe({
+        next: (updated) => {
+          this.matchUpdated.emit(updated);
+          this.uiService.success('Draft rally recorded. Don\'t forget to Validate & Publish!');
+        }
+      });
+      return;
+    }
+
+    if (winnerSide === 'home') {
+      setScore.home += 1;
+    } else {
+      setScore.away += 1;
+    }
+    live.setsScore[setIndex] = setScore;
 
     const homeScore = setScore.home;
     const awayScore = setScore.away;
@@ -215,6 +336,7 @@ export class BadmintonConsoleComponent implements OnDestroy {
       liveData: live,
     }).subscribe({
       next: (updated) => {
+        this.matchUpdated.emit(updated);
         if (dbStatus === 'completed') {
           this.matchCompleted.emit();
         }
@@ -226,6 +348,7 @@ export class BadmintonConsoleComponent implements OnDestroy {
     const match = this.match();
     if (!match) return;
 
+    const isDraft = this.consoleMode() === 'statistician';
     const live = match.liveData ? { ...match.liveData } : {};
     if (!live.setsScore) {
       live.setsScore = [{ home: 0, away: 0 }];
@@ -255,7 +378,8 @@ export class BadmintonConsoleComponent implements OnDestroy {
       winnerSide: 'none',
       reason: letReason,
       duration: this.badmintonDuration(),
-      scoreAfter: { home: setScore.home, away: setScore.away }
+      scoreAfter: { home: setScore.home, away: setScore.away },
+      published: !isDraft,
     });
 
     this.stopBadmintonTimer();
@@ -844,5 +968,91 @@ export class BadmintonConsoleComponent implements OnDestroy {
         },
         error: () => this.uiService.error('Failed to remove rally.'),
       });
+  }
+
+  onPublishBadmintonStats() {
+    const match = this.match();
+    if (!match) return;
+
+    const live = { ...match.liveData };
+    const rallies = live.rallies || [];
+
+    // Reset stats to replay all rallies from scratch
+    live.setsScore = [{ home: 0, away: 0 }];
+    live.currentSet = 1;
+    live.homeSetsWon = 0;
+    live.awaySetsWon = 0;
+    live.matchStatus = 'FirstGame';
+
+    const setsToWin = match.config.setsToWin ?? 2;
+    let dbStatus = match.status;
+
+    for (const rally of rallies) {
+      rally.published = true;
+
+      if (rally.winnerSide === 'none') {
+        continue;
+      }
+
+      const currentSetNum = live.currentSet ?? 1;
+      const setIndex = currentSetNum - 1;
+      if (!live.setsScore[setIndex]) {
+        live.setsScore[setIndex] = { home: 0, away: 0 };
+      }
+
+      if (rally.winnerSide === 'home') {
+        live.setsScore[setIndex].home += 1;
+      } else {
+        live.setsScore[setIndex].away += 1;
+      }
+
+      const homeScore = live.setsScore[setIndex].home;
+      const awayScore = live.setsScore[setIndex].away;
+      let setWon = false;
+      let setWinner: 'home' | 'away' | null = null;
+
+      if ((homeScore >= 21 && homeScore - awayScore >= 2) || homeScore === 30) {
+        setWon = true;
+        setWinner = 'home';
+      } else if ((awayScore >= 21 && awayScore - homeScore >= 2) || awayScore === 30) {
+        setWon = true;
+        setWinner = 'away';
+      }
+
+      if (setWon) {
+        if (setWinner === 'home') {
+          live.homeSetsWon += 1;
+        } else {
+          live.awaySetsWon += 1;
+        }
+
+        if (live.homeSetsWon >= setsToWin || live.awaySetsWon >= setsToWin) {
+          dbStatus = 'completed';
+          live.matchStatus = 'Finished';
+        } else {
+          live.currentSet += 1;
+          live.setsScore.push({ home: 0, away: 0 });
+          live.matchStatus = live.currentSet === 2 ? 'SecondGame' : 'ThirdGame';
+        }
+      } else {
+        dbStatus = 'live';
+        live.matchStatus = currentSetNum === 1 ? 'FirstGame' : currentSetNum === 2 ? 'SecondGame' : 'ThirdGame';
+      }
+    }
+
+    this.competitionService.updateMatch(this.workspaceId(), this.eventId(), this.competitionId(), this.stageId(), match.id, {
+      homeScore: live.homeSetsWon,
+      awayScore: live.awaySetsWon,
+      status: dbStatus,
+      liveData: live,
+    }).subscribe({
+      next: (updated) => {
+        this.matchUpdated.emit(updated);
+        this.uiService.success('Badminton statistics validated and published to live scoreboards!');
+        if (dbStatus === 'completed') {
+          this.matchCompleted.emit();
+        }
+      }
+    });
   }
 }

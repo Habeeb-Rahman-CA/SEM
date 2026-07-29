@@ -1,6 +1,98 @@
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
   <!-- Left Columns: Live Console Controls & Visuals -->
   <div class="lg:col-span-2 flex flex-col gap-6">
+    <!-- Mode Selector Segment -->
+    <div class="flex flex-col sm:flex-row items-center justify-between bg-slate-900 border border-white/10 rounded-2xl p-4 gap-4 shadow-xl">
+      <div class="flex items-center gap-3">
+        <span class="text-xs font-black text-white uppercase tracking-wider">Console Mode:</span>
+        <div class="flex items-center gap-1.5 p-1 bg-slate-950/60 border border-white/5 rounded-xl">
+          <button (click)="consoleMode.set('referee')"
+            class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[10px] font-extrabold uppercase tracking-wider transition-all cursor-pointer border-0"
+            [class]="consoleMode() === 'referee' ? 'bg-violet-600 text-white shadow-md shadow-violet-650/20' : 'text-slate-400 hover:text-white hover:bg-white/5'">
+            <i class="fi fi-rr-referee"></i> Referee Mode
+          </button>
+          <button (click)="consoleMode.set('statistician')"
+            class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[10px] font-extrabold uppercase tracking-wider transition-all cursor-pointer border-0"
+            [class]="consoleMode() === 'statistician' ? 'bg-violet-600 text-white shadow-md shadow-violet-650/20' : 'text-slate-400 hover:text-white hover:bg-white/5'">
+            <i class="fi fi-rr-chart-bar"></i> Statistician Mode
+          </button>
+        </div>
+      </div>
+      @if (consoleMode() === 'statistician' && hasUnpublishedBalls()) {
+        <button (click)="onPublishCricketStats()"
+          class="w-full sm:w-auto px-5 py-2.5 bg-emerald-600 hover:bg-emerald-550 text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-emerald-650/20 border-0">
+          <i class="fi fi-rr-checkbox"></i> Validate & Publish Balls
+        </button>
+      }
+    </div>
+
+    <!-- Referee Mode Quick Input Console -->
+    @if (consoleMode() === 'referee') {
+      @if (match().status !== 'completed' && canScore() && match().liveData?.tossWinnerId) {
+        <div class="p-6 rounded-2xl bg-slate-900 border border-white/10 flex flex-col gap-6 shadow-xl">
+          <div class="flex items-center justify-between border-b border-white/5 pb-4">
+            <h4 class="text-xs font-black text-white uppercase tracking-widest flex items-center gap-2">
+              <i class="fi fi-rr-referee text-violet-400"></i> One-Touch Quick Ball Input
+            </h4>
+            <span class="text-[10px] font-extrabold text-slate-400 bg-slate-950 border border-white/5 px-2.5 py-1 rounded-lg">
+              Innings {{ match().liveData?.currentInnings || 1 }}
+            </span>
+          </div>
+
+          <!-- Quick Score Buttons -->
+          <div class="grid grid-cols-3 sm:grid-cols-6 gap-3">
+            <button (click)="onRecordCricketBall(0, 0, false, 'normal')"
+              class="h-16 rounded-2xl bg-slate-950 hover:bg-slate-800 border border-white/10 flex flex-col items-center justify-center gap-1 transition-all cursor-pointer border-0">
+              <span class="text-lg font-black text-white">0</span>
+              <span class="text-[8px] font-bold text-slate-500 uppercase">Dot</span>
+            </button>
+            <button (click)="onRecordCricketBall(1, 0, false, 'normal')"
+              class="h-16 rounded-2xl bg-slate-950 hover:bg-slate-800 border border-white/10 flex flex-col items-center justify-center gap-1 transition-all cursor-pointer border-0">
+              <span class="text-lg font-black text-white">1</span>
+              <span class="text-[8px] font-bold text-slate-500 uppercase">Run</span>
+            </button>
+            <button (click)="onRecordCricketBall(2, 0, false, 'normal')"
+              class="h-16 rounded-2xl bg-slate-950 hover:bg-slate-800 border border-white/10 flex flex-col items-center justify-center gap-1 transition-all cursor-pointer border-0">
+              <span class="text-lg font-black text-white">2</span>
+              <span class="text-[8px] font-bold text-slate-500 uppercase">Runs</span>
+            </button>
+            <button (click)="onRecordCricketBall(3, 0, false, 'normal')"
+              class="h-16 rounded-2xl bg-slate-950 hover:bg-slate-800 border border-white/10 flex flex-col items-center justify-center gap-1 transition-all cursor-pointer border-0">
+              <span class="text-lg font-black text-white">3</span>
+              <span class="text-[8px] font-bold text-slate-500 uppercase">Runs</span>
+            </button>
+            <button (click)="onRecordCricketBall(4, 0, false, 'normal')"
+              class="h-16 rounded-2xl bg-emerald-950/40 hover:bg-emerald-900/40 border border-emerald-500/20 flex flex-col items-center justify-center gap-1 transition-all cursor-pointer border-0">
+              <span class="text-lg font-black text-emerald-400">4</span>
+              <span class="text-[8px] font-bold text-emerald-500 uppercase">Four</span>
+            </button>
+            <button (click)="onRecordCricketBall(6, 0, false, 'normal')"
+              class="h-16 rounded-2xl bg-violet-950/40 hover:bg-violet-900/40 border border-violet-500/20 flex flex-col items-center justify-center gap-1 transition-all cursor-pointer border-0">
+              <span class="text-lg font-black text-violet-400">6</span>
+              <span class="text-[8px] font-bold text-violet-500 uppercase">Six</span>
+            </button>
+          </div>
+
+          <!-- Extras & Wickets Quick Buttons -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <button (click)="onRecordCricketBall(0, 1, false, 'wide')"
+              class="h-14 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 flex items-center justify-center gap-2 transition-all cursor-pointer border-0">
+              <span class="text-xs font-black text-amber-400 uppercase tracking-wider">Wide Ball (+1)</span>
+            </button>
+            <button (click)="onRecordCricketBall(0, 1, false, 'no-ball')"
+              class="h-14 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 flex items-center justify-center gap-2 transition-all cursor-pointer border-0">
+              <span class="text-xs font-black text-amber-400 uppercase tracking-wider">No Ball (+1)</span>
+            </button>
+            <button (click)="onRecordCricketBall(0, 0, true, 'normal', 'Bowled')"
+              class="h-14 rounded-2xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 flex items-center justify-center gap-2 transition-all cursor-pointer border-0">
+              <i class="fi fi-rr-trash text-rose-400"></i>
+              <span class="text-xs font-black text-rose-400 uppercase tracking-wider">Wicket!</span>
+            </button>
+          </div>
+        </div>
+      }
+    }
+
     <!-- Header Score Board -->
               <div
                 class="bg-slate-900 border border-white/10 rounded-2xl p-6 shadow-xl flex flex-col items-center justify-center gap-4 relative overflow-hidden">
@@ -26,10 +118,20 @@
                       <span class="text-sm font-bold text-slate-500">:</span>
                       <span class="text-3xl font-black text-white tracking-wider">{{ match().awayScore }}</span>
                     </div>
+                    @if (consoleMode() === 'statistician' && hasUnpublishedBalls()) {
+                      <div class="text-[9px] font-extrabold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/25">
+                        Draft: {{ draftHomeScore() }} - {{ draftAwayScore() }}
+                      </div>
+                    }
                     @let currentInnings = match().liveData?.currentInnings;
                     <span class="text-xs font-bold text-slate-400">
                       Innings: {{ currentInnings || 0 }}
                     </span>
+                    @if (consoleMode() === 'statistician' && hasUnpublishedBalls() && draftInningsStats()) {
+                      <div class="text-[9px] font-bold text-amber-400/80 bg-amber-500/5 px-2 py-0.5 rounded border border-amber-500/10 mt-0.5">
+                        Draft Innings: {{ draftInningsStats()?.runs }}/{{ draftInningsStats()?.wickets }} ({{ draftInningsStats()?.overs }}.{{ draftInningsStats()?.balls }} ov)
+                      </div>
+                    }
                   </div>
 
                   <!-- Away Team name -->
@@ -71,7 +173,7 @@
                 }
               </div>
     
-    @if (match().status !== 'completed' && canScore()) {
+    @if (consoleMode() === 'statistician' && match().status !== 'completed' && canScore()) {
       <div class="bg-slate-900 border border-white/10 rounded-2xl p-6 flex flex-col gap-6">
 
                 @if (!match().liveData?.tossWinnerId) {
@@ -529,6 +631,11 @@
                 @if (ball._audit?.length > 0) {
                   <span class="text-[8px] px-1.5 py-0.5 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded font-bold uppercase flex items-center gap-0.5">
                     <i class="fi fi-rr-pen-field text-[8px]"></i> Edited
+                  </span>
+                }
+                @if (ball.published === false) {
+                  <span class="text-[8px] px-1.5 py-0.5 bg-amber-600/25 border border-amber-500/30 text-amber-400 rounded font-bold uppercase flex items-center gap-0.5">
+                    <i class="fi fi-rr-time-past text-[8px]"></i> Draft
                   </span>
                 }
               </div>
