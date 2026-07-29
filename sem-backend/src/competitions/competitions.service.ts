@@ -1021,7 +1021,7 @@ export class CompetitionsService {
       }
 
       for (const m of matches) {
-        if (m.status !== 'completed') continue;
+        if (m.status !== 'completed' && m.status !== 'live') continue;
         if (!m.homeTeamId || !m.awayTeamId) continue;
 
         // Only count group-stage matches if group_knockout

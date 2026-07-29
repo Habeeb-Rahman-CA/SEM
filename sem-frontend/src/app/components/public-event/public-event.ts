@@ -273,9 +273,9 @@ export class PublicEventComponent implements OnInit, OnDestroy {
         return { ...data, bracket: updatedBracket };
       });
 
-      // If a match is completed, reload standings from server to refresh points/bracket advancement
-      if (updatedMatch.status === 'completed' && this.activeTab() === 'standings') {
-        this.loadStandings();
+      // If the standings tab is active, silently reload standings to update points, tie-breakers, and brackets in real time
+      if (this.activeTab() === 'standings') {
+        this.loadStandings(true);
       }
     });
   }
@@ -683,13 +683,15 @@ export class PublicEventComponent implements OnInit, OnDestroy {
     this.startPolling();
   }
 
-  loadStandings() {
+  loadStandings(silent = false) {
     const eventId = this.eventId();
     const comp = this.standingsComp();
     const stage = this.standingsStage();
     if (!eventId || !comp || !stage) return;
 
-    this.isLoadingStandings.set(true);
+    if (!silent) {
+      this.isLoadingStandings.set(true);
+    }
     this.eventService.getPublicStandings(eventId, comp.id, stage.id).subscribe({
       next: (data) => {
         this.standingsData.set(data);
