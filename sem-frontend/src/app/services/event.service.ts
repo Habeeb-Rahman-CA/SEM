@@ -16,10 +16,83 @@ export class EventService {
     return new HttpHeaders({ Authorization: `Bearer ${token}` });
   }
 
-  getEvents(workspaceId: string): Observable<WorkspaceEvent[]> {
-    return this.http.get<WorkspaceEvent[]>(`${this.apiUrl}/${workspaceId}/events`, {
+  getEvents(workspaceId: string, archived?: boolean): Observable<WorkspaceEvent[]> {
+    const url = archived !== undefined
+      ? `${this.apiUrl}/${workspaceId}/events?archived=${archived}`
+      : `${this.apiUrl}/${workspaceId}/events`;
+    return this.http.get<WorkspaceEvent[]>(url, {
       headers: this.headers,
     });
+  }
+
+  archiveEvent(workspaceId: string, eventId: string): Observable<WorkspaceEvent> {
+    return this.http.patch<WorkspaceEvent>(
+      `${this.apiUrl}/${workspaceId}/events/${eventId}/archive`,
+      {},
+      { headers: this.headers }
+    );
+  }
+
+  restoreEvent(workspaceId: string, eventId: string): Observable<WorkspaceEvent> {
+    return this.http.patch<WorkspaceEvent>(
+      `${this.apiUrl}/${workspaceId}/events/${eventId}/restore`,
+      {},
+      { headers: this.headers }
+    );
+  }
+
+  duplicateEvent(
+    workspaceId: string,
+    eventId: string,
+    payload: {
+      name: string;
+      startDate?: string;
+      endDate?: string;
+      duplicateCompetitions?: boolean;
+      duplicateStages?: boolean;
+      duplicateVenues?: boolean;
+      duplicateTeams?: boolean;
+      duplicatePointSystems?: boolean;
+      duplicateSettings?: boolean;
+    }
+  ): Observable<WorkspaceEvent> {
+    return this.http.post<WorkspaceEvent>(
+      `${this.apiUrl}/${workspaceId}/events/${eventId}/duplicate`,
+      payload,
+      { headers: this.headers }
+    );
+  }
+
+  searchEvents(
+    workspaceId: string,
+    params: {
+      query?: string;
+      sport?: string;
+      organizer?: string;
+      status?: string;
+      venue?: string;
+      startDate?: string;
+      endDate?: string;
+      competitionName?: string;
+      workspaceIdFilter?: string;
+      sortBy?: string;
+      sortOrder?: string;
+    }
+  ): Observable<WorkspaceEvent[]> {
+    let queryParams: any = {};
+    Object.keys(params).forEach(key => {
+      const val = (params as any)[key];
+      if (val !== undefined && val !== null && val !== '') {
+        queryParams[key] = val.toString();
+      }
+    });
+    return this.http.get<WorkspaceEvent[]>(
+      `${this.apiUrl}/${workspaceId}/events/search`,
+      {
+        headers: this.headers,
+        params: queryParams
+      }
+    );
   }
 
   createEvent(
@@ -71,5 +144,33 @@ export class EventService {
     return this.http.get<any[]>(`${this.apiUrl}/${workspaceId}/events/${eventId}/standings`, {
       headers: this.headers,
     });
+  }
+
+  getPublicEvent(eventId: string): Observable<WorkspaceEvent> {
+    return this.http.get<WorkspaceEvent>(`${environment.apiUrl}/public/events/${eventId}`);
+  }
+
+  getPublicCompetitions(eventId: string): Observable<any[]> {
+    return this.http.get<any[]>(`${environment.apiUrl}/public/events/${eventId}/competitions`);
+  }
+
+  getPublicStages(eventId: string, competitionId: string): Observable<any[]> {
+    return this.http.get<any[]>(`${environment.apiUrl}/public/events/${eventId}/competitions/${competitionId}/stages`);
+  }
+
+  getPublicMatches(eventId: string, competitionId: string, stageId: string): Observable<any[]> {
+    return this.http.get<any[]>(`${environment.apiUrl}/public/events/${eventId}/competitions/${competitionId}/stages/${stageId}/matches`);
+  }
+
+  getPublicCompetitionStats(eventId: string, competitionId: string): Observable<any> {
+    return this.http.get<any>(`${environment.apiUrl}/public/events/${eventId}/competitions/${competitionId}/stats`);
+  }
+
+  getPublicStandings(eventId: string, competitionId: string, stageId: string): Observable<any> {
+    return this.http.get<any>(`${environment.apiUrl}/public/events/${eventId}/competitions/${competitionId}/stages/${stageId}/standings`);
+  }
+
+  getPublicResults(eventId: string, competitionId: string): Observable<any> {
+    return this.http.get<any>(`${environment.apiUrl}/public/events/${eventId}/competitions/${competitionId}/results`);
   }
 }

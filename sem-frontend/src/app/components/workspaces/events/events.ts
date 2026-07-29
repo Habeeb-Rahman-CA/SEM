@@ -21,6 +21,8 @@ import { EventModalComponent } from './event-modal';
 import { CompetitionModalComponent } from './competition-modal';
 import { FixturesModalComponent } from './fixtures-modal';
 import { LineupModalComponent } from './lineup-modal';
+import { ScheduleMatchModalComponent } from './schedule-match-modal';
+import { DuplicateEventModalComponent } from './duplicate-event-modal';
 
 @Component({
   selector: 'app-workspace-events',
@@ -36,7 +38,9 @@ import { LineupModalComponent } from './lineup-modal';
     EventModalComponent,
     CompetitionModalComponent,
     FixturesModalComponent,
-    LineupModalComponent
+    LineupModalComponent,
+    ScheduleMatchModalComponent,
+    DuplicateEventModalComponent
   ],
   templateUrl: './events.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -80,18 +84,46 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
   isLoadingCompetitionTeams = signal(false);
   isResettingStages = signal(false);
 
-  // Search
+  // Archive & View
+  archivedEvents = signal<WorkspaceEvent[]>([]);
+  activeEventView = signal<'active' | 'archived'>('active');
+
   eventSearchQuery = signal('');
+
+  // Advanced Search Signals
+  isAdvancedSearchOpen = signal(false);
+  searchActive = signal(false);
+  searchResults = signal<WorkspaceEvent[]>([]);
+
+  searchSport = signal('');
+  searchOrganizer = signal('');
+  searchWorkspaceId = signal('');
+  searchStatus = signal('');
+  searchVenue = signal('');
+  searchStartDate = signal('');
+  searchEndDate = signal('');
+  searchCompetitionName = signal('');
+  searchSortBy = signal('name');
+  searchSortOrder = signal('ASC');
+
+  userWorkspaces = signal<Workspace[]>([]);
+  savedFilters = signal<Array<{ name: string; filters: any }>>([]);
+  newFilterName = signal('');
 
   // Standalone Modal States
   isEventModalOpen = signal(false);
   editingEvent = signal<WorkspaceEvent | null>(null);
+
+  isDuplicateEventModalOpen = signal(false);
+  duplicatingEvent = signal<WorkspaceEvent | null>(null);
 
   isCompetitionModalOpen = signal(false);
   editingCompetition = signal<Competition | null>(null);
 
   isGenerateFixturesModalOpen = signal(false);
   isLineupModalOpen = signal(false);
+  isScheduleMatchModalOpen = signal(false);
+  selectedMatchToSchedule = signal<Match | null>(null);
 
   // Standings Group
   selectedPointsTableGroup = signal('Group A');
@@ -138,10 +170,30 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
         this.loadCompetitionTeams(comp.id);
       }
     }, { allowSignalWrites: true });
+
+    // Re-trigger advanced search if query changes while advanced search is active
+    effect(() => {
+      const query = this.eventSearchQuery();
+      if (this.searchActive()) {
+        this.triggerAdvancedSearch();
+      }
+    }, { allowSignalWrites: true });
   }
 
   ngOnInit() {
     this.loadSports();
+    this.loadArchivedEvents();
+    this.workspaceService.getAll().subscribe(list => {
+      this.userWorkspaces.set(list);
+    });
+    const saved = localStorage.getItem('sem_saved_event_filters');
+    if (saved) {
+      try {
+        this.savedFilters.set(JSON.parse(saved));
+      } catch (e) {
+        console.error('Failed to parse saved filters', e);
+      }
+    }
   }
 
   ngOnDestroy() {
@@ -154,6 +206,17 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
   filteredEvents = computed(() => {
     const query = this.eventSearchQuery().toLowerCase().trim();
     const list = this.events();
+    if (!query) return list;
+    return list.filter(e => 
+      e.name.toLowerCase().includes(query) ||
+      e.status.toLowerCase().includes(query) ||
+      (e.description && e.description.toLowerCase().includes(query))
+    );
+  });
+
+  filteredArchivedEvents = computed(() => {
+    const query = this.eventSearchQuery().toLowerCase().trim();
+    const list = this.archivedEvents();
     if (!query) return list;
     return list.filter(e => 
       e.name.toLowerCase().includes(query) ||
@@ -408,11 +471,38 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
   onEventSaved(saved: WorkspaceEvent) {
     const isEdit = !!this.editingEvent();
     if (isEdit) {
-      this.events.update(prev => prev.map(e => e.id === saved.id ? saved : e));
+      if (saved.isArchived) {
+        // If the status became completed, it might have been archived
+        this.events.update(prev => prev.filter(e => e.id !== saved.id));
+        this.archivedEvents.update(prev => {
+          const exists = prev.some(e => e.id === saved.id);
+          return exists ? prev.map(e => e.id === saved.id ? saved : e) : [...prev, saved];
+        });
+      } else {
+        this.events.update(prev => prev.map(e => e.id === saved.id ? saved : e));
+        this.archivedEvents.update(prev => prev.filter(e => e.id !== saved.id));
+      }
       const curEvent = this.selectedEvent();
       if (curEvent && curEvent.id === saved.id) {
         this.selectedEvent.set(saved);
       }
+    } else {
+      if (saved.isArchived) {
+        this.archivedEvents.update(prev => [...prev, saved]);
+      } else {
+        this.events.update(prev => [...prev, saved]);
+      }
+    }
+  }
+
+  openDuplicateEventModal(event: WorkspaceEvent) {
+    this.duplicatingEvent.set(event);
+    this.isDuplicateEventModalOpen.set(true);
+  }
+
+  onEventDuplicated(saved: WorkspaceEvent) {
+    if (saved.isArchived) {
+      this.archivedEvents.update(prev => [...prev, saved]);
     } else {
       this.events.update(prev => [...prev, saved]);
     }
@@ -430,9 +520,11 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
     if (!confirmed) return;
 
     const originalEvents = this.events();
+    const originalArchivedEvents = this.archivedEvents();
 
     // Optimistic Update
     this.events.update(prev => prev.filter(e => e.id !== event.id));
+    this.archivedEvents.update(prev => prev.filter(e => e.id !== event.id));
     if (this.selectedEvent()?.id === event.id) {
       this.selectedEvent.set(null);
       this.competitions.set([]);
@@ -445,7 +537,71 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
       error: (err) => {
         // Rollback
         this.events.set(originalEvents);
+        this.archivedEvents.set(originalArchivedEvents);
         this.uiService.error(err.error?.message ?? 'Failed to delete event.');
+      }
+    });
+  }
+
+  loadArchivedEvents() {
+    const ws = this.workspace();
+    if (!ws) return;
+    this.eventService.getEvents(ws.id, true).subscribe({
+      next: (events) => this.archivedEvents.set(events),
+      error: (err) => console.error('Failed to load archived events', err)
+    });
+  }
+
+  async onArchiveEvent(event: WorkspaceEvent) {
+    const ws = this.workspace();
+    if (!ws) return;
+    const confirmed = await this.uiService.confirm({
+      title: 'Archive Event',
+      message: `Are you sure you want to archive event "${event.name}"?`,
+      confirmText: 'Archive',
+      type: 'warning',
+    });
+    if (!confirmed) return;
+
+    this.eventService.archiveEvent(ws.id, event.id).subscribe({
+      next: (updatedEvent) => {
+        this.uiService.success(`Event "${event.name}" archived successfully.`);
+        // Remove from active events, add to archived
+        this.events.update(prev => prev.filter(e => e.id !== event.id));
+        this.archivedEvents.update(prev => {
+          const exists = prev.some(e => e.id === updatedEvent.id);
+          return exists ? prev.map(e => e.id === updatedEvent.id ? updatedEvent : e) : [...prev, updatedEvent];
+        });
+      },
+      error: (err) => {
+        this.uiService.error(err.error?.message ?? 'Failed to archive event.');
+      }
+    });
+  }
+
+  async onRestoreEvent(event: WorkspaceEvent) {
+    const ws = this.workspace();
+    if (!ws) return;
+    const confirmed = await this.uiService.confirm({
+      title: 'Restore Event',
+      message: `Are you sure you want to restore event "${event.name}" to active status?`,
+      confirmText: 'Restore',
+      type: 'info',
+    });
+    if (!confirmed) return;
+
+    this.eventService.restoreEvent(ws.id, event.id).subscribe({
+      next: (updatedEvent) => {
+        this.uiService.success(`Event "${event.name}" restored successfully.`);
+        // Remove from archived, add to active
+        this.archivedEvents.update(prev => prev.filter(e => e.id !== event.id));
+        this.events.update(prev => {
+          const exists = prev.some(e => e.id === updatedEvent.id);
+          return exists ? prev.map(e => e.id === updatedEvent.id ? updatedEvent : e) : [...prev, updatedEvent];
+        });
+      },
+      error: (err) => {
+        this.uiService.error(err.error?.message ?? 'Failed to restore event.');
       }
     });
   }
@@ -862,5 +1018,107 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
 
   getMatchesForRound(roundName: string): Match[] {
     return this.matches().filter(m => m.config?.round === roundName && (m.config?.leg === undefined || m.config?.leg === 1));
+  }
+
+  onOpenScheduleModal(match: Match) {
+    this.selectedMatchToSchedule.set(match);
+    this.isScheduleMatchModalOpen.set(true);
+  }
+
+  onMatchScheduled(updated: Match) {
+    this.matches.update(prev => prev.map(m => m.id === updated.id ? updated : m));
+    if (this.selectedMatch() && this.selectedMatch()!.id === updated.id) {
+      this.selectedMatch.set(updated);
+    }
+  }
+
+  openPublicPage(event: WorkspaceEvent) {
+    const url = `/public/events/${event.id}`;
+    window.open(url, '_blank');
+  }
+
+  applySavedFilter(filters: any) {
+    this.searchSport.set(filters.sport || '');
+    this.searchOrganizer.set(filters.organizer || '');
+    this.searchWorkspaceId.set(filters.workspaceIdFilter || '');
+    this.searchStatus.set(filters.status || '');
+    this.searchVenue.set(filters.venue || '');
+    this.searchStartDate.set(filters.startDate || '');
+    this.searchEndDate.set(filters.endDate || '');
+    this.searchCompetitionName.set(filters.competitionName || '');
+    this.searchSortBy.set(filters.sortBy || 'name');
+    this.searchSortOrder.set(filters.sortOrder || 'ASC');
+    this.triggerAdvancedSearch();
+  }
+
+  saveCurrentFilter() {
+    const name = this.newFilterName().trim();
+    if (!name) return;
+    const filters = {
+      sport: this.searchSport(),
+      organizer: this.searchOrganizer(),
+      workspaceIdFilter: this.searchWorkspaceId(),
+      status: this.searchStatus(),
+      venue: this.searchVenue(),
+      startDate: this.searchStartDate(),
+      endDate: this.searchEndDate(),
+      competitionName: this.searchCompetitionName(),
+      sortBy: this.searchSortBy(),
+      sortOrder: this.searchSortOrder(),
+    };
+    const current = this.savedFilters();
+    const updated = current.filter(sf => sf.name.toLowerCase() !== name.toLowerCase());
+    updated.push({ name, filters });
+    this.savedFilters.set(updated);
+    localStorage.setItem('sem_saved_event_filters', JSON.stringify(updated));
+    this.newFilterName.set('');
+  }
+
+  deleteSavedFilter(name: string) {
+    const updated = this.savedFilters().filter(sf => sf.name !== name);
+    this.savedFilters.set(updated);
+    localStorage.setItem('sem_saved_event_filters', JSON.stringify(updated));
+  }
+
+  resetAdvancedSearch() {
+    this.searchSport.set('');
+    this.searchOrganizer.set('');
+    this.searchWorkspaceId.set('');
+    this.searchStatus.set('');
+    this.searchVenue.set('');
+    this.searchStartDate.set('');
+    this.searchEndDate.set('');
+    this.searchCompetitionName.set('');
+    this.searchSortBy.set('name');
+    this.searchSortOrder.set('ASC');
+    this.searchActive.set(false);
+    this.searchResults.set([]);
+  }
+
+  triggerAdvancedSearch() {
+    const ws = this.workspace();
+    if (!ws) return;
+    this.searchActive.set(true);
+    const params = {
+      query: this.eventSearchQuery(),
+      sport: this.searchSport(),
+      organizer: this.searchOrganizer(),
+      status: this.searchStatus(),
+      venue: this.searchVenue(),
+      startDate: this.searchStartDate(),
+      endDate: this.searchEndDate(),
+      competitionName: this.searchCompetitionName(),
+      workspaceIdFilter: this.searchWorkspaceId(),
+      sortBy: this.searchSortBy(),
+      sortOrder: this.searchSortOrder()
+    };
+    this.eventService.searchEvents(ws.id, params).subscribe({
+      next: (results) => {
+        this.searchResults.set(results);
+      },
+      error: (err) => {
+        console.error('Advanced search failed:', err);
+      }
+    });
   }
 }

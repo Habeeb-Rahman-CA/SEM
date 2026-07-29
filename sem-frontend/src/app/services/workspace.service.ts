@@ -121,6 +121,15 @@ export interface WorkspaceEvent {
   createdAt: string;
   updatedAt: string;
   teams?: Team[];
+  competitions?: any[];
+  isPublic?: boolean;
+  gallery?: string[] | null;
+  announcements?: Array<{ id: string; title: string; content: string; createdAt: string }> | null;
+  registrationStatus?: string;
+  venue?: string | null;
+  sport?: string | null;
+  organizers?: string | null;
+  isArchived?: boolean;
 }
 
 export interface Sport {
@@ -186,6 +195,7 @@ export interface Match {
   homeScore: number;
   awayScore: number;
   status: 'scheduled' | 'live' | 'completed';
+  scheduledAt?: string | null;
   config: {
     timerDuration?: number;
     overs?: number;

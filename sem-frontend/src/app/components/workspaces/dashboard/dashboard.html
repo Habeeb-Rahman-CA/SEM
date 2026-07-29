@@ -7,9 +7,9 @@
         <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
         Workspace Active Command Center
       </div>
-      <h1 class="text-xl font-black text-white tracking-tight">{{ workspace()?.name }} Overview</h1>
+      <h1 class="text-xl font-black text-white tracking-tight">{{ workspace()?.name }} Dashboard</h1>
       @if (workspace()?.description) {
-      <p class="text-slate-400 mt-0.5 text-xs max-w-xl truncate">{{ workspace()?.description }}</p>
+        <p class="text-slate-400 mt-0.5 text-xs max-w-xl truncate">{{ workspace()?.description }}</p>
       }
     </div>
 
@@ -37,6 +37,25 @@
       }
     </div>
   </div>
+
+  <!-- Attention Highlights Alert Bar -->
+  @if (attentionItems().length > 0) {
+    <div class="bg-gradient-to-r from-amber-500/10 via-rose-500/10 to-amber-500/10 border border-rose-500/30 rounded-2xl p-4 shadow-lg shadow-rose-950/20 relative overflow-hidden flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div class="absolute top-0 left-0 h-full w-1.5 bg-gradient-to-b from-amber-400 to-rose-500"></div>
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-rose-400 shrink-0">
+          <i class="fi fi-rr-triangle-warning text-lg animate-bounce"></i>
+        </div>
+        <div>
+          <h4 class="text-sm font-black text-white tracking-tight">Attention Required: {{ attentionItems().length }} Operational Issue{{ attentionItems().length !== 1 ? 's' : '' }}</h4>
+          <p class="text-slate-300 text-xs mt-0.5">Organizers need to resolve roster deficiencies, missing venues, or configure new spaces to ensure match day runs smoothly.</p>
+        </div>
+      </div>
+      <button (click)="activeTab.set('members')" class="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-rose-950/50 cursor-pointer flex items-center gap-1 shrink-0">
+        Review Roster <i class="fi fi-rr-angle-small-right text-xs"></i>
+      </button>
+    </div>
+  }
 
   <!-- 1. Stats Summary Cards Grid (Compact 5-Col) -->
   <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -92,7 +111,7 @@
   </div>
 
   <!-- High-Density Workspace Status Ribbon -->
-  <div class="bg-slate-950/80 border border-white/10 rounded-xl p-2.5 px-4 flex flex-wrap items-center justify-between gap-3 text-xs">
+  <div class="bg-slate-955/80 border border-white/10 rounded-xl p-2.5 px-4 flex flex-wrap items-center justify-between gap-3 text-xs">
     <div class="flex items-center gap-4 text-[11px] font-semibold text-slate-300">
       <span class="flex items-center gap-1.5 text-rose-400 font-bold">
         <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
@@ -115,294 +134,509 @@
     }
   </div>
 
-  <!-- 2. LIVE MATCHES & SCOREBOARDS (Direct Entry to Live Console) -->
-  <div class="space-y-3">
-    <div class="flex items-center justify-between">
-      <div class="flex items-center gap-2">
-        <div class="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-md shadow-rose-500/50 animate-pulse"></div>
-        <h2 class="text-sm font-extrabold text-white tracking-tight flex items-center gap-2">
-          Live Games & Scoreboards
-          @if (liveMatches().length > 0) {
-            <span class="px-2 py-0.5 text-[9px] font-extrabold rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30">
-              {{ liveMatches().length }} LIVE
-            </span>
-          }
-        </h2>
-      </div>
-      <span class="text-[11px] text-slate-400">Click any match card to enter live scoring console</span>
-    </div>
-
-    @if (isOverviewLoading()) {
-      <!-- Skeleton -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 animate-pulse" aria-busy="true" aria-label="Loading live matches">
-        @for (sk of [1, 2, 3]; track sk) {
-          <div class="rounded-xl bg-slate-900 border border-white/10 p-4 space-y-4">
-            <div class="flex justify-between">
-              <div class="w-24 h-4 bg-slate-800 rounded-md"></div>
-              <div class="w-14 h-4 bg-slate-800 rounded-md"></div>
-            </div>
-            <div class="flex items-center justify-between px-2">
-              <div class="flex flex-col items-center gap-2">
-                <div class="w-10 h-10 rounded-xl bg-slate-800"></div>
-                <div class="w-16 h-3 bg-slate-800 rounded"></div>
-              </div>
-              <div class="w-12 h-6 bg-slate-800 rounded-lg"></div>
-              <div class="flex flex-col items-center gap-2">
-                <div class="w-10 h-10 rounded-xl bg-slate-800"></div>
-                <div class="w-16 h-3 bg-slate-800 rounded"></div>
-              </div>
-            </div>
-            <div class="h-3 bg-slate-800 rounded w-3/4 mx-auto"></div>
-          </div>
-        }
-      </div>
-    } @else if (liveMatches().length > 0) {
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-        @for (match of liveMatches(); track match.id) {
-          <div (click)="enterLiveMatch.emit(match)"
-            class="group relative overflow-hidden rounded-xl bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border border-rose-500/30 hover:border-rose-500/70 p-4 shadow-lg hover:shadow-rose-500/10 transition-all cursor-pointer">
-            
-            <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-rose-500 via-amber-500 to-rose-500 animate-pulse"></div>
-
-            <!-- Match Top Meta -->
-            <div class="flex items-center justify-between mb-3">
-              <div class="flex items-center gap-1.5">
-                <span class="px-2 py-0.5 text-[9px] font-extrabold rounded-md border uppercase tracking-wider flex items-center gap-1"
-                      [ngClass]="getSportBadgeClass(match.stage?.competition?.sport?.code)">
-                  <i [class]="getSportIconClass(match.stage?.competition?.sport?.code)"></i>
-                  {{ match.stage?.competition?.sport?.name || 'Sport' }}
+  <!-- Main Dashboard 2-Column Grid -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+    
+    <!-- LEFT PANEL: Operational Widgets (Live Match Console, Tasks, Standings, upcoming) -->
+    <div class="lg:col-span-2 space-y-5">
+      
+      <!-- 2. LIVE MATCHES & SCOREBOARDS -->
+      <div class="space-y-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <div class="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-md shadow-rose-500/50 animate-pulse"></div>
+            <h2 class="text-sm font-extrabold text-white tracking-tight flex items-center gap-2">
+              Live Games & Scoreboards
+              @if (liveMatches().length > 0) {
+                <span class="px-2 py-0.5 text-[9px] font-extrabold rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30">
+                  {{ liveMatches().length }} LIVE
                 </span>
-                <span class="text-xs text-slate-400 truncate max-w-[130px] font-medium">{{ match.stage?.competition?.name }}</span>
-              </div>
-
-              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-500/20 border border-rose-500/40 text-rose-400 text-[10px] font-black animate-pulse">
-                <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
-                {{ formatMatchStatusDetail(match) }}
-              </span>
-            </div>
-
-            <!-- Scoreboard Body -->
-            <div class="flex items-center justify-between my-2 px-1">
-              <!-- Home Team -->
-              <div class="flex flex-col items-center text-center space-y-1 w-2/5">
-                <div class="w-10 h-10 rounded-xl bg-slate-800 border border-white/10 flex items-center justify-center p-1.5 shadow-inner group-hover:scale-105 transition-transform overflow-hidden">
-                  @if (match.homeTeam?.logoUrl) {
-                    <img [src]="match.homeTeam.logoUrl" [alt]="match.homeTeam.name" class="w-full h-full object-contain">
-                  } @else {
-                    <span class="text-xs font-black text-violet-400">{{ match.homeTeam?.name?.slice(0, 2) || 'HT' }}</span>
-                  }
-                </div>
-                <span class="text-xs font-bold text-white truncate w-full">{{ match.homeTeam?.name || 'Home Team' }}</span>
-              </div>
-
-              <!-- Score Display -->
-              <div class="flex flex-col items-center justify-center w-1/5">
-                <div class="text-xl font-black text-white tracking-wider font-mono flex items-center gap-1">
-                  <span>{{ match.homeScore ?? 0 }}</span>
-                  <span class="text-slate-500 text-sm">:</span>
-                  <span>{{ match.awayScore ?? 0 }}</span>
-                </div>
-                <span class="text-[8px] text-slate-400 uppercase tracking-widest mt-0.5 font-bold">Live Score</span>
-              </div>
-
-              <!-- Away Team -->
-              <div class="flex flex-col items-center text-center space-y-1 w-2/5">
-                <div class="w-10 h-10 rounded-xl bg-slate-800 border border-white/10 flex items-center justify-center p-1.5 shadow-inner group-hover:scale-105 transition-transform overflow-hidden">
-                  @if (match.awayTeam?.logoUrl) {
-                    <img [src]="match.awayTeam.logoUrl" [alt]="match.awayTeam.name" class="w-full h-full object-contain">
-                  } @else {
-                    <span class="text-xs font-black text-indigo-400">{{ match.awayTeam?.name?.slice(0, 2) || 'AT' }}</span>
-                  }
-                </div>
-                <span class="text-xs font-bold text-white truncate w-full">{{ match.awayTeam?.name || 'Away Team' }}</span>
-              </div>
-            </div>
-
-            <!-- Footer Venue & Action -->
-            <div class="pt-2.5 mt-2 border-t border-white/5 flex items-center justify-between text-xs text-slate-400">
-              <span class="truncate max-w-[170px] flex items-center gap-1 text-[10px]">
-                <i class="fi fi-rr-marker text-slate-500 text-xs"></i>
-                {{ match.venue?.name || 'Stadium' }}
-              </span>
-              <span class="text-violet-400 font-bold group-hover:translate-x-0.5 transition-transform flex items-center gap-1 text-[11px]">
-                Enter Console <i class="fi fi-rr-angle-small-right text-xs"></i>
-              </span>
-            </div>
-
+              }
+            </h2>
           </div>
-        }
-      </div>
-    } @else {
-      <div class="p-4 rounded-xl bg-slate-900/50 border border-white/10 text-center space-y-1">
-        <p class="text-xs font-bold text-slate-300">No Matches Currently Live</p>
-        <p class="text-[10px] text-slate-500">There are no matches actively running right now in this workspace.</p>
-      </div>
-    }
-  </div>
-
-  <!-- 3. RUNNING COMPETITION POINTS TABLE (STANDINGS) -->
-  <div class="space-y-3">
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-      <div>
-        <h2 class="text-sm font-extrabold text-white tracking-tight flex items-center gap-2">
-          <i class="fi fi-rr-trophy text-amber-400 text-sm"></i>
-          Running Competition Points Table
-        </h2>
-        <p class="text-[11px] text-slate-400">Live standings for active tournaments in this workspace</p>
-      </div>
-
-      @if (runningCompetitions().length > 0) {
-        <div class="flex items-center gap-1.5 overflow-x-auto pb-0.5">
-          @for (comp of runningCompetitions(); track comp.id) {
-            <button (click)="onSelectOverviewCompetition(comp)"
-              class="px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition cursor-pointer"
-              [ngClass]="selectedOverviewCompId() === comp.id ? 'bg-violet-600 text-white shadow-sm shadow-violet-600/30' : 'bg-slate-900 text-slate-400 hover:text-white border border-white/10'">
-              {{ comp.name }}
-            </button>
-          }
+          <span class="text-[11px] text-slate-400">Click any match card to enter live scoring console</span>
         </div>
-      }
-    </div>
 
-    @if (isOverviewLoading()) {
-      <!-- Standings Skeleton -->
-      <div class="overflow-x-auto rounded-xl border border-white/10 bg-slate-900/90 animate-pulse" aria-busy="true" aria-label="Loading standings">
-        <div class="h-10 bg-slate-950 border-b border-white/10 flex items-center px-4 gap-4">
-          <div class="w-24 h-3 bg-slate-800 rounded"></div>
-          <div class="w-32 h-3 bg-slate-800 rounded"></div>
-          <div class="w-20 h-3 bg-slate-800 rounded"></div>
-        </div>
-        @for (sk of [1,2,3,4,5]; track sk) {
-          <div class="flex items-center gap-4 px-4 py-3 border-b border-white/5">
-            <div class="w-5 h-3 bg-slate-800 rounded"></div>
-            <div class="w-20 h-3 bg-slate-800 rounded flex-1"></div>
-            <div class="w-6 h-3 bg-slate-800 rounded"></div>
-            <div class="w-6 h-3 bg-slate-800 rounded"></div>
-            <div class="w-6 h-3 bg-slate-800 rounded"></div>
-            <div class="w-6 h-3 bg-slate-800 rounded"></div>
-            <div class="w-8 h-4 bg-violet-900/40 rounded"></div>
-          </div>
-        }
-      </div>
-    } @else if (selectedOverviewComp() && selectedOverviewComp()?.standings?.length > 0) {
-      <div class="overflow-x-auto rounded-xl border border-white/10 bg-slate-900/90 backdrop-blur-md shadow-lg">
-        <table class="w-full text-left text-xs text-slate-300">
-          <thead class="bg-slate-950/90 text-slate-400 uppercase tracking-wider text-[9px] font-extrabold border-b border-white/10">
-            <tr>
-              <th class="py-2.5 px-3 text-center">Pos</th>
-              <th class="py-2.5 px-3">Team</th>
-              <th class="py-2.5 px-2 text-center">P</th>
-              <th class="py-2.5 px-2 text-center">W</th>
-              <th class="py-2.5 px-2 text-center">D</th>
-              <th class="py-2.5 px-2 text-center">L</th>
-              <th class="py-2.5 px-2 text-center">GF</th>
-              <th class="py-2.5 px-2 text-center">GA</th>
-              <th class="py-2.5 px-2 text-center">GD</th>
-              <th class="py-2.5 px-3 text-center font-black text-violet-400">Pts</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-white/5">
-            @for (row of selectedOverviewComp()?.standings; track row.teamId; let idx = $index) {
-              <tr class="hover:bg-white/5 transition-colors">
-                <td class="py-2 px-3 text-center font-black">
-                  @if (idx === 0) {
-                    <span class="inline-flex items-center gap-1 text-amber-400 font-extrabold"><i class="fi fi-rr-medal text-xs"></i> 1</span>
-                  } @else if (idx === 1) {
-                    <span class="inline-flex items-center gap-1 text-slate-300 font-extrabold"><i class="fi fi-rr-medal text-xs"></i> 2</span>
-                  } @else if (idx === 2) {
-                    <span class="inline-flex items-center gap-1 text-amber-600 font-extrabold"><i class="fi fi-rr-medal text-xs"></i> 3</span>
-                  } @else {
-                    <span class="text-slate-500 font-bold">{{ idx + 1 }}</span>
-                  }
-                </td>
-                <td class="py-2 px-3 flex items-center gap-2.5 font-semibold text-white">
-                  <div class="w-6 h-6 rounded-md bg-slate-800 border border-white/10 flex items-center justify-center overflow-hidden shrink-0">
-                    @if (row.teamLogoUrl) {
-                      <img [src]="row.teamLogoUrl" [alt]="row.teamName" class="w-full h-full object-cover">
-                    } @else {
-                      <span class="text-[9px] font-bold text-violet-400">{{ row.teamName?.slice(0, 2) }}</span>
-                    }
+        @if (isOverviewLoading()) {
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 animate-pulse" aria-busy="true" aria-label="Loading live matches">
+            @for (sk of [1, 2]; track sk) {
+              <div class="rounded-xl bg-slate-900 border border-white/10 p-4 space-y-4">
+                <div class="flex justify-between">
+                  <div class="w-24 h-4 bg-slate-800 rounded-md"></div>
+                  <div class="w-14 h-4 bg-slate-800 rounded-md"></div>
+                </div>
+                <div class="flex items-center justify-between px-2">
+                  <div class="flex flex-col items-center gap-2">
+                    <div class="w-10 h-10 rounded-xl bg-slate-800"></div>
+                    <div class="w-16 h-3 bg-slate-800 rounded"></div>
                   </div>
-                  <span class="truncate max-w-[180px]">{{ row.teamName }}</span>
-                </td>
-                <td class="py-2 px-2 text-center font-medium text-slate-300">{{ row.played }}</td>
-                <td class="py-2 px-2 text-center font-bold text-emerald-400">{{ row.won }}</td>
-                <td class="py-2 px-2 text-center font-medium text-amber-400">{{ row.drawn }}</td>
-                <td class="py-2 px-2 text-center font-medium text-rose-400">{{ row.lost }}</td>
-                <td class="py-2 px-2 text-center text-slate-400 text-[11px]">{{ row.gf }}</td>
-                <td class="py-2 px-2 text-center text-slate-400 text-[11px]">{{ row.ga }}</td>
-                <td class="py-2 px-2 text-center font-bold text-[11px]" [ngClass]="row.gd > 0 ? 'text-emerald-400' : row.gd < 0 ? 'text-rose-400' : 'text-slate-400'">
-                  {{ row.gd > 0 ? '+' + row.gd : row.gd }}
-                </td>
-                <td class="py-2 px-3 text-center font-black text-xs text-violet-300 bg-violet-500/10">{{ row.pts }}</td>
-              </tr>
+                  <div class="w-12 h-6 bg-slate-800 rounded-lg"></div>
+                  <div class="flex flex-col items-center gap-2">
+                    <div class="w-10 h-10 rounded-xl bg-slate-800"></div>
+                    <div class="w-16 h-3 bg-slate-800 rounded"></div>
+                  </div>
+                </div>
+              </div>
             }
-          </tbody>
-        </table>
-      </div>
-    @} @else {
-      <div class="p-4 rounded-xl bg-slate-900/50 border border-white/10 text-center text-xs text-slate-400">
-        No active competition points table available.
-      </div>
-    }
-  </div>
+          </div>
+        } @else if (liveMatches().length > 0) {
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+            @for (match of liveMatches(); track match.id) {
+              <div (click)="enterLiveMatch.emit(match)"
+                class="group relative overflow-hidden rounded-xl bg-gradient-to-b from-slate-900 via-slate-900 to-slate-955 border border-rose-500/30 hover:border-rose-500/70 p-4 shadow-lg hover:shadow-rose-500/10 transition-all cursor-pointer">
+                
+                <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-rose-500 via-amber-500 to-rose-500 animate-pulse"></div>
 
-  <!-- 4. UPCOMING GAMES & LEADERBOARDS GRID -->
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <!-- Match Top Meta -->
+                <div class="flex items-center justify-between mb-3">
+                  <div class="flex items-center gap-1.5">
+                    <span class="px-2 py-0.5 text-[9px] font-extrabold rounded-md border uppercase tracking-wider flex items-center gap-1"
+                          [ngClass]="getSportBadgeClass(match.stage?.competition?.sport?.code)">
+                      <i [class]="getSportIconClass(match.stage?.competition?.sport?.code)"></i>
+                      {{ match.stage?.competition?.sport?.name || 'Sport' }}
+                    </span>
+                    <span class="text-xs text-slate-400 truncate max-w-[120px] font-medium">{{ match.stage?.competition?.name }}</span>
+                  </div>
 
-    <!-- Upcoming Games (2 Cols) -->
-    <div class="lg:col-span-2 space-y-3">
-      <div class="flex items-center justify-between">
-        <h2 class="text-sm font-extrabold text-white tracking-tight flex items-center gap-2">
-          <i class="fi fi-rr-calendar text-violet-400 text-sm"></i>
-          Upcoming Matches & Fixtures
-        </h2>
-        <span class="text-[11px] text-slate-400">Scheduled fixtures</span>
-      </div>
-
-      @if (upcomingMatches().length > 0) {
-        <div class="space-y-2">
-          @for (match of upcomingMatches(); track match.id) {
-            <div (click)="enterLiveMatch.emit(match)"
-              class="group p-3 rounded-xl bg-slate-900/90 border border-white/10 hover:border-violet-500/50 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer">
-              
-              <div class="flex items-center gap-2.5">
-                <span class="px-2 py-0.5 text-[9px] font-extrabold rounded-md border uppercase tracking-wider flex items-center gap-1"
-                      [ngClass]="getSportBadgeClass(match.stage?.competition?.sport?.code)">
-                  <i [class]="getSportIconClass(match.stage?.competition?.sport?.code)"></i>
-                  {{ match.stage?.competition?.sport?.name || 'Sport' }}
-                </span>
-                <div>
-                  <span class="text-xs font-bold text-white block truncate max-w-[180px]">{{ match.stage?.competition?.name }}</span>
-                  <span class="text-[10px] text-slate-400 flex items-center gap-1">
-                    <i class="fi fi-rr-marker text-[9px] text-slate-500"></i>
-                    {{ match.venue?.name || 'Stadium Venue' }}
+                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-500/20 border border-rose-500/40 text-rose-400 text-[10px] font-black animate-pulse">
+                    <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+                    {{ formatMatchStatusDetail(match) }}
                   </span>
                 </div>
-              </div>
 
-              <!-- Teams Versus -->
-              <div class="flex items-center gap-2.5 font-bold text-xs text-slate-200">
-                <span class="text-right truncate max-w-[100px]">{{ match.homeTeam?.name || 'Home' }}</span>
-                <span class="px-1.5 py-0.5 rounded bg-slate-800 text-[9px] font-extrabold text-slate-400">VS</span>
-                <span class="text-left truncate max-w-[100px]">{{ match.awayTeam?.name || 'Away' }}</span>
-              </div>
+                <!-- Scoreboard Body -->
+                <div class="flex items-center justify-between my-2 px-1">
+                  <!-- Home Team -->
+                  <div class="flex flex-col items-center text-center space-y-1 w-2/5">
+                    <div class="w-10 h-10 rounded-xl bg-slate-800 border border-white/10 flex items-center justify-center p-1.5 shadow-inner group-hover:scale-105 transition-transform overflow-hidden">
+                      @if (match.homeTeam?.logoUrl) {
+                        <img [src]="match.homeTeam.logoUrl" [alt]="match.homeTeam.name" class="w-full h-full object-contain">
+                      } @else {
+                        <span class="text-xs font-black text-violet-400">{{ match.homeTeam?.name?.slice(0, 2) || 'HT' }}</span>
+                      }
+                    </div>
+                    <span class="text-xs font-bold text-white truncate w-full">{{ match.homeTeam?.name || 'Home Team' }}</span>
+                  </div>
 
-              <button class="px-3 py-1 rounded-lg bg-violet-600/20 hover:bg-violet-600 text-violet-300 hover:text-white border border-violet-500/30 text-xs font-bold transition flex items-center gap-1 self-end sm:self-center">
-                Match Details <i class="fi fi-rr-angle-small-right text-xs"></i>
-              </button>
+                  <!-- Score Display -->
+                  <div class="flex flex-col items-center justify-center w-1/5">
+                    <div class="text-xl font-black text-white tracking-wider font-mono flex items-center gap-1">
+                      <span>{{ match.homeScore ?? 0 }}</span>
+                      <span class="text-slate-500 text-sm">:</span>
+                      <span>{{ match.awayScore ?? 0 }}</span>
+                    </div>
+                    <span class="text-[8px] text-slate-400 uppercase tracking-widest mt-0.5 font-bold">Live Score</span>
+                  </div>
+
+                  <!-- Away Team -->
+                  <div class="flex flex-col items-center text-center space-y-1 w-2/5">
+                    <div class="w-10 h-10 rounded-xl bg-slate-800 border border-white/10 flex items-center justify-center p-1.5 shadow-inner group-hover:scale-105 transition-transform overflow-hidden">
+                      @if (match.awayTeam?.logoUrl) {
+                        <img [src]="match.awayTeam.logoUrl" [alt]="match.awayTeam.name" class="w-full h-full object-contain">
+                      } @else {
+                        <span class="text-xs font-black text-indigo-400">{{ match.awayTeam?.name?.slice(0, 2) || 'AT' }}</span>
+                      }
+                    </div>
+                    <span class="text-xs font-bold text-white truncate w-full">{{ match.awayTeam?.name || 'Away Team' }}</span>
+                  </div>
+                </div>
+
+                <!-- Footer Venue & Action -->
+                <div class="pt-2.5 mt-2 border-t border-white/5 flex items-center justify-between text-xs text-slate-400">
+                  <span class="truncate max-w-[140px] flex items-center gap-1 text-[10px]">
+                    <i class="fi fi-rr-marker text-slate-500 text-xs"></i>
+                    {{ match.venue?.name || 'Stadium' }}
+                  </span>
+                  <span class="text-violet-400 font-bold group-hover:translate-x-0.5 transition-transform flex items-center gap-1 text-[11px]">
+                    Enter Console <i class="fi fi-rr-angle-small-right text-xs"></i>
+                  </span>
+                </div>
+
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="p-4 rounded-xl bg-slate-900/50 border border-white/10 text-center space-y-1">
+            <p class="text-xs font-bold text-slate-300">No Matches Currently Live</p>
+            <p class="text-[10px] text-slate-500">There are no matches actively running right now in this workspace.</p>
+          </div>
+        }
+      </div>
+
+      <!-- NEW: PENDING TASKS WIDGET -->
+      <div class="bg-slate-900/90 border border-white/10 rounded-2xl p-5 shadow-lg relative overflow-hidden space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-sm font-black text-white tracking-tight flex items-center gap-2">
+              <i class="fi fi-rr-list-check text-violet-400 text-base"></i>
+              Organizer Pending Tasks
+              @if (pendingTasks().length > 0) {
+                <span class="px-2 py-0.5 text-[10px] font-black rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">
+                  {{ pendingTasks().length }} Tasks
+                </span>
+              }
+            </h3>
+            <p class="text-[11px] text-slate-400">Actionable items requiring organizer coordination or resolution</p>
+          </div>
+          @if (pendingTasks().length === 0) {
+            <span class="text-[10px] font-bold text-emerald-400 flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-lg">
+              <i class="fi fi-rr-check text-xs"></i> All caught up
+            </span>
+          }
+        </div>
+
+        @if (pendingTasks().length > 0) {
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            @for (task of pendingTasks(); track task.id) {
+              <div class="group relative overflow-hidden rounded-xl border p-3 flex flex-col justify-between gap-3 transition-all hover:scale-[1.01]"
+                   [ngClass]="{
+                     'bg-rose-955/20 border-rose-500/20 hover:border-rose-500/40': task.severity === 'error',
+                     'bg-amber-955/20 border-amber-500/20 hover:border-amber-500/40': task.severity === 'warning',
+                     'bg-slate-950/60 border-white/5 hover:border-violet-500/30': task.severity === 'info'
+                   }">
+                <div class="flex items-start gap-2.5">
+                  <div class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border"
+                       [ngClass]="{
+                         'bg-rose-500/15 border-rose-500/20 text-rose-400': task.severity === 'error',
+                         'bg-amber-500/15 border-amber-500/20 text-amber-400': task.severity === 'warning',
+                         'bg-slate-800 border-white/10 text-violet-400': task.severity === 'info'
+                       }">
+                    <i [class]="task.icon"></i>
+                  </div>
+                  <div>
+                    <h4 class="text-xs font-bold text-white leading-snug">{{ task.title }}</h4>
+                    <p class="text-[10px] text-slate-400 mt-0.5 leading-relaxed">{{ task.description }}</p>
+                  </div>
+                </div>
+
+                <div class="flex justify-end pt-1">
+                  <button (click)="onTaskAction(task)" 
+                          class="px-2.5 py-1 text-[10px] font-bold rounded-lg border transition-all cursor-pointer flex items-center gap-1"
+                          [ngClass]="{
+                            'bg-rose-600 hover:bg-rose-500 border-rose-500/30 text-white': task.severity === 'error',
+                            'bg-amber-600 hover:bg-amber-500 border-amber-500/30 text-white': task.severity === 'warning',
+                            'bg-violet-600/20 hover:bg-violet-600 border-violet-500/30 text-violet-300 hover:text-white': task.severity === 'info'
+                          }">
+                    {{ task.actionLabel }} <i class="fi fi-rr-angle-small-right text-xs"></i>
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="p-6 rounded-xl bg-slate-950/40 border border-white/5 text-center space-y-1.5">
+            <div class="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center text-emerald-400 mx-auto">
+              <i class="fi fi-rr-check text-lg"></i>
+            </div>
+            <p class="text-xs font-bold text-slate-300">Workspace Operational Check Clean</p>
+            <p class="text-[10px] text-slate-500 max-w-sm mx-auto">All teams are fully rostered, venues configured, and no scheduled fixtures are pending venue assignments.</p>
+          </div>
+        }
+      </div>
+
+      <!-- 3. RUNNING COMPETITION POINTS TABLE -->
+      <div class="space-y-3">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 class="text-sm font-extrabold text-white tracking-tight flex items-center gap-2">
+              <i class="fi fi-rr-trophy text-amber-400 text-sm"></i>
+              Ongoing Tournament Standings
+            </h2>
+            <p class="text-[11px] text-slate-400">Live standings for active competitions in this workspace</p>
+          </div>
+
+          @if (runningCompetitions().length > 0) {
+            <div class="flex items-center gap-1.5 overflow-x-auto pb-0.5">
+              @for (comp of runningCompetitions(); track comp.id) {
+                <button (click)="onSelectOverviewCompetition(comp)"
+                  class="px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition cursor-pointer"
+                  [ngClass]="selectedOverviewCompId() === comp.id ? 'bg-violet-600 text-white shadow-sm shadow-violet-600/30' : 'bg-slate-900 text-slate-400 hover:text-white border border-white/10'">
+                  {{ comp.name }}
+                </button>
+              }
             </div>
           }
         </div>
-      @} @else {
-        <div class="p-4 rounded-xl bg-slate-900/50 border border-white/10 text-center text-xs text-slate-400">
-          No upcoming scheduled games in this workspace.
+
+        @if (isOverviewLoading()) {
+          <div class="overflow-x-auto rounded-xl border border-white/10 bg-slate-900/90 animate-pulse" aria-busy="true" aria-label="Loading standings">
+            <div class="h-10 bg-slate-950 border-b border-white/10 flex items-center px-4 gap-4">
+              <div class="w-24 h-3 bg-slate-800 rounded"></div>
+              <div class="w-32 h-3 bg-slate-800 rounded"></div>
+            </div>
+            @for (sk of [1, 2, 3]; track sk) {
+              <div class="flex items-center gap-4 px-4 py-3 border-b border-white/5">
+                <div class="w-5 h-3 bg-slate-800 rounded"></div>
+                <div class="w-20 h-3 bg-slate-800 rounded flex-1"></div>
+              </div>
+            }
+          </div>
+        } @else if (selectedOverviewComp() && selectedOverviewComp()?.standings?.length > 0) {
+          <div class="overflow-x-auto rounded-xl border border-white/10 bg-slate-900/90 backdrop-blur-md shadow-lg">
+            <table class="w-full text-left text-xs text-slate-300">
+              <thead class="bg-slate-950/90 text-slate-400 uppercase tracking-wider text-[9px] font-extrabold border-b border-white/10">
+                <tr>
+                  <th class="py-2.5 px-3 text-center">Pos</th>
+                  <th class="py-2.5 px-3">Team</th>
+                  <th class="py-2.5 px-2 text-center">P</th>
+                  <th class="py-2.5 px-2 text-center">W</th>
+                  <th class="py-2.5 px-2 text-center">D</th>
+                  <th class="py-2.5 px-2 text-center">L</th>
+                  <th class="py-2.5 px-2 text-center">GF</th>
+                  <th class="py-2.5 px-2 text-center">GA</th>
+                  <th class="py-2.5 px-2 text-center">GD</th>
+                  <th class="py-2.5 px-3 text-center font-black text-violet-400 bg-violet-500/5">Pts</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-white/5">
+                @for (row of selectedOverviewComp()?.standings; track row.teamId; let idx = $index) {
+                  <tr class="hover:bg-white/5 transition-colors">
+                    <td class="py-2 px-3 text-center font-black">
+                      @if (idx === 0) {
+                        <span class="inline-flex items-center gap-1 text-amber-400 font-extrabold"><i class="fi fi-rr-medal text-xs"></i> 1</span>
+                      } @else if (idx === 1) {
+                        <span class="inline-flex items-center gap-1 text-slate-300 font-extrabold"><i class="fi fi-rr-medal text-xs"></i> 2</span>
+                      } @else if (idx === 2) {
+                        <span class="inline-flex items-center gap-1 text-amber-600 font-extrabold"><i class="fi fi-rr-medal text-xs"></i> 3</span>
+                      } @else {
+                        <span class="text-slate-500 font-bold">{{ idx + 1 }}</span>
+                      }
+                    </td>
+                    <td class="py-2 px-3 flex items-center gap-2.5 font-semibold text-white">
+                      <div class="w-6 h-6 rounded-md bg-slate-800 border border-white/10 flex items-center justify-center overflow-hidden shrink-0">
+                        @if (row.teamLogoUrl) {
+                          <img [src]="row.teamLogoUrl" [alt]="row.teamName" class="w-full h-full object-cover">
+                        } @else {
+                          <span class="text-[9px] font-bold text-violet-400">{{ row.teamName?.slice(0, 2) }}</span>
+                        }
+                      </div>
+                      <span class="truncate max-w-[150px]">{{ row.teamName }}</span>
+                    </td>
+                    <td class="py-2 px-2 text-center font-medium text-slate-300">{{ row.played }}</td>
+                    <td class="py-2 px-2 text-center font-bold text-emerald-400">{{ row.won }}</td>
+                    <td class="py-2 px-2 text-center font-medium text-amber-400">{{ row.drawn }}</td>
+                    <td class="py-2 px-2 text-center font-medium text-rose-400">{{ row.lost }}</td>
+                    <td class="py-2 px-2 text-center text-slate-400 text-[11px]">{{ row.gf }}</td>
+                    <td class="py-2 px-2 text-center text-slate-400 text-[11px]">{{ row.ga }}</td>
+                    <td class="py-2 px-2 text-center font-bold text-[11px]" [ngClass]="row.gd > 0 ? 'text-emerald-400' : row.gd < 0 ? 'text-rose-400' : 'text-slate-400'">
+                      {{ row.gd > 0 ? '+' + row.gd : row.gd }}
+                    </td>
+                    <td class="py-2 px-3 text-center font-black text-xs text-violet-300 bg-violet-500/10">{{ row.pts }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        @} @else {
+          <div class="p-4 rounded-xl bg-slate-900/50 border border-white/10 text-center text-xs text-slate-400">
+            No active competition points table available.
+          </div>
+        }
+      </div>
+
+      <!-- 4. UPCOMING GAMES -->
+      <div class="space-y-3">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-extrabold text-white tracking-tight flex items-center gap-2">
+            <i class="fi fi-rr-calendar text-violet-400 text-sm"></i>
+            Upcoming Matches & Fixtures
+          </h2>
+          <span class="text-[11px] text-slate-400">Scheduled fixtures</span>
         </div>
-      }
+
+        @if (upcomingMatches().length > 0) {
+          <div class="space-y-2">
+            @for (match of upcomingMatches(); track match.id) {
+              <div (click)="enterLiveMatch.emit(match)"
+                class="group p-3 rounded-xl bg-slate-900/90 border border-white/10 hover:border-violet-500/50 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer">
+                
+                <div class="flex items-center gap-2.5">
+                  <span class="px-2 py-0.5 text-[9px] font-extrabold rounded-md border uppercase tracking-wider flex items-center gap-1"
+                        [ngClass]="getSportBadgeClass(match.stage?.competition?.sport?.code)">
+                    <i [class]="getSportIconClass(match.stage?.competition?.sport?.code)"></i>
+                    {{ match.stage?.competition?.sport?.name || 'Sport' }}
+                  </span>
+                  <div>
+                    <span class="text-xs font-bold text-white block truncate max-w-[150px]">{{ match.stage?.competition?.name }}</span>
+                    <span class="text-[10px] text-slate-400 flex items-center gap-1">
+                      <i class="fi fi-rr-marker text-[9px] text-slate-500"></i>
+                      {{ match.venue?.name || 'Stadium Venue' }}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Teams Versus -->
+                <div class="flex items-center gap-2.5 font-bold text-xs text-slate-200">
+                  <span class="text-right truncate max-w-[90px]">{{ match.homeTeam?.name || 'Home' }}</span>
+                  <span class="px-1.5 py-0.5 rounded bg-slate-800 text-[9px] font-extrabold text-slate-400">VS</span>
+                  <span class="text-left truncate max-w-[90px]">{{ match.awayTeam?.name || 'Away' }}</span>
+                </div>
+
+                <button class="px-3 py-1 rounded-lg bg-violet-600/20 hover:bg-violet-600 text-violet-300 hover:text-white border border-violet-500/30 text-xs font-bold transition flex items-center gap-1 self-end sm:self-center">
+                  Match Details <i class="fi fi-rr-angle-small-right text-xs"></i>
+                </button>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="p-4 rounded-xl bg-slate-900/50 border border-white/10 text-center text-xs text-slate-400">
+            No upcoming scheduled games in this workspace.
+          </div>
+        }
+      </div>
+
     </div>
 
-    <!-- Leaderboards Column (1 Col) -->
-    <div class="space-y-4">
+    <!-- RIGHT PANEL: Contextual Panel (Quick Actions, Stats, Recent Activity, Leaderboards) -->
+    <div class="space-y-5">
+      
+      <!-- Quick Actions Widget (New Widget!) -->
+      <div class="bg-slate-900/90 border border-white/10 rounded-2xl p-5 shadow-lg relative overflow-hidden space-y-3.5">
+        <h3 class="text-xs font-extrabold text-white tracking-tight flex items-center gap-2">
+          <i class="fi fi-rr-bolt text-amber-400 text-sm"></i>
+          Quick Actions Toolbar
+        </h3>
+        
+        <div class="grid grid-cols-2 gap-2">
+          <button (click)="activeTab.set('events')" class="p-3 bg-slate-950 hover:bg-slate-800 border border-white/10 hover:border-violet-500/40 rounded-xl text-left transition-all cursor-pointer group space-y-1.5">
+            <div class="w-8 h-8 rounded-lg bg-violet-600/10 border border-violet-500/20 flex items-center justify-center text-violet-400 group-hover:scale-105 transition-transform">
+              <i class="fi fi-rr-plus text-xs"></i>
+            </div>
+            <span class="text-[10px] font-bold text-white block">Schedule Game</span>
+          </button>
+          
+          <button (click)="activeTab.set('teams')" class="p-3 bg-slate-950 hover:bg-slate-800 border border-white/10 hover:border-emerald-500/40 rounded-xl text-left transition-all cursor-pointer group space-y-1.5">
+            <div class="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition-transform">
+              <i class="fi fi-rr-users-alt text-xs"></i>
+            </div>
+            <span class="text-[10px] font-bold text-white block">Add Team</span>
+          </button>
+
+          <button (click)="activeTab.set('players')" class="p-3 bg-slate-950 hover:bg-slate-800 border border-white/10 hover:border-blue-500/40 rounded-xl text-left transition-all cursor-pointer group space-y-1.5">
+            <div class="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 group-hover:scale-105 transition-transform">
+              <i class="fi fi-rr-running text-xs"></i>
+            </div>
+            <span class="text-[10px] font-bold text-white block">Register Player</span>
+          </button>
+
+          <button (click)="activeTab.set('venues')" class="p-3 bg-slate-950 hover:bg-slate-800 border border-white/10 hover:border-amber-500/40 rounded-xl text-left transition-all cursor-pointer group space-y-1.5">
+            <div class="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 group-hover:scale-105 transition-transform">
+              <i class="fi fi-rr-marker text-xs"></i>
+            </div>
+            <span class="text-[10px] font-bold text-white block">Add Venue</span>
+          </button>
+
+          <button (click)="activeTab.set('members')" class="p-3 bg-slate-950 hover:bg-slate-800 border border-white/10 hover:border-indigo-500/40 rounded-xl text-left transition-all cursor-pointer group space-y-1.5">
+            <div class="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 group-hover:scale-105 transition-transform">
+              <i class="fi fi-rr-envelope text-xs"></i>
+            </div>
+            <span class="text-[10px] font-bold text-white block">Invite Member</span>
+          </button>
+
+          <button (click)="activeTab.set('reports')" class="p-3 bg-slate-950 hover:bg-slate-800 border border-white/10 hover:border-rose-500/40 rounded-xl text-left transition-all cursor-pointer group space-y-1.5">
+            <div class="w-8 h-8 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 group-hover:scale-105 transition-transform">
+              <i class="fi fi-rr-chart-pie text-xs"></i>
+            </div>
+            <span class="text-[10px] font-bold text-white block">View Reports</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Participation Statistics Widget (New Widget!) -->
+      <div class="bg-slate-900/90 border border-white/10 rounded-2xl p-5 shadow-lg relative overflow-hidden space-y-4">
+        <h3 class="text-xs font-extrabold text-white tracking-tight flex items-center gap-2">
+          <i class="fi fi-rr-chart-histogram text-emerald-400 text-sm"></i>
+          Participation Statistics
+        </h3>
+
+        <div class="space-y-3.5">
+          <!-- Avg Roster Size -->
+          <div class="flex items-center justify-between text-xs pb-2.5 border-b border-white/5">
+            <span class="text-slate-400 font-semibold">Average Roster Size</span>
+            <div class="text-right">
+              <span class="text-sm font-black text-white">{{ avgRosterSize() }}</span>
+              <span class="text-[10px] text-slate-500 block">Players / Team</span>
+            </div>
+          </div>
+
+          <!-- Total Played Matches -->
+          <div class="flex items-center justify-between text-xs pb-2.5 border-b border-white/5">
+            <span class="text-slate-400 font-semibold">Matches Completed</span>
+            <div class="text-right">
+              <span class="text-sm font-black text-white">{{ totalCompletedMatchesCount() }}</span>
+              <span class="text-[10px] text-slate-500 block">Matches total</span>
+            </div>
+          </div>
+
+          <!-- Venue Utilization -->
+          <div>
+            <span class="text-[10px] font-extrabold uppercase text-slate-500 tracking-wider block mb-2">Venue Utilization</span>
+            @if (venueUtilization().length > 0) {
+              <div class="space-y-2">
+                @for (venue of venueUtilization(); track venue.id) {
+                  <div class="flex items-center justify-between p-2 rounded-lg bg-slate-950/60 border border-white/5">
+                    <span class="text-xs font-bold text-white truncate max-w-[130px]">{{ venue.name }}</span>
+                    <span class="text-[10px] font-extrabold bg-violet-500/10 text-violet-300 border border-violet-500/20 px-2 py-0.5 rounded">
+                      {{ venue.matchCount }} match{{ venue.matchCount !== 1 ? 'es' : '' }}
+                    </span>
+                  </div>
+                }
+              </div>
+            } @else {
+              <p class="text-[10px] text-slate-500 text-center py-2">No venue scheduling data available.</p>
+            }
+          </div>
+
+          <!-- Sports Breakdown -->
+          <div>
+            <span class="text-[10px] font-extrabold uppercase text-slate-500 tracking-wider block mb-2">Active Sport Profiles</span>
+            @if (sportCounts().length > 0) {
+              <div class="flex flex-wrap gap-1.5">
+                @for (sport of sportCounts(); track sport.code) {
+                  <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-950 text-xs font-bold border border-white/5">
+                    <i [class]="getSportIconClass(sport.code) + ' text-slate-400 text-xs'"></i>
+                    <span class="text-slate-300">{{ sport.name }}</span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-violet-400"></span>
+                    <span class="text-white">{{ sport.count }}</span>
+                  </span>
+                }
+              </div>
+            } @else {
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-950 text-xs font-bold border border-white/5">
+                <i class="fi fi-rr-football text-slate-400 text-xs"></i>
+                <span class="text-slate-300">Football</span>
+                <span class="w-1.5 h-1.5 rounded-full bg-violet-400"></span>
+                <span class="text-white">1</span>
+              </span>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Activity Stream Widget (New Widget!) -->
+      <div class="bg-slate-900/90 border border-white/10 rounded-2xl p-5 shadow-lg relative overflow-hidden space-y-4">
+        <h3 class="text-xs font-extrabold text-white tracking-tight flex items-center gap-2">
+          <i class="fi fi-rr-time-past text-violet-400 text-sm"></i>
+          Recent Activity Logs
+        </h3>
+
+        <div class="relative pl-4 space-y-4 before:absolute before:left-1.5 before:top-1.5 before:bottom-1.5 before:w-0.5 before:bg-white/10">
+          @for (activity of recentActivities(); track activity.id) {
+            <div class="relative flex gap-3 text-xs">
+              <!-- Timeline Dot -->
+              <div class="absolute -left-4 w-3.5 h-3.5 rounded-full border border-slate-950 flex items-center justify-center shrink-0 z-10"
+                   [ngClass]="activity.iconClass">
+                <i [class]="activity.icon + ' text-[8px]'"></i>
+              </div>
+              
+              <div class="flex-1 min-w-0 space-y-0.5">
+                <p class="text-slate-300 font-medium leading-relaxed">{{ activity.message }}</p>
+                <span class="text-[9px] text-slate-500 block">{{ activity.time | date:'MMM d, h:mm a' }}</span>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
 
       <!-- Top Scorers Leaderboard -->
       <div class="p-4 rounded-xl bg-slate-900/90 border border-white/10 shadow-lg space-y-3">
@@ -430,7 +664,7 @@
               </div>
             }
           </div>
-        @} @else {
+        } @else {
           <p class="text-xs text-slate-400 text-center py-3">No top scorers recorded yet.</p>
         }
       </div>
@@ -461,7 +695,7 @@
               </div>
             }
           </div>
-        @} @else {
+        } @else {
           <p class="text-xs text-slate-400 text-center py-3">No player ratings available yet.</p>
         }
       </div>

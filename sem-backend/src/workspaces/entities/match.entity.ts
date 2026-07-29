@@ -99,6 +99,9 @@ export class Match extends AuditableEntity {
   @Column({ type: 'varchar', length: 30, default: 'scheduled' })
   status: 'scheduled' | 'live' | 'completed';
 
+  @Column({ name: 'scheduled_at', type: 'timestamp without time zone', nullable: true })
+  scheduledAt: Date | null;
+
   @Column({ type: 'json', nullable: true })
   config: {
     // Football: timerDuration (e.g. 90)

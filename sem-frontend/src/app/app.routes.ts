@@ -41,6 +41,11 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
 
+  {
+    path: 'public/events/:id',
+    loadComponent: () => import('./components/public-event/public-event').then(m => m.PublicEventComponent),
+  },
+
   // Default redirect
   { path: '', redirectTo: '/workspaces', pathMatch: 'full' },
   { path: '**', redirectTo: '/workspaces' },

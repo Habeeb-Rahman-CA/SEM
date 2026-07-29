@@ -9,12 +9,15 @@ describe('Events & Competitions Controller (e2e)', () => {
   let jwtToken: string;
   let workspaceId: string;
   let eventId: string;
+  let duplicatedEventId: string;
   let sportId: string;
   let competitionId: string;
   let stageId: string;
   let teamAId: string;
   let teamBId: string;
   let matchId: string;
+  let eventName: string;
+  let duplicatedEventName: string;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -26,6 +29,8 @@ describe('Events & Competitions Controller (e2e)', () => {
 
     // Register and login to obtain JWT token
     const username = `testuser_${Date.now()}`;
+    eventName = `Annual Sports Meet ${Date.now()}`;
+    duplicatedEventName = `${eventName} - Copied`;
     const password = 'password123';
 
     await request(app.getHttpServer())
@@ -91,7 +96,7 @@ describe('Events & Competitions Controller (e2e)', () => {
       .post(`/workspaces/${workspaceId}/events`)
       .set('Authorization', `Bearer ${jwtToken}`)
       .send({
-        name: 'Annual Sports Meet 2028',
+        name: eventName,
         description: 'E2E Testing Event',
         startDate: new Date().toISOString(),
         endDate: new Date(Date.now() + 86400000).toISOString(),
@@ -100,7 +105,7 @@ describe('Events & Competitions Controller (e2e)', () => {
       .expect(201);
 
     expect(res.body).toHaveProperty('id');
-    expect(res.body.name).toBe('Annual Sports Meet 2028');
+    expect(res.body.name).toBe(eventName);
     expect(res.body.status).toBe('upcoming');
     eventId = res.body.id;
   });
@@ -310,6 +315,78 @@ describe('Events & Competitions Controller (e2e)', () => {
     expect(res.body.liveData.elapsedSeconds).toBe(300);
   });
 
+  it('should duplicate the event along with competitions, stages, point configs, and team enrollments', async () => {
+    const res = await request(app.getHttpServer())
+      .post(`/workspaces/${workspaceId}/events/${eventId}/duplicate`)
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .send({
+        name: duplicatedEventName,
+        duplicateCompetitions: true,
+        duplicateStages: true,
+        duplicateVenues: true,
+        duplicateTeams: true,
+        duplicatePointSystems: true,
+        duplicateSettings: true
+      })
+      .expect(201);
+
+    expect(res.body).toHaveProperty('id');
+    expect(res.body.name).toBe(duplicatedEventName);
+    expect(res.body.status).toBe('upcoming');
+    duplicatedEventId = res.body.id;
+
+    // Verify that the competition, stage, and team enrollments were copied to the new event
+    const compsRes = await request(app.getHttpServer())
+      .get(`/workspaces/${workspaceId}/events/${duplicatedEventId}/competitions`)
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .expect(200);
+
+    expect(compsRes.body.length).toBe(1);
+    const dupComp = compsRes.body[0];
+    expect(dupComp.name).toBe('Inter-House Football Championship');
+
+    // Stages copy check
+    expect(dupComp.stages.length).toBe(1);
+    expect(dupComp.stages[0].name).toBe('Group Play v2');
+
+    // Verify matches are excluded (results/matches excluded)
+    expect(dupComp.stages[0].matches.length).toBe(0);
+  });
+
+  it('should support advanced search and filtering on events', async () => {
+    await request(app.getHttpServer())
+      .patch(`/workspaces/${workspaceId}/events/${eventId}`)
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .send({
+        venue: 'Main Arena',
+        sport: 'Football',
+        organizers: 'Global Sports League',
+      })
+      .expect(200);
+
+    const searchRes = await request(app.getHttpServer())
+      .get(`/workspaces/${workspaceId}/events/search`)
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .query({
+        query: 'Sports',
+        sport: 'Football',
+        organizer: 'Global Sports',
+        venue: 'Main Arena',
+        status: 'upcoming',
+        workspaceIdFilter: workspaceId,
+        sortBy: 'name',
+        sortOrder: 'ASC',
+      })
+      .expect(200);
+
+    expect(searchRes.body.length).toBeGreaterThanOrEqual(1);
+    const searchEvent = searchRes.body.find((e: any) => e.id === eventId);
+    expect(searchEvent).toBeDefined();
+    expect(searchEvent.sport).toBe('Football');
+    expect(searchEvent.venue).toBe('Main Arena');
+    expect(searchEvent.organizers).toBe('Global Sports League');
+  });
+
   it('should delete the match', async () => {
     await request(app.getHttpServer())
       .delete(
@@ -394,18 +471,91 @@ describe('Events & Competitions Controller (e2e)', () => {
     expect(res.body.description).toBe('Updated E2E description');
   });
 
+  it('should manually archive the event', async () => {
+    const res = await request(app.getHttpServer())
+      .patch(`/workspaces/${workspaceId}/events/${eventId}/archive`)
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .expect(200);
+
+    expect(res.body.isArchived).toBe(true);
+  });
+
+  it('should not include the archived event in the active list by default', async () => {
+    const res = await request(app.getHttpServer())
+      .get(`/workspaces/${workspaceId}/events`)
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .expect(200);
+
+    const exists = res.body.some((e: any) => e.id === eventId);
+    expect(exists).toBe(false);
+  });
+
+  it('should include the archived event when calling with archived=true query parameter', async () => {
+    const res = await request(app.getHttpServer())
+      .get(`/workspaces/${workspaceId}/events?archived=true`)
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .expect(200);
+
+    const ev = res.body.find((e: any) => e.id === eventId);
+    expect(ev).toBeDefined();
+    expect(ev.isArchived).toBe(true);
+  });
+
+  it('should manually restore the event from archive', async () => {
+    const res = await request(app.getHttpServer())
+      .patch(`/workspaces/${workspaceId}/events/${eventId}/restore`)
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .expect(200);
+
+    expect(res.body.isArchived).toBe(false);
+  });
+
+  it('should automatically archive the event when status is set to completed', async () => {
+    const res = await request(app.getHttpServer())
+      .patch(`/workspaces/${workspaceId}/events/${eventId}`)
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .send({
+        status: 'completed'
+      })
+      .expect(200);
+
+    expect(res.body.status).toBe('completed');
+    expect(res.body.isArchived).toBe(true);
+  });
+
   it('should delete the event', async () => {
     await request(app.getHttpServer())
       .delete(`/workspaces/${workspaceId}/events/${eventId}`)
       .set('Authorization', `Bearer ${jwtToken}`)
       .expect(204);
 
-    // Verify it is deleted
-    const res = await request(app.getHttpServer())
+    // Verify it is deleted (checking both active and archived lists)
+    const activeRes = await request(app.getHttpServer())
       .get(`/workspaces/${workspaceId}/events`)
       .set('Authorization', `Bearer ${jwtToken}`)
       .expect(200);
 
-    expect(res.body.some((e: any) => e.id === eventId)).toBe(false);
+    expect(activeRes.body.some((e: any) => e.id === eventId)).toBe(false);
+
+    const archivedRes = await request(app.getHttpServer())
+      .get(`/workspaces/${workspaceId}/events?archived=true`)
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .expect(200);
+
+    expect(archivedRes.body.some((e: any) => e.id === eventId)).toBe(false);
+  });
+
+  it('should delete the duplicated event', async () => {
+    await request(app.getHttpServer())
+      .delete(`/workspaces/${workspaceId}/events/${duplicatedEventId}`)
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .expect(204);
+
+    const activeRes = await request(app.getHttpServer())
+      .get(`/workspaces/${workspaceId}/events`)
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .expect(200);
+
+    expect(activeRes.body.some((e: any) => e.id === duplicatedEventId)).toBe(false);
   });
 });

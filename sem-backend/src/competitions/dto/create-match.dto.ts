@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsUUID, IsOptional, IsObject } from 'class-validator';
+import { IsNotEmpty, IsUUID, IsOptional, IsObject, IsString } from 'class-validator';
 import { MatchType } from '../../workspaces/entities/match.entity';
 
 export class CreateMatchDto {
@@ -22,4 +22,8 @@ export class CreateMatchDto {
     setsToWin?: number;
     matchType?: MatchType;
   };
+
+  @IsOptional()
+  @IsString()
+  scheduledAt?: string;
 }

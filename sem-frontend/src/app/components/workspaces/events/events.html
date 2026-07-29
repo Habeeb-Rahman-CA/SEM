@@ -711,15 +711,23 @@
                       <span class="text-sm font-bold text-white">{{ match.awayTeam?.name || 'Away' }}</span>
                     </div>
                   </div>
-                  @if (match.venue) {
-                  <div class="text-[10px] text-slate-400 flex items-center gap-1 mt-2.5">
-                    <i class="fi fi-rr-marker text-violet-400"></i>
-                    <span>{{ match.venue.name }}</span>
-                    @if (match.venue.location) {
-                    <span class="text-slate-500">({{ match.venue.location }})</span>
+                  <div class="flex flex-wrap items-center justify-center gap-3 mt-2.5 text-[10px] text-slate-400">
+                    @if (match.scheduledAt) {
+                    <div class="flex items-center gap-1">
+                      <i class="fi fi-rr-calendar text-violet-400"></i>
+                      <span>{{ match.scheduledAt | date:'medium' }}</span>
+                    </div>
+                    }
+                    @if (match.venue) {
+                    <div class="flex items-center gap-1">
+                      <i class="fi fi-rr-marker text-violet-400"></i>
+                      <span>{{ match.venue.name }}</span>
+                      @if (match.venue.location) {
+                      <span class="text-slate-500">({{ match.venue.location }})</span>
+                      }
+                    </div>
                     }
                   </div>
-                  }
                   @if (match.mvp) {
                   <div class="text-[10px] text-amber-400 flex items-center gap-1 mt-2">
                     <i class="fi fi-rr-trophy text-amber-500"></i>
@@ -754,6 +762,13 @@
                     class="text-[10px] font-bold px-2.5 py-1 bg-blue-500/10 text-blue-400 rounded-lg border border-blue-500/20 uppercase tracking-wider">
                     Completed
                   </span>
+                  }
+
+                  @if (match.status !== 'completed' && hasPermission('competition.manage')) {
+                  <button (click)="onOpenScheduleModal(match)"
+                    class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 hover:text-white border border-white/5 hover:border-white/10 text-slate-300 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1">
+                    <i class="fi fi-rr-calendar"></i> Schedule
+                  </button>
                   }
 
                   <button (click)="onSelectMatch(match)"
@@ -1060,42 +1075,249 @@
       }
     </div>
 
-    @if (events().length === 0) {
-    <div
-      class="rounded-2xl border border-dashed border-white/10 p-12 text-center flex flex-col items-center justify-center gap-3">
-      <span class="text-3xl"><i class="fi fi-rr-trophy"></i></span>
-      <div>
-        <h3 class="text-sm font-semibold text-white">No events registered yet</h3>
-        <p class="text-xs text-slate-500 mt-1">Create your first sports festival or competition to get started.</p>
-      </div>
+    <!-- Archive & Active Toggle -->
+    <div class="flex items-center gap-2 border-b border-white/5 pb-3">
+      <button (click)="activeEventView.set('active')"
+        [class]="activeEventView() === 'active' 
+          ? 'px-4 py-2 bg-violet-600/10 border border-violet-500/20 text-violet-400 text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-md shadow-violet-900/10' 
+          : 'px-4 py-2 text-slate-400 hover:text-white border border-transparent hover:bg-white/5 text-xs font-bold rounded-xl transition flex items-center gap-1.5'">
+        <i class="fi fi-rr-play text-sm"></i> Active Events ({{ events().length }})
+      </button>
+      <button (click)="activeEventView.set('archived')"
+        [class]="activeEventView() === 'archived' 
+          ? 'px-4 py-2 bg-violet-600/10 border border-violet-500/20 text-violet-400 text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-md shadow-violet-900/10' 
+          : 'px-4 py-2 text-slate-400 hover:text-white border border-transparent hover:bg-white/5 text-xs font-bold rounded-xl transition flex items-center gap-1.5'">
+        <i class="fi fi-rr-archive text-sm"></i> Archive ({{ archivedEvents().length }})
+      </button>
     </div>
+
+    @if (activeEventView() === 'active' && events().length === 0) {
+      <div class="rounded-2xl border border-dashed border-white/10 p-12 text-center flex flex-col items-center justify-center gap-3">
+        <span class="text-3xl"><i class="fi fi-rr-trophy"></i></span>
+        <div>
+          <h3 class="text-sm font-semibold text-white">No events registered yet</h3>
+          <p class="text-xs text-slate-500 mt-1">Create your first sports festival or competition to get started.</p>
+        </div>
+      </div>
+    } @else if (activeEventView() === 'archived' && archivedEvents().length === 0) {
+      <div class="rounded-2xl border border-dashed border-white/10 p-12 text-center flex flex-col items-center justify-center gap-3 w-full bg-slate-900/10">
+        <span class="text-3xl text-slate-500"><i class="fi fi-rr-archive"></i></span>
+        <div>
+          <h3 class="text-sm font-semibold text-white">Event Archive is empty</h3>
+          <p class="text-xs text-slate-500 mt-1">Completed events will be automatically archived here.</p>
+        </div>
+      </div>
     } @else {
       <!-- Search and Filter Bar -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/20 border border-white/5 p-4 rounded-2xl mb-4">
         <div class="text-xs text-slate-400 font-medium">
-          @if (eventSearchQuery()) {
-            Showing {{ filteredEvents().length }} of {{ events().length }} events
+          @if (searchActive()) {
+            Found {{ searchResults().length }} event{{ searchResults().length !== 1 ? 's' : '' }} matching filters
+          } @else if (activeEventView() === 'active') {
+            @if (eventSearchQuery()) {
+              Showing {{ filteredEvents().length }} of {{ events().length }} events
+            } @else {
+              {{ events().length }} event{{ events().length !== 1 ? 's' : '' }} registered
+            }
           } @else {
-            {{ events().length }} event{{ events().length !== 1 ? 's' : '' }} registered
+            @if (eventSearchQuery()) {
+              Showing {{ filteredArchivedEvents().length }} of {{ archivedEvents().length }} archived events
+            } @else {
+              {{ archivedEvents().length }} archived event{{ archivedEvents().length !== 1 ? 's' : '' }}
+            }
           }
         </div>
-        <div class="relative w-full sm:w-72">
-          <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
-            <i class="fi fi-rr-search text-xs"></i>
-          </span>
-          <input type="text" [ngModel]="eventSearchQuery()" (ngModelChange)="eventSearchQuery.set($event)"
-            placeholder="Search events by name, status, or desc..."
-            class="w-full bg-slate-950/40 border border-white/10 focus:border-violet-500/50 rounded-xl pl-9 pr-8 py-2 text-xs text-slate-200 placeholder-slate-500 outline-none transition-all" />
-          @if (eventSearchQuery()) {
-          <button (click)="eventSearchQuery.set('')"
-            class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-slate-300 cursor-pointer bg-transparent border-0">
-            <i class="fi fi-rr-cross text-[10px]"></i>
+        <div class="flex items-center gap-2 w-full sm:w-auto">
+          <div class="relative w-full sm:w-72">
+            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+              <i class="fi fi-rr-search text-xs"></i>
+            </span>
+            <input type="text" [ngModel]="eventSearchQuery()" (ngModelChange)="eventSearchQuery.set($event)"
+              placeholder="Search events by name, status, or desc..."
+              class="w-full bg-slate-950/40 border border-white/10 focus:border-violet-500/50 rounded-xl pl-9 pr-8 py-2 text-xs text-slate-200 placeholder-slate-500 outline-none transition-all" />
+            @if (eventSearchQuery()) {
+            <button (click)="eventSearchQuery.set('')"
+              class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-slate-300 cursor-pointer bg-transparent border-0">
+              <i class="fi fi-rr-cross text-[10px]"></i>
+            </button>
+            }
+          </div>
+          <button (click)="isAdvancedSearchOpen.set(!isAdvancedSearchOpen())"
+            class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer border border-white/5">
+            <i class="fi fi-rr-filter"></i>
+            <span>Filters</span>
+            @if (searchActive()) {
+              <span class="w-1.5 h-1.5 rounded-full bg-violet-500"></span>
+            }
           </button>
-          }
         </div>
       </div>
 
-      @if (filteredEvents().length === 0) {
+      @if (isAdvancedSearchOpen()) {
+      <div class="bg-slate-900/40 border border-white/5 p-5 rounded-2xl mb-4 text-left flex flex-col gap-4 transition-all duration-300">
+        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+          <i class="fi fi-rr-settings-sliders text-violet-400"></i>
+          <span>Advanced Event Filters</span>
+        </h4>
+
+        <!-- Filters grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+          <!-- Sport filter -->
+          <div class="flex flex-col gap-1.5">
+            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sport</label>
+            <input type="text" placeholder="e.g. Football"
+              class="bg-slate-950 border border-white/10 focus:border-violet-500/50 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 outline-none transition-all"
+              [ngModel]="searchSport()" (ngModelChange)="searchSport.set($event)" />
+          </div>
+
+          <!-- Organizer filter -->
+          <div class="flex flex-col gap-1.5">
+            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Organizer</label>
+            <input type="text" placeholder="e.g. City League"
+              class="bg-slate-950 border border-white/10 focus:border-violet-500/50 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 outline-none transition-all"
+              [ngModel]="searchOrganizer()" (ngModelChange)="searchOrganizer.set($event)" />
+          </div>
+
+          <!-- Status filter -->
+          <div class="flex flex-col gap-1.5">
+            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Status</label>
+            <select
+              class="bg-slate-950 border border-white/10 focus:border-violet-500/50 rounded-xl px-3 py-2 text-xs text-white outline-none transition-all cursor-pointer"
+              [ngModel]="searchStatus()" (ngModelChange)="searchStatus.set($event)">
+              <option value="">All Statuses</option>
+              <option value="upcoming">Upcoming</option>
+              <option value="ongoing">Ongoing</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+
+          <!-- Venue filter -->
+          <div class="flex flex-col gap-1.5">
+            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Venue</label>
+            <input type="text" placeholder="e.g. Main Stadium"
+              class="bg-slate-950 border border-white/10 focus:border-violet-500/50 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 outline-none transition-all"
+              [ngModel]="searchVenue()" (ngModelChange)="searchVenue.set($event)" />
+          </div>
+
+          <!-- Start Date -->
+          <div class="flex flex-col gap-1.5">
+            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Date From</label>
+            <input type="date"
+              class="bg-slate-950 border border-white/10 focus:border-violet-500/50 rounded-xl px-3 py-2 text-xs text-white outline-none transition-all"
+              [ngModel]="searchStartDate()" (ngModelChange)="searchStartDate.set($event)" />
+          </div>
+
+          <!-- End Date -->
+          <div class="flex flex-col gap-1.5">
+            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Date To</label>
+            <input type="date"
+              class="bg-slate-950 border border-white/10 focus:border-violet-500/50 rounded-xl px-3 py-2 text-xs text-white outline-none transition-all"
+              [ngModel]="searchEndDate()" (ngModelChange)="searchEndDate.set($event)" />
+          </div>
+
+          <!-- Competition Name -->
+          <div class="flex flex-col gap-1.5">
+            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Competition</label>
+            <input type="text" placeholder="e.g. Premier Cup"
+              class="bg-slate-950 border border-white/10 focus:border-violet-500/50 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 outline-none transition-all"
+              [ngModel]="searchCompetitionName()" (ngModelChange)="searchCompetitionName.set($event)" />
+          </div>
+
+          <!-- Workspace Selection -->
+          <div class="flex flex-col gap-1.5">
+            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Workspace scope</label>
+            <select
+              class="bg-slate-950 border border-white/10 focus:border-violet-500/50 rounded-xl px-3 py-2 text-xs text-white outline-none transition-all cursor-pointer"
+              [ngModel]="searchWorkspaceId()" (ngModelChange)="searchWorkspaceId.set($event)">
+              <option value="">Current Workspace Only</option>
+              <option value="all">All My Workspaces</option>
+              @for (ws of userWorkspaces(); track ws.id) {
+                @if (ws.id !== workspace()?.id) {
+                  <option [value]="ws.id">{{ ws.name }}</option>
+                }
+              }
+            </select>
+          </div>
+
+          <!-- Sort By -->
+          <div class="flex flex-col gap-1.5">
+            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sort By</label>
+            <select
+              class="bg-slate-950 border border-white/10 focus:border-violet-500/50 rounded-xl px-3 py-2 text-xs text-white outline-none transition-all cursor-pointer"
+              [ngModel]="searchSortBy()" (ngModelChange)="searchSortBy.set($event)">
+              <option value="name">Event Name</option>
+              <option value="startDate">Start Date</option>
+              <option value="endDate">End Date</option>
+              <option value="status">Status</option>
+              <option value="sport">Sport</option>
+              <option value="venue">Venue</option>
+            </select>
+          </div>
+
+          <!-- Sort Order -->
+          <div class="flex flex-col gap-1.5">
+            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sort Order</label>
+            <select
+              class="bg-slate-950 border border-white/10 focus:border-violet-500/50 rounded-xl px-3 py-2 text-xs text-white outline-none transition-all cursor-pointer"
+              [ngModel]="searchSortOrder()" (ngModelChange)="searchSortOrder.set($event)">
+              <option value="ASC">Ascending</option>
+              <option value="DESC">Descending</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Saved Filters Section -->
+        <div class="border-t border-white/5 pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <!-- Load Saved Filter -->
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+              <i class="fi fi-rr-bookmark text-violet-400"></i>
+              <span>Saved Filters:</span>
+            </span>
+            @if (savedFilters().length === 0) {
+              <span class="text-[11px] text-slate-650">No saved filters yet</span>
+            } @else {
+              @for (sf of savedFilters(); track sf.name) {
+                <span class="inline-flex items-center gap-1.5 bg-slate-950 border border-white/5 rounded-full px-2.5 py-0.5 text-[11px] text-slate-350">
+                  <button (click)="applySavedFilter(sf.filters)" class="hover:text-violet-400 cursor-pointer font-medium bg-transparent border-0">{{ sf.name }}</button>
+                  <button (click)="deleteSavedFilter(sf.name)" class="text-slate-500 hover:text-rose-450 cursor-pointer bg-transparent border-0">
+                    <i class="fi fi-rr-cross-small text-[10px]"></i>
+                  </button>
+                </span>
+              }
+            }
+          </div>
+
+          <!-- Save Current Filter Form -->
+          <div class="flex items-center gap-2">
+            <input type="text" placeholder="Filter Name..."
+              class="bg-slate-950 border border-white/10 focus:border-violet-500/50 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-650 outline-none transition-all w-36"
+              [ngModel]="newFilterName()" (ngModelChange)="newFilterName.set($event)" />
+            <button (click)="saveCurrentFilter()" [disabled]="!newFilterName().trim()"
+              class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-xs font-semibold transition cursor-pointer">
+              Save
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter Action Buttons -->
+        <div class="flex justify-end gap-3 border-t border-white/5 pt-4">
+          <button (click)="resetAdvancedSearch()"
+            class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white hover:text-slate-950 rounded-xl text-xs font-semibold transition cursor-pointer">
+            Reset Filters
+          </button>
+          <button (click)="triggerAdvancedSearch()"
+            class="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-xl text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer">
+            <i class="fi fi-rr-search"></i>
+            <span>Apply Filters</span>
+          </button>
+        </div>
+      </div>
+      }
+
+      @let targetEvents = searchActive() ? searchResults() : (activeEventView() === 'active' ? filteredEvents() : filteredArchivedEvents());
+      @if (targetEvents.length === 0) {
       <div
         class="rounded-2xl border border-dashed border-white/10 p-12 text-center flex flex-col items-center justify-center gap-3 w-full">
         <span class="text-3xl text-slate-600"><i class="fi fi-rr-search"></i></span>
@@ -1106,7 +1328,7 @@
       </div>
       } @else {
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        @for (event of filteredEvents(); track event.id) {
+        @for (event of targetEvents; track event.id) {
       <div
         class="bg-slate-900 border border-white/10 hover:border-violet-500/30 rounded-2xl p-5 flex flex-col justify-between gap-4 group transition-all duration-300 text-left">
         <div class="flex flex-col gap-2">
@@ -1126,28 +1348,36 @@
                 }
               </div>
             </div>
-            <!-- Status Badge -->
-            @if (event.status === 'ongoing') {
-            <span
-              class="text-[10px] font-bold px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded-md border border-emerald-500/20">
-              Ongoing
-            </span>
-            } @else if (event.status === 'completed') {
-            <span
-              class="text-[10px] font-bold px-2 py-0.5 bg-blue-500/10 text-blue-400 rounded-md border border-blue-500/20">
-              Completed
-            </span>
-            } @else if (event.status === 'cancelled') {
-            <span
-              class="text-[10px] font-bold px-2 py-0.5 bg-rose-500/10 text-rose-400 rounded-md border border-rose-500/20">
-              Cancelled
-            </span>
-            } @else {
-            <span
-              class="text-[10px] font-bold px-2 py-0.5 bg-violet-500/10 text-violet-400 rounded-md border border-violet-500/20">
-              Upcoming
-            </span>
-            }
+            <!-- Status Badges -->
+            <div class="flex items-center gap-1.5">
+              @if (event.isPublic) {
+              <span
+                class="text-[10px] font-extrabold px-2 py-0.5 bg-violet-600/10 text-violet-400 rounded-md border border-violet-500/20 flex items-center gap-1">
+                <i class="fi fi-sr-eye text-[9px]"></i> Public
+              </span>
+              }
+              @if (event.status === 'ongoing') {
+              <span
+                class="text-[10px] font-bold px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded-md border border-emerald-500/20">
+                Ongoing
+              </span>
+              } @else if (event.status === 'completed') {
+              <span
+                class="text-[10px] font-bold px-2 py-0.5 bg-blue-500/10 text-blue-400 rounded-md border border-blue-500/20">
+                Completed
+              </span>
+              } @else if (event.status === 'cancelled') {
+              <span
+                class="text-[10px] font-bold px-2 py-0.5 bg-rose-500/10 text-rose-400 rounded-md border border-rose-500/20">
+                Cancelled
+              </span>
+              } @else {
+              <span
+                class="text-[10px] font-bold px-2 py-0.5 bg-violet-500/10 text-violet-400 rounded-md border border-violet-500/20">
+                Upcoming
+              </span>
+              }
+            </div>
           </div>
 
           <h4 class="text-base font-extrabold text-white group-hover:text-violet-400 transition-colors mt-1">
@@ -1178,20 +1408,48 @@
 
         <!-- Actions -->
         <div class="flex items-center justify-between gap-2 pt-3 border-t border-white/5">
-          <button (click)="onSelectEvent(event)"
-            class="px-2.5 py-1.5 text-[11px] font-bold text-violet-400 hover:text-white hover:bg-violet-600/20 border border-violet-500/10 hover:border-violet-500/30 rounded-lg transition-all cursor-pointer">
-            View Competitions
-          </button>
+          <div class="flex items-center gap-2">
+            <button (click)="onSelectEvent(event)"
+              class="px-2.5 py-1.5 text-[11px] font-bold text-violet-400 hover:text-white hover:bg-violet-600/20 border border-violet-500/10 hover:border-violet-500/30 rounded-lg transition-all cursor-pointer">
+              View Competitions
+            </button>
+            @if (event.isPublic) {
+            <button (click)="openPublicPage(event); $event.stopPropagation()"
+              title="Open Public Event Page"
+              class="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 border border-white/10 rounded-lg transition-all cursor-pointer flex items-center justify-center">
+              <i class="fi fi-rr-share text-xs"></i>
+            </button>
+            }
+          </div>
           @if (hasPermission('event.manage')) {
           <div class="flex items-center gap-2 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
-            <button (click)="onEditEvent(event)"
-              class="px-2 py-1 text-[10px] font-bold text-slate-400 hover:text-white hover:bg-slate-800 border border-white/10 rounded-md transition-all cursor-pointer">
-              Edit
-            </button>
-            <button (click)="onDeleteEvent(event)"
-              class="px-2 py-1 text-[10px] font-bold text-rose-400 hover:text-white hover:bg-rose-600/20 border border-rose-500/10 hover:border-rose-500/30 rounded-md transition-all cursor-pointer">
-              Delete
-            </button>
+            @if (activeEventView() === 'active') {
+              <button (click)="onArchiveEvent(event)"
+                class="px-2 py-1 text-[10px] font-bold text-amber-400 hover:text-white hover:bg-amber-600/20 border border-amber-500/10 hover:border-amber-500/30 rounded-md transition-all cursor-pointer">
+                Archive
+              </button>
+              <button (click)="openDuplicateEventModal(event)"
+                class="px-2 py-1 text-[10px] font-bold text-violet-400 hover:text-white hover:bg-violet-600/20 border border-violet-500/10 hover:border-violet-500/30 rounded-md transition-all cursor-pointer">
+                Duplicate
+              </button>
+              <button (click)="onEditEvent(event)"
+                class="px-2 py-1 text-[10px] font-bold text-slate-400 hover:text-white hover:bg-slate-800 border border-white/10 rounded-md transition-all cursor-pointer">
+                Edit
+              </button>
+              <button (click)="onDeleteEvent(event)"
+                class="px-2 py-1 text-[10px] font-bold text-rose-400 hover:text-white hover:bg-rose-600/20 border border-rose-500/10 hover:border-rose-500/30 rounded-md transition-all cursor-pointer">
+                Delete
+              </button>
+            } @else {
+              <button (click)="onRestoreEvent(event)"
+                class="px-2 py-1 text-[10px] font-bold text-emerald-400 hover:text-white hover:bg-emerald-600/20 border border-emerald-500/10 hover:border-emerald-500/30 rounded-md transition-all cursor-pointer">
+                Restore
+              </button>
+              <button (click)="onDeleteEvent(event)"
+                class="px-2 py-1 text-[10px] font-bold text-rose-400 hover:text-white hover:bg-rose-600/20 border border-rose-500/10 hover:border-rose-500/30 rounded-md transition-all cursor-pointer">
+                Delete
+              </button>
+            }
           </div>
           }
         </div>
@@ -1203,7 +1461,9 @@
   </div>
   }
   <app-event-modal [(isOpen)]="isEventModalOpen" [workspace]="workspace()" [teams]="teams()" [editingEvent]="editingEvent()" (eventSaved)="onEventSaved($event)" />
+  <app-duplicate-event-modal [(isOpen)]="isDuplicateEventModalOpen" [workspace]="workspace()" [targetEvent]="duplicatingEvent()" (eventDuplicated)="onEventDuplicated($event)" />
   <app-competition-modal [(isOpen)]="isCompetitionModalOpen" [workspace]="workspace()" [selectedEvent]="selectedEvent()" [editingCompetition]="editingCompetition()" [sports]="sports()" (competitionSaved)="onCompetitionSaved($event)" />
   <app-fixtures-modal [(isOpen)]="isGenerateFixturesModalOpen" [workspace]="workspace()" [selectedEvent]="selectedEvent()" [selectedCompetition]="selectedCompetition()" [teams]="teams()" [venues]="venues()" [stages]="stages()" (fixturesGenerated)="onFixturesGenerated()" />
   <app-lineup-modal [(isOpen)]="isLineupModalOpen" [workspace]="workspace()" [selectedEvent]="selectedEvent()" [selectedCompetition]="selectedCompetition()" [selectedStage]="selectedStage()" [selectedMatch]="selectedMatch()" [players]="players()" [matchLineup]="matchLineup()" (lineupSaved)="onLineupSaved($event)" />
+  <app-schedule-match-modal [(isOpen)]="isScheduleMatchModalOpen" [workspace]="workspace()" [selectedEvent]="selectedEvent()" [selectedCompetition]="selectedCompetition()" [selectedStage]="selectedStage()" [match]="selectedMatchToSchedule()" [venues]="venues()" (matchScheduled)="onMatchScheduled($event)" />
 }

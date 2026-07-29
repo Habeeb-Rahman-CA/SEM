@@ -49,6 +49,33 @@ export class Event extends AuditableEntity {
   @Column({ name: 'logo_url', type: 'varchar', length: 500, nullable: true })
   logoUrl: string | null;
 
+  @Column({ type: 'varchar', length: 150, unique: true, nullable: true })
+  slug: string | null;
+
+  @Column({ name: 'is_public', type: 'boolean', default: false })
+  isPublic: boolean;
+
+  @Column({ name: 'is_archived', type: 'boolean', default: false })
+  isArchived: boolean;
+
+  @Column({ name: 'gallery', type: 'jsonb', nullable: true })
+  gallery: string[] | null;
+
+  @Column({ name: 'announcements', type: 'jsonb', nullable: true })
+  announcements: Array<{ id: string; title: string; content: string; createdAt: Date }> | null;
+
+  @Column({ name: 'registration_status', type: 'varchar', length: 50, default: 'open' })
+  registrationStatus: string;
+
+  @Column({ type: 'varchar', length: 150, nullable: true })
+  venue: string | null;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  sport: string | null;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  organizers: string | null;
+
   @Column({ name: 'workspace_id', type: 'uuid' })
   workspaceId: string;
 

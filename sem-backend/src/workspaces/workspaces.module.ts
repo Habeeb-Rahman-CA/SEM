@@ -33,6 +33,7 @@ import { SearchModule } from '../search/search.module';
 
 // Extracted Domain Services
 import { NotificationsService } from './notifications/notifications.service';
+import { EmailService } from './notifications/email.service';
 import { AuditLogsService } from './audit-logs/audit-logs.service';
 import { SystemConfigService } from './system-config/system-config.service';
 import { RolesPermissionsService } from './roles-permissions/roles-permissions.service';
@@ -87,6 +88,7 @@ import { WorkspaceMembersService } from './members/members.service';
     WorkspacesService,
     EventsGateway,
     NotificationsService,
+    EmailService,
     AuditLogsService,
     SystemConfigService,
     RolesPermissionsService,
@@ -97,6 +99,7 @@ import { WorkspaceMembersService } from './members/members.service';
     WorkspacesService,
     EventsGateway,
     NotificationsService,
+    EmailService,
     AuditLogsService,
     SystemConfigService,
     RolesPermissionsService,

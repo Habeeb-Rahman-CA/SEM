@@ -500,4 +500,162 @@ export class StatisticsRatingsService {
       }
     }
   }
+
+  async getPublicCompetitionStats(
+    eventId: string,
+    competitionId: string,
+  ): Promise<any> {
+    const competition = await this.competitionRepo.findOne({
+      where: { id: competitionId, eventId },
+      relations: { sport: true, event: true },
+    });
+    if (!competition) throw new NotFoundException('Competition not found');
+    if (!competition.event || !competition.event.isPublic) {
+      throw new NotFoundException('Event not found or is not public');
+    }
+
+    const sportCode = competition.sport?.code ?? 'football';
+
+    const stages = await this.stageRepo.find({ where: { competitionId } });
+    const stageIds = stages.map((s) => s.id);
+    if (stageIds.length === 0) {
+      return { sportCode, topRated: [] };
+    }
+
+    const completedMatches = await this.matchRepo.find({
+      where: { stageId: In(stageIds), status: 'completed' },
+    });
+    if (completedMatches.length === 0) {
+      return { sportCode, topRated: [] };
+    }
+
+    const matchIds = completedMatches.map((m) => m.id);
+
+    const allMatchPlayers = await this.matchPlayerRepo.find({
+      where: { matchId: In(matchIds), isPlaying: true },
+      relations: { player: { user: true }, team: true },
+    });
+
+    const userUserIdMap = new Map<
+      string,
+      { playerId: string; playerName: string; teamName: string }
+    >();
+    const userUsernameMap = new Map<
+      string,
+      { playerId: string; playerName: string; teamName: string }
+    >();
+    const ratingsMap = new Map<
+      string,
+      {
+        playerId: string;
+        playerName: string;
+        teamName: string;
+        ratings: number[];
+      }
+    >();
+
+    for (const mp of allMatchPlayers) {
+      const playerName =
+        mp.player?.user?.username ??
+        mp.player?.jerseyNumber?.toString() ??
+        mp.playerId;
+      const teamName = mp.team?.name ?? 'Unknown';
+      const pInfo = { playerId: mp.playerId, playerName, teamName };
+
+      if (mp.player?.userId) {
+        userUserIdMap.set(mp.player.userId, pInfo);
+      }
+      if (mp.player?.user?.username) {
+        userUsernameMap.set(mp.player.user.username, pInfo);
+      }
+
+      if (mp.rating !== null) {
+        let existing = ratingsMap.get(mp.playerId);
+        if (!existing) {
+          existing = { ...pInfo, ratings: [] };
+          ratingsMap.set(mp.playerId, existing);
+        }
+        existing.ratings.push(Number(mp.rating));
+      }
+    }
+
+    const topRated = Array.from(ratingsMap.values())
+      .map((r) => {
+        const avgRating =
+          Math.round(
+            (r.ratings.reduce((a, b) => a + b, 0) / r.ratings.length) * 100,
+          ) / 100;
+        return {
+          playerId: r.playerId,
+          playerName: r.playerName,
+          teamName: r.teamName,
+          avgRating,
+          appearances: r.ratings.length,
+        };
+      })
+      .sort((a, b) => b.avgRating - a.avgRating)
+      .slice(0, 10);
+
+    const mvpCounts = new Map<
+      string,
+      { playerId: string; playerName: string; teamName: string; mvps: number }
+    >();
+    const matchPlayersMap = new Map<string, MatchPlayer[]>();
+    for (const mp of allMatchPlayers) {
+      if (!matchPlayersMap.has(mp.matchId)) {
+        matchPlayersMap.set(mp.matchId, []);
+      }
+      matchPlayersMap.get(mp.matchId)!.push(mp);
+    }
+    for (const [matchId, playersInMatch] of matchPlayersMap.entries()) {
+      let maxRating = -1;
+      let mvpCandidates: MatchPlayer[] = [];
+      for (const mp of playersInMatch) {
+        if (mp.rating !== null) {
+          const r = Number(mp.rating);
+          if (r > maxRating) {
+            maxRating = r;
+            mvpCandidates = [mp];
+          } else if (r === maxRating) {
+            mvpCandidates.push(mp);
+          }
+        }
+      }
+      if (maxRating >= 5.0) {
+        for (const mvpMp of mvpCandidates) {
+          let entry = mvpCounts.get(mvpMp.playerId);
+          if (!entry) {
+            const playerName =
+              mvpMp.player?.user?.username ??
+              mvpMp.player?.jerseyNumber?.toString() ??
+              mvpMp.playerId;
+            const teamName = mvpMp.team?.name ?? 'Unknown';
+            entry = { playerId: mvpMp.playerId, playerName, teamName, mvps: 0 };
+            mvpCounts.set(mvpMp.playerId, entry);
+          }
+          entry.mvps++;
+        }
+      }
+    }
+    const mostMvps = Array.from(mvpCounts.values())
+      .sort((a, b) => b.mvps - a.mvps)
+      .slice(0, 10);
+
+    const engine = this.sportEngineRegistry.getEngine(sportCode);
+    const sportStats = engine.getCompetitionStats(
+      completedMatches,
+      allMatchPlayers,
+      {
+        userUserIdMap,
+        userUsernameMap,
+      },
+    );
+
+    return {
+      sportCode,
+      topRated,
+      mostMvps,
+      ...sportStats,
+    };
+  }
 }
