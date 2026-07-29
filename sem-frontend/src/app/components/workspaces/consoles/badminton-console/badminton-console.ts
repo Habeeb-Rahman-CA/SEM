@@ -1,5 +1,5 @@
-import { Component, input, output, signal, inject, effect, OnDestroy } from '@angular/core';
-import { NgClass } from '@angular/common';
+import { Component, input, output, signal, inject, effect, OnDestroy, computed } from '@angular/core';
+import { NgClass, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Match, Player, Team, MatchPlayer, CompetitionStage } from '../../../../services/workspace.service';
 import { CompetitionService } from '../../../../services/competition.service';
@@ -10,7 +10,7 @@ import { RatingColorPipe } from '../../../../shared/pipes/rating-color.pipe';
 @Component({
   selector: 'app-badminton-console',
   standalone: true,
-  imports: [NgClass, FormsModule, AvatarComponent, RatingColorPipe],
+  imports: [NgClass, FormsModule, AvatarComponent, RatingColorPipe, DatePipe],
   templateUrl: './badminton-console.html',
 })
 export class BadmintonConsoleComponent implements OnDestroy {
@@ -729,4 +729,120 @@ export class BadmintonConsoleComponent implements OnDestroy {
     });
   }
 
+
+  // ─── Match Timeline Management (Badminton Rallies) ────────────────────────
+
+  timelineFilterSet = signal<number>(0);       // 0 = All sets
+  timelineFilterWinner = signal<string>('all'); // 'all' | 'home' | 'away' | 'let'
+  showTimelinePanel = signal<boolean>(true);
+
+  editingRally = signal<any | null>(null);
+  editRallyDuration = signal<number>(0);
+  editRallyNote = signal<string>('');
+
+  get timelineSets(): number[] {
+    const sets = this.match()?.liveData?.setsScore || [];
+    return sets.map((_: any, i: number) => i + 1);
+  }
+
+  filteredRallies = computed(() => {
+    const rallies: any[] = this.match()?.liveData?.rallies ?? [];
+    const setFilter = this.timelineFilterSet();
+    const winnerFilter = this.timelineFilterWinner();
+
+    return rallies
+      .map((r, i) => ({ ...r, _originalIndex: i }))
+      .filter(r => {
+        if (setFilter !== 0 && r.set !== setFilter) return false;
+        if (winnerFilter === 'let' && r.winnerSide !== 'none') return false;
+        if (winnerFilter === 'home' && r.winnerSide !== 'home') return false;
+        if (winnerFilter === 'away' && r.winnerSide !== 'away') return false;
+        return true;
+      })
+      .reverse();
+  });
+
+  openEditRally(rally: any) {
+    this.editingRally.set({ ...rally });
+    this.editRallyDuration.set(rally.duration ?? 0);
+    this.editRallyNote.set(rally._note ?? '');
+  }
+
+  cancelEditRally() {
+    this.editingRally.set(null);
+  }
+
+  saveEditedRally() {
+    const match = this.match();
+    const editing = this.editingRally();
+    if (!match || !editing) return;
+
+    const live = { ...match.liveData };
+    if (!live.rallies) return;
+
+    const idx: number = editing._originalIndex;
+    const original = { ...live.rallies[idx] };
+
+    const auditEntry = {
+      action: 'edited',
+      at: new Date().toISOString(),
+      previousDuration: original.duration,
+      previousNote: original._note ?? null,
+    };
+
+    live.rallies = live.rallies.map((r: any, i: number) => {
+      if (i !== idx) return r;
+      const audit: any[] = Array.isArray(r._audit) ? [...r._audit, auditEntry] : [auditEntry];
+      return {
+        ...r,
+        duration: this.editRallyDuration(),
+        _note: this.editRallyNote() || undefined,
+        _audit: audit,
+      };
+    });
+
+    this.competitionService
+      .updateMatch(
+        this.workspaceId(), this.eventId(), this.competitionId(),
+        this.stageId(), match.id, { liveData: live },
+      )
+      .subscribe({
+        next: (updated) => {
+          this.matchUpdated.emit(updated);
+          this.editingRally.set(null);
+          this.uiService.success('Rally updated and audit trail recorded.');
+        },
+        error: () => this.uiService.error('Failed to update rally.'),
+      });
+  }
+
+  deleteRally(originalIndex: number) {
+    const match = this.match();
+    if (!match) return;
+
+    const live = { ...match.liveData };
+    if (!live.rallies || originalIndex < 0 || originalIndex >= live.rallies.length) return;
+
+    const removed = { ...live.rallies[originalIndex] };
+
+    const deletedEntry = { ...removed, _deletedAt: new Date().toISOString(), _action: 'deleted' };
+    live._deletedRallies = Array.isArray(live._deletedRallies)
+      ? [...live._deletedRallies, deletedEntry]
+      : [deletedEntry];
+
+    live.rallies = live.rallies.filter((_: any, i: number) => i !== originalIndex);
+
+    this.competitionService
+      .updateMatch(
+        this.workspaceId(), this.eventId(), this.competitionId(),
+        this.stageId(), match.id, { liveData: live },
+      )
+      .subscribe({
+        next: (updated) => {
+          this.matchUpdated.emit(updated);
+          this.uiService.success('Rally removed.');
+        },
+        error: () => this.uiService.error('Failed to remove rally.'),
+      });
+  }
 }

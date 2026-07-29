@@ -661,149 +661,261 @@
     }
   </div>
 
-  <!-- Right Column: Live Feed / Statistics -->
-  <div class="flex flex-col gap-6 sticky top-24">
-    <div class="bg-slate-900 border border-white/10 rounded-2xl p-6 shadow-xl flex flex-col gap-5">
-      <h3 class="text-sm font-bold text-white border-b border-white/5 pb-3">Live Feed & Log</h3>
-      <div class="flex flex-col gap-4 max-h-[350px] overflow-y-auto pr-1 custom-scrollbar">
-        @let evs = match().liveData?.events || [];
-                  @if (evs.length === 0) {
-                  <p class="text-xs text-slate-500 text-center py-4">No events logged yet.</p>
-                  }
-                  @for (e of evs; track e) {
-                  <div class="flex items-start gap-3 text-left">
-                    <span class="text-xs font-bold text-violet-400 w-8 flex-shrink-0">{{ e.minute }}'</span>
-                    <div class="flex-1 flex flex-col gap-0.5">
-                      @if (e.type === 'goal') {
-                      <span class="text-xs font-bold text-white flex items-center gap-1">
-                        <i class="fi fi-rr-football text-emerald-400"></i>
-                        @if (e.goalType === 'own_goal') {
-                        OWN GOAL!
-                        } @else if (e.goalType === 'penalty') {
-                        PENALTY GOAL!
-                        } @else if (e.goalType === 'free_kick') {
-                        FREE KICK GOAL!
-                        } @else if (e.goalType === 'header') {
-                        HEADER GOAL!
-                        } @else if (e.goalType === 'volley') {
-                        VOLLEY GOAL!
-                        } @else if (e.goalType === 'long_shot') {
-                        LONG SHOT GOAL!
-                        } @else {
-                        GOAL!
-                        }
-                      </span>
-                      <span class="text-[10px] text-slate-400">
-                        Scorer: {{ e.playerName || getPlayersForTeam(e.teamId).find(p => p.userId ===
-                        e.playerUserId)?.user?.username || 'Player' }}
-                        @if (e.goalType === 'own_goal') { (OG) }
-                        @if (e.assistPlayerUserId || e.assistPlayerName) {
-                        (Assist: {{ e.assistPlayerName || getPlayersForTeam(e.teamId).find(p => p.userId ===
-                        e.assistPlayerUserId)?.user?.username || 'Player' }})
-                        }
-                      </span>
-                      } @else if (e.type === 'card') {
-                      <span class="text-xs font-bold text-white flex items-center gap-1">
-                        <i
-                          [class]="e.cardType === 'yellow' ? 'fi fi-ss-square text-amber-400' : (e.cardType === 'second_yellow' ? 'fi fi-ss-square text-orange-500' : 'fi fi-ss-square text-rose-500')"></i>
-                        {{ e.cardType === 'yellow' ? 'Yellow Card' : (e.cardType === 'second_yellow' ? 'Second Yellow
-                        (Red)' : 'Red Card') }}
-                      </span>
-                      <span class="text-[10px] text-slate-400">
-                        Player: {{ getPlayersForTeam(e.teamId).find(p => p.userId === e.playerUserId)?.user?.username ||
-                        'Player' }}
-                      </span>
-                      } @else if (e.type === 'penalty') {
-                      <span class="text-xs font-bold text-white flex items-center gap-1">
-                        <i class="fi fi-rr-referee text-violet-400"></i> Penalty Kicked
-                      </span>
-                      <span class="text-[10px] text-slate-400">
-                        Kicker: {{ players().find(p => p.userId === e.playerUserId)?.user?.username || 'Player' }} -
-                        Outcome: <strong class="text-amber-400 uppercase">{{ e.outcome }}</strong>
-                      </span>
-                      } @else if (e.type === 'substitution') {
-                      <span class="text-xs font-bold text-white flex items-center gap-1">
-                        <i class="fi fi-rr-arrows-repeat text-blue-400"></i> Substitution
-                      </span>
-                      <span class="text-[10px] text-slate-400">
-                        OUT: {{ players().find(p => p.userId === e.playerOutId)?.user?.username || 'Player' }} <i class="fi fi-rr-arrow-right text-[10px]"></i>
-                        IN: {{ players().find(p => p.userId === e.playerInId)?.user?.username || 'Player' }}
-                        ({{ e.reason }})
-                      </span>
-                      } @else if (e.type === 'offside') {
-                      <span class="text-xs font-bold text-white flex items-center gap-1">
-                        <i class="fi fi-rr-flag text-amber-500"></i> Offside
-                      </span>
-                      <span class="text-[10px] text-slate-400">
-                        Player: {{ players().find(p => p.userId === e.playerUserId)?.user?.username || 'Player' }}
-                      </span>
-                      } @else if (e.type === 'foul') {
-                      <span class="text-xs font-bold text-white flex items-center gap-1">
-                        <i class="fi fi-rr-shield-exclamation text-red-500"></i> Foul Committed
-                      </span>
-                      <span class="text-[10px] text-slate-400">
-                        By: {{ players().find(p => p.userId === e.playerUserId)?.user?.username || 'Player' }}
-                        against {{ players().find(p => p.userId === e.opponentPlayerUserId)?.user?.username || 'Player'
-                        }}
-                        ({{ e.foulType }})
-                      </span>
-                      } @else if (e.type === 'free_kick') {
-                      <span class="text-xs font-bold text-white flex items-center gap-1">
-                        <i class="fi fi-rr-shoe text-indigo-400"></i> Free Kick Taken
-                      </span>
-                      <span class="text-[10px] text-slate-400">
-                        By: {{ players().find(p => p.userId === e.playerUserId)?.user?.username || 'Player' }}
-                        ({{ e.freeKickType }} kick) - Result: <strong class="text-indigo-300 uppercase">{{ e.result
-                          }}</strong>
-                      </span>
-                      } @else if (e.type === 'corner_kick') {
-                      <span class="text-xs font-bold text-white flex items-center gap-1">
-                        <i class="fi fi-rr-corner text-teal-400"></i> Corner Kick
-                      </span>
-                      <span class="text-[10px] text-slate-400">
-                        By: {{ players().find(p => p.userId === e.playerUserId)?.user?.username || 'Player' }}
-                        from the <span class="capitalize">{{ e.side }} side</span>
-                      </span>
-                      } @else if (e.type === 'throw_in') {
-                      <span class="text-xs font-bold text-white flex items-center gap-1">
-                        <i class="fi fi-rr-hands text-slate-400"></i> Throw In
-                      </span>
-                      <span class="text-[10px] text-slate-400">
-                        By: {{ players().find(p => p.userId === e.playerUserId)?.user?.username || 'Player' }}
-                      </span>
-                      } @else if (e.type === 'goal_kick') {
-                      <span class="text-xs font-bold text-white flex items-center gap-1">
-                        <i class="fi fi-rr-goal text-yellow-500"></i> Goal Kick
-                      </span>
-                      <span class="text-[10px] text-slate-400">
-                        Keeper: {{ players().find(p => p.userId === e.playerUserId)?.user?.username || 'Player' }}
-                      </span>
-                      } @else if (e.type === 'injury') {
-                      <span class="text-xs font-bold text-white flex items-center gap-1">
-                        <i class="fi fi-rr-heart-rate text-rose-400 animate-pulse"></i> Injury Timeout
-                      </span>
-                      <span class="text-[10px] text-slate-400">
-                        Player: {{ players().find(p => p.userId === e.playerUserId)?.user?.username || 'Player' }}
-                        (Severity: <strong class="text-red-400">{{ e.severity }}</strong>) -
-                        {{ e.substituted ? 'Substituted Off' : 'Remains on Pitch' }}
-                      </span>
-                      } @else if (e.type === 'shootout_penalty') {
-                      <span class="text-xs font-bold text-white flex items-center gap-1">
-                        <i class="fi fi-rr-referee text-violet-400"></i> Shootout Penalty #{{ e.order }}
-                      </span>
-                      <span class="text-[10px] text-slate-400">
-                        Kicker: {{ players().find(p => p.userId === e.playerUserId)?.user?.username || 'Player' }}
-                        (Team: <strong>{{ e.teamId === match().homeTeamId ? match().homeTeam?.name : match().awayTeam?.name
-                          }}</strong>) -
-                        Outcome: <strong class="uppercase"
-                          [class]="e.outcome === 'scored' ? 'text-emerald-400' : 'text-rose-400'">{{ e.outcome
-                          }}</strong>
-                      </span>
-                      }
-                  </div>
-                </div>
+
+  <!-- Right Column: Match Timeline Panel -->
+  <div class="flex flex-col gap-6">
+    <div class="bg-slate-900 border border-white/10 rounded-2xl shadow-xl flex flex-col gap-0 overflow-hidden">
+
+      <!-- Panel Header -->
+      <div class="px-5 py-4 border-b border-white/5 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i class="fi fi-rr-time-past text-violet-400"></i>
+          <h3 class="text-sm font-bold text-white">Match Timeline</h3>
+          @if ((match().liveData?.events || []).length > 0) {
+            <span class="px-2 py-0.5 bg-violet-500/10 border border-violet-500/20 text-violet-400 text-[10px] font-black rounded-full">
+              {{ (match().liveData?.events || []).length }} events
+            </span>
+          }
+        </div>
+        <button (click)="showTimelinePanel.set(!showTimelinePanel())"
+          class="h-7 w-7 rounded-lg bg-white/5 border border-white/5 text-slate-400 hover:text-white hover:bg-white/10 transition-all flex items-center justify-center cursor-pointer">
+          <i [class]="showTimelinePanel() ? 'fi fi-rr-angle-up text-xs' : 'fi fi-rr-angle-down text-xs'"></i>
+        </button>
+      </div>
+
+      <!-- Filter Bar -->
+      @if (showTimelinePanel() || (match().liveData?.events || []).length > 0) {
+        <div class="px-5 py-3 border-b border-white/5 flex flex-wrap gap-2 bg-slate-950/30">
+          <select [value]="timelineFilterType()"
+            (change)="timelineFilterType.set($any($event.target).value)"
+            class="flex-1 min-w-[120px] bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-[10px] font-bold text-white outline-none">
+            <option value="all">All Types</option>
+            @for (type of timelineEventTypes; track type) {
+              <option [value]="type">{{ getEventTypeLabel(type) }}</option>
+            }
+          </select>
+          <select [value]="timelineFilterPlayer()"
+            (change)="timelineFilterPlayer.set($any($event.target).value)"
+            class="flex-1 min-w-[120px] bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-[10px] font-bold text-white outline-none">
+            <option value="all">All Players</option>
+            @for (uid of timelinePlayerIds; track uid) {
+              <option [value]="uid">{{ getPlayerNameById(uid) }}</option>
+            }
+          </select>
+          @if (timelineFilterType() !== 'all' || timelineFilterPlayer() !== 'all') {
+            <button (click)="timelineFilterType.set('all'); timelineFilterPlayer.set('all')"
+              class="px-2.5 py-1.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[10px] font-bold cursor-pointer hover:bg-rose-500/20 transition-all flex items-center gap-1">
+              <i class="fi fi-rr-cross text-[8px]"></i> Clear
+            </button>
+          }
+        </div>
+      }
+
+      <!-- Events List -->
+      <div class="flex flex-col gap-0 max-h-[460px] overflow-y-auto no-scrollbar divide-y divide-white/[0.04]">
+        @for (ev of filteredTimelineEvents(); track ev._originalIndex) {
+          <div class="flex items-start gap-3 px-5 py-3 hover:bg-white/[0.02] transition-colors group">
+            <!-- Minute Badge -->
+            <div class="flex-shrink-0 w-10 h-10 rounded-full bg-slate-950 border border-white/10 flex items-center justify-center text-[10px] font-black text-violet-400 shadow-sm">
+              {{ ev.minute }}'
+            </div>
+
+            <!-- Event Content -->
+            <div class="flex-1 flex flex-col gap-0.5 min-w-0">
+              <div class="flex items-center gap-2 flex-wrap">
+                @if (ev.type === 'goal') {
+                  <span class="flex items-center gap-1 text-xs font-black text-white">
+                    <i class="fi fi-rr-football text-emerald-400"></i>
+                    {{ ev.goalType === 'own_goal' ? 'OWN GOAL' : ev.goalType === 'penalty' ? 'PENALTY GOAL' : ev.goalType === 'free_kick' ? 'FREE KICK GOAL' : 'GOAL' }}
+                  </span>
+                } @else if (ev.type === 'card') {
+                  <span class="flex items-center gap-1 text-xs font-black text-white">
+                    <i [class]="ev.cardType === 'yellow' ? 'fi fi-sr-square text-amber-400' : ev.cardType === 'second_yellow' ? 'fi fi-sr-square text-orange-500' : 'fi fi-sr-square text-rose-500'"></i>
+                    {{ ev.cardType === 'yellow' ? 'Yellow Card' : ev.cardType === 'second_yellow' ? '2nd Yellow (Red)' : 'Red Card' }}
+                  </span>
+                } @else if (ev.type === 'substitution') {
+                  <span class="flex items-center gap-1 text-xs font-black text-white"><i class="fi fi-rr-arrows-repeat text-blue-400"></i> Substitution</span>
+                } @else if (ev.type === 'penalty') {
+                  <span class="flex items-center gap-1 text-xs font-black text-white"><i class="fi fi-rr-referee text-violet-400"></i> Penalty</span>
+                } @else if (ev.type === 'offside') {
+                  <span class="flex items-center gap-1 text-xs font-black text-white"><i class="fi fi-rr-flag text-amber-400"></i> Offside</span>
+                } @else if (ev.type === 'foul') {
+                  <span class="flex items-center gap-1 text-xs font-black text-white"><i class="fi fi-rr-shield-exclamation text-red-400"></i> Foul</span>
+                } @else if (ev.type === 'free_kick') {
+                  <span class="flex items-center gap-1 text-xs font-black text-white"><i class="fi fi-rr-shoe text-indigo-400"></i> Free Kick</span>
+                } @else if (ev.type === 'corner_kick') {
+                  <span class="flex items-center gap-1 text-xs font-black text-white"><i class="fi fi-rr-corner text-teal-400"></i> Corner Kick</span>
+                } @else if (ev.type === 'throw_in') {
+                  <span class="flex items-center gap-1 text-xs font-black text-white"><i class="fi fi-rr-hands text-slate-300"></i> Throw In</span>
+                } @else if (ev.type === 'goal_kick') {
+                  <span class="flex items-center gap-1 text-xs font-black text-white"><i class="fi fi-rr-goal text-yellow-400"></i> Goal Kick</span>
+                } @else if (ev.type === 'injury') {
+                  <span class="flex items-center gap-1 text-xs font-black text-white"><i class="fi fi-rr-heart-rate text-rose-400 animate-pulse"></i> Injury</span>
+                } @else if (ev.type === 'shootout_penalty') {
+                  <span class="flex items-center gap-1 text-xs font-black text-white"><i class="fi fi-rr-referee text-violet-400"></i> Shootout #{{ ev.order }}</span>
+                }
+                <span class="text-[8px] px-1.5 py-0.5 bg-slate-800 border border-white/5 text-slate-400 rounded font-bold uppercase">
+                  {{ ev.teamId === match().homeTeamId ? (match().homeTeam?.name || 'Home') : (match().awayTeam?.name || 'Away') }}
+                </span>
+                @if (ev._audit?.length > 0) {
+                  <span class="text-[8px] px-1.5 py-0.5 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded font-bold uppercase flex items-center gap-0.5">
+                    <i class="fi fi-rr-pen-field text-[8px]"></i> Edited
+                  </span>
                 }
               </div>
+
+              <div class="text-[10px] text-slate-400 font-medium leading-tight">
+                @if (ev.type === 'goal') {
+                  Scorer: {{ ev.playerName || getPlayerNameById(ev.playerUserId) }}
+                  @if (ev.goalType === 'own_goal') { (OG) }
+                  @if (ev.assistPlayerUserId || ev.assistPlayerName) { · Assist: {{ ev.assistPlayerName || getPlayerNameById(ev.assistPlayerUserId) }} }
+                } @else if (ev.type === 'card') {
+                  Player: {{ getPlayerNameById(ev.playerUserId) }}
+                } @else if (ev.type === 'substitution') {
+                  <span class="text-rose-400">Out</span>: {{ getPlayerNameById(ev.playerOutId) }} · <span class="text-emerald-400">In</span>: {{ getPlayerNameById(ev.playerInId) }}
+                  @if (ev.reason) { · ({{ ev.reason }}) }
+                } @else if (ev.type === 'penalty') {
+                  Kicker: {{ getPlayerNameById(ev.playerUserId) }} · <span class="uppercase text-amber-400 font-bold">{{ ev.outcome }}</span>
+                } @else if (ev.type === 'foul') {
+                  By: {{ getPlayerNameById(ev.playerUserId) }} vs {{ getPlayerNameById(ev.opponentPlayerUserId) }}
+                  @if (ev.foulType) { · ({{ ev.foulType }}) }
+                } @else if (ev.type === 'free_kick') {
+                  By: {{ getPlayerNameById(ev.playerUserId) }} · {{ ev.freeKickType }} · <span class="uppercase text-indigo-300 font-bold">{{ ev.result }}</span>
+                } @else if (ev.type === 'corner_kick') {
+                  By: {{ getPlayerNameById(ev.playerUserId) }} · from {{ ev.side }} side
+                } @else if (ev.type === 'injury') {
+                  Player: {{ getPlayerNameById(ev.playerUserId) }} · Severity: <span class="text-rose-400 font-bold">{{ ev.severity }}</span>
+                  · {{ ev.substituted ? 'Subbed Off' : 'Remained on Pitch' }}
+                } @else if (ev.type === 'shootout_penalty') {
+                  Kicker: {{ getPlayerNameById(ev.playerUserId) }} · <span class="uppercase font-bold" [class]="ev.outcome === 'scored' ? 'text-emerald-400' : 'text-rose-400'">{{ ev.outcome }}</span>
+                } @else {
+                  Player: {{ getPlayerNameById(ev.playerUserId) }}
+                }
+                @if (ev._note) {
+                  <span class="block text-slate-500 mt-0.5 italic">"{{ ev._note }}"</span>
+                }
+              </div>
+
+              @if (ev._audit?.length > 0) {
+                <div class="mt-1.5 flex flex-col gap-0.5 pl-2 border-l-2 border-amber-500/20">
+                  @for (a of ev._audit; track $index) {
+                    <div class="text-[9px] text-slate-500">
+                      <i class="fi fi-rr-time-forward text-[8px] text-amber-400"></i>
+                      <span class="font-bold text-amber-400/80">{{ a.action }}</span>
+                      @if (a.previousMinute !== undefined) { — min was {{ a.previousMinute }}' }
+                      @if (a.previousNote) { — note was "{{ a.previousNote }}" }
+                      <span class="text-slate-600"> · {{ a.at | date:'HH:mm:ss' }}</span>
+                    </div>
+                  }
+                </div>
+              }
             </div>
+
+            @if (canScore()) {
+              <div class="flex-shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button (click)="openEditEvent(ev)"
+                  class="h-7 w-7 rounded-lg bg-slate-800 border border-white/5 text-slate-400 hover:text-amber-400 hover:border-amber-500/30 hover:bg-amber-500/10 transition-all flex items-center justify-center cursor-pointer"
+                  title="Edit event">
+                  <i class="fi fi-rr-pen-field text-[10px]"></i>
+                </button>
+                <button (click)="deleteEvent(ev._originalIndex)"
+                  class="h-7 w-7 rounded-lg bg-slate-800 border border-white/5 text-slate-400 hover:text-rose-400 hover:border-rose-500/30 hover:bg-rose-500/10 transition-all flex items-center justify-center cursor-pointer"
+                  title="Remove event">
+                  <i class="fi fi-rr-trash text-[10px]"></i>
+                </button>
+              </div>
+            }
+          </div>
+        } @empty {
+          <div class="py-10 text-center flex flex-col items-center gap-2 text-slate-500">
+            <i class="fi fi-rr-time-past text-2xl"></i>
+            <span class="text-xs font-semibold">
+              @if (timelineFilterType() !== 'all' || timelineFilterPlayer() !== 'all') {
+                No events match the current filters.
+              } @else {
+                No events logged yet.
+              }
+            </span>
+          </div>
+        }
+      </div>
+
+      @if (canScore() && match().liveData?._deletedEvents?.length > 0) {
+        <div class="px-5 py-3 border-t border-white/5 bg-slate-950/30">
+          <div class="text-[9px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-1.5 mb-2">
+            <i class="fi fi-rr-archive text-[9px]"></i> Audit Archive ({{ match().liveData?._deletedEvents?.length }} deleted)
+          </div>
+          <div class="flex flex-col gap-1">
+            @for (d of match().liveData?._deletedEvents; track $index) {
+              <div class="flex items-center gap-2 text-[9px] text-slate-600 font-medium bg-slate-950/40 border border-white/[0.03] rounded-lg px-3 py-1.5">
+                <i class="fi fi-rr-trash text-[9px] text-slate-700"></i>
+                <span class="text-slate-500 font-bold">{{ getEventTypeLabel(d.type) }}</span>
+                · min <span class="text-slate-400">{{ d.minute }}'</span>
+                · <span class="text-slate-400">{{ d._deletedAt | date:'HH:mm:ss' }}</span>
+              </div>
+            }
           </div>
         </div>
+      }
+
+    </div>
+  </div>
+</div>
+
+<!-- ─── EDIT EVENT MODAL ─── -->
+@if (editingEvent()) {
+  <div class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+    <div (click)="cancelEditEvent()" class="absolute inset-0 bg-slate-950/80 backdrop-blur-lg"></div>
+    <div class="relative z-10 w-full max-w-sm bg-slate-900 border border-white/10 rounded-2xl shadow-2xl shadow-black/80 overflow-hidden">
+      <div class="px-6 py-4 border-b border-white/5 flex items-center justify-between bg-slate-950/30">
+        <div class="flex items-center gap-2">
+          <i class="fi fi-rr-pen-field text-amber-400 text-sm"></i>
+          <h3 class="text-sm font-black text-white">Edit Event</h3>
+        </div>
+        <button (click)="cancelEditEvent()"
+          class="h-7 w-7 rounded-lg bg-white/5 border border-white/5 text-slate-400 hover:text-white hover:bg-white/10 transition-all flex items-center justify-center cursor-pointer">
+          <i class="fi fi-rr-cross text-xs"></i>
+        </button>
+      </div>
+      <div class="p-6 flex flex-col gap-5">
+        <div class="flex flex-col gap-1.5">
+          <label class="text-[10px] font-black uppercase tracking-widest text-slate-400">Event Type</label>
+          <div class="px-3 py-2 bg-slate-950/60 border border-white/5 rounded-xl text-xs font-bold text-slate-300">
+            {{ getEventTypeLabel(editingEvent().type) }}
+            @if (editingEvent().goalType) { ({{ editingEvent().goalType }}) }
+          </div>
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <label class="text-[10px] font-black uppercase tracking-widest text-slate-400"><i class="fi fi-rr-clock text-violet-400"></i> Minute</label>
+          <input type="number" [value]="editEventMinute()"
+            (input)="editEventMinute.set(+$any($event.target).value)"
+            min="0" max="150"
+            class="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-sm font-bold text-white outline-none focus:border-violet-500/50 transition-colors" />
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <label class="text-[10px] font-black uppercase tracking-widest text-slate-400"><i class="fi fi-rr-memo text-violet-400"></i> Referee Note (Optional)</label>
+          <textarea [value]="editEventNote()"
+            (input)="editEventNote.set($any($event.target).value)"
+            placeholder="Add a correction note or clarification…"
+            rows="2"
+            class="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 outline-none focus:border-violet-500/50 transition-colors resize-none"></textarea>
+        </div>
+        <div class="flex items-start gap-2 text-[10px] text-amber-400 bg-amber-500/5 border border-amber-500/15 rounded-xl px-3 py-2.5">
+          <i class="fi fi-rr-exclamation-triangle text-amber-400 flex-shrink-0 mt-0.5"></i>
+          <span>All changes are logged in the event's audit trail for transparency.</span>
+        </div>
+      </div>
+      <div class="px-6 py-4 border-t border-white/5 bg-slate-950/30 flex items-center justify-end gap-3">
+        <button (click)="cancelEditEvent()"
+          class="px-4 py-2 bg-slate-800 border border-white/10 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl text-xs font-bold transition-all cursor-pointer">
+          Cancel
+        </button>
+        <button (click)="saveEditedEvent()"
+          class="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shadow-md shadow-violet-600/20">
+          <i class="fi fi-rr-check text-xs"></i> Save Changes
+        </button>
+      </div>
+    </div>
+  </div>
+}
+

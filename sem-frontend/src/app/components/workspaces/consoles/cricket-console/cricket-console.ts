@@ -1,4 +1,4 @@
-import { Component, input, output, signal, inject, effect } from '@angular/core';
+import { Component, input, output, signal, inject, effect, computed } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Match, Player, Team, MatchPlayer, CompetitionStage } from '../../../../services/workspace.service';
@@ -504,5 +504,174 @@ export class CricketConsoleComponent {
   getPlayersForTeam(teamId: string | null): Player[] {
     if (!teamId) return [];
     return this.players().filter(p => p.teamId === teamId);
+  }
+
+  // ─── Match Timeline Management (Cricket Ball History) ────────────────────
+
+  timelineFilterInnings = signal<number>(0);    // 0 = All innings
+  timelineFilterBallType = signal<string>('all'); // ball type filter
+  timelineFilterBowler = signal<string>('all');
+  timelineFilterBatsman = signal<string>('all');
+  showTimelinePanel = signal<boolean>(true);
+
+  get totalBallsCount(): number {
+    const innings = this.match()?.liveData?.inningsData || [];
+    return innings.reduce((acc: number, inn: any) => acc + (inn.ballsHistory?.length || 0), 0);
+  }
+
+  editingBall = signal<any | null>(null);
+  editBallNote = signal<string>('');
+
+  /** All unique bowler names across all innings */
+  get timelineBowlerNames(): string[] {
+    const innings: any[] = this.match()?.liveData?.inningsData ?? [];
+    const names = new Set<string>();
+    for (const inn of innings) {
+      for (const ball of (inn.ballsHistory ?? [])) {
+        if (ball.bowler) names.add(ball.bowler);
+      }
+    }
+    return Array.from(names);
+  }
+
+  /** All unique batsman names across all innings */
+  get timelineBatsmanNames(): string[] {
+    const innings: any[] = this.match()?.liveData?.inningsData ?? [];
+    const names = new Set<string>();
+    for (const inn of innings) {
+      for (const ball of (inn.ballsHistory ?? [])) {
+        if (ball.striker) names.add(ball.striker);
+      }
+    }
+    return Array.from(names);
+  }
+
+  /** All ball-history entries across innings, filtered and indexed for display */
+  filteredBalls = computed(() => {
+    const innings: any[] = this.match()?.liveData?.inningsData ?? [];
+    const inningsFilter = this.timelineFilterInnings();
+    const typeFilter = this.timelineFilterBallType();
+    const bowlerFilter = this.timelineFilterBowler();
+    const batsmanFilter = this.timelineFilterBatsman();
+
+    const results: any[] = [];
+    for (const inn of innings) {
+      if (inningsFilter !== 0 && inn.inningsNumber !== inningsFilter) continue;
+      const balls: any[] = inn.ballsHistory ?? [];
+      const reversed = [...balls].reverse();
+      for (let i = 0; i < reversed.length; i++) {
+        const ball = reversed[i];
+        if (typeFilter !== 'all' && ball.ballType !== typeFilter) continue;
+        if (bowlerFilter !== 'all' && ball.bowler !== bowlerFilter) continue;
+        if (batsmanFilter !== 'all' && ball.striker !== batsmanFilter) continue;
+        results.push({
+          ...ball,
+          _inningsNumber: inn.inningsNumber,
+          _originalIndex: balls.length - 1 - i, // index in the original (non-reversed) array
+        });
+      }
+    }
+    return results;
+  });
+
+  openEditBall(ball: any) {
+    this.editingBall.set({ ...ball });
+    this.editBallNote.set(ball._note ?? '');
+  }
+
+  cancelEditBall() {
+    this.editingBall.set(null);
+  }
+
+  saveEditedBall() {
+    const match = this.match();
+    const editing = this.editingBall();
+    if (!match || !editing) return;
+
+    const live = { ...match.liveData };
+    const inningsIdx = editing._inningsNumber - 1;
+    if (!live.inningsData || !live.inningsData[inningsIdx]) return;
+
+    const balls = [...live.inningsData[inningsIdx].ballsHistory];
+    const ballIdx: number = editing._originalIndex;
+    const original = { ...balls[ballIdx] };
+
+    const auditEntry = {
+      action: 'edited',
+      at: new Date().toISOString(),
+      previousNote: original._note ?? null,
+    };
+
+    balls[ballIdx] = {
+      ...balls[ballIdx],
+      _note: this.editBallNote() || undefined,
+      _audit: Array.isArray(balls[ballIdx]._audit)
+        ? [...balls[ballIdx]._audit, auditEntry]
+        : [auditEntry],
+    };
+
+    const updatedInnings = [...live.inningsData];
+    updatedInnings[inningsIdx] = { ...updatedInnings[inningsIdx], ballsHistory: balls };
+    live.inningsData = updatedInnings;
+
+    this.competitionService
+      .updateMatch(
+        this.workspaceId(), this.eventId(), this.competitionId(),
+        this.stageId(), match.id, { liveData: live },
+      )
+      .subscribe({
+        next: (updated) => {
+          this.matchUpdated.emit(updated);
+          this.editingBall.set(null);
+          this.uiService.success('Ball updated and audit trail recorded.');
+        },
+        error: () => this.uiService.error('Failed to update ball.'),
+      });
+  }
+
+  /**
+   * Soft-delete a ball delivery by moving it to a _deletedBalls audit archive.
+   * Note: score is NOT auto-recalculated — use "Undo Last Ball" for score correction.
+   */
+  deleteBall(inningsNumber: number, originalIndex: number) {
+    const match = this.match();
+    if (!match) return;
+
+    const live = { ...match.liveData };
+    const inningsIdx = inningsNumber - 1;
+    if (!live.inningsData || !live.inningsData[inningsIdx]) return;
+
+    const balls = [...live.inningsData[inningsIdx].ballsHistory];
+    if (originalIndex < 0 || originalIndex >= balls.length) return;
+
+    const removed = { ...balls[originalIndex] };
+
+    const deletedEntry = {
+      ...removed,
+      _inningsNumber: inningsNumber,
+      _deletedAt: new Date().toISOString(),
+      _action: 'deleted',
+    };
+    live._deletedBalls = Array.isArray(live._deletedBalls)
+      ? [...live._deletedBalls, deletedEntry]
+      : [deletedEntry];
+
+    balls.splice(originalIndex, 1);
+    const updatedInnings = [...live.inningsData];
+    updatedInnings[inningsIdx] = { ...updatedInnings[inningsIdx], ballsHistory: balls };
+    live.inningsData = updatedInnings;
+
+    this.competitionService
+      .updateMatch(
+        this.workspaceId(), this.eventId(), this.competitionId(),
+        this.stageId(), match.id, { liveData: live },
+      )
+      .subscribe({
+        next: (updated) => {
+          this.matchUpdated.emit(updated);
+          this.uiService.success('Ball removed from timeline.');
+        },
+        error: () => this.uiService.error('Failed to remove ball.'),
+      });
   }
 }
