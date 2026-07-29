@@ -82,6 +82,10 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
   isLoadingCompetitionTeams = signal(false);
   isResettingStages = signal(false);
 
+  // Archive & View
+  archivedEvents = signal<WorkspaceEvent[]>([]);
+  activeEventView = signal<'active' | 'archived'>('active');
+
   // Search
   eventSearchQuery = signal('');
 
@@ -146,6 +150,7 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.loadSports();
+    this.loadArchivedEvents();
   }
 
   ngOnDestroy() {
@@ -158,6 +163,17 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
   filteredEvents = computed(() => {
     const query = this.eventSearchQuery().toLowerCase().trim();
     const list = this.events();
+    if (!query) return list;
+    return list.filter(e => 
+      e.name.toLowerCase().includes(query) ||
+      e.status.toLowerCase().includes(query) ||
+      (e.description && e.description.toLowerCase().includes(query))
+    );
+  });
+
+  filteredArchivedEvents = computed(() => {
+    const query = this.eventSearchQuery().toLowerCase().trim();
+    const list = this.archivedEvents();
     if (!query) return list;
     return list.filter(e => 
       e.name.toLowerCase().includes(query) ||
@@ -412,13 +428,27 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
   onEventSaved(saved: WorkspaceEvent) {
     const isEdit = !!this.editingEvent();
     if (isEdit) {
-      this.events.update(prev => prev.map(e => e.id === saved.id ? saved : e));
+      if (saved.isArchived) {
+        // If the status became completed, it might have been archived
+        this.events.update(prev => prev.filter(e => e.id !== saved.id));
+        this.archivedEvents.update(prev => {
+          const exists = prev.some(e => e.id === saved.id);
+          return exists ? prev.map(e => e.id === saved.id ? saved : e) : [...prev, saved];
+        });
+      } else {
+        this.events.update(prev => prev.map(e => e.id === saved.id ? saved : e));
+        this.archivedEvents.update(prev => prev.filter(e => e.id !== saved.id));
+      }
       const curEvent = this.selectedEvent();
       if (curEvent && curEvent.id === saved.id) {
         this.selectedEvent.set(saved);
       }
     } else {
-      this.events.update(prev => [...prev, saved]);
+      if (saved.isArchived) {
+        this.archivedEvents.update(prev => [...prev, saved]);
+      } else {
+        this.events.update(prev => [...prev, saved]);
+      }
     }
   }
 
@@ -434,9 +464,11 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
     if (!confirmed) return;
 
     const originalEvents = this.events();
+    const originalArchivedEvents = this.archivedEvents();
 
     // Optimistic Update
     this.events.update(prev => prev.filter(e => e.id !== event.id));
+    this.archivedEvents.update(prev => prev.filter(e => e.id !== event.id));
     if (this.selectedEvent()?.id === event.id) {
       this.selectedEvent.set(null);
       this.competitions.set([]);
@@ -449,7 +481,71 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
       error: (err) => {
         // Rollback
         this.events.set(originalEvents);
+        this.archivedEvents.set(originalArchivedEvents);
         this.uiService.error(err.error?.message ?? 'Failed to delete event.');
+      }
+    });
+  }
+
+  loadArchivedEvents() {
+    const ws = this.workspace();
+    if (!ws) return;
+    this.eventService.getEvents(ws.id, true).subscribe({
+      next: (events) => this.archivedEvents.set(events),
+      error: (err) => console.error('Failed to load archived events', err)
+    });
+  }
+
+  async onArchiveEvent(event: WorkspaceEvent) {
+    const ws = this.workspace();
+    if (!ws) return;
+    const confirmed = await this.uiService.confirm({
+      title: 'Archive Event',
+      message: `Are you sure you want to archive event "${event.name}"?`,
+      confirmText: 'Archive',
+      type: 'warning',
+    });
+    if (!confirmed) return;
+
+    this.eventService.archiveEvent(ws.id, event.id).subscribe({
+      next: (updatedEvent) => {
+        this.uiService.success(`Event "${event.name}" archived successfully.`);
+        // Remove from active events, add to archived
+        this.events.update(prev => prev.filter(e => e.id !== event.id));
+        this.archivedEvents.update(prev => {
+          const exists = prev.some(e => e.id === updatedEvent.id);
+          return exists ? prev.map(e => e.id === updatedEvent.id ? updatedEvent : e) : [...prev, updatedEvent];
+        });
+      },
+      error: (err) => {
+        this.uiService.error(err.error?.message ?? 'Failed to archive event.');
+      }
+    });
+  }
+
+  async onRestoreEvent(event: WorkspaceEvent) {
+    const ws = this.workspace();
+    if (!ws) return;
+    const confirmed = await this.uiService.confirm({
+      title: 'Restore Event',
+      message: `Are you sure you want to restore event "${event.name}" to active status?`,
+      confirmText: 'Restore',
+      type: 'info',
+    });
+    if (!confirmed) return;
+
+    this.eventService.restoreEvent(ws.id, event.id).subscribe({
+      next: (updatedEvent) => {
+        this.uiService.success(`Event "${event.name}" restored successfully.`);
+        // Remove from archived, add to active
+        this.archivedEvents.update(prev => prev.filter(e => e.id !== event.id));
+        this.events.update(prev => {
+          const exists = prev.some(e => e.id === updatedEvent.id);
+          return exists ? prev.map(e => e.id === updatedEvent.id ? updatedEvent : e) : [...prev, updatedEvent];
+        });
+      },
+      error: (err) => {
+        this.uiService.error(err.error?.message ?? 'Failed to restore event.');
       }
     });
   }

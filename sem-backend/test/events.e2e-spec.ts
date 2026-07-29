@@ -394,18 +394,77 @@ describe('Events & Competitions Controller (e2e)', () => {
     expect(res.body.description).toBe('Updated E2E description');
   });
 
+  it('should manually archive the event', async () => {
+    const res = await request(app.getHttpServer())
+      .patch(`/workspaces/${workspaceId}/events/${eventId}/archive`)
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .expect(200);
+
+    expect(res.body.isArchived).toBe(true);
+  });
+
+  it('should not include the archived event in the active list by default', async () => {
+    const res = await request(app.getHttpServer())
+      .get(`/workspaces/${workspaceId}/events`)
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .expect(200);
+
+    const exists = res.body.some((e: any) => e.id === eventId);
+    expect(exists).toBe(false);
+  });
+
+  it('should include the archived event when calling with archived=true query parameter', async () => {
+    const res = await request(app.getHttpServer())
+      .get(`/workspaces/${workspaceId}/events?archived=true`)
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .expect(200);
+
+    const ev = res.body.find((e: any) => e.id === eventId);
+    expect(ev).toBeDefined();
+    expect(ev.isArchived).toBe(true);
+  });
+
+  it('should manually restore the event from archive', async () => {
+    const res = await request(app.getHttpServer())
+      .patch(`/workspaces/${workspaceId}/events/${eventId}/restore`)
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .expect(200);
+
+    expect(res.body.isArchived).toBe(false);
+  });
+
+  it('should automatically archive the event when status is set to completed', async () => {
+    const res = await request(app.getHttpServer())
+      .patch(`/workspaces/${workspaceId}/events/${eventId}`)
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .send({
+        status: 'completed'
+      })
+      .expect(200);
+
+    expect(res.body.status).toBe('completed');
+    expect(res.body.isArchived).toBe(true);
+  });
+
   it('should delete the event', async () => {
     await request(app.getHttpServer())
       .delete(`/workspaces/${workspaceId}/events/${eventId}`)
       .set('Authorization', `Bearer ${jwtToken}`)
       .expect(204);
 
-    // Verify it is deleted
-    const res = await request(app.getHttpServer())
+    // Verify it is deleted (checking both active and archived lists)
+    const activeRes = await request(app.getHttpServer())
       .get(`/workspaces/${workspaceId}/events`)
       .set('Authorization', `Bearer ${jwtToken}`)
       .expect(200);
 
-    expect(res.body.some((e: any) => e.id === eventId)).toBe(false);
+    expect(activeRes.body.some((e: any) => e.id === eventId)).toBe(false);
+
+    const archivedRes = await request(app.getHttpServer())
+      .get(`/workspaces/${workspaceId}/events?archived=true`)
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .expect(200);
+
+    expect(archivedRes.body.some((e: any) => e.id === eventId)).toBe(false);
   });
 });

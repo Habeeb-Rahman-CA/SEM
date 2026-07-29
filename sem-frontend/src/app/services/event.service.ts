@@ -16,10 +16,29 @@ export class EventService {
     return new HttpHeaders({ Authorization: `Bearer ${token}` });
   }
 
-  getEvents(workspaceId: string): Observable<WorkspaceEvent[]> {
-    return this.http.get<WorkspaceEvent[]>(`${this.apiUrl}/${workspaceId}/events`, {
+  getEvents(workspaceId: string, archived?: boolean): Observable<WorkspaceEvent[]> {
+    const url = archived !== undefined
+      ? `${this.apiUrl}/${workspaceId}/events?archived=${archived}`
+      : `${this.apiUrl}/${workspaceId}/events`;
+    return this.http.get<WorkspaceEvent[]>(url, {
       headers: this.headers,
     });
+  }
+
+  archiveEvent(workspaceId: string, eventId: string): Observable<WorkspaceEvent> {
+    return this.http.patch<WorkspaceEvent>(
+      `${this.apiUrl}/${workspaceId}/events/${eventId}/archive`,
+      {},
+      { headers: this.headers }
+    );
+  }
+
+  restoreEvent(workspaceId: string, eventId: string): Observable<WorkspaceEvent> {
+    return this.http.patch<WorkspaceEvent>(
+      `${this.apiUrl}/${workspaceId}/events/${eventId}/restore`,
+      {},
+      { headers: this.headers }
+    );
   }
 
   createEvent(

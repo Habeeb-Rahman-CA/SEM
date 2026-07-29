@@ -55,6 +55,9 @@ export class Event extends AuditableEntity {
   @Column({ name: 'is_public', type: 'boolean', default: false })
   isPublic: boolean;
 
+  @Column({ name: 'is_archived', type: 'boolean', default: false })
+  isArchived: boolean;
+
   @Column({ name: 'gallery', type: 'jsonb', nullable: true })
   gallery: string[] | null;
 

@@ -1075,23 +1075,54 @@
       }
     </div>
 
-    @if (events().length === 0) {
-    <div
-      class="rounded-2xl border border-dashed border-white/10 p-12 text-center flex flex-col items-center justify-center gap-3">
-      <span class="text-3xl"><i class="fi fi-rr-trophy"></i></span>
-      <div>
-        <h3 class="text-sm font-semibold text-white">No events registered yet</h3>
-        <p class="text-xs text-slate-500 mt-1">Create your first sports festival or competition to get started.</p>
-      </div>
+    <!-- Archive & Active Toggle -->
+    <div class="flex items-center gap-2 border-b border-white/5 pb-3">
+      <button (click)="activeEventView.set('active')"
+        [class]="activeEventView() === 'active' 
+          ? 'px-4 py-2 bg-violet-600/10 border border-violet-500/20 text-violet-400 text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-md shadow-violet-900/10' 
+          : 'px-4 py-2 text-slate-400 hover:text-white border border-transparent hover:bg-white/5 text-xs font-bold rounded-xl transition flex items-center gap-1.5'">
+        <i class="fi fi-rr-play text-sm"></i> Active Events ({{ events().length }})
+      </button>
+      <button (click)="activeEventView.set('archived')"
+        [class]="activeEventView() === 'archived' 
+          ? 'px-4 py-2 bg-violet-600/10 border border-violet-500/20 text-violet-400 text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-md shadow-violet-900/10' 
+          : 'px-4 py-2 text-slate-400 hover:text-white border border-transparent hover:bg-white/5 text-xs font-bold rounded-xl transition flex items-center gap-1.5'">
+        <i class="fi fi-rr-archive text-sm"></i> Archive ({{ archivedEvents().length }})
+      </button>
     </div>
+
+    @if (activeEventView() === 'active' && events().length === 0) {
+      <div class="rounded-2xl border border-dashed border-white/10 p-12 text-center flex flex-col items-center justify-center gap-3">
+        <span class="text-3xl"><i class="fi fi-rr-trophy"></i></span>
+        <div>
+          <h3 class="text-sm font-semibold text-white">No events registered yet</h3>
+          <p class="text-xs text-slate-500 mt-1">Create your first sports festival or competition to get started.</p>
+        </div>
+      </div>
+    } @else if (activeEventView() === 'archived' && archivedEvents().length === 0) {
+      <div class="rounded-2xl border border-dashed border-white/10 p-12 text-center flex flex-col items-center justify-center gap-3 w-full bg-slate-900/10">
+        <span class="text-3xl text-slate-500"><i class="fi fi-rr-archive"></i></span>
+        <div>
+          <h3 class="text-sm font-semibold text-white">Event Archive is empty</h3>
+          <p class="text-xs text-slate-500 mt-1">Completed events will be automatically archived here.</p>
+        </div>
+      </div>
     } @else {
       <!-- Search and Filter Bar -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/20 border border-white/5 p-4 rounded-2xl mb-4">
         <div class="text-xs text-slate-400 font-medium">
-          @if (eventSearchQuery()) {
-            Showing {{ filteredEvents().length }} of {{ events().length }} events
+          @if (activeEventView() === 'active') {
+            @if (eventSearchQuery()) {
+              Showing {{ filteredEvents().length }} of {{ events().length }} events
+            } @else {
+              {{ events().length }} event{{ events().length !== 1 ? 's' : '' }} registered
+            }
           } @else {
-            {{ events().length }} event{{ events().length !== 1 ? 's' : '' }} registered
+            @if (eventSearchQuery()) {
+              Showing {{ filteredArchivedEvents().length }} of {{ archivedEvents().length }} archived events
+            } @else {
+              {{ archivedEvents().length }} archived event{{ archivedEvents().length !== 1 ? 's' : '' }}
+            }
           }
         </div>
         <div class="relative w-full sm:w-72">
@@ -1110,7 +1141,8 @@
         </div>
       </div>
 
-      @if (filteredEvents().length === 0) {
+      @let targetEvents = activeEventView() === 'active' ? filteredEvents() : filteredArchivedEvents();
+      @if (targetEvents.length === 0) {
       <div
         class="rounded-2xl border border-dashed border-white/10 p-12 text-center flex flex-col items-center justify-center gap-3 w-full">
         <span class="text-3xl text-slate-600"><i class="fi fi-rr-search"></i></span>
@@ -1121,7 +1153,7 @@
       </div>
       } @else {
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        @for (event of filteredEvents(); track event.id) {
+        @for (event of targetEvents; track event.id) {
       <div
         class="bg-slate-900 border border-white/10 hover:border-violet-500/30 rounded-2xl p-5 flex flex-col justify-between gap-4 group transition-all duration-300 text-left">
         <div class="flex flex-col gap-2">
@@ -1216,14 +1248,29 @@
           </div>
           @if (hasPermission('event.manage')) {
           <div class="flex items-center gap-2 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
-            <button (click)="onEditEvent(event)"
-              class="px-2 py-1 text-[10px] font-bold text-slate-400 hover:text-white hover:bg-slate-800 border border-white/10 rounded-md transition-all cursor-pointer">
-              Edit
-            </button>
-            <button (click)="onDeleteEvent(event)"
-              class="px-2 py-1 text-[10px] font-bold text-rose-400 hover:text-white hover:bg-rose-600/20 border border-rose-500/10 hover:border-rose-500/30 rounded-md transition-all cursor-pointer">
-              Delete
-            </button>
+            @if (activeEventView() === 'active') {
+              <button (click)="onArchiveEvent(event)"
+                class="px-2 py-1 text-[10px] font-bold text-amber-400 hover:text-white hover:bg-amber-600/20 border border-amber-500/10 hover:border-amber-500/30 rounded-md transition-all cursor-pointer">
+                Archive
+              </button>
+              <button (click)="onEditEvent(event)"
+                class="px-2 py-1 text-[10px] font-bold text-slate-400 hover:text-white hover:bg-slate-800 border border-white/10 rounded-md transition-all cursor-pointer">
+                Edit
+              </button>
+              <button (click)="onDeleteEvent(event)"
+                class="px-2 py-1 text-[10px] font-bold text-rose-400 hover:text-white hover:bg-rose-600/20 border border-rose-500/10 hover:border-rose-500/30 rounded-md transition-all cursor-pointer">
+                Delete
+              </button>
+            } @else {
+              <button (click)="onRestoreEvent(event)"
+                class="px-2 py-1 text-[10px] font-bold text-emerald-400 hover:text-white hover:bg-emerald-600/20 border border-emerald-500/10 hover:border-emerald-500/30 rounded-md transition-all cursor-pointer">
+                Restore
+              </button>
+              <button (click)="onDeleteEvent(event)"
+                class="px-2 py-1 text-[10px] font-bold text-rose-400 hover:text-white hover:bg-rose-600/20 border border-rose-500/10 hover:border-rose-500/30 rounded-md transition-all cursor-pointer">
+                Delete
+              </button>
+            }
           </div>
           }
         </div>

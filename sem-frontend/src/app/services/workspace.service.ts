@@ -129,6 +129,7 @@ export interface WorkspaceEvent {
   venue?: string | null;
   sport?: string | null;
   organizers?: string | null;
+  isArchived?: boolean;
 }
 
 export interface Sport {

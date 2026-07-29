@@ -24,10 +24,20 @@ export class EventsService {
     private readonly competitionsService: CompetitionsService,
   ) {}
 
-  async getEvents(workspaceId: string, userId: string): Promise<Event[]> {
+  async getEvents(
+    workspaceId: string,
+    userId: string,
+    archived?: boolean,
+  ): Promise<Event[]> {
     await this.workspacesService.ensureMember(workspaceId, userId);
+    const whereClause: any = { workspaceId };
+    if (archived !== undefined) {
+      whereClause.isArchived = archived;
+    } else {
+      whereClause.isArchived = false;
+    }
     return this.eventRepo.find({
-      where: { workspaceId },
+      where: whereClause,
       relations: { teams: true },
       order: { name: 'ASC' },
     });
@@ -69,6 +79,7 @@ export class EventsService {
       venue: dto.venue ?? null,
       sport: dto.sport ?? null,
       organizers: dto.organizers ?? null,
+      isArchived: dto.status === 'completed',
     });
     const saved = await this.eventRepo.save(event);
 
@@ -138,7 +149,10 @@ export class EventsService {
       ...(dto.endDate !== undefined && {
         endDate: dto.endDate ? new Date(dto.endDate) : null,
       }),
-      ...(dto.status !== undefined && { status: dto.status }),
+      ...(dto.status !== undefined && {
+        status: dto.status,
+        ...(dto.status === 'completed' && { isArchived: true }),
+      }),
       ...(dto.logoUrl !== undefined && { logoUrl: dto.logoUrl }),
       ...(dto.isPublic !== undefined && { isPublic: dto.isPublic }),
       ...(dto.gallery !== undefined && { gallery: dto.gallery }),
@@ -249,6 +263,46 @@ export class EventsService {
     }
     event.deletedAt = new Date();
     await this.eventRepo.save(event);
+  }
+
+  async archiveEvent(
+    workspaceId: string,
+    eventId: string,
+    userId: string,
+  ): Promise<Event> {
+    await this.workspacesService.ensurePermission(
+      workspaceId,
+      userId,
+      'event.manage',
+    );
+    const event = await this.eventRepo.findOne({
+      where: { id: eventId, workspaceId },
+    });
+    if (!event) {
+      throw new NotFoundException('Event not found in this workspace');
+    }
+    event.isArchived = true;
+    return this.eventRepo.save(event);
+  }
+
+  async restoreEvent(
+    workspaceId: string,
+    eventId: string,
+    userId: string,
+  ): Promise<Event> {
+    await this.workspacesService.ensurePermission(
+      workspaceId,
+      userId,
+      'event.manage',
+    );
+    const event = await this.eventRepo.findOne({
+      where: { id: eventId, workspaceId },
+    });
+    if (!event) {
+      throw new NotFoundException('Event not found in this workspace');
+    }
+    event.isArchived = false;
+    return this.eventRepo.save(event);
   }
 
   async getEventStandings(

@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   UseGuards,
   Request,
   HttpCode,
@@ -43,8 +44,13 @@ export class EventsController {
   @ApiResponse({ status: 200, description: 'Array of event objects' })
   @ApiResponse({ status: 401, description: 'Unauthenticated' })
   @ApiResponse({ status: 403, description: 'Not a member of this workspace' })
-  getEvents(@Param('workspaceId') workspaceId: string, @Request() req: any) {
-    return this.eventsService.getEvents(workspaceId, req.user.id);
+  getEvents(
+    @Param('workspaceId') workspaceId: string,
+    @Request() req: any,
+    @Query('archived') archived?: string,
+  ) {
+    const isArchived = archived === undefined ? undefined : archived === 'true';
+    return this.eventsService.getEvents(workspaceId, req.user.id, isArchived);
   }
 
   @Post()
@@ -108,6 +114,42 @@ export class EventsController {
     @Request() req: any,
   ) {
     return this.eventsService.removeEvent(workspaceId, eventId, req.user.id);
+  }
+
+  @Patch(':eventId/archive')
+  @ApiOperation({
+    summary: 'Archive an event',
+    description: 'Archives the specified event to keep historical data organized.',
+  })
+  @ApiParam(WS)
+  @ApiParam(EV)
+  @ApiResponse({ status: 200, description: 'Event archived successfully' })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
+  @ApiResponse({ status: 404, description: 'Event not found' })
+  archiveEvent(
+    @Param('workspaceId') workspaceId: string,
+    @Param('eventId') eventId: string,
+    @Request() req: any,
+  ) {
+    return this.eventsService.archiveEvent(workspaceId, eventId, req.user.id);
+  }
+
+  @Patch(':eventId/restore')
+  @ApiOperation({
+    summary: 'Restore an archived event',
+    description: 'Restores the specified event from the archive to active status.',
+  })
+  @ApiParam(WS)
+  @ApiParam(EV)
+  @ApiResponse({ status: 200, description: 'Event restored successfully' })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
+  @ApiResponse({ status: 404, description: 'Event not found' })
+  restoreEvent(
+    @Param('workspaceId') workspaceId: string,
+    @Param('eventId') eventId: string,
+    @Request() req: any,
+  ) {
+    return this.eventsService.restoreEvent(workspaceId, eventId, req.user.id);
   }
 
   @Get(':eventId/standings')
