@@ -23,6 +23,7 @@ import { EventsService } from './events.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { DuplicateEventDto } from './dto/duplicate-event.dto';
+import { SearchEventDto } from './dto/search-event.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 const WS = { name: 'workspaceId', description: 'Workspace UUID' };
@@ -52,6 +53,23 @@ export class EventsController {
   ) {
     const isArchived = archived === undefined ? undefined : archived === 'true';
     return this.eventsService.getEvents(workspaceId, req.user.id, isArchived);
+  }
+
+  @Get('search')
+  @ApiOperation({
+    summary: 'Advanced Search & Filter Events',
+    description: 'Enables advanced filtering by sport, organizer, workspace, status, venue, date range, and competition name, plus custom sorting.',
+  })
+  @ApiParam(WS)
+  @ApiResponse({ status: 200, description: 'Filtered array of events' })
+  @ApiResponse({ status: 401, description: 'Unauthenticated' })
+  @ApiResponse({ status: 403, description: 'Not a member of the workspace' })
+  searchEvents(
+    @Param('workspaceId') workspaceId: string,
+    @Request() req: any,
+    @Query() dto: SearchEventDto,
+  ) {
+    return this.eventsService.searchEvents(workspaceId, req.user.id, dto);
   }
 
   @Post()

@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
@@ -14,6 +15,7 @@ import { WorkspacesService } from '../workspaces/workspaces.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { DuplicateEventDto } from './dto/duplicate-event.dto';
+import { SearchEventDto } from './dto/search-event.dto';
 import { NotificationType } from '../workspaces/entities/notification.entity';
 import { CompetitionsService } from '../competitions/competitions.service';
 
@@ -540,5 +542,89 @@ export class EventsService {
     );
 
     return savedEvent;
+  }
+
+  async searchEvents(
+    workspaceId: string,
+    userId: string,
+    dto: SearchEventDto,
+  ): Promise<Event[]> {
+    const userWorkspaces = await this.workspacesService.findAllForUser(userId);
+    const allowedWorkspaceIds = userWorkspaces.map((w) => w.id);
+
+    const qb = this.eventRepo.createQueryBuilder('event')
+      .leftJoinAndSelect('event.competitions', 'competition')
+      .leftJoinAndSelect('event.teams', 'team')
+      .leftJoinAndSelect('event.workspace', 'workspace');
+
+    const wsFilter = dto.workspaceIdFilter;
+    if (wsFilter === 'all') {
+      if (allowedWorkspaceIds.length === 0) {
+        return [];
+      }
+      qb.andWhere('event.workspaceId IN (:...allowedWorkspaceIds)', { allowedWorkspaceIds });
+    } else if (wsFilter) {
+      if (!allowedWorkspaceIds.includes(wsFilter)) {
+        throw new ForbiddenException('Not a member of the requested filter workspace');
+      }
+      qb.andWhere('event.workspaceId = :wsFilter', { wsFilter });
+    } else {
+      if (!allowedWorkspaceIds.includes(workspaceId)) {
+        throw new ForbiddenException('Not a member of the current workspace');
+      }
+      qb.andWhere('event.workspaceId = :workspaceId', { workspaceId });
+    }
+
+    if (dto.query) {
+      qb.andWhere(
+        '(LOWER(event.name) LIKE LOWER(:query) OR LOWER(event.description) LIKE LOWER(:query))',
+        { query: `%${dto.query}%` },
+      );
+    }
+
+    if (dto.sport) {
+      qb.andWhere('LOWER(event.sport) = LOWER(:sport)', { sport: dto.sport });
+    }
+
+    if (dto.organizer) {
+      qb.andWhere('LOWER(event.organizers) LIKE LOWER(:organizer)', {
+        organizer: `%${dto.organizer}%`,
+      });
+    }
+
+    if (dto.status) {
+      qb.andWhere('event.status = :status', { status: dto.status });
+    }
+
+    if (dto.venue) {
+      qb.andWhere('LOWER(event.venue) LIKE LOWER(:venue)', {
+        venue: `%${dto.venue}%`,
+      });
+    }
+
+    if (dto.startDate) {
+      qb.andWhere('event.startDate >= :startDate', { startDate: new Date(dto.startDate) });
+    }
+
+    if (dto.endDate) {
+      qb.andWhere('event.endDate <= :endDate', { endDate: new Date(dto.endDate) });
+    }
+
+    if (dto.competitionName) {
+      qb.andWhere('LOWER(competition.name) LIKE LOWER(:competitionName)', {
+        competitionName: `%${dto.competitionName}%`,
+      });
+    }
+
+    const sortBy = dto.sortBy || 'name';
+    const sortOrder = dto.sortOrder || 'ASC';
+    const allowedSortFields = ['name', 'startDate', 'endDate', 'status', 'sport', 'venue'];
+    const orderField = allowedSortFields.includes(sortBy) ? `event.${sortBy}` : 'event.name';
+    const orderDirection = ['ASC', 'DESC'].includes(sortOrder.toUpperCase())
+      ? (sortOrder.toUpperCase() as 'ASC' | 'DESC')
+      : 'ASC';
+    qb.orderBy(orderField, orderDirection);
+
+    return qb.getMany();
   }
 }

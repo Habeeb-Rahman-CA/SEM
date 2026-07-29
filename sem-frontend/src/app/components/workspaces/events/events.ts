@@ -88,8 +88,27 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
   archivedEvents = signal<WorkspaceEvent[]>([]);
   activeEventView = signal<'active' | 'archived'>('active');
 
-  // Search
   eventSearchQuery = signal('');
+
+  // Advanced Search Signals
+  isAdvancedSearchOpen = signal(false);
+  searchActive = signal(false);
+  searchResults = signal<WorkspaceEvent[]>([]);
+
+  searchSport = signal('');
+  searchOrganizer = signal('');
+  searchWorkspaceId = signal('');
+  searchStatus = signal('');
+  searchVenue = signal('');
+  searchStartDate = signal('');
+  searchEndDate = signal('');
+  searchCompetitionName = signal('');
+  searchSortBy = signal('name');
+  searchSortOrder = signal('ASC');
+
+  userWorkspaces = signal<Workspace[]>([]);
+  savedFilters = signal<Array<{ name: string; filters: any }>>([]);
+  newFilterName = signal('');
 
   // Standalone Modal States
   isEventModalOpen = signal(false);
@@ -151,11 +170,30 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
         this.loadCompetitionTeams(comp.id);
       }
     }, { allowSignalWrites: true });
+
+    // Re-trigger advanced search if query changes while advanced search is active
+    effect(() => {
+      const query = this.eventSearchQuery();
+      if (this.searchActive()) {
+        this.triggerAdvancedSearch();
+      }
+    }, { allowSignalWrites: true });
   }
 
   ngOnInit() {
     this.loadSports();
     this.loadArchivedEvents();
+    this.workspaceService.getAll().subscribe(list => {
+      this.userWorkspaces.set(list);
+    });
+    const saved = localStorage.getItem('sem_saved_event_filters');
+    if (saved) {
+      try {
+        this.savedFilters.set(JSON.parse(saved));
+      } catch (e) {
+        console.error('Failed to parse saved filters', e);
+      }
+    }
   }
 
   ngOnDestroy() {
@@ -997,5 +1035,90 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
   openPublicPage(event: WorkspaceEvent) {
     const url = `/public/events/${event.id}`;
     window.open(url, '_blank');
+  }
+
+  applySavedFilter(filters: any) {
+    this.searchSport.set(filters.sport || '');
+    this.searchOrganizer.set(filters.organizer || '');
+    this.searchWorkspaceId.set(filters.workspaceIdFilter || '');
+    this.searchStatus.set(filters.status || '');
+    this.searchVenue.set(filters.venue || '');
+    this.searchStartDate.set(filters.startDate || '');
+    this.searchEndDate.set(filters.endDate || '');
+    this.searchCompetitionName.set(filters.competitionName || '');
+    this.searchSortBy.set(filters.sortBy || 'name');
+    this.searchSortOrder.set(filters.sortOrder || 'ASC');
+    this.triggerAdvancedSearch();
+  }
+
+  saveCurrentFilter() {
+    const name = this.newFilterName().trim();
+    if (!name) return;
+    const filters = {
+      sport: this.searchSport(),
+      organizer: this.searchOrganizer(),
+      workspaceIdFilter: this.searchWorkspaceId(),
+      status: this.searchStatus(),
+      venue: this.searchVenue(),
+      startDate: this.searchStartDate(),
+      endDate: this.searchEndDate(),
+      competitionName: this.searchCompetitionName(),
+      sortBy: this.searchSortBy(),
+      sortOrder: this.searchSortOrder(),
+    };
+    const current = this.savedFilters();
+    const updated = current.filter(sf => sf.name.toLowerCase() !== name.toLowerCase());
+    updated.push({ name, filters });
+    this.savedFilters.set(updated);
+    localStorage.setItem('sem_saved_event_filters', JSON.stringify(updated));
+    this.newFilterName.set('');
+  }
+
+  deleteSavedFilter(name: string) {
+    const updated = this.savedFilters().filter(sf => sf.name !== name);
+    this.savedFilters.set(updated);
+    localStorage.setItem('sem_saved_event_filters', JSON.stringify(updated));
+  }
+
+  resetAdvancedSearch() {
+    this.searchSport.set('');
+    this.searchOrganizer.set('');
+    this.searchWorkspaceId.set('');
+    this.searchStatus.set('');
+    this.searchVenue.set('');
+    this.searchStartDate.set('');
+    this.searchEndDate.set('');
+    this.searchCompetitionName.set('');
+    this.searchSortBy.set('name');
+    this.searchSortOrder.set('ASC');
+    this.searchActive.set(false);
+    this.searchResults.set([]);
+  }
+
+  triggerAdvancedSearch() {
+    const ws = this.workspace();
+    if (!ws) return;
+    this.searchActive.set(true);
+    const params = {
+      query: this.eventSearchQuery(),
+      sport: this.searchSport(),
+      organizer: this.searchOrganizer(),
+      status: this.searchStatus(),
+      venue: this.searchVenue(),
+      startDate: this.searchStartDate(),
+      endDate: this.searchEndDate(),
+      competitionName: this.searchCompetitionName(),
+      workspaceIdFilter: this.searchWorkspaceId(),
+      sortBy: this.searchSortBy(),
+      sortOrder: this.searchSortOrder()
+    };
+    this.eventService.searchEvents(ws.id, params).subscribe({
+      next: (results) => {
+        this.searchResults.set(results);
+      },
+      error: (err) => {
+        console.error('Advanced search failed:', err);
+      }
+    });
   }
 }

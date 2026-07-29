@@ -63,6 +63,38 @@ export class EventService {
     );
   }
 
+  searchEvents(
+    workspaceId: string,
+    params: {
+      query?: string;
+      sport?: string;
+      organizer?: string;
+      status?: string;
+      venue?: string;
+      startDate?: string;
+      endDate?: string;
+      competitionName?: string;
+      workspaceIdFilter?: string;
+      sortBy?: string;
+      sortOrder?: string;
+    }
+  ): Observable<WorkspaceEvent[]> {
+    let queryParams: any = {};
+    Object.keys(params).forEach(key => {
+      const val = (params as any)[key];
+      if (val !== undefined && val !== null && val !== '') {
+        queryParams[key] = val.toString();
+      }
+    });
+    return this.http.get<WorkspaceEvent[]>(
+      `${this.apiUrl}/${workspaceId}/events/search`,
+      {
+        headers: this.headers,
+        params: queryParams
+      }
+    );
+  }
+
   createEvent(
     workspaceId: string,
     payload: {

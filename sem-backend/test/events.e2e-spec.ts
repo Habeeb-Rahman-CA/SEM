@@ -353,6 +353,40 @@ describe('Events & Competitions Controller (e2e)', () => {
     expect(dupComp.stages[0].matches.length).toBe(0);
   });
 
+  it('should support advanced search and filtering on events', async () => {
+    await request(app.getHttpServer())
+      .patch(`/workspaces/${workspaceId}/events/${eventId}`)
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .send({
+        venue: 'Main Arena',
+        sport: 'Football',
+        organizers: 'Global Sports League',
+      })
+      .expect(200);
+
+    const searchRes = await request(app.getHttpServer())
+      .get(`/workspaces/${workspaceId}/events/search`)
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .query({
+        query: 'Sports',
+        sport: 'Football',
+        organizer: 'Global Sports',
+        venue: 'Main Arena',
+        status: 'upcoming',
+        workspaceIdFilter: workspaceId,
+        sortBy: 'name',
+        sortOrder: 'ASC',
+      })
+      .expect(200);
+
+    expect(searchRes.body.length).toBeGreaterThanOrEqual(1);
+    const searchEvent = searchRes.body.find((e: any) => e.id === eventId);
+    expect(searchEvent).toBeDefined();
+    expect(searchEvent.sport).toBe('Football');
+    expect(searchEvent.venue).toBe('Main Arena');
+    expect(searchEvent.organizers).toBe('Global Sports League');
+  });
+
   it('should delete the match', async () => {
     await request(app.getHttpServer())
       .delete(
