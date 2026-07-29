@@ -205,6 +205,54 @@ export class NotificationsService {
         );
         break;
 
+      case NotificationType.MATCH_STARTED:
+        await this.emailService.sendMatchStartEmail(
+          email,
+          workspaceName,
+          logoUrl,
+          metadata?.homeTeamName || 'Home Team',
+          metadata?.awayTeamName || 'Away Team',
+          viewUrl,
+        );
+        break;
+
+      case NotificationType.MATCH_COMPLETED:
+        await this.emailService.sendMatchResultEmail(
+          email,
+          workspaceName,
+          logoUrl,
+          metadata?.homeTeamName || 'Home Team',
+          metadata?.awayTeamName || 'Away Team',
+          metadata?.homeScore ?? 0,
+          metadata?.awayScore ?? 0,
+          viewUrl,
+        );
+        break;
+
+      case NotificationType.MATCH_DELAYED:
+        await this.emailService.sendMatchDelayEmail(
+          email,
+          workspaceName,
+          logoUrl,
+          metadata?.homeTeamName || 'Home Team',
+          metadata?.awayTeamName || 'Away Team',
+          metadata?.scheduledAt ? new Date(metadata.scheduledAt).toLocaleString() : 'TBD',
+          viewUrl,
+        );
+        break;
+
+      case NotificationType.MATCH_VENUE_CHANGED:
+        await this.emailService.sendVenueChangeEmail(
+          email,
+          workspaceName,
+          logoUrl,
+          metadata?.homeTeamName || 'Home Team',
+          metadata?.awayTeamName || 'Away Team',
+          metadata?.venueName || 'Venue TBD',
+          viewUrl,
+        );
+        break;
+
       default:
         break;
     }

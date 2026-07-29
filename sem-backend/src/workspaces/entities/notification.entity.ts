@@ -51,6 +51,8 @@ export enum NotificationType {
 
   // ── Match Lifecycle ──────────────────────────────────
   MATCH_SCHEDULED = 'match_scheduled',
+  MATCH_DELAYED = 'match_delayed',
+  MATCH_VENUE_CHANGED = 'match_venue_changed',
   MATCH_LINEUP_SET = 'match_lineup_set',
   MATCH_STARTED = 'match_started',
   MATCH_COMPLETED = 'match_completed',
@@ -114,6 +116,8 @@ export const NOTIFICATION_ICONS: Record<NotificationType, string> = {
   [NotificationType.BEST_PLAYER_OF_TOURNAMENT]: '⭐',
   [NotificationType.BEST_PLAYER_ANNOUNCEMENT]: '⭐',
   [NotificationType.MATCH_SCHEDULED]: '📅',
+  [NotificationType.MATCH_DELAYED]: '🕒',
+  [NotificationType.MATCH_VENUE_CHANGED]: '🏟️',
   [NotificationType.MATCH_LINEUP_SET]: '📋',
   [NotificationType.MATCH_STARTED]: '🔴',
   [NotificationType.MATCH_COMPLETED]: '⚽',
