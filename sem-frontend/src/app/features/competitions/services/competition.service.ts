@@ -1,10 +1,12 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { tap } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
 import { AuthService } from '../../auth/services/auth.service';
 import { UiService } from '../../../core/services/ui.service';
 import { OfflineSyncService } from '../../../core/services/offline-sync.service';
+import { StorageService } from '../../../core/services/storage.service';
 import {
   Sport,
   Competition,
@@ -21,6 +23,7 @@ export class CompetitionService {
   private authService = inject(AuthService);
   private uiService = inject(UiService);
   private offlineSyncService = inject(OfflineSyncService);
+  private storage = inject(StorageService);
   private readonly apiUrl = `${environment.apiUrl}/workspaces`;
 
   private get headers(): HttpHeaders {
@@ -261,8 +264,30 @@ export class CompetitionService {
       liveData?: any;
       scheduledAt?: string | null;
     },
+    currentMatch?: Match,
   ): Observable<Match> {
     if (this.uiService.isOffline()) {
+      let baseMatch = currentMatch;
+      if (!baseMatch) {
+        // Try to load cached dashboard matches
+        const cachedOverviewStr = localStorage.getItem(`cached_dashboard_${workspaceId}`);
+        if (cachedOverviewStr) {
+          try {
+            const data = JSON.parse(cachedOverviewStr);
+            const allMatches = [
+              ...(data.liveMatches || []),
+              ...(data.upcomingMatches || []),
+              ...(data.completedMatches || []),
+            ];
+            const found = allMatches.find((m) => m.id === matchId);
+            if (found) {
+              baseMatch = found;
+            }
+          } catch (e) {
+            console.error('Failed to parse cached dashboard for base match', e);
+          }
+        }
+      }
       return this.offlineSyncService.queueMatchUpdate(
         workspaceId,
         eventId,
@@ -270,6 +295,7 @@ export class CompetitionService {
         stageId,
         matchId,
         payload,
+        baseMatch,
       );
     }
     return this.http.patch<Match>(
@@ -329,10 +355,16 @@ export class CompetitionService {
     stageId: string,
     matchId: string,
   ): Observable<MatchPlayer[]> {
-    return this.http.get<MatchPlayer[]>(
-      `${this.apiUrl}/${workspaceId}/events/${eventId}/competitions/${competitionId}/stages/${stageId}/matches/${matchId}/lineup`,
-      { headers: this.headers },
-    );
+    return this.http
+      .get<MatchPlayer[]>(
+        `${this.apiUrl}/${workspaceId}/events/${eventId}/competitions/${competitionId}/stages/${stageId}/matches/${matchId}/lineup`,
+        { headers: this.headers },
+      )
+      .pipe(
+        tap((lineup) => {
+          this.storage.setItem(`cached_lineup_${matchId}`, JSON.stringify(lineup));
+        }),
+      );
   }
 
   saveMatchLineup(
@@ -343,11 +375,17 @@ export class CompetitionService {
     matchId: string,
     lineups: { playerId: string; isPlaying: boolean; teamId: string; isGoalkeeper?: boolean }[],
   ): Observable<MatchPlayer[]> {
-    return this.http.post<MatchPlayer[]>(
-      `${this.apiUrl}/${workspaceId}/events/${eventId}/competitions/${competitionId}/stages/${stageId}/matches/${matchId}/lineup`,
-      { lineups },
-      { headers: this.headers },
-    );
+    return this.http
+      .post<MatchPlayer[]>(
+        `${this.apiUrl}/${workspaceId}/events/${eventId}/competitions/${competitionId}/stages/${stageId}/matches/${matchId}/lineup`,
+        { lineups },
+        { headers: this.headers },
+      )
+      .pipe(
+        tap((lineup) => {
+          this.storage.setItem(`cached_lineup_${matchId}`, JSON.stringify(lineup));
+        }),
+      );
   }
 
   // ─── Stats ────────────────────────────────────────────────────────────────

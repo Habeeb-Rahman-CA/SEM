@@ -17,6 +17,7 @@ export interface OfflineUpdate {
   matchId: string;
   payload: any;
   timestamp: number;
+  baseMatchState?: Match;
 }
 
 @Injectable({
@@ -64,6 +65,7 @@ export class OfflineSyncService {
     stageId: string,
     matchId: string,
     payload: any,
+    currentMatch?: Match,
   ): Observable<Match> {
     const updateId = Math.random().toString(36).substring(2, 9);
     const offlineUpdate: OfflineUpdate = {
@@ -75,6 +77,7 @@ export class OfflineSyncService {
       matchId,
       payload,
       timestamp: Date.now(),
+      baseMatchState: currentMatch,
     };
 
     this.updatesQueue.push(offlineUpdate);
@@ -85,19 +88,28 @@ export class OfflineSyncService {
     // Construct a mock match object to return to satisfy UI
     const mockMatch: Match = {
       id: matchId,
-      homeTeamId: payload.homeTeamId || '',
-      awayTeamId: payload.awayTeamId || '',
-      homeScore: payload.homeScore !== undefined ? payload.homeScore : 0,
-      awayScore: payload.awayScore !== undefined ? payload.awayScore : 0,
-      status: payload.status || 'live',
-      scheduledAt: payload.scheduledAt || new Date().toISOString(),
-      venueId: payload.venueId || null,
-      config: payload.config || {},
-      liveData: payload.liveData || {},
+      homeTeamId: payload.homeTeamId || currentMatch?.homeTeamId || '',
+      awayTeamId: payload.awayTeamId || currentMatch?.awayTeamId || '',
+      homeScore: payload.homeScore !== undefined ? payload.homeScore : currentMatch?.homeScore || 0,
+      awayScore: payload.awayScore !== undefined ? payload.awayScore : currentMatch?.awayScore || 0,
+      status: payload.status || currentMatch?.status || 'live',
+      scheduledAt: payload.scheduledAt || currentMatch?.scheduledAt || new Date().toISOString(),
+      venueId: payload.venueId !== undefined ? payload.venueId : currentMatch?.venueId || null,
+      config: payload.config || currentMatch?.config || {},
+      liveData: payload.liveData || currentMatch?.liveData || {},
       stageId: stageId,
-      createdAt: new Date().toISOString(),
+      createdAt: currentMatch?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
+
+    if (currentMatch) {
+      Object.assign(mockMatch, {
+        homeTeam: currentMatch.homeTeam,
+        awayTeam: currentMatch.awayTeam,
+        venue: currentMatch.venue,
+        stage: currentMatch.stage,
+      });
+    }
 
     return of(mockMatch);
   }
@@ -118,16 +130,69 @@ export class OfflineSyncService {
     // Process sequentially using concatMap
     return from(this.updatesQueue).pipe(
       concatMap((update) => {
-        const url = `${environment.apiUrl}/workspaces/${update.workspaceId}/events/${update.eventId}/competitions/${update.competitionId}/stages/${update.stageId}/matches/${update.matchId}`;
-        return this.http.patch<Match>(url, update.payload, { headers }).pipe(
-          tap(() => {
-            // Remove from queue on success
-            this.updatesQueue = this.updatesQueue.filter((item) => item.id !== update.id);
-            this.saveQueue();
+        const getUrl = `${environment.apiUrl}/workspaces/${update.workspaceId}/events/${update.eventId}/competitions/${update.competitionId}/stages/${update.stageId}/matches`;
+        return this.http.get<Match[]>(getUrl, { headers }).pipe(
+          concatMap((matches) => {
+            const serverMatch = matches.find((m) => m.id === update.matchId);
+            if (!serverMatch) {
+              // Match not found on server anymore (maybe deleted)
+              this.updatesQueue = this.updatesQueue.filter((item) => item.id !== update.id);
+              this.saveQueue();
+              return of(null);
+            }
+
+            // Check if conflict exists
+            const base = update.baseMatchState;
+            let hasConflict = false;
+            if (base) {
+              const scoreChangedOnServer =
+                serverMatch.homeScore !== base.homeScore ||
+                serverMatch.awayScore !== base.awayScore;
+              const statusChangedOnServer = serverMatch.status !== base.status;
+
+              // Only conflict if server's current values are also different from our new offline payload
+              const differsFromPayload =
+                (update.payload.homeScore !== undefined &&
+                  serverMatch.homeScore !== update.payload.homeScore) ||
+                (update.payload.awayScore !== undefined &&
+                  serverMatch.awayScore !== update.payload.awayScore) ||
+                (update.payload.status !== undefined &&
+                  serverMatch.status !== update.payload.status);
+
+              if ((scoreChangedOnServer || statusChangedOnServer) && differsFromPayload) {
+                hasConflict = true;
+              }
+            }
+
+            if (hasConflict) {
+              const options = {
+                title: 'Sync Conflict Detected',
+                message: `Match "${serverMatch.homeTeam?.name || 'Home'} vs ${serverMatch.awayTeam?.name || 'Away'}" has newer edits on the server. Server: ${serverMatch.homeScore}-${serverMatch.awayScore} (${serverMatch.status}). Your offline score: ${update.payload.homeScore ?? serverMatch.homeScore}-${update.payload.awayScore ?? serverMatch.awayScore} (${update.payload.status ?? serverMatch.status}). Overwrite server changes?`,
+                confirmText: 'Overwrite Server',
+                cancelText: 'Keep Server',
+                type: 'warning' as const,
+              };
+
+              return from(this.uiService.confirm(options)).pipe(
+                concatMap((confirmOverwrite) => {
+                  if (confirmOverwrite) {
+                    return this.patchMatch(update, headers);
+                  } else {
+                    // Discard local changes, remove from queue
+                    this.updatesQueue = this.updatesQueue.filter((item) => item.id !== update.id);
+                    this.saveQueue();
+                    this.uiService.info('Local offline updates discarded. Server version kept.');
+                    return of(null);
+                  }
+                }),
+              );
+            } else {
+              return this.patchMatch(update, headers);
+            }
           }),
           catchError((err) => {
             console.error('Failed to sync offline update:', err);
-            // Keep in queue and let user know
+            // Keep in queue for retry if network or other error occurs
             return of(null);
           }),
         );
@@ -143,6 +208,17 @@ export class OfflineSyncService {
             );
           }
         },
+      }),
+    );
+  }
+
+  private patchMatch(update: OfflineUpdate, headers: HttpHeaders): Observable<Match> {
+    const url = `${environment.apiUrl}/workspaces/${update.workspaceId}/events/${update.eventId}/competitions/${update.competitionId}/stages/${update.stageId}/matches/${update.matchId}`;
+    return this.http.patch<Match>(url, update.payload, { headers }).pipe(
+      tap(() => {
+        // Remove from queue on success
+        this.updatesQueue = this.updatesQueue.filter((item) => item.id !== update.id);
+        this.saveQueue();
       }),
     );
   }

@@ -36,6 +36,7 @@ import { VenueService, Venue } from '../../venues/services/venue.service';
 import { AuthService } from '../../auth/services/auth.service';
 import { UiService } from '../../../core/services/ui.service';
 import { SocketService } from '../../../core/services/socket.service';
+import { StorageService } from '../../../core/services/storage.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { VenueListComponent } from '../../venues/pages/venue-list';
 import { VenueModalComponent } from '../../venues/components/venue-modal';
@@ -113,6 +114,7 @@ export class WorkspaceDetailComponent implements OnInit {
   private playerService = inject(PlayerService);
   private eventService = inject(EventService);
   private competitionService = inject(CompetitionService);
+  private storage = inject(StorageService);
 
   selectedPlayerId = signal<string | null>(null);
   selectedTeamId = signal<string | null>(null);
@@ -596,41 +598,21 @@ export class WorkspaceDetailComponent implements OnInit {
   }
 
   loadWorkspaceDashboard(workspaceId: string) {
+    if (this.uiService.isOffline()) {
+      this.storage.getItem(`cached_dashboard_${workspaceId}`).then((cached) => {
+        if (cached) {
+          const data = JSON.parse(cached);
+          this.applyDashboardData(data, workspaceId);
+        }
+      });
+      return;
+    }
+
     this.isOverviewLoading.set(true);
     this.workspaceService.getDashboardOverview().subscribe({
       next: (data) => {
-        const live = (data.liveMatches || []).filter(
-          (m: any) =>
-            m.workspaceId === workspaceId ||
-            m.stage?.competition?.event?.workspaceId === workspaceId,
-        );
-        this.overviewLiveMatches.set(live);
-
-        const upcoming = (data.upcomingMatches || []).filter(
-          (m: any) =>
-            m.workspaceId === workspaceId ||
-            m.stage?.competition?.event?.workspaceId === workspaceId,
-        );
-        this.overviewUpcomingMatches.set(upcoming);
-
-        const completed = (data.completedMatches || []).filter(
-          (m: any) =>
-            m.workspaceId === workspaceId ||
-            m.stage?.competition?.event?.workspaceId === workspaceId,
-        );
-        this.overviewCompletedMatches.set(completed);
-
-        const runningComps = (data.runningCompetitions || []).filter(
-          (c: any) => c.event?.workspaceId === workspaceId || c.workspaceId === workspaceId,
-        );
-        this.overviewRunningCompetitions.set(runningComps);
-        if (runningComps.length > 0) {
-          this.selectedOverviewCompId.set(runningComps[0].id);
-          this.selectedOverviewComp.set(runningComps[0]);
-        }
-
-        this.overviewTopScorers.set(data.topScorers || []);
-        this.overviewTopRatedPlayers.set(data.topRatedPlayers || []);
+        this.storage.setItem(`cached_dashboard_${workspaceId}`, JSON.stringify(data));
+        this.applyDashboardData(data, workspaceId);
         this.isOverviewLoading.set(false);
       },
       error: (err) => {
@@ -638,6 +620,38 @@ export class WorkspaceDetailComponent implements OnInit {
         this.isOverviewLoading.set(false);
       },
     });
+  }
+
+  private applyDashboardData(data: any, workspaceId: string) {
+    const live = (data.liveMatches || []).filter(
+      (m: any) =>
+        m.workspaceId === workspaceId || m.stage?.competition?.event?.workspaceId === workspaceId,
+    );
+    this.overviewLiveMatches.set(live);
+
+    const upcoming = (data.upcomingMatches || []).filter(
+      (m: any) =>
+        m.workspaceId === workspaceId || m.stage?.competition?.event?.workspaceId === workspaceId,
+    );
+    this.overviewUpcomingMatches.set(upcoming);
+
+    const completed = (data.completedMatches || []).filter(
+      (m: any) =>
+        m.workspaceId === workspaceId || m.stage?.competition?.event?.workspaceId === workspaceId,
+    );
+    this.overviewCompletedMatches.set(completed);
+
+    const runningComps = (data.runningCompetitions || []).filter(
+      (c: any) => c.event?.workspaceId === workspaceId || c.workspaceId === workspaceId,
+    );
+    this.overviewRunningCompetitions.set(runningComps);
+    if (runningComps.length > 0) {
+      this.selectedOverviewCompId.set(runningComps[0].id);
+      this.selectedOverviewComp.set(runningComps[0]);
+    }
+
+    this.overviewTopScorers.set(data.topScorers || []);
+    this.overviewTopRatedPlayers.set(data.topRatedPlayers || []);
   }
 
   onSelectOverviewCompetition(comp: any) {
@@ -1342,6 +1356,13 @@ export class WorkspaceDetailComponent implements OnInit {
       this.stages().find((s) => s.id === stageId) || ({ id: stageId, name: 'Stage' } as any);
     this.selectedStage.set(stage);
 
+    if (this.uiService.isOffline()) {
+      this.selectedMatch.set(match);
+      this.matchLineup.set([]);
+      this.loadMatchLineup(match.id);
+      return;
+    }
+
     this.competitionService
       .acquireMatchLock(ws.id, eventId, competitionId, stageId, match.id)
       .subscribe({
@@ -1400,6 +1421,7 @@ export class WorkspaceDetailComponent implements OnInit {
 
   releaseActiveLock(match: any) {
     this.stopLockHeartbeat();
+    if (this.uiService.isOffline()) return;
     const ws = this.workspace();
     const eventId = match.stage?.competition?.eventId || match.eventId;
     const competitionId = match.stage?.competitionId || match.competitionId;
@@ -1427,6 +1449,15 @@ export class WorkspaceDetailComponent implements OnInit {
     const competitionId = match.stage?.competitionId || match.competitionId;
     const stageId = match.stageId;
     if (!ws || !eventId || !competitionId || !stageId) return;
+
+    if (this.uiService.isOffline()) {
+      this.storage.getItem(`cached_lineup_${matchId}`).then((cached) => {
+        if (cached) {
+          this.matchLineup.set(JSON.parse(cached));
+        }
+      });
+      return;
+    }
 
     this.competitionService
       .getMatchLineup(ws.id, eventId, competitionId, stageId, matchId)
