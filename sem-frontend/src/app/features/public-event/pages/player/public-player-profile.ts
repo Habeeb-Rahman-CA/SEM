@@ -11,6 +11,8 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { PlayerService } from '../../../players/services/player.service';
 import { AvatarComponent } from '../../../../shared/components/avatar/avatar';
 import { getSportBadgeClass, getSportIconClass } from '../../../../shared';
+import { ShareService } from '../../../share/services/share.service';
+import { ShareButtonComponent } from '../../../share/components/share-button';
 
 interface CompetitionStats {
   competitionId: string;
@@ -96,13 +98,14 @@ interface PublicPlayerProfile {
 @Component({
   selector: 'app-public-player-profile',
   standalone: true,
-  imports: [CommonModule, RouterLink, AvatarComponent],
+  imports: [CommonModule, RouterLink, AvatarComponent, ShareButtonComponent],
   templateUrl: './public-player-profile.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PublicPlayerProfileComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private playerService = inject(PlayerService);
+  private shareService = inject(ShareService);
 
   profile = signal<PublicPlayerProfile | null>(null);
   isLoading = signal<boolean>(true);
@@ -209,6 +212,19 @@ export class PublicPlayerProfileComponent implements OnInit {
       next: (data) => {
         this.profile.set(data);
         this.isLoading.set(false);
+        const p = data?.player;
+        if (p) {
+          this.shareService.setPageMeta({
+            title: `${p.user.username} · ${p.team.name}`,
+            description:
+              p.bio ??
+              `${data.allTime.gamesPlayed} games · ${data.allTime.mvps} MVPs · avg ${
+                data.allTime.avgRating?.toFixed(2) ?? 0
+              }`,
+            image: p.user.avatarUrl ?? p.team.logoUrl,
+            url: this.shareService.spaUrl('players', p.id),
+          });
+        }
       },
       error: (err) => {
         this.error.set(err?.error?.message ?? 'Player profile not found');

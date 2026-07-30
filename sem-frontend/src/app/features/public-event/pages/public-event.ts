@@ -10,6 +10,7 @@ import { SocketService } from '../../../core/services/socket.service';
 import { AvatarComponent } from '../../../shared/components/avatar/avatar';
 import { getSportBadgeClass, getSportIconClass } from '../../../shared';
 import { GalleryPhoto, GalleryService } from '../../gallery/services/gallery.service';
+import { ShareService } from '../../share/services/share.service';
 
 @Component({
   selector: 'app-public-event',
@@ -22,6 +23,7 @@ export class PublicEventComponent implements OnInit, OnDestroy {
   private eventService = inject(EventService);
   private socketService = inject(SocketService);
   private galleryService = inject(GalleryService);
+  private shareService = inject(ShareService);
 
   private pollSub: Subscription | null = null;
   private socketSub: Subscription | null = null;
@@ -368,6 +370,17 @@ export class PublicEventComponent implements OnInit, OnDestroy {
       next: (evt) => {
         this.event.set(evt);
         this.isLoading.set(false);
+
+        this.shareService.setPageMeta({
+          title: evt.name,
+          description:
+            evt.description ??
+            `${evt.venue ?? 'Sports event'}${
+              evt.startDate ? ' · ' + new Date(evt.startDate).toDateString() : ''
+            }`,
+          image: evt.logoUrl,
+          url: this.shareService.spaUrl('events', evt.id),
+        });
 
         if (evt.workspaceId) {
           this.socketService.subscribeWorkspace(evt.workspaceId);

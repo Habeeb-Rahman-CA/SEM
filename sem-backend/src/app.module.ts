@@ -16,6 +16,7 @@ import { PlayersModule } from './modules/players/players.module';
 import { EventsModule } from './modules/events/events.module';
 import { CompetitionsModule } from './modules/competitions/competitions.module';
 import { GalleryModule } from './modules/gallery/gallery.module';
+import { ShareModule } from './modules/share/share.module';
 import { SearchModule } from './modules/search/search.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { LoggingModule } from './shared/logger/logging.module';
@@ -55,6 +56,7 @@ import { RecoveryModule } from './common/recovery/recovery.module';
     EventsModule,
     CompetitionsModule,
     GalleryModule,
+    ShareModule,
     SearchModule,
     LoggingModule,
     MonitoringModule,

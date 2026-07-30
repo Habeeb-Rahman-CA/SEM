@@ -211,6 +211,10 @@ export class EventService {
     return this.http.get<any[]>(`${environment.apiUrl}/public/events/${eventId}/competitions`);
   }
 
+  getPublicMatch(matchId: string): Observable<any> {
+    return this.http.get<any>(`${environment.apiUrl}/public/events/match/${matchId}`);
+  }
+
   getPublicLiveMatches(filters: { sport?: string; eventId?: string } = {}): Observable<any[]> {
     const params: Record<string, string> = {};
     if (filters.sport) params['sport'] = filters.sport;

@@ -186,4 +186,14 @@
     [canScore]="canScore"
     (matchUpdated)="matchUpdated.emit($event)"
   />
+
+  <app-match-highlights-panel
+    [workspaceId]="workspaceId"
+    [eventId]="eventId"
+    [competitionId]="competitionId"
+    [stageId]="stageId"
+    [match]="match"
+    [canScore]="canScore"
+    (matchUpdated)="matchUpdated.emit($event)"
+  />
 </div>

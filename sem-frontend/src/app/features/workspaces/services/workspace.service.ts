@@ -253,6 +253,14 @@ export interface Match {
     isBye?: boolean;
   };
   liveData: any;
+  summary?: string | null;
+  highlightVideos?: Array<{
+    id: string;
+    platform: 'youtube' | 'vimeo' | 'other';
+    url: string;
+    title?: string | null;
+    thumbnailUrl?: string | null;
+  }> | null;
   createdAt: string;
   updatedAt: string;
   mvp?: {

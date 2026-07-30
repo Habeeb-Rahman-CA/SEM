@@ -99,6 +99,14 @@ export const routes: Routes = [
         (m) => m.PublicTeamProfileComponent,
       ),
   },
+  // Public match highlights page
+  {
+    path: 'public/matches/:id',
+    loadComponent: () =>
+      import('./features/public-event/pages/match/public-match').then(
+        (m) => m.PublicMatchComponent,
+      ),
+  },
 
   // Catch-all → back to the landing page
   { path: '**', redirectTo: '' },

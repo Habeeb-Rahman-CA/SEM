@@ -18,6 +18,19 @@ export class PublicEventsController {
     private readonly competitionsService: CompetitionsService,
   ) {}
 
+  @Get('match/:matchId')
+  @ApiOperation({
+    summary: 'Get public match details (highlights + timeline)',
+    description:
+      'Returns full match details for a public event — score, timeline (liveData events), summary, and highlight videos. Used by the spectator match highlights page.',
+  })
+  @ApiParam({ name: 'matchId', description: 'Match UUID' })
+  @ApiResponse({ status: 200, description: 'Match details' })
+  @ApiResponse({ status: 404, description: 'Match or event not public' })
+  async getPublicMatchDetails(@Param('matchId') matchId: string) {
+    return this.competitionsService.getPublicMatchDetails(matchId);
+  }
+
   @Get('live-matches')
   @ApiOperation({
     summary: 'List all currently live matches across published events',

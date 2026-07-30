@@ -1,4 +1,12 @@
-import { IsOptional, IsUUID, IsString, IsObject, IsInt } from 'class-validator';
+import {
+  IsOptional,
+  IsUUID,
+  IsString,
+  IsObject,
+  IsInt,
+  IsArray,
+  MaxLength,
+} from 'class-validator';
 import { MatchType } from '../entities/match.entity';
 
 export class UpdateMatchDto {
@@ -42,4 +50,19 @@ export class UpdateMatchDto {
   @IsOptional()
   @IsString()
   scheduledAt?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(4000)
+  summary?: string | null;
+
+  @IsOptional()
+  @IsArray()
+  highlightVideos?: Array<{
+    id: string;
+    platform: 'youtube' | 'vimeo' | 'other';
+    url: string;
+    title?: string | null;
+    thumbnailUrl?: string | null;
+  }>;
 }

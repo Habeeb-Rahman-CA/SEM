@@ -951,6 +951,97 @@ export class CompetitionsService {
     });
   }
 
+  async getPublicMatchDetails(matchId: string): Promise<any> {
+    const match = await this.matchRepo.findOne({
+      where: { id: matchId },
+      relations: {
+        homeTeam: true,
+        awayTeam: true,
+        venue: true,
+        stage: {
+          competition: {
+            sport: true,
+            event: true,
+          },
+        },
+      },
+    });
+    if (!match) throw new NotFoundException('Match not found');
+    const event = match.stage?.competition?.event;
+    if (!event) throw new NotFoundException('Match context missing');
+    if (!event.isPublic) throw new NotFoundException('Event is not public');
+
+    const matchPlayers = await this.matchPlayerRepo.find({
+      where: { matchId: match.id },
+      relations: { player: { user: true }, team: true },
+    });
+
+    return {
+      id: match.id,
+      status: match.status,
+      scheduledAt: match.scheduledAt,
+      homeScore: match.homeScore,
+      awayScore: match.awayScore,
+      config: match.config,
+      liveData: match.liveData,
+      summary: match.summary,
+      highlightVideos: match.highlightVideos ?? [],
+      homeTeam: match.homeTeam
+        ? {
+            id: match.homeTeam.id,
+            name: match.homeTeam.name,
+            logoUrl: match.homeTeam.logoUrl,
+            primaryColor: match.homeTeam.primaryColor,
+          }
+        : null,
+      awayTeam: match.awayTeam
+        ? {
+            id: match.awayTeam.id,
+            name: match.awayTeam.name,
+            logoUrl: match.awayTeam.logoUrl,
+            primaryColor: match.awayTeam.primaryColor,
+          }
+        : null,
+      venue: match.venue
+        ? { id: match.venue.id, name: match.venue.name }
+        : null,
+      stage: {
+        id: match.stage.id,
+        name: match.stage.name,
+        type: match.stage.type,
+      },
+      competition: {
+        id: match.stage.competition.id,
+        name: match.stage.competition.name,
+        sport: match.stage.competition.sport
+          ? {
+              id: match.stage.competition.sport.id,
+              code: match.stage.competition.sport.code,
+              name: match.stage.competition.sport.name,
+            }
+          : null,
+      },
+      event: {
+        id: event.id,
+        name: event.name,
+        slug: event.slug,
+        logoUrl: event.logoUrl,
+      },
+      players: matchPlayers.map((mp) => ({
+        playerId: mp.playerId,
+        playerUserId: mp.player?.userId ?? null,
+        playerName:
+          mp.player?.user?.username ??
+          mp.player?.jerseyNumber?.toString() ??
+          'Player',
+        teamId: mp.teamId,
+        teamName: mp.team?.name ?? null,
+        isPlaying: mp.isPlaying,
+        rating: mp.rating,
+      })),
+    };
+  }
+
   async getPublicLiveMatches(
     filters: {
       sport?: string;

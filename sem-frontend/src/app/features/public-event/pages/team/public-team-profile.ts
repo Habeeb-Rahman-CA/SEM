@@ -11,6 +11,8 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { TeamService } from '../../../teams/services/team.service';
 import { AvatarComponent } from '../../../../shared/components/avatar/avatar';
 import { getSportBadgeClass, getSportIconClass } from '../../../../shared';
+import { ShareService } from '../../../share/services/share.service';
+import { ShareButtonComponent } from '../../../share/components/share-button';
 
 interface CoachEntry {
   id: string;
@@ -138,13 +140,14 @@ interface PublicTeamProfile {
 @Component({
   selector: 'app-public-team-profile',
   standalone: true,
-  imports: [CommonModule, RouterLink, DatePipe, AvatarComponent],
+  imports: [CommonModule, RouterLink, DatePipe, AvatarComponent, ShareButtonComponent],
   templateUrl: './public-team-profile.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PublicTeamProfileComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private teamService = inject(TeamService);
+  private shareService = inject(ShareService);
 
   profile = signal<PublicTeamProfile | null>(null);
   isLoading = signal<boolean>(true);
@@ -179,6 +182,19 @@ export class PublicTeamProfileComponent implements OnInit {
       next: (data) => {
         this.profile.set(data);
         this.isLoading.set(false);
+        const t = data?.team;
+        if (t) {
+          this.shareService.setPageMeta({
+            title: `${t.name} · ${t.code}`,
+            description:
+              t.description ??
+              `${data.allTime.participations} competitions · ${data.allTime.totalGames} matches · ${
+                data.team.achievements?.length ?? 0
+              } trophies`,
+            image: t.logoUrl,
+            url: this.shareService.spaUrl('teams', t.id),
+          });
+        }
       },
       error: (err) => {
         this.error.set(err?.error?.message ?? 'Team profile not found');

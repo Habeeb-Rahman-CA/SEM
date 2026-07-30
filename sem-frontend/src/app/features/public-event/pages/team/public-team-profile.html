@@ -82,9 +82,17 @@
             >
               {{ p.team.code }}
             </div>
-            <h1 class="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-white">
-              {{ p.team.name }}
-            </h1>
+            <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
+              <h1 class="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-white">
+                {{ p.team.name }}
+              </h1>
+              <app-share-button
+                entity="teams"
+                [entityId]="p.team.id"
+                [shareTitle]="p.team.name"
+                size="sm"
+              />
+            </div>
             @if (p.team.description) {
               <p class="mt-3 text-sm text-slate-300 max-w-2xl leading-relaxed">
                 {{ p.team.description }}
