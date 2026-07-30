@@ -5,11 +5,12 @@ import { Workspace, Team, Match, Sport, Venue } from '../../services/workspace.s
 import { OfflineSyncService } from '../../../../core/services/offline-sync.service';
 import { UiService } from '../../../../core/services/ui.service';
 import { getSportIconClass, getSportBadgeClass } from '../../../../shared';
+import { PullToRefreshDirective } from '../../../../shared/directives/pull-to-refresh.directive';
 
 @Component({
   selector: 'app-referee-dashboard',
   standalone: true,
-  imports: [NgClass, DatePipe, SlicePipe, FormsModule],
+  imports: [NgClass, DatePipe, SlicePipe, FormsModule, PullToRefreshDirective],
   templateUrl: './referee-dashboard.html',
 })
 export class RefereeDashboardComponent {
@@ -20,6 +21,8 @@ export class RefereeDashboardComponent {
 
   enterMatch = output<any>();
   signOut = output<void>();
+  /** Emitted when the user pulls-to-refresh; parent should reload matches. */
+  refreshRequested = output<() => void>();
 
   // Injected sync services
   syncService = inject(OfflineSyncService);
@@ -72,5 +75,17 @@ export class RefereeDashboardComponent {
       return;
     }
     this.syncService.syncPendingUpdates().subscribe();
+  }
+
+  /**
+   * Ask the parent to reload; the parent invokes the passed callback once it
+   * has fresh data so the pull indicator can retract.
+   */
+  onPullRefresh(pull: PullToRefreshDirective) {
+    // If nobody's listening, retract immediately so the UI doesn't feel stuck.
+    const done = () => pull.complete();
+    this.refreshRequested.emit(done);
+    // Safety timeout — never keep the spinner up longer than 4s.
+    setTimeout(done, 4000);
   }
 }

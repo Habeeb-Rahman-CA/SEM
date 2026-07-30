@@ -4,6 +4,9 @@ import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Device, DeviceInfo } from '@capacitor/device';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { BarcodeScanner } from '@capacitor-community/barcode-scanner';
+import { App as CapacitorApp } from '@capacitor/app';
+import { StatusBar, Style } from '@capacitor/status-bar';
+import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 
 export type PhotoSource = 'camera' | 'gallery' | 'prompt';
 
@@ -13,12 +16,115 @@ export interface CapturedPhoto {
   format: string;
 }
 
+/**
+ * Return true from a BackHandler if it consumed the event so the default
+ * navigation-back / app-exit fallback doesn't fire.
+ */
+export type BackHandler = () => boolean | Promise<boolean>;
+export type HapticStyle = 'light' | 'medium' | 'heavy' | 'success' | 'warning' | 'error';
+
 @Injectable({
   providedIn: 'root',
 })
 export class CapacitorService {
   isNative = Capacitor.isNativePlatform();
   platform = signal<string>(Capacitor.getPlatform());
+
+  private backHandlers: BackHandler[] = [];
+  private shellInitialized = false;
+
+  // ── Native shell bootstrap ─────────────────────────────────────────────────
+  /**
+   * One-time init called from APP_INITIALIZER. Sets the status bar style, wires
+   * the Android hardware back button into a shared handler stack so open
+   * modals / drawers / scanners can intercept it, and installs a
+   * platform-detection class on <html> so CSS can adapt without JS checks.
+   *
+   * Safe to call on the web — the native APIs are all no-ops there.
+   */
+  async initNativeShell(): Promise<void> {
+    if (this.shellInitialized) return;
+    this.shellInitialized = true;
+
+    document.documentElement.classList.add(`platform-${this.platform()}`);
+    if (this.isNative) document.documentElement.classList.add('native');
+
+    if (!this.isNative) return;
+
+    try {
+      await StatusBar.setStyle({ style: Style.Dark });
+      await StatusBar.setBackgroundColor({ color: '#0f172a' });
+      await StatusBar.setOverlaysWebView({ overlay: false });
+    } catch (err) {
+      console.warn('StatusBar init failed:', err);
+    }
+
+    try {
+      await CapacitorApp.addListener('backButton', async ({ canGoBack }) => {
+        // Run handlers LIFO — most recently registered (topmost UI) wins.
+        for (let i = this.backHandlers.length - 1; i >= 0; i--) {
+          try {
+            const handled = await this.backHandlers[i]();
+            if (handled) return;
+          } catch (err) {
+            console.warn('Back handler threw:', err);
+          }
+        }
+        if (canGoBack) {
+          window.history.back();
+        } else {
+          await CapacitorApp.exitApp();
+        }
+      });
+    } catch (err) {
+      console.warn('Failed to register hardware back listener:', err);
+    }
+  }
+
+  /**
+   * Register a handler for the Android hardware back button. Returns an
+   * unregister function so components can clean up in ngOnDestroy.
+   *
+   *   const unregister = capacitor.registerBackHandler(() => {
+   *     if (this.isOpen()) { this.close(); return true; }
+   *     return false;
+   *   });
+   */
+  registerBackHandler(handler: BackHandler): () => void {
+    this.backHandlers.push(handler);
+    return () => {
+      const idx = this.backHandlers.indexOf(handler);
+      if (idx >= 0) this.backHandlers.splice(idx, 1);
+    };
+  }
+
+  // ── Haptics ────────────────────────────────────────────────────────────────
+  /**
+   * Fire a small haptic pulse for tactile feedback on native devices. Silently
+   * no-ops on the web. Kept dead simple so call sites don't need to think.
+   */
+  async haptic(style: HapticStyle = 'light'): Promise<void> {
+    if (!this.isNative) return;
+    try {
+      if (style === 'success' || style === 'warning' || style === 'error') {
+        const map = {
+          success: NotificationType.Success,
+          warning: NotificationType.Warning,
+          error: NotificationType.Error,
+        };
+        await Haptics.notification({ type: map[style] });
+      } else {
+        const map = {
+          light: ImpactStyle.Light,
+          medium: ImpactStyle.Medium,
+          heavy: ImpactStyle.Heavy,
+        };
+        await Haptics.impact({ style: map[style] });
+      }
+    } catch (err) {
+      /* haptics unsupported — silently ignore */
+    }
+  }
 
   // ── Device Info ─────────────────────────────────────────────────────────────
   async getDeviceInfo(): Promise<DeviceInfo> {

@@ -130,7 +130,12 @@
   </div>
 
   <!-- Match Fixtures List -->
-  <div class="px-4 mt-4 flex flex-col gap-3">
+  <div
+    #matchPull="pullToRefresh"
+    appPullToRefresh
+    (refresh)="onPullRefresh(matchPull)"
+    class="px-4 mt-4 flex flex-col gap-3 overflow-y-auto"
+  >
     @for (match of filteredMatches(); track match.id) {
       <div
         class="bg-slate-900/40 border border-white/5 hover:border-white/10 rounded-2xl p-4 transition-all flex flex-col gap-3.5 relative overflow-hidden"

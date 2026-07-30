@@ -61,6 +61,7 @@ import { CricketConsoleComponent } from '../../competitions/consoles/cricket-con
 import { BadmintonConsoleComponent } from '../../competitions/consoles/badminton-console/badminton-console';
 import { GenericConsoleComponent } from '../../competitions/consoles/generic-console/generic-console';
 import { LineupModalComponent } from '../../competitions/components/lineup-modal';
+import { BottomNavComponent, BottomNavTab } from '../../../layouts/bottom-nav/bottom-nav';
 import {
   getSportBadgeClass,
   getSportIconClass,
@@ -96,6 +97,7 @@ declare const L: any;
     BadmintonConsoleComponent,
     GenericConsoleComponent,
     LineupModalComponent,
+    BottomNavComponent,
   ],
   templateUrl: './workspace-detail.html',
   styleUrl: './workspace-detail.css',
@@ -690,6 +692,43 @@ export class WorkspaceDetailComponent implements OnInit {
   }
 
   formatMatchStatusDetail = formatMatchStatusDetail;
+
+  // Map the sidebar's fine-grained activeTab down to the four visible
+  // destinations rendered in the mobile bottom nav.
+  bottomNavKey = computed<BottomNavTab>(() => {
+    const tab = this.activeTab();
+    if (
+      tab === 'events' ||
+      tab === 'venues' ||
+      tab === 'reports' ||
+      tab === 'settings' ||
+      tab === 'files'
+    ) {
+      return tab === 'events' ? 'events' : 'overview';
+    }
+    if (tab === 'players' || tab === 'teams') return 'players';
+    return 'overview';
+  });
+
+  onBottomNavTab(
+    tab: 'overview' | 'events' | 'players' | 'venues' | 'reports' | 'settings' | 'files',
+  ) {
+    this.activeTab.set(tab);
+  }
+
+  /** Referee dashboard pull-to-refresh: reload workspace dashboard data. */
+  onRefereeDashboardRefresh(done: () => void) {
+    const ws = this.workspace();
+    if (!ws) return done();
+    this.workspaceService.getDashboardOverview().subscribe({
+      next: (data) => {
+        this.storage.setItem(`cached_dashboard_${ws.id}`, JSON.stringify(data));
+        this.applyDashboardData(data, ws.id);
+        done();
+      },
+      error: () => done(),
+    });
+  }
 
   handleDeepLink(params: any) {
     const { eventId, competitionId, stageId, matchId } = params;

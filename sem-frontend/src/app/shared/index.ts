@@ -23,6 +23,10 @@ export type { StatusDotColor } from './components/status-dot/status-dot';
 export type { TabItem } from './components/tab-bar/tab-bar';
 export type { PhotoUploadType, PhotoShape } from './components/photo-capture/photo-capture';
 
+// ── Shared Directives ─────────────────────────────────────────────────────────
+export { PullToRefreshDirective } from './directives/pull-to-refresh.directive';
+export { LazyImgDirective } from './directives/lazy-img.directive';
+
 // ── Shared Pipes ──────────────────────────────────────────────────────────────
 export { InitialsPipe } from './pipes/initials.pipe';
 export { AvatarColorPipe } from './pipes/avatar-color.pipe';

@@ -1,6 +1,6 @@
 <div class="min-h-screen bg-slate-950 text-white font-sans">
   <!-- Top Nav -->
-  <nav class="border-b border-white/10 bg-slate-900/80 backdrop-blur-md sticky top-0 z-40">
+  <nav class="border-b border-white/10 bg-slate-900/80 backdrop-blur-md sticky top-0 z-40 safe-top">
     <div class="w-full px-6 lg:px-10 h-16 flex items-center justify-between gap-4">
       <div class="flex items-center gap-3 min-w-0">
         <a
@@ -23,7 +23,12 @@
     </div>
   </nav>
 
-  <div class="max-w-5xl mx-auto px-6 lg:px-10 py-8 flex flex-col gap-6 text-left">
+  <div
+    #pull="pullToRefresh"
+    appPullToRefresh
+    (refresh)="onPullRefresh(pull)"
+    class="max-w-5xl mx-auto px-6 lg:px-10 py-8 pb-28 lg:pb-8 flex flex-col gap-6 text-left overflow-y-auto"
+  >
     <div>
       <h1 class="text-2xl font-extrabold text-white tracking-tight">Check-in & Accreditation</h1>
       <p class="text-xs text-slate-400 mt-1.5">
@@ -200,4 +205,7 @@
       }
     </div>
   </div>
+
+  <!-- Mobile-only bottom tab bar -->
+  <app-bottom-nav [workspaceId]="workspaceId()" activeKey="check-in" />
 </div>

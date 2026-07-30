@@ -17,12 +17,23 @@ import { EventService } from '../../events/services/event.service';
 import { UiService } from '../../../core/services/ui.service';
 import { AvatarComponent } from '../../../shared/components/avatar/avatar';
 import { QrScannerComponent } from '../../../shared/components/qr-scanner/qr-scanner';
+import { PullToRefreshDirective } from '../../../shared/directives/pull-to-refresh.directive';
+import { BottomNavComponent } from '../../../layouts/bottom-nav/bottom-nav';
 import { CheckInRecord, CheckInService } from '../services/check-in.service';
 
 @Component({
   selector: 'app-check-in',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, DatePipe, AvatarComponent, QrScannerComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterLink,
+    DatePipe,
+    AvatarComponent,
+    QrScannerComponent,
+    PullToRefreshDirective,
+    BottomNavComponent,
+  ],
   templateUrl: './check-in.html',
 })
 export class CheckInComponent implements OnInit {
@@ -105,6 +116,23 @@ export class CheckInComponent implements OnInit {
     const wsId = this.workspaceId();
     if (!wsId) return;
     this.history.set(await this.checkInService.load(wsId));
+  }
+
+  /** Reload workspace + history in response to a mobile pull-to-refresh. */
+  onPullRefresh(pull: PullToRefreshDirective) {
+    const id = this.workspaceId();
+    if (!id) {
+      pull.complete();
+      return;
+    }
+    this.loadWorkspace(id);
+    // loadWorkspace flips isLoading — mirror it back into the pull indicator.
+    const timer = setInterval(() => {
+      if (!this.isLoading()) {
+        pull.complete();
+        clearInterval(timer);
+      }
+    }, 100);
   }
 
   onScanned(code: string) {
