@@ -9,6 +9,8 @@ import { Sponsor } from './entities/sponsor.entity';
 import { EventSponsor } from './entities/event-sponsor.entity';
 import { Event } from '../events/entities/event.entity';
 import { WorkspacesService } from '../workspaces/workspaces.service';
+import { LicensingService } from '../licensing/licensing.service';
+import { FEATURE_CODES } from '../licensing/feature-codes';
 import {
   AttachSponsorDto,
   CreateSponsorDto,
@@ -34,6 +36,7 @@ export class SponsorsService {
     @InjectRepository(Event)
     private readonly eventRepo: Repository<Event>,
     private readonly workspacesService: WorkspacesService,
+    private readonly licensing: LicensingService,
   ) {}
 
   // ─── Workspace-scoped CRUD ────────────────────────────────────────────
@@ -58,6 +61,10 @@ export class SponsorsService {
       workspaceId,
       userId,
       'event.manage',
+    );
+    await this.licensing.requireFeature(
+      workspaceId,
+      FEATURE_CODES.sponsorsEnabled,
     );
     const sponsor = this.sponsorRepo.create({
       workspaceId,
@@ -87,6 +94,10 @@ export class SponsorsService {
       workspaceId,
       userId,
       'event.manage',
+    );
+    await this.licensing.requireFeature(
+      workspaceId,
+      FEATURE_CODES.sponsorsEnabled,
     );
     const sponsor = await this.sponsorRepo.findOne({
       where: { id: sponsorId, workspaceId },
@@ -158,6 +169,10 @@ export class SponsorsService {
       workspaceId,
       userId,
       'event.manage',
+    );
+    await this.licensing.requireFeature(
+      workspaceId,
+      FEATURE_CODES.sponsorsEnabled,
     );
     await this.ensureEventBelongsToWorkspace(eventId, workspaceId);
     const sponsor = await this.sponsorRepo.findOne({

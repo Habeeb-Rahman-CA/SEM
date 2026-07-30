@@ -1,16 +1,12 @@
-import {
-  BadRequestException,
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { randomBytes } from 'crypto';
 import { WorkspaceBranding } from './workspace-branding.entity';
 import { Workspace } from '../workspaces/entities/workspace.entity';
 import { WorkspacesService } from '../workspaces/workspaces.service';
-import { SubscriptionsService } from '../subscriptions/subscriptions.service';
+import { LicensingService } from '../licensing/licensing.service';
+import { FEATURE_CODES } from '../licensing/feature-codes';
 import { UpdateBrandingDto } from './dto/update-branding.dto';
 
 /**
@@ -41,7 +37,7 @@ export class BrandingService {
     @InjectRepository(Workspace)
     private readonly workspaceRepo: Repository<Workspace>,
     private readonly workspacesService: WorkspacesService,
-    private readonly subscriptionsService: SubscriptionsService,
+    private readonly licensing: LicensingService,
   ) {}
 
   // ─── Auth: read + write ──────────────────────────────────────────
@@ -62,26 +58,10 @@ export class BrandingService {
       'workspace.manage',
     );
 
-    // Plan gate — Professional + Enterprise only. When enforcement is
-    // off (SUBSCRIPTIONS_ENABLED=false, or during free-until window)
-    // the plan check is a no-op so orgs can preview the feature.
-    const enforcementOn =
-      await this.subscriptionsService.isEnforcementEnabled();
-    if (enforcementOn) {
-      const snap =
-        await this.subscriptionsService.getWorkspaceSubscriptionWithUsage(
-          workspaceId,
-          userId,
-        );
-      if (!snap.plan.limits.customBranding) {
-        throw new ForbiddenException({
-          message:
-            'Custom branding is not available on your current plan. Upgrade to Professional or Enterprise to enable white-label branding.',
-          planCode: snap.plan.code,
-          feature: 'customBranding',
-        });
-      }
-    }
+    await this.licensing.requireFeature(
+      workspaceId,
+      FEATURE_CODES.customBranding,
+    );
 
     const branding = await this.getOrProvision(workspaceId);
 

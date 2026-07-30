@@ -7,11 +7,13 @@ import { SponsorsService } from './sponsors.service';
 import { SponsorsController } from './sponsors.controller';
 import { PublicSponsorsController } from './public-sponsors.controller';
 import { WorkspacesModule } from '../workspaces/workspaces.module';
+import { LicensingModule } from '../licensing/licensing.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Sponsor, EventSponsor, Event]),
     WorkspacesModule,
+    LicensingModule,
   ],
   controllers: [SponsorsController, PublicSponsorsController],
   providers: [SponsorsService],

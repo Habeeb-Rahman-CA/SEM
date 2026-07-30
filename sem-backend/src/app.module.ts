@@ -25,6 +25,7 @@ import { PaymentsModule } from './modules/payments/payments.module';
 import { SponsorsModule } from './modules/sponsors/sponsors.module';
 import { AdvertisementsModule } from './modules/advertisements/advertisements.module';
 import { BrandingModule } from './modules/branding/branding.module';
+import { LicensingModule } from './modules/licensing/licensing.module';
 import { SearchModule } from './modules/search/search.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { LoggingModule } from './shared/logger/logging.module';
@@ -73,6 +74,7 @@ import { RecoveryModule } from './common/recovery/recovery.module';
     SponsorsModule,
     AdvertisementsModule,
     BrandingModule,
+    LicensingModule,
     SearchModule,
     LoggingModule,
     MonitoringModule,

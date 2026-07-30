@@ -15,6 +15,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { NoCardDataGuard } from './guards/no-card-data.guard';
 import { PaymentsService } from './payments.service';
 import {
   ConfirmMockIntentDto,
@@ -22,10 +23,20 @@ import {
   RefundInvoiceDto,
 } from './dto/payment.dto';
 
+/**
+ * PCI note — this controller (and the platform in general) never accepts
+ * raw card data. Payment methods are tokenised client-side by the
+ * gateway SDK (Stripe.js / Elements) and only opaque tokens or intent
+ * references reach these endpoints. NoCardDataGuard enforces this
+ * defensively by rejecting any request whose body carries a
+ * pan/cvv/expiry-shaped key at any depth. Combined with class-validator
+ * `whitelist: true` on all DTOs, that keeps the server out of PCI DSS
+ * scope: no cardholder data is ever received, stored, or logged.
+ */
 @ApiTags('payments')
 @ApiBearerAuth()
 @Controller('workspaces/:workspaceId')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, NoCardDataGuard)
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 

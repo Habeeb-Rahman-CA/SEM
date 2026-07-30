@@ -10,6 +10,8 @@ import { AdEvent, AdEventType } from './entities/ad-event.entity';
 import { Sponsor } from '../sponsors/entities/sponsor.entity';
 import { Event } from '../events/entities/event.entity';
 import { WorkspacesService } from '../workspaces/workspaces.service';
+import { LicensingService } from '../licensing/licensing.service';
+import { FEATURE_CODES } from '../licensing/feature-codes';
 import {
   CreateAdvertisementDto,
   UpdateAdvertisementDto,
@@ -43,6 +45,7 @@ export class AdvertisementsService {
     @InjectRepository(Event)
     private readonly eventEntityRepo: Repository<Event>,
     private readonly workspacesService: WorkspacesService,
+    private readonly licensing: LicensingService,
   ) {}
 
   // ─── Workspace CRUD ─────────────────────────────────────────────────
@@ -66,6 +69,7 @@ export class AdvertisementsService {
       userId,
       'event.manage',
     );
+    await this.licensing.requireFeature(workspaceId, FEATURE_CODES.adsEnabled);
 
     await this.validateScope(workspaceId, dto.eventId, dto.sponsorId);
 
@@ -97,6 +101,7 @@ export class AdvertisementsService {
       userId,
       'event.manage',
     );
+    await this.licensing.requireFeature(workspaceId, FEATURE_CODES.adsEnabled);
 
     const ad = await this.adRepo.findOne({
       where: { id: adId, workspaceId },

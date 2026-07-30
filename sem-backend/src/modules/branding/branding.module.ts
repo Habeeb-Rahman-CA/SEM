@@ -6,13 +6,13 @@ import { BrandingService } from './branding.service';
 import { BrandingController } from './branding.controller';
 import { PublicBrandingController } from './public-branding.controller';
 import { WorkspacesModule } from '../workspaces/workspaces.module';
-import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
+import { LicensingModule } from '../licensing/licensing.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([WorkspaceBranding, Workspace]),
     WorkspacesModule,
-    SubscriptionsModule,
+    LicensingModule,
   ],
   controllers: [BrandingController, PublicBrandingController],
   providers: [BrandingService],
