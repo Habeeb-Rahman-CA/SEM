@@ -20,6 +20,7 @@ import { AuditLogsComponent } from '../components/audit-logs/audit-logs';
 import { SystemHealthComponent } from '../components/system-health/system-health';
 import { GlobalPreferencesComponent } from '../components/global-preferences/global-preferences';
 import { WorkspacesManagementComponent } from '../components/workspaces-management/workspaces-management';
+import { CommerceSettingsComponent } from '../components/commerce-settings/commerce-settings';
 
 @Component({
   selector: 'app-system-settings',
@@ -34,6 +35,7 @@ import { WorkspacesManagementComponent } from '../components/workspaces-manageme
     SystemHealthComponent,
     GlobalPreferencesComponent,
     WorkspacesManagementComponent,
+    CommerceSettingsComponent,
     QuicklinkDirective,
   ],
   templateUrl: './system-settings.html',
