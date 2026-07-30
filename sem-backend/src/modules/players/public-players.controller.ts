@@ -2,6 +2,12 @@ import { Controller, Get, Param } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { PlayersService } from './players.service';
 
+/**
+ * Public player profiles are intentionally always accessible (see v3.0
+ * "Player Profiles" design decision). Do NOT add a workspace-membership or
+ * event-membership gate here without an explicit design change — profile
+ * URLs need to work for any player so they can be shared standalone.
+ */
 @ApiTags('public-players')
 @Controller('public/players')
 export class PublicPlayersController {

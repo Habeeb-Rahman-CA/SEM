@@ -17,6 +17,7 @@ import { EventsModule } from './modules/events/events.module';
 import { CompetitionsModule } from './modules/competitions/competitions.module';
 import { GalleryModule } from './modules/gallery/gallery.module';
 import { ShareModule } from './modules/share/share.module';
+import { SeoModule } from './modules/seo/seo.module';
 import { SearchModule } from './modules/search/search.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { LoggingModule } from './shared/logger/logging.module';
@@ -57,6 +58,7 @@ import { RecoveryModule } from './common/recovery/recovery.module';
     CompetitionsModule,
     GalleryModule,
     ShareModule,
+    SeoModule,
     SearchModule,
     LoggingModule,
     MonitoringModule,
