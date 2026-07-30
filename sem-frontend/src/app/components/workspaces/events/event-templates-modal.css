@@ -720,3 +720,42 @@
     flex-wrap: wrap;
   }
 }
+
+/* Tabs Navigation Styling */
+.etm-tabs {
+  display: flex;
+  gap: 16px;
+  padding: 0 24px;
+  background: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+
+.etm-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 4px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #71717a;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.etm-tab:hover {
+  color: #a1a1aa;
+}
+
+.etm-tab.active {
+  color: #a78bfa;
+  border-bottom-color: #8b5cf6;
+}
+
+.etm-tab i {
+  font-size: 14px;
+}

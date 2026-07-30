@@ -24,6 +24,14 @@ import { MatchGenerationService } from './services/match-generation.service';
 import { CompetitionCompletionService } from './services/competition-completion.service';
 import { SportEngineRegistry } from './sports/sport-engine.registry';
 import { MatchLockService } from './services/match-lock.service';
+import { CompetitionTemplatesService } from './services/competition-templates.service';
+import { FixtureTemplatesService } from './services/fixture-templates.service';
+import {
+  CompetitionTemplatesController,
+  FixtureTemplatesController,
+} from './competition-fixture-templates.controller';
+import { CompetitionTemplate } from '../workspaces/entities/competition-template.entity';
+import { FixtureTemplate } from '../workspaces/entities/fixture-template.entity';
 
 @Module({
   imports: [
@@ -40,10 +48,16 @@ import { MatchLockService } from './services/match-lock.service';
       Workspace,
       WorkspaceMember,
       Venue,
+      CompetitionTemplate,
+      FixtureTemplate,
     ]),
     WorkspacesModule,
   ],
-  controllers: [CompetitionsController],
+  controllers: [
+    CompetitionsController,
+    CompetitionTemplatesController,
+    FixtureTemplatesController,
+  ],
   providers: [
     CompetitionsService,
     FixturesGeneratorService,
@@ -55,6 +69,8 @@ import { MatchLockService } from './services/match-lock.service';
     CompetitionCompletionService,
     SportEngineRegistry,
     MatchLockService,
+    CompetitionTemplatesService,
+    FixtureTemplatesService,
   ],
   exports: [
     CompetitionsService,
@@ -67,6 +83,8 @@ import { MatchLockService } from './services/match-lock.service';
     CompetitionCompletionService,
     SportEngineRegistry,
     MatchLockService,
+    CompetitionTemplatesService,
+    FixtureTemplatesService,
   ],
 })
 export class CompetitionsModule {}

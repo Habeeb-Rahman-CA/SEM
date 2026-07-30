@@ -13,6 +13,7 @@ import { Event } from '../../workspaces/entities/event.entity';
 import { Venue } from '../../workspaces/entities/venue.entity';
 import { WorkspacesService } from '../../workspaces/workspaces.service';
 import { NotificationType } from '../../workspaces/entities/notification.entity';
+import { FixtureTemplatesService } from './fixture-templates.service';
 
 @Injectable()
 export class FixturesGeneratorService {
@@ -30,6 +31,7 @@ export class FixturesGeneratorService {
     @InjectRepository(Venue)
     private readonly venueRepo: Repository<Venue>,
     private readonly workspacesService: WorkspacesService,
+    private readonly fixtureTemplatesService: FixtureTemplatesService,
   ) {}
 
   async generateFixtures(
@@ -37,6 +39,7 @@ export class FixturesGeneratorService {
     eventId: string,
     competitionId: string,
     userId: string,
+    fixtureTemplateId?: string,
   ): Promise<{ stagesGenerated: number; matchesCreated: number }> {
     await this.workspacesService.ensurePermission(
       workspaceId,
@@ -81,6 +84,15 @@ export class FixturesGeneratorService {
 
     const teamIds = uniqueTeams.map((t) => t.id);
     this.shuffleArray(teamIds);
+
+    let scheduleConfig: any = null;
+    if (fixtureTemplateId) {
+      scheduleConfig = await this.fixtureTemplatesService.resolveConfig(
+        workspaceId,
+        fixtureTemplateId,
+        userId,
+      );
+    }
 
     let totalMatches = 0;
 
@@ -426,7 +438,50 @@ export class FixturesGeneratorService {
         }
       }
 
+      const roundList: string[] = [];
+      const roundCounts: Record<string, number> = {};
+      let venueIndex = 0;
+
       for (const f of fixtures) {
+        let scheduledAt = f.scheduledAt || null;
+        let venueId = f.venueId || null;
+
+        if (scheduleConfig) {
+          const roundName = f.config?.round || 'Default Round';
+          if (!roundList.includes(roundName)) {
+            roundList.push(roundName);
+          }
+          const roundIndex = roundList.indexOf(roundName);
+          if (roundCounts[roundName] === undefined) {
+            roundCounts[roundName] = 0;
+          }
+          const matchIndexInRound = roundCounts[roundName]++;
+
+          const baseDate = event.startDate
+            ? new Date(event.startDate)
+            : new Date();
+          scheduledAt = scheduleConfig.getMatchDate(
+            baseDate,
+            roundIndex,
+            matchIndexInRound,
+          );
+
+          const venueIds = scheduleConfig.resolvedVenueIds || [];
+          const effectiveVenues =
+            venueIds.length > 0
+              ? venues.filter((v) => venueIds.includes(v.id))
+              : venues;
+
+          if (effectiveVenues.length > 0) {
+            if (scheduleConfig.venueStrategy === 'single_venue') {
+              venueId = effectiveVenues[0].id;
+            } else {
+              venueId = effectiveVenues[venueIndex % effectiveVenues.length].id;
+              venueIndex++;
+            }
+          }
+        }
+
         const m = this.matchRepo.create({
           stageId: stage.id,
           homeTeamId: f.homeTeamId,
@@ -435,8 +490,8 @@ export class FixturesGeneratorService {
           homeScore:
             f.config?.status === 'completed' ? (f.config?.isBye ? 1 : 0) : 0,
           awayScore: 0,
-          scheduledAt: f.scheduledAt || null,
-          venueId: f.venueId || null,
+          scheduledAt,
+          venueId,
           config: f.config,
           liveData: {},
         });

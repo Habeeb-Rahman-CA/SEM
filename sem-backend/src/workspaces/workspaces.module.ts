@@ -22,6 +22,8 @@ import { SystemConfig } from './entities/system-config.entity';
 import { WorkspaceFile } from './entities/workspace-file.entity';
 import { WorkspaceFileVersion } from './entities/workspace-file-version.entity';
 import { EventTemplate } from './entities/event-template.entity';
+import { CompetitionTemplate } from './entities/competition-template.entity';
+import { FixtureTemplate } from './entities/fixture-template.entity';
 import { WorkspacesService } from './workspaces.service';
 import { WorkspacesController } from './workspaces.controller';
 import { SystemSettingsController } from './system-settings.controller';
@@ -63,6 +65,8 @@ import { WorkspaceMembersService } from './members/members.service';
       WorkspaceFile,
       WorkspaceFileVersion,
       EventTemplate,
+      CompetitionTemplate,
+      FixtureTemplate,
     ]),
     UsersModule,
     UploadModule,

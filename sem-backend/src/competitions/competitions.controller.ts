@@ -253,6 +253,7 @@ export class CompetitionsController {
     @Param('workspaceId') workspaceId: string,
     @Param('eventId') eventId: string,
     @Param('competitionId') competitionId: string,
+    @Body('fixtureTemplateId') fixtureTemplateId: string | undefined,
     @Request() req: any,
   ) {
     return this.competitionsService.generateFixtures(
@@ -260,6 +261,7 @@ export class CompetitionsController {
       eventId,
       competitionId,
       req.user.id,
+      fixtureTemplateId,
     );
   }
 

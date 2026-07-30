@@ -432,12 +432,14 @@ export class CompetitionsService {
     eventId: string,
     competitionId: string,
     userId: string,
+    fixtureTemplateId?: string,
   ): Promise<{ stagesGenerated: number; matchesCreated: number }> {
     return this.fixturesGeneratorService.generateFixtures(
       workspaceId,
       eventId,
       competitionId,
       userId,
+      fixtureTemplateId,
     );
   }
 
