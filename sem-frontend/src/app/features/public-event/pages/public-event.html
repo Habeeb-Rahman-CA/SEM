@@ -214,7 +214,7 @@
           Stats & Leaderboards
         </button>
         <button
-          (click)="activeTab.set('gallery')"
+          (click)="goToGallery()"
           class="flex-1 min-w-[120px] text-center text-xs font-bold py-3 px-4 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2"
           [class]="
             activeTab() === 'gallery'
@@ -2382,20 +2382,92 @@
           >
             <i class="fi fi-rr-picture text-violet-400"></i>
             Event Media Gallery
+            <span
+              class="ml-auto text-xs px-2 py-0.5 bg-slate-800 text-slate-400 rounded-lg font-bold"
+            >
+              {{ galleryPhotos().length + (evt.gallery?.length ?? 0) }}
+            </span>
           </h2>
 
-          @if (evt.gallery && evt.gallery.length > 0) {
+          <!-- Filter chips (organized photos) -->
+          @if (galleryPhotos().length > 0) {
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                Filter
+              </span>
+              <button
+                type="button"
+                (click)="setGalleryFilter('all')"
+                [class]="
+                  'text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border transition ' +
+                  (galleryFilter() === 'all'
+                    ? 'bg-violet-500/15 border-violet-500/40 text-violet-200'
+                    : 'bg-slate-950/40 border-white/10 text-slate-400 hover:text-white hover:border-white/20')
+                "
+              >
+                All ({{ galleryPhotos().length }})
+              </button>
+              @if (galleryEventLevelCount() > 0) {
+                <button
+                  type="button"
+                  (click)="setGalleryFilter('event')"
+                  [class]="
+                    'text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border transition ' +
+                    (galleryFilter() === 'event'
+                      ? 'bg-violet-500/15 border-violet-500/40 text-violet-200'
+                      : 'bg-slate-950/40 border-white/10 text-slate-400 hover:text-white hover:border-white/20')
+                  "
+                >
+                  Event-wide ({{ galleryEventLevelCount() }})
+                </button>
+              }
+              @for (c of galleryCompetitionsWithPhotos(); track c.id) {
+                <button
+                  type="button"
+                  (click)="setGalleryFilter('comp', c.id)"
+                  [class]="
+                    'inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border transition ' +
+                    (galleryFilter() === 'comp' && galleryCompFilterId() === c.id
+                      ? 'bg-violet-500/15 border-violet-500/40 text-violet-200'
+                      : 'bg-slate-950/40 border-white/10 text-slate-400 hover:text-white hover:border-white/20')
+                  "
+                >
+                  {{ c.name }} ({{ galleryCountByComp(c.id) }})
+                </button>
+              }
+            </div>
+          }
+
+          @if (isLoadingGallery()) {
             <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              @for (url of evt.gallery; track url) {
+              @for (_ of [1, 2, 3, 4, 5, 6, 7, 8]; track _) {
+                <div class="aspect-video bg-slate-800/50 rounded-xl animate-pulse"></div>
+              }
+            </div>
+          } @else if (
+            filteredGalleryPhotos().length > 0 || (evt.gallery && evt.gallery.length > 0)
+          ) {
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              @for (photo of filteredGalleryPhotos(); track photo.id) {
                 <div
-                  (click)="selectedImage.set(url)"
+                  (click)="selectedImage.set(photo.url)"
                   class="group relative aspect-video rounded-xl overflow-hidden border border-white/5 hover:border-violet-500/50 cursor-pointer shadow-lg transition-all hover:scale-[1.02]"
                 >
                   <img
-                    [src]="url"
-                    alt="Gallery Image"
+                    [src]="thumbFor(photo.url)"
+                    [alt]="photo.caption || 'Gallery photo'"
+                    loading="lazy"
                     class="w-full h-full object-cover transition-all group-hover:scale-105"
                   />
+                  @if (photo.caption) {
+                    <div
+                      class="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-slate-950/90 to-transparent"
+                    >
+                      <span class="text-[11px] font-bold text-white line-clamp-1">
+                        {{ photo.caption }}
+                      </span>
+                    </div>
+                  }
                   <div
                     class="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center"
                   >
@@ -2407,13 +2479,43 @@
                   </div>
                 </div>
               }
+
+              <!-- Legacy gallery (evt.gallery URL array) — only show when filter is All -->
+              @if (galleryFilter() === 'all' && evt.gallery && evt.gallery.length > 0) {
+                @for (url of evt.gallery; track url) {
+                  <div
+                    (click)="selectedImage.set(url)"
+                    class="group relative aspect-video rounded-xl overflow-hidden border border-white/5 hover:border-violet-500/50 cursor-pointer shadow-lg transition-all hover:scale-[1.02]"
+                  >
+                    <img
+                      [src]="thumbFor(url)"
+                      alt="Gallery image"
+                      loading="lazy"
+                      class="w-full h-full object-cover transition-all group-hover:scale-105"
+                    />
+                    <div
+                      class="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center"
+                    >
+                      <span
+                        class="w-9 h-9 rounded-full bg-violet-600 text-white flex items-center justify-center text-sm shadow"
+                      >
+                        <i class="fi fi-rr-eye"></i>
+                      </span>
+                    </div>
+                  </div>
+                }
+              }
             </div>
           } @else {
             <div
               class="py-16 text-center text-xs text-slate-500 flex flex-col items-center justify-center gap-2"
             >
               <i class="fi fi-rr-box-open text-3xl"></i>
-              No photos or media uploaded yet.
+              @if (galleryFilter() !== 'all') {
+                No photos in this view.
+              } @else {
+                No photos or media uploaded yet.
+              }
             </div>
           }
         </div>

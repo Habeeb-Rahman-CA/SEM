@@ -6,11 +6,12 @@ import { EventService } from '../services/event.service';
 import { UiService } from '../../../core/services/ui.service';
 import { AvatarComponent } from '../../../shared/components/avatar/avatar';
 import { PhotoCaptureComponent } from '../../../shared/components/photo-capture/photo-capture';
+import { GalleryManagerComponent } from '../../gallery/components/gallery-manager';
 
 @Component({
   selector: 'app-event-modal',
   standalone: true,
-  imports: [FormsModule, AvatarComponent, DatePipe, PhotoCaptureComponent],
+  imports: [FormsModule, AvatarComponent, DatePipe, PhotoCaptureComponent, GalleryManagerComponent],
   template: `
     @if (isOpen()) {
       <div
@@ -106,6 +107,18 @@ import { PhotoCaptureComponent } from '../../../shared/components/photo-capture/
             >
               Sponsors
             </button>
+            @if (editingEvent()) {
+              <button
+                type="button"
+                (click)="activeTab.set('photos')"
+                class="py-3 px-1 border-b-2 transition-all cursor-pointer outline-none"
+                [class.border-violet-500]="activeTab() === 'photos'"
+                [class.text-white]="activeTab() === 'photos'"
+                [class.border-transparent]="activeTab() !== 'photos'"
+              >
+                Photos
+              </button>
+            }
           </div>
 
           <!-- Form Content -->
@@ -754,6 +767,26 @@ import { PhotoCaptureComponent } from '../../../shared/components/photo-capture/
                 </div>
               }
 
+              <!-- Tab 5: Organized Photos -->
+              @if (activeTab() === 'photos' && editingEvent(); as evt) {
+                <div class="flex flex-col gap-4 text-left">
+                  <div class="flex flex-col gap-1">
+                    <span class="text-xs font-bold text-white">Organized event photos</span>
+                    <span class="text-[10px] text-slate-400">
+                      Upload photos from the event and tag them by competition so spectators can
+                      filter what they see on the public page.
+                    </span>
+                  </div>
+
+                  <app-gallery-manager
+                    [workspaceId]="workspace()!.id"
+                    [eventId]="evt.id"
+                    [competitions]="evt.competitions ?? []"
+                    [matches]="[]"
+                  />
+                </div>
+              }
+
               <!-- Full Width Action Buttons -->
               <div class="md:col-span-2 pt-2 flex gap-2">
                 <button
@@ -809,7 +842,7 @@ export class EventModalComponent {
   eventSaved = output<WorkspaceEvent>();
 
   // Tabs
-  activeTab = signal<'general' | 'public' | 'announcements' | 'sponsors'>('general');
+  activeTab = signal<'general' | 'public' | 'announcements' | 'sponsors' | 'photos'>('general');
 
   // Local Form Signals
   name = signal('');
