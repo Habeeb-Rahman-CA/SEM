@@ -1,0 +1,557 @@
+<div class="max-w-5xl mx-auto p-5 sm:p-8 text-white">
+  <div class="flex items-center gap-3 mb-6">
+    <a
+      [routerLink]="['/workspaces', workspaceId()]"
+      class="text-xs font-bold text-slate-400 hover:text-white transition inline-flex items-center gap-1"
+    >
+      <i class="fi fi-rr-arrow-small-left text-sm"></i>
+      Back to workspace
+    </a>
+  </div>
+
+  <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-3 mb-6">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-black tracking-tight">White-label branding</h1>
+      <p class="text-sm text-slate-400 mt-1 max-w-2xl">
+        Replace the SEM look with your own logo, colours, domain, email templates, and PDF report
+        chrome. Changes take effect the moment you save.
+      </p>
+    </div>
+  </div>
+
+  @if (isLoading()) {
+    <div class="h-64 rounded-3xl border border-white/5 bg-slate-900/40 animate-pulse"></div>
+  } @else if (error()) {
+    <div class="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-rose-200">
+      <i class="fi fi-rr-triangle-warning text-2xl block mb-2"></i>
+      {{ error() }}
+    </div>
+  } @else if (branding(); as b) {
+    <!-- Plan gate banner -->
+    @if (!planAllowsBranding()) {
+      <div
+        class="mb-6 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 flex items-start gap-3"
+      >
+        <i class="fi fi-rr-lock text-amber-300 text-base mt-0.5"></i>
+        <div class="flex-1 text-xs">
+          <div class="font-bold text-amber-200 mb-1">
+            Custom branding requires a Professional or Enterprise plan
+          </div>
+          <div class="text-amber-100/80 leading-relaxed">
+            You can preview the editor and stage changes, but saves will be rejected until you
+            upgrade.
+            <a
+              [routerLink]="['/workspaces', workspaceId(), 'subscription']"
+              class="text-amber-200 underline hover:text-amber-100"
+            >
+              Manage plan →
+            </a>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Master switch -->
+    <label
+      class="mb-6 flex items-center justify-between gap-3 p-4 rounded-2xl border border-white/10 bg-slate-900 cursor-pointer"
+    >
+      <div>
+        <div class="text-sm font-bold text-white">Enable white-label branding</div>
+        <div class="text-[11px] text-slate-400 mt-0.5">
+          When off, the default SEM look applies everywhere for this workspace.
+        </div>
+      </div>
+      <div class="relative inline-flex items-center">
+        <input
+          type="checkbox"
+          class="sr-only peer"
+          [checked]="fieldValue('isEnabled')"
+          (change)="setField('isEnabled', !fieldValue('isEnabled'))"
+        />
+        <div
+          class="w-11 h-6 bg-slate-800 border border-white/10 rounded-full peer peer-checked:after:translate-x-5 peer-checked:bg-violet-600 after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"
+        ></div>
+      </div>
+    </label>
+
+    <!-- Tabs -->
+    <div
+      class="flex items-center gap-1 p-1 rounded-2xl bg-slate-900/60 border border-white/5 mb-6 overflow-x-auto"
+    >
+      @for (t of tabs; track t.key) {
+        <button
+          type="button"
+          (click)="setTab(t.key)"
+          [class]="
+            'inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition cursor-pointer flex-shrink-0 ' +
+            (activeTab() === t.key
+              ? 'bg-violet-600 text-white shadow-md shadow-violet-500/20'
+              : 'text-slate-400 hover:text-white hover:bg-white/5')
+          "
+        >
+          <i [class]="'fi ' + t.icon + ' text-xs'"></i>
+          {{ t.label }}
+        </button>
+      }
+    </div>
+
+    <div class="rounded-3xl border border-white/10 bg-slate-900 p-6 shadow-xl">
+      <!-- ── IDENTITY ── -->
+      @if (activeTab() === 'identity') {
+        <div class="flex flex-col gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="flex flex-col gap-1.5">
+              <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                Brand name
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Acme Sports Federation"
+                [ngModel]="fieldValue('brandName')"
+                (ngModelChange)="setField('brandName', $event)"
+                class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2 text-xs text-white outline-none transition-all w-full"
+              />
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                Tagline
+              </label>
+              <input
+                type="text"
+                placeholder="Optional short strapline"
+                [ngModel]="fieldValue('tagline')"
+                (ngModelChange)="setField('tagline', $event)"
+                class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2 text-xs text-white outline-none transition-all w-full"
+              />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="flex flex-col gap-1.5">
+              <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                Primary logo
+                <span class="text-slate-600 font-normal normal-case">(wide, transparent PNG)</span>
+              </label>
+              <app-photo-capture
+                label=""
+                uploadType="workspace"
+                shape="thumb"
+                buttonLabel="Upload logo"
+                [imageUrl]="fieldValue('logoUrl') || null"
+                (imageUploaded)="setField('logoUrl', $event)"
+                (imageRemoved)="setField('logoUrl', null)"
+              />
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                Favicon
+                <span class="text-slate-600 font-normal normal-case">(square, 32×32+)</span>
+              </label>
+              <app-photo-capture
+                label=""
+                uploadType="workspace"
+                shape="thumb"
+                buttonLabel="Upload favicon"
+                [imageUrl]="fieldValue('faviconUrl') || null"
+                (imageUploaded)="setField('faviconUrl', $event)"
+                (imageRemoved)="setField('faviconUrl', null)"
+              />
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- ── COLOURS ── -->
+      @if (activeTab() === 'colors') {
+        <div class="flex flex-col gap-4">
+          <p class="text-[11px] text-slate-400 leading-relaxed">
+            Applied to :root as
+            <code class="bg-slate-800 rounded px-1">--brand-primary</code>,
+            <code class="bg-slate-800 rounded px-1">--brand-secondary</code>,
+            <code class="bg-slate-800 rounded px-1">--brand-accent</code> — any Tailwind arbitrary
+            value can reference them (e.g.
+            <code class="bg-slate-800 rounded px-1">bg-[var(--brand-primary)]</code>).
+          </p>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            @for (
+              cfg of [
+                { key: 'primaryColor', label: 'Primary' },
+                { key: 'secondaryColor', label: 'Secondary' },
+                { key: 'accentColor', label: 'Accent' },
+              ];
+              track cfg.key
+            ) {
+              <div class="flex flex-col gap-1.5">
+                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  {{ cfg.label }}
+                </label>
+                <div
+                  class="flex items-center gap-2 bg-slate-950 border border-white/10 rounded-xl px-3 py-2"
+                >
+                  <input
+                    type="color"
+                    [ngModel]="fieldValue(cfg.key) || '#7c3aed'"
+                    (ngModelChange)="setField(cfg.key, $event)"
+                    class="w-8 h-8 rounded cursor-pointer bg-transparent border-0 outline-none"
+                  />
+                  <input
+                    type="text"
+                    [ngModel]="fieldValue(cfg.key) || ''"
+                    (ngModelChange)="setField(cfg.key, $event)"
+                    placeholder="#000000"
+                    class="flex-1 bg-transparent text-xs text-white font-mono outline-none uppercase"
+                  />
+                </div>
+              </div>
+            }
+          </div>
+
+          <div class="mt-2 rounded-xl p-4 border border-white/10 bg-slate-950/40">
+            <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3">
+              Live preview
+            </div>
+            <div class="flex flex-wrap items-center gap-3">
+              @for (
+                swatch of [
+                  { label: 'Primary', color: fieldValue('primaryColor') },
+                  { label: 'Secondary', color: fieldValue('secondaryColor') },
+                  { label: 'Accent', color: fieldValue('accentColor') },
+                ];
+                track swatch.label
+              ) {
+                <div class="flex items-center gap-2">
+                  <div
+                    class="w-10 h-10 rounded-lg border border-white/10"
+                    [style.background-color]="swatch.color || 'transparent'"
+                  ></div>
+                  <div class="text-[10px]">
+                    <div class="text-slate-400 font-bold">{{ swatch.label }}</div>
+                    <div class="text-slate-500 font-mono">{{ swatch.color || '—' }}</div>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- ── CUSTOM DOMAIN ── -->
+      @if (activeTab() === 'domain') {
+        <div class="flex flex-col gap-4">
+          <div class="flex flex-col gap-1.5">
+            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              Custom domain
+              <span class="text-slate-600 font-normal normal-case">
+                (hostname only, no https://)
+              </span>
+            </label>
+            <input
+              type="text"
+              placeholder="sports.acmecorp.com"
+              [ngModel]="fieldValue('customDomain')"
+              (ngModelChange)="setField('customDomain', $event)"
+              class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2 text-xs text-white outline-none transition-all w-full font-mono"
+            />
+          </div>
+
+          @if (b.customDomain) {
+            <div class="rounded-xl bg-slate-950/40 border border-white/5 p-4 flex flex-col gap-3">
+              <div class="flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                  <div class="text-xs font-bold text-white">
+                    {{ b.customDomain }}
+                  </div>
+                  <div class="text-[10px] text-slate-500 mt-0.5">
+                    Status:
+                    @if (b.customDomainVerified) {
+                      <span class="text-emerald-300 font-bold">Verified</span>
+                    } @else {
+                      <span class="text-amber-300 font-bold">Pending verification</span>
+                    }
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  (click)="verifyDomain()"
+                  [disabled]="isVerifying()"
+                  class="px-3 py-1.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-[11px] font-bold rounded-lg transition cursor-pointer"
+                >
+                  @if (isVerifying()) {
+                    Verifying…
+                  } @else {
+                    Verify now
+                  }
+                </button>
+              </div>
+
+              @if (!b.customDomainVerified && b.customDomainToken) {
+                <div class="text-[11px] text-slate-400 leading-relaxed">
+                  Add this TXT record at
+                  <code class="bg-slate-800 rounded px-1.5 py-0.5 font-mono text-slate-200">
+                    _sem-verify.{{ b.customDomain }}
+                  </code>
+                  then click "Verify now":
+                </div>
+                <div
+                  class="bg-slate-950 border border-white/10 rounded-lg p-3 flex items-center gap-2"
+                >
+                  <code class="flex-1 text-[11px] font-mono text-emerald-300 break-all">
+                    {{ b.customDomainToken }}
+                  </code>
+                  <button
+                    type="button"
+                    (click)="(undefined)"
+                    (click)="$event.stopPropagation()"
+                    class="text-[10px] font-bold text-slate-400 hover:text-white cursor-pointer bg-transparent border-0"
+                    [attr.data-clip]="b.customDomainToken"
+                  >
+                    Copy
+                  </button>
+                </div>
+                <div class="text-[10px] text-slate-500">
+                  Also point an A / CNAME record for
+                  <code class="text-slate-300">{{ b.customDomain }}</code>
+                  at your SEM ingress. DNS propagation can take a few minutes.
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+
+      <!-- ── LOGIN PAGE ── -->
+      @if (activeTab() === 'login') {
+        <div class="flex flex-col gap-4">
+          <div class="flex flex-col gap-1.5">
+            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              Welcome message
+              <span class="text-slate-600 font-normal normal-case">
+                (shown on the login page)
+              </span>
+            </label>
+            <textarea
+              rows="3"
+              placeholder="Welcome back to the Acme Sports portal…"
+              [ngModel]="fieldValue('loginMessage')"
+              (ngModelChange)="setField('loginMessage', $event)"
+              class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-3.5 py-2 text-xs text-white outline-none transition-all w-full resize-none"
+            ></textarea>
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              Login background
+            </label>
+            <app-photo-capture
+              label=""
+              hint="wide, landscape"
+              uploadType="workspace"
+              shape="thumb"
+              buttonLabel="Upload background"
+              [imageUrl]="fieldValue('loginBackgroundUrl') || null"
+              (imageUploaded)="setField('loginBackgroundUrl', $event)"
+              (imageRemoved)="setField('loginBackgroundUrl', null)"
+            />
+          </div>
+          <div
+            class="rounded-xl border border-white/10 bg-slate-950/40 p-3 text-[11px] text-slate-500"
+          >
+            Users reach your branded login by visiting
+            <code class="bg-slate-800 rounded px-1 text-slate-300"
+              >/login?workspace=&lt;slug&gt;</code
+            >
+            or your verified custom domain.
+          </div>
+        </div>
+      }
+
+      <!-- ── EMAIL ── -->
+      @if (activeTab() === 'email') {
+        <div class="flex flex-col gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="flex flex-col gap-1.5">
+              <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                "From" name
+              </label>
+              <input
+                type="text"
+                placeholder="Acme Sports"
+                [ngModel]="fieldValue('emailFromName')"
+                (ngModelChange)="setField('emailFromName', $event)"
+                class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2 text-xs text-white outline-none transition-all w-full"
+              />
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                "From" address
+              </label>
+              <input
+                type="email"
+                placeholder="notifications@acmecorp.com"
+                [ngModel]="fieldValue('emailFromAddress')"
+                (ngModelChange)="setField('emailFromAddress', $event)"
+                class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2 text-xs text-white outline-none transition-all w-full font-mono"
+              />
+            </div>
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              Header HTML
+              <span class="text-slate-600 font-normal normal-case">
+                (prepended to every branded email)
+              </span>
+            </label>
+            <textarea
+              rows="5"
+              placeholder="<img src='…' alt='logo' />"
+              [ngModel]="fieldValue('emailHeaderHtml')"
+              (ngModelChange)="setField('emailHeaderHtml', $event)"
+              class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-3.5 py-2 text-xs text-white font-mono outline-none transition-all w-full resize-none"
+            ></textarea>
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              Footer HTML
+            </label>
+            <textarea
+              rows="4"
+              placeholder="© 2028 Acme Sports · <a href='…'>Unsubscribe</a>"
+              [ngModel]="fieldValue('emailFooterHtml')"
+              (ngModelChange)="setField('emailFooterHtml', $event)"
+              class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-3.5 py-2 text-xs text-white font-mono outline-none transition-all w-full resize-none"
+            ></textarea>
+          </div>
+        </div>
+      }
+
+      <!-- ── PDF ── -->
+      @if (activeTab() === 'pdf') {
+        <div class="flex flex-col gap-4">
+          <div class="text-[11px] text-slate-500 leading-relaxed">
+            Injected into every exported PDF (results reports, match sheets, invoices). Applies once
+            the PDF export pipeline is wired to consume these fields.
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              PDF header HTML
+            </label>
+            <textarea
+              rows="5"
+              placeholder="<div style='text-align:center'><img src='…' /></div>"
+              [ngModel]="fieldValue('pdfHeaderHtml')"
+              (ngModelChange)="setField('pdfHeaderHtml', $event)"
+              class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-3.5 py-2 text-xs text-white font-mono outline-none transition-all w-full resize-none"
+            ></textarea>
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              PDF footer HTML
+            </label>
+            <textarea
+              rows="4"
+              placeholder="Generated on {{ '{{' }} date {{ '}}' }} · Acme Sports"
+              [ngModel]="fieldValue('pdfFooterHtml')"
+              (ngModelChange)="setField('pdfFooterHtml', $event)"
+              class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-3.5 py-2 text-xs text-white font-mono outline-none transition-all w-full resize-none"
+            ></textarea>
+          </div>
+        </div>
+      }
+
+      <!-- ── SOCIAL ── -->
+      @if (activeTab() === 'social') {
+        <div class="flex flex-col gap-3">
+          @for (
+            row of [
+              {
+                key: 'website',
+                label: 'Website',
+                icon: 'fi-rr-globe',
+                placeholder: 'https://acmecorp.com',
+              },
+              {
+                key: 'facebook',
+                label: 'Facebook',
+                icon: 'fi-brands-facebook',
+                placeholder: 'https://facebook.com/acme',
+              },
+              {
+                key: 'twitter',
+                label: 'Twitter / X',
+                icon: 'fi-brands-twitter-alt',
+                placeholder: 'https://twitter.com/acme',
+              },
+              {
+                key: 'instagram',
+                label: 'Instagram',
+                icon: 'fi-brands-instagram',
+                placeholder: 'https://instagram.com/acme',
+              },
+              {
+                key: 'linkedin',
+                label: 'LinkedIn',
+                icon: 'fi-brands-linkedin',
+                placeholder: 'https://linkedin.com/company/acme',
+              },
+              {
+                key: 'youtube',
+                label: 'YouTube',
+                icon: 'fi-brands-youtube',
+                placeholder: 'https://youtube.com/@acme',
+              },
+            ];
+            track row.key
+          ) {
+            <div class="flex items-center gap-2">
+              <i [class]="'fi ' + row.icon + ' text-slate-400 w-4 text-center'"></i>
+              <input
+                type="url"
+                [placeholder]="row.placeholder"
+                [ngModel]="socialValue(row.key)"
+                (ngModelChange)="setSocial(row.key, $event)"
+                class="flex-1 bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2 text-xs text-white outline-none transition-all"
+              />
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Save bar -->
+    <div
+      class="sticky bottom-0 -mx-5 -mb-5 sm:-mx-8 sm:-mb-8 px-5 py-3 sm:px-8 border-t border-white/10 bg-slate-950/80 backdrop-blur flex items-center justify-between gap-3 mt-6"
+    >
+      <span class="text-[11px] text-slate-500">
+        @if (hasChanges()) {
+          You have unsaved changes.
+        } @else {
+          All changes saved.
+        }
+      </span>
+      <div class="flex items-center gap-2">
+        <button
+          type="button"
+          (click)="discard()"
+          [disabled]="!hasChanges() || isSaving()"
+          class="px-3 py-2 bg-white/5 hover:bg-white/10 disabled:opacity-40 border border-white/10 text-xs font-bold text-slate-200 rounded-lg transition cursor-pointer"
+        >
+          Discard
+        </button>
+        <button
+          type="button"
+          (click)="save()"
+          [disabled]="!hasChanges() || isSaving()"
+          class="px-4 py-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-xs font-bold rounded-lg transition cursor-pointer inline-flex items-center gap-2 shadow-md shadow-violet-500/20"
+        >
+          @if (isSaving()) {
+            <i class="fi fi-rr-spinner animate-spin text-xs"></i>
+            Saving…
+          } @else {
+            <i class="fi fi-rr-disk text-xs"></i>
+            Save changes
+          }
+        </button>
+      </div>
+    </div>
+  }
+</div>

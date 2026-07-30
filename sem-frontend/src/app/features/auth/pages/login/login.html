@@ -3,18 +3,55 @@
 
   <div class="auth-card">
     <!-- ─────────── Left brand panel (hidden on mobile) ─────────── -->
-    <aside class="auth-left">
-      <p class="auth-tagline">
-        Sports events made simple — real-time scoring, live standings, offline-ready.
-      </p>
+    <aside
+      class="auth-left"
+      [style.background-image]="
+        isBrandedLogin() && branding()?.loginBackgroundUrl
+          ? 'linear-gradient(135deg, rgba(2,6,23,0.6), rgba(2,6,23,0.85)), url(' +
+            branding()?.loginBackgroundUrl +
+            ')'
+          : null
+      "
+      [style.background-size]="isBrandedLogin() && branding()?.loginBackgroundUrl ? 'cover' : null"
+      [style.background-position]="
+        isBrandedLogin() && branding()?.loginBackgroundUrl ? 'center' : null
+      "
+    >
+      @if (isBrandedLogin() && branding(); as b) {
+        <div class="flex flex-col gap-4 relative z-10">
+          @if (b.logoUrl) {
+            <img
+              [src]="b.logoUrl"
+              [alt]="b.brandName || 'Brand logo'"
+              class="max-h-16 max-w-[240px] object-contain self-start"
+              loading="lazy"
+            />
+          }
+          @if (b.tagline) {
+            <p class="auth-tagline">{{ b.tagline }}</p>
+          }
+          <h1 class="auth-headline">
+            {{ b.brandName || 'Welcome back.' }}
+          </h1>
+          @if (b.loginMessage) {
+            <p class="text-sm text-slate-300 leading-relaxed max-w-md whitespace-pre-line">
+              {{ b.loginMessage }}
+            </p>
+          }
+        </div>
+      } @else {
+        <p class="auth-tagline">
+          Sports events made simple — real-time scoring, live standings, offline-ready.
+        </p>
 
-      <h1 class="auth-headline">
-        Score every match.
-        <span>Live.</span>
-      </h1>
+        <h1 class="auth-headline">
+          Score every match.
+          <span>Live.</span>
+        </h1>
+      }
 
-      <!-- CSS-only live-match mockup floating above the panel -->
-      <div class="mockup-card">
+      <!-- CSS-only live-match mockup floating above the panel — hidden on branded login -->
+      <div class="mockup-card" [hidden]="isBrandedLogin()">
         <div class="mockup-header">
           <span class="dot dot-rose"></span>
           <span class="dot dot-amber"></span>

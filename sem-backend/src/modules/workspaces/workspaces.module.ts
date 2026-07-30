@@ -33,6 +33,7 @@ import { UsersModule } from '../users/users.module';
 import { UploadModule } from '../upload/upload.module';
 import { EventsGateway } from './events.gateway';
 import { SearchModule } from '../search/search.module';
+import { CommerceConfigModule } from '../commerce-config/commerce-config.module';
 
 // Extracted Domain Services
 import { NotificationsService } from './notifications/notifications.service';
@@ -71,6 +72,7 @@ import { WorkspaceMembersService } from './members/members.service';
     UsersModule,
     UploadModule,
     forwardRef(() => SearchModule),
+    CommerceConfigModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

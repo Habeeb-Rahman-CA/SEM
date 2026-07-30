@@ -22,6 +22,8 @@ import {
   ApiBody,
 } from '@nestjs/swagger';
 import { WorkspacesService } from './workspaces.service';
+import { CommerceConfigService } from '../commerce-config/commerce-config.service';
+import type { UpdateCommerceConfigInput } from '../commerce-config/commerce-config.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { SuperAdminGuard } from '../auth/guards/super-admin.guard';
 import { CreateRoleDto } from './dto/create-role.dto';
@@ -39,7 +41,10 @@ const SA_ONLY = { status: 403, description: 'Super-admin access required' };
 @Controller('system-settings')
 @UseGuards(JwtAuthGuard)
 export class SystemSettingsController {
-  constructor(private readonly workspacesService: WorkspacesService) {}
+  constructor(
+    private readonly workspacesService: WorkspacesService,
+    private readonly commerceConfigService: CommerceConfigService,
+  ) {}
 
   // ─── Global Roles ─────────────────────────────────────────────────────────
 
@@ -433,6 +438,69 @@ export class SystemSettingsController {
   @ApiResponse(SA_ONLY)
   getSystemMetrics() {
     return this.workspacesService.getSystemMetrics();
+  }
+
+  // ─── Commerce Config (subscriptions / billing / payments) ────────────────
+
+  @Get('commerce')
+  @UseGuards(SuperAdminGuard)
+  @ApiOperation({
+    summary: 'Get commerce config (Super-admin)',
+    description:
+      'Returns the platform-wide commerce configuration: subscription enforcement toggle, free-until date, active payment provider, currency, and Stripe key presence flags (raw secrets never leave the server).',
+  })
+  @ApiResponse({ status: 200, description: 'Commerce config view' })
+  @ApiResponse(SA_ONLY)
+  getCommerceConfig() {
+    return this.commerceConfigService.getView();
+  }
+
+  @Patch('commerce')
+  @UseGuards(SuperAdminGuard)
+  @ApiOperation({
+    summary: 'Update commerce config (Super-admin)',
+    description:
+      'Change any subset of commerce settings. Send `stripeSecretKey`/`stripeWebhookSecret` only when rotating — omit to keep the stored value; pass empty string to clear. All changes are audit-logged.',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        subscriptionsEnabled: { type: 'boolean' },
+        freeUntilDate: {
+          type: 'string',
+          format: 'date-time',
+          nullable: true,
+        },
+        paymentProvider: { type: 'string', enum: ['mock', 'stripe'] },
+        stripePublishableKey: { type: 'string', nullable: true },
+        stripeSecretKey: { type: 'string', nullable: true },
+        stripeWebhookSecret: { type: 'string', nullable: true },
+        defaultCurrency: { type: 'string' },
+      },
+    },
+  })
+  @ApiResponse({ status: 200, description: 'Updated commerce config view' })
+  @ApiResponse(SA_ONLY)
+  async updateCommerceConfig(
+    @Body() body: UpdateCommerceConfigInput,
+    @Req() req: any,
+  ) {
+    const result = await this.commerceConfigService.update(
+      body,
+      req.user?.userId ?? req.user?.id ?? null,
+    );
+    this.workspacesService.logAudit(
+      'UPDATE_COMMERCE_CONFIG',
+      'SYSTEM',
+      'CommerceConfig',
+      undefined,
+      req.user?.userId,
+      req.user?.username,
+      // Never log secret values — describe what changed instead
+      `Changed commerce config (subscriptionsEnabled=${result.subscriptionsEnabled}, provider=${result.paymentProvider}, freeUntil=${result.freeUntilDate ?? 'none'})`,
+    );
+    return result;
   }
 
   @Get('config')

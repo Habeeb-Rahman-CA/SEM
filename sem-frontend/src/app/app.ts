@@ -1,7 +1,8 @@
-import { Component, inject, effect, HostListener } from '@angular/core';
+import { Component, inject, effect, HostListener, OnInit } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { NgClass } from '@angular/common';
 import { UiService } from './core/services/ui.service';
+import { BrandingService } from './features/branding/services/branding.service';
 
 @Component({
   selector: 'app-root',
@@ -10,9 +11,20 @@ import { UiService } from './core/services/ui.service';
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
-export class App {
+export class App implements OnInit {
   uiService = inject(UiService);
+  private brandingService = inject(BrandingService);
   private previouslyFocusedElement: HTMLElement | null = null;
+
+  ngOnInit() {
+    // Resolve workspace branding for this window (custom domain / ?workspace=)
+    // and apply the CSS custom properties + favicon + title. Silent failure —
+    // the SPA falls back to the default SEM look when no verified branding
+    // is available.
+    this.brandingService.resolveForCurrentWindow().subscribe({
+      error: () => undefined,
+    });
+  }
 
   constructor() {
     effect(() => {

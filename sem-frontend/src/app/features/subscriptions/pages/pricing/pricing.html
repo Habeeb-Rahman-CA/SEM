@@ -1,0 +1,273 @@
+<div class="min-h-screen bg-slate-950 text-white font-sans overflow-x-hidden">
+  <div
+    class="pointer-events-none fixed inset-x-0 top-[-6rem] h-[36rem] -z-0"
+    style="
+      background: radial-gradient(60% 60% at 50% 40%, rgba(139, 92, 246, 0.18), transparent 70%);
+    "
+    aria-hidden="true"
+  ></div>
+
+  <header
+    class="fixed inset-x-0 top-0 z-40 safe-top bg-slate-950/70 backdrop-blur-md border-b border-white/5"
+  >
+    <div class="max-w-6xl mx-auto px-5 sm:px-8 h-14 flex items-center justify-between">
+      <a routerLink="/" class="flex items-center gap-2.5 text-sm font-black tracking-tight">
+        <span
+          class="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-violet-500/25"
+        >
+          <i class="fi fi-sr-trophy text-white text-xs"></i>
+        </span>
+        <span>SEM</span>
+      </a>
+      <nav class="hidden md:flex items-center gap-7 text-xs font-semibold text-slate-400">
+        <a routerLink="/events" class="hover:text-white transition">Events</a>
+        <a routerLink="/live" class="hover:text-white transition">Live</a>
+        <a routerLink="/pricing" class="text-white transition">Pricing</a>
+      </nav>
+      <div class="flex items-center gap-2.5">
+        <a
+          routerLink="/login"
+          class="text-xs font-bold text-slate-300 hover:text-white px-3 py-2 rounded-lg transition cursor-pointer"
+        >
+          Sign in
+        </a>
+        <a
+          routerLink="/register"
+          class="hidden sm:inline-flex text-xs font-bold text-white bg-violet-600 hover:bg-violet-500 px-4 py-2 rounded-lg transition cursor-pointer shadow-md shadow-violet-500/20"
+        >
+          Get started
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <section class="relative pt-28 sm:pt-36 pb-10 px-5 sm:px-8 max-w-6xl mx-auto text-center">
+    <span
+      class="inline-flex items-center gap-2 text-[11px] font-bold tracking-wider uppercase text-violet-300 bg-violet-500/10 border border-violet-500/20 rounded-full px-3 py-1.5"
+    >
+      <span class="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse"></span>
+      Simple, transparent pricing
+    </span>
+    <h1 class="mt-5 text-3xl sm:text-5xl md:text-6xl font-black tracking-tight leading-[1.05]">
+      Run one event, or a whole
+      <span
+        class="block bg-gradient-to-r from-violet-300 via-violet-400 to-indigo-400 bg-clip-text text-transparent"
+      >
+        federation.
+      </span>
+    </h1>
+    <p class="mt-4 text-sm sm:text-base text-slate-400 max-w-2xl mx-auto leading-relaxed">
+      Start free. Upgrade when you need more workspaces, larger squads, richer reports, or a
+      white-label public portal. Cancel anytime.
+    </p>
+  </section>
+
+  <section class="relative pb-16 px-5 sm:px-8 max-w-6xl mx-auto">
+    @if (isLoading()) {
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        @for (_ of [1, 2, 3, 4]; track _) {
+          <div class="h-96 rounded-3xl border border-white/5 bg-slate-900/40 animate-pulse"></div>
+        }
+      </div>
+    } @else if (error()) {
+      <div
+        class="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-6 text-center text-sm text-rose-200"
+      >
+        <i class="fi fi-rr-triangle-warning text-2xl block mb-2"></i>
+        {{ error() }}
+      </div>
+    } @else {
+      <!-- Plan cards -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        @for (plan of plans(); track plan.code) {
+          <div
+            [class]="
+              'relative flex flex-col rounded-3xl border bg-slate-900/60 p-6 gap-4 ' +
+              tierAccent(plan).border +
+              ' ' +
+              tierAccent(plan).ring
+            "
+          >
+            @if (tierAccent(plan).label) {
+              <span
+                class="absolute -top-3 left-6 inline-flex text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-violet-600 text-white shadow-lg shadow-violet-500/25"
+              >
+                {{ tierAccent(plan).label }}
+              </span>
+            }
+
+            <div class="flex flex-col gap-1">
+              <div class="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                {{ plan.tier }}
+              </div>
+              <h3 class="text-2xl font-black text-white">{{ plan.name }}</h3>
+            </div>
+
+            <div class="flex items-baseline gap-1.5">
+              <span class="text-4xl font-black text-white tabular-nums">
+                {{ formatPrice(plan).amount }}
+              </span>
+              <span class="text-xs text-slate-500">{{ formatPrice(plan).period }}</span>
+            </div>
+
+            @if (plan.description) {
+              <p class="text-xs text-slate-400 leading-relaxed">{{ plan.description }}</p>
+            }
+
+            @if (plan.trialDays > 0 && plan.priceCents > 0) {
+              <div
+                class="text-[10px] font-bold text-emerald-300 bg-emerald-500/10 border border-emerald-500/25 rounded-md px-2 py-1 inline-flex items-center gap-1.5 w-fit"
+              >
+                <i class="fi fi-rr-gift text-[10px]"></i>
+                {{ plan.trialDays }}-day free trial
+              </div>
+            }
+
+            <ul class="flex flex-col gap-1.5 text-[11px] text-slate-300 mt-2">
+              <li class="flex items-center gap-2">
+                <i class="fi fi-rr-check text-emerald-400 text-[10px]"></i>
+                {{
+                  plan.limits.workspaces === -1
+                    ? 'Unlimited workspaces'
+                    : plan.limits.workspaces +
+                      ' workspace' +
+                      (plan.limits.workspaces === 1 ? '' : 's')
+                }}
+              </li>
+              <li class="flex items-center gap-2">
+                <i class="fi fi-rr-check text-emerald-400 text-[10px]"></i>
+                {{
+                  plan.limits.membersPerWorkspace === -1
+                    ? 'Unlimited members'
+                    : plan.limits.membersPerWorkspace + ' members / workspace'
+                }}
+              </li>
+              <li class="flex items-center gap-2">
+                <i class="fi fi-rr-check text-emerald-400 text-[10px]"></i>
+                {{
+                  plan.limits.eventsPerWorkspace === -1
+                    ? 'Unlimited events'
+                    : plan.limits.eventsPerWorkspace + ' events / workspace'
+                }}
+              </li>
+              <li class="flex items-center gap-2">
+                <i class="fi fi-rr-check text-emerald-400 text-[10px]"></i>
+                {{
+                  plan.limits.storageMb === -1
+                    ? 'Unlimited photo storage'
+                    : plan.limits.storageMb >= 1000
+                      ? plan.limits.storageMb / 1000 + ' GB storage'
+                      : plan.limits.storageMb + ' MB storage'
+                }}
+              </li>
+              @if (plan.limits.customBranding) {
+                <li class="flex items-center gap-2">
+                  <i class="fi fi-rr-check text-emerald-400 text-[10px]"></i>
+                  Custom branding &amp; white-label
+                </li>
+              }
+              @if (plan.limits.apiAccess) {
+                <li class="flex items-center gap-2">
+                  <i class="fi fi-rr-check text-emerald-400 text-[10px]"></i>
+                  API access
+                </li>
+              }
+              @if (plan.limits.prioritySupport) {
+                <li class="flex items-center gap-2">
+                  <i class="fi fi-rr-check text-emerald-400 text-[10px]"></i>
+                  Priority support
+                </li>
+              }
+            </ul>
+
+            <div class="mt-auto pt-4">
+              <a
+                [routerLink]="plan.code === 'enterprise' ? [] : ['/register']"
+                [class]="
+                  'w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ' +
+                  tierAccent(plan).button
+                "
+              >
+                {{ ctaLabel(plan) }}
+              </a>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Compare features table -->
+      <div class="mt-12 rounded-3xl border border-white/10 bg-slate-900 shadow-xl overflow-hidden">
+        <div class="px-6 py-4 border-b border-white/5">
+          <h2
+            class="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2"
+          >
+            <i class="fi fi-rr-list-check text-violet-400"></i>
+            Compare features
+          </h2>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs">
+            <thead>
+              <tr class="border-b border-white/5 bg-slate-950/40">
+                <th
+                  class="text-left px-6 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500"
+                >
+                  Feature
+                </th>
+                @for (plan of plans(); track plan.code) {
+                  <th
+                    class="text-center px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-300"
+                  >
+                    {{ plan.name }}
+                  </th>
+                }
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of featureRows(); track row.label) {
+                <tr class="border-b border-white/5 last:border-b-0">
+                  <td class="px-6 py-3 text-[11px] font-semibold text-slate-300">
+                    {{ row.label }}
+                  </td>
+                  @for (v of row.values; track $index) {
+                    <td class="px-4 py-3 text-center text-[11px] text-white tabular-nums">
+                      {{ v }}
+                    </td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <p class="mt-8 text-center text-[11px] text-slate-500">
+        All prices in USD. Taxes and fees may apply. Enterprise contracts include SSO, dedicated
+        support, and custom SLAs —
+        <a routerLink="/register" class="text-violet-300 hover:text-violet-200">contact sales</a>.
+      </p>
+    }
+  </section>
+
+  <footer class="border-t border-white/5 py-10 px-5 sm:px-8">
+    <div
+      class="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-500"
+    >
+      <div class="flex items-center gap-2.5">
+        <span
+          class="w-6 h-6 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center"
+        >
+          <i class="fi fi-sr-trophy text-white text-[10px]"></i>
+        </span>
+        <span class="font-bold text-slate-300">SEM</span>
+        <span class="text-slate-600">· Pricing</span>
+      </div>
+      <div class="flex items-center gap-5">
+        <a routerLink="/" class="hover:text-white transition">Home</a>
+        <a routerLink="/events" class="hover:text-white transition">Events</a>
+        <a routerLink="/pricing" class="hover:text-white transition">Pricing</a>
+        <a routerLink="/login" class="hover:text-white transition">Sign in</a>
+      </div>
+    </div>
+  </footer>
+</div>

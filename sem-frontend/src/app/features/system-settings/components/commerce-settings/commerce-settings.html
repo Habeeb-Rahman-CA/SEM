@@ -1,0 +1,372 @@
+<div class="flex flex-col gap-6 text-white">
+  <div class="flex items-start justify-between gap-3">
+    <div>
+      <h2 class="text-xl font-black tracking-tight flex items-center gap-2">
+        <i class="fi fi-rr-credit-card text-violet-400"></i>
+        Commerce &amp; billing configuration
+      </h2>
+      <p class="text-sm text-slate-400 mt-1 max-w-3xl">
+        Master switches for subscription enforcement, "free until" grace period, payment provider,
+        and Stripe credentials. Changes take effect within seconds — no redeploy required.
+      </p>
+    </div>
+    <span
+      class="text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-300 border border-rose-500/25"
+    >
+      Super-admin only
+    </span>
+  </div>
+
+  @if (isLoading()) {
+    <div class="h-56 rounded-3xl border border-white/5 bg-slate-900/40 animate-pulse"></div>
+  } @else if (error()) {
+    <div class="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-rose-200">
+      <i class="fi fi-rr-triangle-warning text-2xl block mb-2"></i>
+      {{ error() }}
+    </div>
+  } @else if (config(); as cfg) {
+    <!-- Effective enforcement summary -->
+    <div
+      [class]="
+        'rounded-3xl border p-5 flex items-start gap-3 ' +
+        (cfg.effectiveEnforcement
+          ? 'border-rose-500/30 bg-rose-500/10'
+          : 'border-emerald-500/30 bg-emerald-500/10')
+      "
+    >
+      <i
+        [class]="
+          'text-lg mt-0.5 ' +
+          (cfg.effectiveEnforcement
+            ? 'fi fi-rr-shield text-rose-300'
+            : 'fi fi-rr-info text-emerald-300')
+        "
+      ></i>
+      <div class="text-xs flex-1">
+        <div
+          [class]="
+            'font-bold mb-1 ' + (cfg.effectiveEnforcement ? 'text-rose-200' : 'text-emerald-200')
+          "
+        >
+          @if (cfg.effectiveEnforcement) {
+            Enforcement is ON — plan limits apply to every workspace.
+          } @else if (cfg.subscriptionsEnabled && cfg.freeUntilDate) {
+            Enforcement is scheduled — free for everyone until
+            <span class="font-black"> {{ cfg.freeUntilDate | date: 'mediumDate' }}</span
+            >, then plan limits kick in automatically.
+          } @else {
+            Enforcement is OFF — every workspace has unlimited access regardless of plan.
+          }
+        </div>
+        <div class="text-slate-300/80 leading-relaxed">
+          Last updated {{ cfg.updatedAt | date: 'medium' }}
+          @if (cfg.updatedBy) {
+            <span class="text-slate-500">· by {{ cfg.updatedBy }}</span>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Subscription controls -->
+    <div class="rounded-3xl border border-white/10 bg-slate-900 p-6 flex flex-col gap-4 shadow-xl">
+      <h3
+        class="text-xs font-black text-slate-300 uppercase tracking-widest flex items-center gap-2"
+      >
+        <i class="fi fi-rr-badge-check text-violet-400"></i>
+        Subscriptions
+      </h3>
+
+      <label
+        class="flex items-center justify-between gap-3 p-3 rounded-xl bg-slate-950/40 border border-white/5 cursor-pointer"
+      >
+        <div>
+          <div class="text-sm font-bold text-white">Enable subscription enforcement</div>
+          <div class="text-[11px] text-slate-400 mt-0.5">
+            When off, no plan limits apply — every workspace behaves as if it had the Enterprise
+            plan.
+          </div>
+        </div>
+        <div class="relative inline-flex items-center">
+          <input
+            type="checkbox"
+            class="sr-only peer"
+            [checked]="subscriptionsEnabled()"
+            (change)="subscriptionsEnabled.set(!subscriptionsEnabled())"
+          />
+          <div
+            class="w-11 h-6 bg-slate-800 border border-white/10 rounded-full peer peer-checked:after:translate-x-5 peer-checked:bg-violet-600 after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"
+          ></div>
+        </div>
+      </label>
+
+      <div class="flex flex-col gap-2">
+        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+          Free for everyone until
+        </label>
+        <div class="flex items-center gap-3">
+          <input
+            type="date"
+            [ngModel]="freeUntilDateInput()"
+            (ngModelChange)="freeUntilDateInput.set($event)"
+            [disabled]="!subscriptionsEnabled()"
+            class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2 text-xs text-white outline-none transition-all disabled:opacity-50"
+          />
+          @if (freeUntilDateInput()) {
+            <button
+              type="button"
+              (click)="freeUntilDateInput.set('')"
+              class="text-[11px] font-bold text-slate-400 hover:text-white transition cursor-pointer bg-transparent border-0"
+            >
+              Clear
+            </button>
+          }
+        </div>
+        <p class="text-[11px] text-slate-500 leading-relaxed max-w-xl">
+          Only meaningful when enforcement is on. Until this date passes, no plan limits are checked
+          so organizers can migrate to a paid plan at their own pace. Leave blank to enforce
+          immediately when you turn subscriptions on.
+        </p>
+        @if (subscriptionsEnabled() && isFreeUntilInFuture()) {
+          <div
+            class="mt-1 rounded-lg bg-emerald-500/10 border border-emerald-500/25 px-3 py-2 text-[11px] text-emerald-200 inline-flex items-center gap-2 w-fit"
+          >
+            <i class="fi fi-rr-gift text-[11px]"></i>
+            Enforcement will start on
+            <span class="font-black">
+              {{ freeUntilDateInput() | date: 'mediumDate' }}
+            </span>
+          </div>
+        }
+      </div>
+
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+          Default currency
+        </label>
+        <input
+          type="text"
+          [ngModel]="defaultCurrency()"
+          (ngModelChange)="defaultCurrency.set($event)"
+          class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2 text-xs text-white outline-none transition-all w-32 uppercase"
+          maxlength="8"
+        />
+      </div>
+    </div>
+
+    <!-- Payment provider -->
+    <div class="rounded-3xl border border-white/10 bg-slate-900 p-6 flex flex-col gap-4 shadow-xl">
+      <h3
+        class="text-xs font-black text-slate-300 uppercase tracking-widest flex items-center gap-2"
+      >
+        <i class="fi fi-rr-credit-card text-violet-400"></i>
+        Payment provider
+      </h3>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <label
+          [class]="
+            'flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition ' +
+            (paymentProvider() === 'mock'
+              ? 'border-violet-500/40 bg-violet-500/5'
+              : 'border-white/10 bg-slate-950/40 hover:border-white/20')
+          "
+        >
+          <input
+            type="radio"
+            name="provider"
+            class="mt-0.5 accent-violet-500"
+            [checked]="paymentProvider() === 'mock'"
+            (change)="paymentProvider.set('mock')"
+          />
+          <div>
+            <div class="text-sm font-bold text-white">Mock (development)</div>
+            <div class="text-[11px] text-slate-400 mt-0.5">
+              Simulated end-to-end flow with no real charges. Perfect for demos and internal
+              testing.
+            </div>
+          </div>
+        </label>
+        <label
+          [class]="
+            'flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition ' +
+            (paymentProvider() === 'stripe'
+              ? 'border-violet-500/40 bg-violet-500/5'
+              : 'border-white/10 bg-slate-950/40 hover:border-white/20')
+          "
+        >
+          <input
+            type="radio"
+            name="provider"
+            class="mt-0.5 accent-violet-500"
+            [checked]="paymentProvider() === 'stripe'"
+            (change)="paymentProvider.set('stripe')"
+          />
+          <div>
+            <div class="text-sm font-bold text-white">Stripe</div>
+            <div class="text-[11px] text-slate-400 mt-0.5">
+              Real charges via Stripe. Requires the keys below and the
+              <code class="text-slate-300">stripe</code> npm package installed on the backend.
+            </div>
+          </div>
+        </label>
+      </div>
+
+      @if (paymentProvider() === 'stripe') {
+        <div class="flex flex-col gap-3 pt-3 border-t border-white/5">
+          <div class="flex flex-col gap-1.5">
+            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              Publishable key
+              <span class="text-slate-600 font-normal normal-case">
+                (safe to expose — used in the browser)
+              </span>
+            </label>
+            <input
+              type="text"
+              placeholder="pk_live_… or pk_test_…"
+              [ngModel]="stripePublishableKey()"
+              (ngModelChange)="stripePublishableKey.set($event)"
+              class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2 text-xs text-white outline-none transition-all w-full font-mono"
+            />
+          </div>
+
+          <div class="flex flex-col gap-1.5">
+            <div class="flex items-center justify-between">
+              <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                Secret key
+                <span class="text-slate-600 font-normal normal-case">
+                  (never leaves the server)
+                </span>
+              </label>
+              <span
+                [class]="
+                  'text-[10px] font-bold px-2 py-0.5 rounded-md border ' +
+                  (cfg.hasStripeSecretKey
+                    ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/25'
+                    : 'bg-rose-500/10 text-rose-300 border-rose-500/25')
+                "
+              >
+                {{ cfg.hasStripeSecretKey ? 'Configured' : 'Not set' }}
+              </span>
+            </div>
+            <input
+              type="password"
+              placeholder="{{
+                cfg.hasStripeSecretKey
+                  ? '••••••••••••••••••• (unchanged)'
+                  : 'sk_live_… or sk_test_…'
+              }}"
+              [ngModel]="stripeSecretKeyDraft()"
+              (ngModelChange)="stripeSecretKeyDraft.set($event)"
+              [disabled]="clearStripeSecretKey()"
+              class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2 text-xs text-white outline-none transition-all w-full font-mono disabled:opacity-50"
+              autocomplete="new-password"
+            />
+            @if (cfg.hasStripeSecretKey) {
+              <label class="flex items-center gap-2 text-[11px] text-slate-400 cursor-pointer">
+                <input
+                  type="checkbox"
+                  class="accent-rose-500"
+                  [checked]="clearStripeSecretKey()"
+                  (change)="clearStripeSecretKey.set(!clearStripeSecretKey())"
+                />
+                Remove stored secret key
+              </label>
+            }
+          </div>
+
+          <div class="flex flex-col gap-1.5">
+            <div class="flex items-center justify-between">
+              <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                Webhook secret
+              </label>
+              <span
+                [class]="
+                  'text-[10px] font-bold px-2 py-0.5 rounded-md border ' +
+                  (cfg.hasStripeWebhookSecret
+                    ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/25'
+                    : 'bg-rose-500/10 text-rose-300 border-rose-500/25')
+                "
+              >
+                {{ cfg.hasStripeWebhookSecret ? 'Configured' : 'Not set' }}
+              </span>
+            </div>
+            <input
+              type="password"
+              placeholder="{{
+                cfg.hasStripeWebhookSecret ? '••••••••••••••••••• (unchanged)' : 'whsec_…'
+              }}"
+              [ngModel]="stripeWebhookSecretDraft()"
+              (ngModelChange)="stripeWebhookSecretDraft.set($event)"
+              [disabled]="clearStripeWebhookSecret()"
+              class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2 text-xs text-white outline-none transition-all w-full font-mono disabled:opacity-50"
+              autocomplete="new-password"
+            />
+            @if (cfg.hasStripeWebhookSecret) {
+              <label class="flex items-center gap-2 text-[11px] text-slate-400 cursor-pointer">
+                <input
+                  type="checkbox"
+                  class="accent-rose-500"
+                  [checked]="clearStripeWebhookSecret()"
+                  (change)="clearStripeWebhookSecret.set(!clearStripeWebhookSecret())"
+                />
+                Remove stored webhook secret
+              </label>
+            }
+          </div>
+
+          <div
+            class="rounded-xl bg-slate-950/40 border border-white/5 p-3 text-[11px] text-slate-400 leading-relaxed"
+          >
+            <div class="font-bold text-slate-300 mb-1">Webhook endpoint</div>
+            Point Stripe at
+            <code class="bg-slate-800 rounded px-1.5 py-0.5 text-slate-200 font-mono">
+              https://YOUR_HOST/webhooks/stripe
+            </code>
+            and enable the events:
+            <code class="text-slate-300">payment_intent.succeeded</code>,
+            <code class="text-slate-300">payment_intent.payment_failed</code>,
+            <code class="text-slate-300">charge.refunded</code>. The webhook secret from Stripe's
+            dashboard goes above.
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Save bar -->
+    <div
+      class="sticky bottom-0 -mx-5 -mb-5 sm:-mx-8 sm:-mb-8 px-5 py-3 sm:px-8 border-t border-white/10 bg-slate-950/80 backdrop-blur flex items-center justify-between gap-3"
+    >
+      <span class="text-[11px] text-slate-500">
+        @if (hasChanges()) {
+          You have unsaved changes.
+        } @else {
+          All changes saved.
+        }
+      </span>
+      <div class="flex items-center gap-2">
+        <button
+          type="button"
+          (click)="discard()"
+          [disabled]="!hasChanges() || isSaving()"
+          class="px-3 py-2 bg-white/5 hover:bg-white/10 disabled:opacity-40 border border-white/10 text-xs font-bold text-slate-200 rounded-lg transition cursor-pointer"
+        >
+          Discard
+        </button>
+        <button
+          type="button"
+          (click)="save()"
+          [disabled]="!hasChanges() || isSaving()"
+          class="px-4 py-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-xs font-bold rounded-lg transition cursor-pointer inline-flex items-center gap-2 shadow-md shadow-violet-500/20"
+        >
+          @if (isSaving()) {
+            <i class="fi fi-rr-spinner animate-spin text-xs"></i>
+            Saving…
+          } @else {
+            <i class="fi fi-rr-disk text-xs"></i>
+            Save changes
+          }
+        </button>
+      </div>
+    </div>
+  }
+</div>

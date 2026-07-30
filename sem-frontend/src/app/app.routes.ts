@@ -49,6 +49,44 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
   {
+    path: 'workspaces/:id/subscription',
+    loadComponent: () =>
+      import('./features/subscriptions/pages/subscription-settings/subscription-settings').then(
+        (m) => m.SubscriptionSettingsComponent,
+      ),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'workspaces/:id/billing',
+    loadComponent: () =>
+      import('./features/billing/pages/billing-centre/billing-centre').then(
+        (m) => m.BillingCentreComponent,
+      ),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'workspaces/:id/sponsors',
+    loadComponent: () =>
+      import('./features/sponsors/pages/sponsor-list/sponsor-list').then(
+        (m) => m.SponsorListComponent,
+      ),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'workspaces/:id/ads',
+    loadComponent: () =>
+      import('./features/ads/pages/ad-list/ad-list').then((m) => m.AdListComponent),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'workspaces/:id/branding',
+    loadComponent: () =>
+      import('./features/branding/pages/branding-settings/branding-settings').then(
+        (m) => m.BrandingSettingsComponent,
+      ),
+    canActivate: [authGuard],
+  },
+  {
     path: 'system-settings',
     loadComponent: () =>
       import('./features/system-settings/pages/system-settings').then(
@@ -77,6 +115,12 @@ export const routes: Routes = [
       import('./features/public-event/pages/live/live-score-hub').then(
         (m) => m.LiveScoreHubComponent,
       ),
+  },
+  // Pricing / plans catalog (public)
+  {
+    path: 'pricing',
+    loadComponent: () =>
+      import('./features/subscriptions/pages/pricing/pricing').then((m) => m.PricingComponent),
   },
   {
     path: 'public/events/:id',

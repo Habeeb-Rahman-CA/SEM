@@ -1,0 +1,298 @@
+<div class="max-w-5xl mx-auto p-5 sm:p-8 text-white">
+  <div class="flex items-center gap-3 mb-6">
+    <a
+      [routerLink]="['/workspaces', workspaceId()]"
+      class="text-xs font-bold text-slate-400 hover:text-white transition inline-flex items-center gap-1"
+    >
+      <i class="fi fi-rr-arrow-small-left text-sm"></i>
+      Back to workspace
+    </a>
+  </div>
+
+  <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-3 mb-6">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-black tracking-tight mb-2">
+        Subscription &amp; billing
+      </h1>
+      <p class="text-sm text-slate-400">
+        Manage your workspace plan, track usage against your limits, and adjust your subscription.
+      </p>
+    </div>
+    <a
+      [routerLink]="['/workspaces', workspaceId(), 'billing']"
+      class="inline-flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-bold text-slate-200 cursor-pointer transition"
+    >
+      <i class="fi fi-rr-receipt text-xs"></i>
+      Billing centre
+    </a>
+  </div>
+
+  @if (isLoading()) {
+    <div class="h-56 rounded-3xl border border-white/5 bg-slate-900/40 animate-pulse"></div>
+  } @else if (error()) {
+    <div class="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-rose-200">
+      <i class="fi fi-rr-triangle-warning text-2xl block mb-2"></i>
+      {{ error() }}
+    </div>
+  } @else if (snapshot(); as snap) {
+    <!-- Enforcement banner -->
+    @if (!snap.enforcementEnabled) {
+      <div
+        class="mb-6 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 flex items-start gap-3"
+      >
+        <i class="fi fi-rr-info text-amber-300 text-base mt-0.5"></i>
+        <div class="flex-1 text-xs">
+          <div class="font-bold text-amber-200 mb-1">Plan enforcement is currently disabled</div>
+          <div class="text-amber-100/80 leading-relaxed">
+            All workspaces run in unlimited mode regardless of plan. You can change plans and see
+            usage here for testing, but no limits are enforced. Set
+            <code
+              class="bg-amber-500/15 border border-amber-500/25 rounded px-1 py-0.5 mx-0.5 text-amber-200"
+              >SUBSCRIPTIONS_ENABLED=true</code
+            >
+            on the backend to switch to paid mode.
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Current plan hero -->
+    <div
+      class="rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900 via-slate-900/80 to-violet-900/20 p-6 sm:p-8 mb-6 shadow-xl"
+    >
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div class="flex-1 min-w-0">
+          <div class="text-[10px] font-bold uppercase tracking-widest text-violet-300">
+            Current plan
+          </div>
+          <div class="flex items-baseline gap-3 mt-1">
+            <h2 class="text-2xl sm:text-3xl font-black text-white">
+              {{ snap.plan.name }}
+            </h2>
+            <span
+              [class]="
+                'text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ' +
+                (snap.subscription.status === 'trialing'
+                  ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/25'
+                  : snap.subscription.status === 'active'
+                    ? 'bg-violet-500/15 text-violet-300 border-violet-500/25'
+                    : snap.subscription.status === 'past_due'
+                      ? 'bg-amber-500/15 text-amber-300 border-amber-500/25'
+                      : 'bg-slate-500/15 text-slate-300 border-slate-500/25')
+              "
+            >
+              {{ snap.subscription.status }}
+            </span>
+          </div>
+          <p class="text-sm text-slate-400 mt-2 max-w-xl">{{ snap.plan.description }}</p>
+        </div>
+
+        <div class="text-right">
+          <div class="text-3xl font-black text-white tabular-nums">
+            {{ formatPrice(snap.plan).amount }}
+          </div>
+          <div class="text-[11px] text-slate-500">{{ formatPrice(snap.plan).period }}</div>
+        </div>
+      </div>
+
+      <!-- Period / trial info -->
+      <div class="mt-5 pt-5 border-t border-white/5 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+        @if (snap.subscription.trialEndsAt && snap.subscription.status === 'trialing') {
+          <div>
+            <div class="text-[9px] uppercase tracking-wider text-slate-500 font-bold">
+              Trial ends
+            </div>
+            <div class="text-sm font-bold text-emerald-300 mt-0.5">
+              {{ snap.subscription.trialEndsAt | date: 'mediumDate' }}
+            </div>
+          </div>
+        }
+        @if (snap.subscription.currentPeriodEnd) {
+          <div>
+            <div class="text-[9px] uppercase tracking-wider text-slate-500 font-bold">
+              @if (snap.subscription.cancelAtPeriodEnd) {
+                Ends
+              } @else {
+                Renews
+              }
+            </div>
+            <div
+              [class]="
+                'text-sm font-bold mt-0.5 ' +
+                (snap.subscription.cancelAtPeriodEnd ? 'text-rose-300' : 'text-white')
+              "
+            >
+              {{ snap.subscription.currentPeriodEnd | date: 'mediumDate' }}
+            </div>
+          </div>
+        }
+        <div>
+          <div class="text-[9px] uppercase tracking-wider text-slate-500 font-bold">Since</div>
+          <div class="text-sm font-bold text-slate-300 mt-0.5">
+            {{ snap.subscription.createdAt | date: 'mediumDate' }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Cancel / resume -->
+      @if (snap.subscription.cancelAtPeriodEnd) {
+        <div
+          class="mt-4 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 flex items-center justify-between gap-3"
+        >
+          <span class="text-xs text-rose-200">
+            <i class="fi fi-rr-triangle-warning mr-1"></i>
+            Subscription is scheduled to end on
+            {{ snap.subscription.currentPeriodEnd | date: 'mediumDate' }}.
+          </span>
+          <button
+            type="button"
+            (click)="resume()"
+            [disabled]="isMutating()"
+            class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-[11px] font-bold rounded-lg transition cursor-pointer flex-shrink-0"
+          >
+            Resume
+          </button>
+        </div>
+      } @else if (snap.plan.code !== 'free') {
+        <div class="mt-4 flex justify-end">
+          <button
+            type="button"
+            (click)="cancel()"
+            [disabled]="isMutating()"
+            class="text-[11px] font-bold text-slate-400 hover:text-rose-300 transition cursor-pointer bg-transparent border-0"
+          >
+            Cancel subscription at period end
+          </button>
+        </div>
+      }
+    </div>
+
+    <!-- Usage bars -->
+    <div class="rounded-3xl border border-white/10 bg-slate-900 p-6 sm:p-8 mb-6 shadow-xl">
+      <h2
+        class="text-xs font-black text-slate-300 uppercase tracking-widest mb-4 flex items-center gap-2"
+      >
+        <i class="fi fi-rr-chart-histogram text-violet-400"></i>
+        Usage this period
+      </h2>
+      <div class="flex flex-col gap-4">
+        @for (bar of usageBars(); track bar.label) {
+          <div class="flex flex-col gap-1.5">
+            <div class="flex items-center justify-between text-xs">
+              <span class="font-bold text-slate-300">{{ bar.label }}</span>
+              <span class="text-slate-500 font-mono">{{ bar.display }}</span>
+            </div>
+            <div class="h-2 rounded-full bg-slate-800 overflow-hidden">
+              @if (!bar.unlimited) {
+                <div
+                  [class]="'h-full transition-all ' + bar.colour"
+                  [style.width.%]="bar.pct"
+                ></div>
+              } @else {
+                <div
+                  class="h-full w-full bg-gradient-to-r from-emerald-500/60 via-violet-500/60 to-indigo-500/60 opacity-40"
+                ></div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Plan picker -->
+    <div class="rounded-3xl border border-white/10 bg-slate-900 p-6 sm:p-8 shadow-xl">
+      <div class="flex items-center justify-between mb-4">
+        <h2
+          class="text-xs font-black text-slate-300 uppercase tracking-widest flex items-center gap-2"
+        >
+          <i class="fi fi-rr-swap text-violet-400"></i>
+          Available plans
+        </h2>
+        <a
+          routerLink="/pricing"
+          class="text-[11px] font-bold text-violet-300 hover:text-violet-200 transition"
+        >
+          Compare features →
+        </a>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+        @for (plan of plans(); track plan.code) {
+          <div
+            [class]="
+              'flex flex-col gap-3 rounded-2xl border p-4 transition ' +
+              (isCurrentPlan(plan)
+                ? 'border-violet-500/50 bg-violet-500/5'
+                : 'border-white/5 bg-slate-950/40')
+            "
+          >
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                  {{ plan.tier }}
+                </div>
+                <div class="text-lg font-black text-white">{{ plan.name }}</div>
+              </div>
+              @if (isCurrentPlan(plan)) {
+                <span
+                  class="text-[9px] font-bold text-violet-200 bg-violet-500/15 border border-violet-500/30 rounded-md px-2 py-0.5 uppercase tracking-wider"
+                >
+                  Current
+                </span>
+              }
+            </div>
+
+            <div class="flex items-baseline gap-1.5">
+              <span class="text-xl font-black text-white tabular-nums">
+                {{ formatPrice(plan).amount }}
+              </span>
+              <span class="text-[10px] text-slate-500">{{ formatPrice(plan).period }}</span>
+            </div>
+
+            <ul class="text-[10px] text-slate-400 leading-relaxed flex flex-col gap-0.5">
+              <li>
+                {{
+                  plan.limits.membersPerWorkspace === -1
+                    ? 'Unlimited'
+                    : plan.limits.membersPerWorkspace
+                }}
+                members
+              </li>
+              <li>
+                {{
+                  plan.limits.eventsPerWorkspace === -1
+                    ? 'Unlimited'
+                    : plan.limits.eventsPerWorkspace
+                }}
+                events
+              </li>
+              <li>
+                {{
+                  plan.limits.storageMb === -1
+                    ? 'Unlimited storage'
+                    : plan.limits.storageMb >= 1000
+                      ? plan.limits.storageMb / 1000 + ' GB storage'
+                      : plan.limits.storageMb + ' MB storage'
+                }}
+              </li>
+            </ul>
+
+            <button
+              type="button"
+              (click)="changePlan(plan)"
+              [disabled]="isCurrentPlan(plan) || isMutating()"
+              [class]="
+                'mt-auto inline-flex items-center justify-center gap-2 py-2 rounded-lg text-[11px] font-bold transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ' +
+                (isCurrentPlan(plan)
+                  ? 'bg-slate-800 text-slate-500'
+                  : 'bg-violet-600 hover:bg-violet-500 text-white')
+              "
+            >
+              {{ actionLabel(plan) }}
+            </button>
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>
