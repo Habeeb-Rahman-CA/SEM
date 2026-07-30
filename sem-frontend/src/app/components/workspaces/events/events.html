@@ -794,7 +794,7 @@
           <div class="flex flex-col gap-6">
             <!-- Points Table (Only for League / Group stages) -->
             @if (selectedStage()?.type !== 'knockout') {
-            @if ((selectedStage()?.type === 'league' || selectedStage()?.type === 'group') && isStageCompleted() &&
+            @if ((selectedStage()?.type === 'league' || selectedStage()?.type === 'group' || selectedStage()?.type === 'swiss') && isStageCompleted() &&
             leagueTable().length > 0) {
             <div
               class="bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-transparent border border-amber-500/30 rounded-2xl p-5 flex items-center justify-between shadow-lg shadow-amber-500/5 animate-pulse">
@@ -857,9 +857,9 @@
                   </thead>
                   <tbody>
                     @for (row of leagueTable(); track row.teamId; let idx = $index) {
-                    <tr [class]="(selectedStage()?.type === 'league' || selectedStage()?.type === 'group') && isStageCompleted() && idx === 0 
+                    <tr [class]="(selectedStage()?.type === 'league' || selectedStage()?.type === 'group' || selectedStage()?.type === 'swiss') && isStageCompleted() && idx === 0 
                                   ? 'border-b border-white/5 bg-emerald-500/10 hover:bg-emerald-500/15 border-l-4 border-l-emerald-500 transition-colors' 
-                                  : ((selectedStage()?.type === 'league' || selectedStage()?.type === 'group') && isStageCompleted() && idx === 1 
+                                  : ((selectedStage()?.type === 'league' || selectedStage()?.type === 'group' || selectedStage()?.type === 'swiss') && isStageCompleted() && idx === 1 
                                     ? 'border-b border-white/5 bg-amber-500/10 hover:bg-amber-500/15 border-l-4 border-l-amber-500 transition-colors' 
                                     : 'border-b border-white/5 hover:bg-white/5 transition-colors')">
                       <td class="py-3 px-2 font-semibold text-slate-400">{{ idx + 1 }}</td>
@@ -867,11 +867,11 @@
                         <div class="flex items-center gap-2">
                           <app-avatar [name]="row.teamName" [logoUrl]="row.teamLogoUrl" customClass="w-5 h-5 rounded flex-shrink-0" textClass="text-[8px] font-bold text-white" />
                           <span class="truncate max-w-[100px]" [title]="row.teamName">{{ row.teamName }}</span>
-                          @if ((selectedStage()?.type === 'league' || selectedStage()?.type === 'group') &&
+                          @if ((selectedStage()?.type === 'league' || selectedStage()?.type === 'group' || selectedStage()?.type === 'swiss') &&
                           isStageCompleted() && idx === 0) {
                           <span
                             class="text-[9px] px-1.5 py-0.5 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded font-black tracking-wider uppercase flex-shrink-0 ml-1.5">CHAMPION</span>
-                          } @else if ((selectedStage()?.type === 'league' || selectedStage()?.type === 'group') &&
+                          } @else if ((selectedStage()?.type === 'league' || selectedStage()?.type === 'group' || selectedStage()?.type === 'swiss') &&
                           isStageCompleted() && idx === 1) {
                           <span
                             class="text-[9px] px-1.5 py-0.5 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded font-black tracking-wider uppercase flex-shrink-0 ml-1.5">RUNNER-UP</span>

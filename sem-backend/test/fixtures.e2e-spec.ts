@@ -697,4 +697,152 @@ describe('Fixture Generation (e2e)', () => {
     const finalComp = deCompFinished.body.find((c: any) => c.id === deCompId);
     expect(finalComp.status).toBe('completed');
   });
+
+  it('should generate fixtures and advance teams correctly for swiss stage with 4 teams', async () => {
+    // 1. Create a new competition for Swiss
+    const swissCompRes = await request(app.getHttpServer())
+      .post(`/workspaces/${workspaceId}/events/${eventId}/competitions`)
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .send({
+        name: 'Swiss Competition',
+        sportId: sportId,
+        status: 'upcoming',
+      })
+      .expect(201);
+    const swissCompId = swissCompRes.body.id;
+
+    // 2. Create a stage of type swiss
+    const swissStageRes = await request(app.getHttpServer())
+      .post(
+        `/workspaces/${workspaceId}/events/${eventId}/competitions/${swissCompId}/stages`,
+      )
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .send({
+        name: 'Swiss Stage',
+        type: 'swiss',
+        sequence: 1,
+        config: {
+          winPoint: 3,
+          drawPoint: 1,
+          roundsCount: 2,
+          tieBreaks: ['buchholz', 'sonneborn_berger', 'cumulative'],
+        },
+      })
+      .expect(201);
+    const swissStageId = swissStageRes.body.id;
+
+    // 3. Generate fixtures (Round 1)
+    await request(app.getHttpServer())
+      .post(
+        `/workspaces/${workspaceId}/events/${eventId}/competitions/${swissCompId}/generate-fixtures`,
+      )
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .expect(201);
+
+    // 4. Retrieve matches
+    const matchesRes = await request(app.getHttpServer())
+      .get(
+        `/workspaces/${workspaceId}/events/${eventId}/competitions/${swissCompId}/stages/${swissStageId}/matches`,
+      )
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .expect(200);
+
+    const matches = matchesRes.body;
+    expect(matches.length).toBe(2);
+    expect(matches[0].config?.swissRound).toBe(1);
+    expect(matches[1].config?.swissRound).toBe(1);
+
+    // 5. Complete Round 1 matches
+    // Match 1: Home Win
+    const m1 = matches[0];
+    await request(app.getHttpServer())
+      .patch(
+        `/workspaces/${workspaceId}/events/${eventId}/competitions/${swissCompId}/stages/${swissStageId}/matches/${m1.id}`,
+      )
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .send({
+        status: 'completed',
+        homeScore: 3,
+        awayScore: 0,
+      })
+      .expect(200);
+
+    // Match 2: Home Win
+    const m2 = matches[1];
+    await request(app.getHttpServer())
+      .patch(
+        `/workspaces/${workspaceId}/events/${eventId}/competitions/${swissCompId}/stages/${swissStageId}/matches/${m2.id}`,
+      )
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .send({
+        status: 'completed',
+        homeScore: 3,
+        awayScore: 0,
+      })
+      .expect(200);
+
+    // 6. Retrieve matches again - Round 2 should have been generated automatically!
+    const matchesAfterRes = await request(app.getHttpServer())
+      .get(
+        `/workspaces/${workspaceId}/events/${eventId}/competitions/${swissCompId}/stages/${swissStageId}/matches`,
+      )
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .expect(200);
+
+    const allMatches = matchesAfterRes.body;
+    // Should have 2 matches of round 1 + 2 matches of round 2 = 4 matches total
+    expect(allMatches.length).toBe(4);
+
+    const round2Matches = allMatches.filter((m: any) => m.config?.swissRound === 2);
+    expect(round2Matches.length).toBe(2);
+
+    // Verify pairings in Round 2:
+    // Winners of Round 1 (m1.homeTeamId and m2.homeTeamId) must play each other
+    // Losers of Round 1 (m1.awayTeamId and m2.awayTeamId) must play each other
+    const winners = [m1.homeTeamId, m2.homeTeamId];
+    const losers = [m1.awayTeamId, m2.awayTeamId];
+
+    const matchWinners = round2Matches.find(
+      (m: any) => winners.includes(m.homeTeamId) && winners.includes(m.awayTeamId)
+    );
+    const matchLosers = round2Matches.find(
+      (m: any) => losers.includes(m.homeTeamId) && losers.includes(m.awayTeamId)
+    );
+
+    expect(matchWinners).toBeDefined();
+    expect(matchLosers).toBeDefined();
+
+    // 7. Complete Round 2 matches
+    await request(app.getHttpServer())
+      .patch(
+        `/workspaces/${workspaceId}/events/${eventId}/competitions/${swissCompId}/stages/${swissStageId}/matches/${matchWinners.id}`,
+      )
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .send({
+        status: 'completed',
+        homeScore: 2,
+        awayScore: 1,
+      })
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .patch(
+        `/workspaces/${workspaceId}/events/${eventId}/competitions/${swissCompId}/stages/${swissStageId}/matches/${matchLosers.id}`,
+      )
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .send({
+        status: 'completed',
+        homeScore: 2,
+        awayScore: 1,
+      })
+      .expect(200);
+
+    // 8. Verify competition is completed automatically (since Round 2 was the last round)
+    const swissCompFinished = await request(app.getHttpServer())
+      .get(`/workspaces/${workspaceId}/events/${eventId}/competitions`)
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .expect(200);
+    const finalSwissComp = swissCompFinished.body.find((c: any) => c.id === swissCompId);
+    expect(finalSwissComp.status).toBe('completed');
+  });
 });

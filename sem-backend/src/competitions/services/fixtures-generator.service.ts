@@ -352,6 +352,39 @@ export class FixturesGeneratorService {
             },
           });
         }
+      } else if (stage.type === 'swiss') {
+        const roundsCount = stage.config?.roundsCount || Math.ceil(Math.log2(teamIds.length));
+        stage.config = { ...stage.config, roundsCount };
+        await this.stageRepo.save(stage);
+
+        const n = teamIds.length;
+        const hasBye = n % 2 !== 0;
+        const pairTeams = [...teamIds];
+
+        if (hasBye) {
+          const byeTeamId = pairTeams.pop()!;
+          fixtures.push({
+            homeTeamId: byeTeamId,
+            awayTeamId: null,
+            config: {
+              round: 'Round 1',
+              swissRound: 1,
+              isBye: true,
+              status: 'completed',
+            },
+          });
+        }
+
+        for (let i = 0; i < pairTeams.length; i += 2) {
+          fixtures.push({
+            homeTeamId: pairTeams[i],
+            awayTeamId: pairTeams[i + 1],
+            config: {
+              round: 'Round 1',
+              swissRound: 1,
+            },
+          });
+        }
       }
 
       for (const f of fixtures) {
@@ -360,6 +393,8 @@ export class FixturesGeneratorService {
           homeTeamId: f.homeTeamId,
           awayTeamId: f.awayTeamId,
           status: (f.config?.status as any) || 'scheduled',
+          homeScore: f.config?.status === 'completed' ? (f.config?.isBye ? 1 : 0) : 0,
+          awayScore: 0,
           config: f.config,
           liveData: {},
         });

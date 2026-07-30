@@ -1051,5 +1051,231 @@ export class BracketAdvancementService {
       );
     } catch {}
   }
+
+  async advanceSwissRound(
+    completedMatch: Match,
+    stage: CompetitionStage,
+  ): Promise<void> {
+    const currentRound = completedMatch.config?.swissRound;
+    if (!currentRound) return;
+
+    // Fetch all matches of this stage
+    const allMatches = await this.matchRepo.find({
+      where: { stageId: stage.id },
+      relations: { homeTeam: true, awayTeam: true },
+    });
+
+    // Filter matches of the current round
+    const currentRoundMatches = allMatches.filter(
+      (m) => m.config?.swissRound === currentRound,
+    );
+
+    // Check if all matches of the current round are completed
+    const allCompleted = currentRoundMatches.every(
+      (m) => m.status === 'completed',
+    );
+    if (!allCompleted) return;
+
+    // Get all unique team IDs that participated in any match of this stage
+    const teamIdsSet = new Set<string>();
+    for (const m of allMatches) {
+      if (m.homeTeamId) teamIdsSet.add(m.homeTeamId);
+      if (m.awayTeamId) teamIdsSet.add(m.awayTeamId);
+    }
+    const teamIds = Array.from(teamIdsSet);
+
+    // Check if we have reached the maximum number of rounds
+    const maxRounds = stage.config?.roundsCount || Math.ceil(Math.log2(teamIds.length || 2));
+    if (currentRound >= maxRounds) {
+      return;
+    }
+
+    const nextRound = currentRound + 1;
+
+    // Calculate current points, GD, GF, and bye count
+    const statsMap = new Map<
+      string,
+      {
+        teamId: string;
+        pts: number;
+        gd: number;
+        gf: number;
+        byesCount: number;
+        opponents: Set<string>;
+      }
+    >();
+
+    for (const tId of teamIds) {
+      statsMap.set(tId, {
+        teamId: tId,
+        pts: 0,
+        gd: 0,
+        gf: 0,
+        byesCount: 0,
+        opponents: new Set<string>(),
+      });
+    }
+
+    const winPts = stage.config?.winPoint ?? 3;
+    const drawPts = stage.config?.drawPoint ?? 1;
+
+    for (const m of allMatches) {
+      if (m.status !== 'completed') continue;
+
+      if (m.config?.isBye) {
+        const teamId = m.homeTeamId;
+        if (teamId && statsMap.has(teamId)) {
+          const stats = statsMap.get(teamId)!;
+          stats.pts += winPts;
+          stats.byesCount++;
+          stats.gd += 1;
+          stats.gf += 1;
+        }
+        continue;
+      }
+
+      if (!m.homeTeamId || !m.awayTeamId) continue;
+
+      const home = statsMap.get(m.homeTeamId);
+      const away = statsMap.get(m.awayTeamId);
+      if (!home || !away) continue;
+
+      home.opponents.add(m.awayTeamId);
+      away.opponents.add(m.homeTeamId);
+
+      const hScore = m.homeScore ?? 0;
+      const aScore = m.awayScore ?? 0;
+
+      home.gf += hScore;
+      home.gd += hScore - aScore;
+      away.gf += aScore;
+      away.gd += aScore - hScore;
+
+      if (hScore > aScore) {
+        home.pts += winPts;
+      } else if (aScore > hScore) {
+        away.pts += winPts;
+      } else {
+        home.pts += drawPts;
+        away.pts += drawPts;
+      }
+    }
+
+    let byeTeamId: string | null = null;
+    let pairingTeams = [...teamIds];
+
+    if (teamIds.length % 2 !== 0) {
+      const eligibleForBye = teamIds.filter(
+        (tId) => (statsMap.get(tId)?.byesCount || 0) === 0,
+      );
+
+      if (eligibleForBye.length > 0) {
+        eligibleForBye.sort((a, b) => {
+          const statsA = statsMap.get(a)!;
+          const statsB = statsMap.get(b)!;
+          if (statsA.pts !== statsB.pts) return statsA.pts - statsB.pts;
+          if (statsA.gd !== statsB.gd) return statsA.gd - statsB.gd;
+          return statsA.gf - statsB.gf;
+        });
+        byeTeamId = eligibleForBye[0];
+      } else {
+        const sortedAll = [...teamIds].sort((a, b) => {
+          const statsA = statsMap.get(a)!;
+          const statsB = statsMap.get(b)!;
+          if (statsA.pts !== statsB.pts) return statsA.pts - statsB.pts;
+          if (statsA.gd !== statsB.gd) return statsA.gd - statsB.gd;
+          return statsA.gf - statsB.gf;
+        });
+        byeTeamId = sortedAll[0];
+      }
+
+      pairingTeams = pairingTeams.filter((id) => id !== byeTeamId);
+    }
+
+    pairingTeams.sort((a, b) => {
+      const statsA = statsMap.get(a)!;
+      const statsB = statsMap.get(b)!;
+      if (statsB.pts !== statsA.pts) return statsB.pts - statsA.pts;
+      if (statsB.gd !== statsA.gd) return statsB.gd - statsA.gd;
+      return statsB.gf - statsA.gf;
+    });
+
+    const playedMap = new Map<string, Set<string>>();
+    for (const tId of teamIds) {
+      playedMap.set(tId, statsMap.get(tId)?.opponents || new Set());
+    }
+
+    const findPairings = (
+      teams: string[],
+      pMap: Map<string, Set<string>>,
+    ): [string, string][] | null => {
+      if (teams.length === 0) return [];
+      const first = teams[0];
+      for (let i = 1; i < teams.length; i++) {
+        const second = teams[i];
+        if (!pMap.get(first)?.has(second)) {
+          const subPairings = findPairings(
+            teams.slice(1, i).concat(teams.slice(i + 1)),
+            pMap,
+          );
+          if (subPairings !== null) {
+            return [[first, second], ...subPairings];
+          }
+        }
+      }
+      return null;
+    };
+
+    let pairings = findPairings(pairingTeams, playedMap);
+    if (!pairings) {
+      pairings = [];
+      const tempTeams = [...pairingTeams];
+      while (tempTeams.length >= 2) {
+        const first = tempTeams.shift()!;
+        let index = tempTeams.findIndex((t) => !playedMap.get(first)?.has(t));
+        if (index === -1) index = 0;
+        const second = tempTeams.splice(index, 1)[0];
+        pairings.push([first, second]);
+      }
+    }
+
+    const nextRoundMatches: Match[] = [];
+
+    if (byeTeamId) {
+      const m = this.matchRepo.create({
+        stageId: stage.id,
+        homeTeamId: byeTeamId,
+        awayTeamId: null,
+        status: 'completed',
+        homeScore: 1,
+        awayScore: 0,
+        config: {
+          round: `Round ${nextRound}`,
+          swissRound: nextRound,
+          isBye: true,
+          status: 'completed',
+        },
+        liveData: {},
+      });
+      nextRoundMatches.push(m);
+    }
+
+    for (const pair of pairings) {
+      const m = this.matchRepo.create({
+        stageId: stage.id,
+        homeTeamId: pair[0],
+        awayTeamId: pair[1],
+        status: 'scheduled',
+        config: {
+          round: `Round ${nextRound}`,
+          swissRound: nextRound,
+        },
+        liveData: {},
+      });
+      nextRoundMatches.push(m);
+    }
+
+    await this.matchRepo.save(nextRoundMatches);
+  }
 }
 

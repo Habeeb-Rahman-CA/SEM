@@ -163,7 +163,7 @@ export interface Competition {
 export interface CompetitionStage {
   id: string;
   name: string;
-  type: 'league' | 'group' | 'knockout' | 'group_knockout' | 'double_elimination';
+  type: 'league' | 'group' | 'knockout' | 'group_knockout' | 'double_elimination' | 'swiss';
   sequence: number;
   competitionId: string;
   config: {
@@ -180,6 +180,8 @@ export interface CompetitionStage {
     venueId?: string;
     bracketReset?: boolean;
     seeded?: boolean;
+    roundsCount?: number;
+    tieBreaks?: string[];
   };
   createdAt: string;
   updatedAt: string;
@@ -205,6 +207,8 @@ export interface Match {
     matchType?: string;
     round?: string;
     leg?: number;
+    swissRound?: number;
+    isBye?: boolean;
   };
   liveData: any;
   createdAt: string;

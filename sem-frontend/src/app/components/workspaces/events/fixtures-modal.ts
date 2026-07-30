@@ -67,6 +67,7 @@ import { AvatarComponent } from '../../../shared/components/avatar/avatar';
                   <option value="knockout">Single Elimination (Knockout)</option>
                   <option value="group_knockout">Groups + Knockouts Bracket</option>
                   <option value="double_elimination">Double Elimination Bracket</option>
+                  <option value="swiss">Swiss Tournament Format</option>
                 </select>
               </div>
 
@@ -199,6 +200,43 @@ import { AvatarComponent } from '../../../shared/components/avatar/avatar';
                 </div>
               </div>
               }
+ 
+              @if (stageType() === 'swiss') {
+              <div class="flex flex-col gap-4 border border-white/5 bg-slate-950/20 rounded-2xl p-4">
+                <div class="flex flex-col gap-1.5">
+                  <label for="f-swiss-rounds" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Number of Rounds</label>
+                  <input id="f-swiss-rounds" type="number" min="1" max="15"
+                    class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white outline-none text-center"
+                    [ngModel]="swissRounds()" (ngModelChange)="swissRounds.set($event)" name="swissRounds" />
+                  <p class="text-[10px] text-slate-500">If empty, defaults to Math.ceil(log2(teams)).</p>
+                </div>
+                <div class="flex flex-col gap-1.5">
+                  <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tie-Break Priority</label>
+                  <div class="grid grid-cols-2 gap-2 mt-1">
+                    <div class="flex items-center gap-2">
+                      <input id="tb-buchholz" type="checkbox" [checked]="swissTieBreaks().includes('buchholz')"
+                        (change)="toggleSwissTieBreak('buchholz')" class="rounded border-white/10 bg-slate-950 text-violet-600 focus:ring-violet-500" />
+                      <label for="tb-buchholz" class="text-xs text-slate-300">Buchholz</label>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <input id="tb-median" type="checkbox" [checked]="swissTieBreaks().includes('median_buchholz')"
+                        (change)="toggleSwissTieBreak('median_buchholz')" class="rounded border-white/10 bg-slate-950 text-violet-600 focus:ring-violet-500" />
+                      <label for="tb-median" class="text-xs text-slate-300">Median Buchholz</label>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <input id="tb-sb" type="checkbox" [checked]="swissTieBreaks().includes('sonneborn_berger')"
+                        (change)="toggleSwissTieBreak('sonneborn_berger')" class="rounded border-white/10 bg-slate-950 text-violet-600 focus:ring-violet-500" />
+                      <label for="tb-sb" class="text-xs text-slate-300">Sonneborn-Berger</label>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <input id="tb-cumulative" type="checkbox" [checked]="swissTieBreaks().includes('cumulative')"
+                        (change)="toggleSwissTieBreak('cumulative')" class="rounded border-white/10 bg-slate-950 text-violet-600 focus:ring-violet-500" />
+                      <label for="tb-cumulative" class="text-xs text-slate-300">Cumulative</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              }
 
               <!-- Common configs -->
               <div class="grid grid-cols-2 gap-4 border-t border-white/5 pt-4">
@@ -304,7 +342,9 @@ export class FixturesModalComponent {
 
   // Local Form Signals
   stageName = signal('Main Stage');
-  stageType = signal<'league' | 'group' | 'knockout' | 'group_knockout' | 'double_elimination'>('league');
+  stageType = signal<'league' | 'group' | 'knockout' | 'group_knockout' | 'double_elimination' | 'swiss'>('league');
+  swissRounds = signal<number | null>(null);
+  swissTieBreaks = signal<string[]>(['buchholz', 'sonneborn_berger', 'cumulative']);
   winPoint = signal(3);
   drawPoint = signal(1);
   twoLegged = signal(false);
@@ -350,6 +390,8 @@ export class FixturesModalComponent {
           this.bracketReset.set(stage.config?.bracketReset ?? true);
           this.seeded.set(stage.config?.seeded ?? false);
           this.venueId.set(stage.config?.venueId ?? '');
+          this.swissRounds.set(stage.config?.roundsCount ?? null);
+          this.swissTieBreaks.set(stage.config?.tieBreaks ?? ['buchholz', 'sonneborn_berger', 'cumulative']);
         } else {
           this.stageName.set('Main Stage');
           this.stageType.set('league');
@@ -366,6 +408,8 @@ export class FixturesModalComponent {
           this.advancingCount.set(2);
           this.bracketReset.set(true);
           this.seeded.set(false);
+          this.swissRounds.set(null);
+          this.swissTieBreaks.set(['buchholz', 'sonneborn_berger', 'cumulative']);
         }
       }
     }, { allowSignalWrites: true });
@@ -374,6 +418,12 @@ export class FixturesModalComponent {
   toggleFixtureTeam(teamId: string) {
     this.selectedFixtureTeamIds.update(prev =>
       prev.includes(teamId) ? prev.filter(id => id !== teamId) : [...prev, teamId]
+    );
+  }
+
+  toggleSwissTieBreak(rule: string) {
+    this.swissTieBreaks.update(prev =>
+      prev.includes(rule) ? prev.filter(r => r !== rule) : [...prev, rule]
     );
   }
 
@@ -436,6 +486,11 @@ export class FixturesModalComponent {
       } else if (this.stageType() === 'double_elimination') {
         config.bracketReset = this.bracketReset();
         config.seeded = this.seeded();
+      } else if (this.stageType() === 'swiss') {
+        if (this.swissRounds()) {
+          config.roundsCount = Number(this.swissRounds());
+        }
+        config.tieBreaks = this.swissTieBreaks();
       }
 
       if (this.venueId()) {

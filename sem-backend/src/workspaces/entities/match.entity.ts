@@ -116,6 +116,14 @@ export class Match extends AuditableEntity {
     setsToWin?: number;
     // Badminton matchType
     matchType?: MatchType;
+
+    // Swiss & Bracket configs
+    round?: string;
+    swissRound?: number;
+    isBye?: boolean;
+    bracket?: string;
+    matchSlot?: number;
+    status?: string;
   };
 
   @Column({ type: 'json', nullable: true })
