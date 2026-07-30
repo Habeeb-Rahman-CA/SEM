@@ -1,8 +1,34 @@
-import { Component, OnInit, OnDestroy, signal, inject, computed, effect, model, input, ChangeDetectionStrategy } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  OnDestroy,
+  signal,
+  inject,
+  computed,
+  effect,
+  model,
+  input,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom, Subscription } from 'rxjs';
-import { WorkspaceService, Workspace, WorkspaceMember, Team, Player, WorkspaceEvent, Sport, Competition, CompetitionStage, CompetitionTeam, Match, PointsConfigEntry, MatchPlayer, CompetitionStats } from '../../../services/workspace.service';
+import {
+  WorkspaceService,
+  Workspace,
+  WorkspaceMember,
+  Team,
+  Player,
+  WorkspaceEvent,
+  Sport,
+  Competition,
+  CompetitionStage,
+  CompetitionTeam,
+  Match,
+  PointsConfigEntry,
+  MatchPlayer,
+  CompetitionStats,
+} from '../../../services/workspace.service';
 import { VenueService, Venue } from '../../../services/venue.service';
 import { AuthService } from '../../../services/auth.service';
 import { UiService } from '../../../services/ui.service';
@@ -25,6 +51,7 @@ import { ScheduleMatchModalComponent } from './schedule-match-modal';
 import { DuplicateEventModalComponent } from './duplicate-event-modal';
 import { DoubleEliminationBracketComponent } from './double-elimination-bracket';
 import { QualificationPreviewModalComponent } from './qualification-preview-modal';
+import { EventTemplatesModalComponent } from './event-templates-modal';
 
 @Component({
   selector: 'app-workspace-events',
@@ -45,7 +72,8 @@ import { QualificationPreviewModalComponent } from './qualification-preview-moda
     ScheduleMatchModalComponent,
     DuplicateEventModalComponent,
     DoubleEliminationBracketComponent,
-    QualificationPreviewModalComponent
+    QualificationPreviewModalComponent,
+    EventTemplatesModalComponent,
   ],
   templateUrl: './events.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -83,7 +111,7 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
   sports = signal<Sport[]>([]);
   eventStandings = signal<any[]>([]);
   competitionStats = signal<CompetitionStats | null>(null);
-  
+
   isLoadingCompetitions = signal(false);
   isLoadingStages = signal(false);
   isLoadingStats = signal(false);
@@ -132,6 +160,9 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
   selectedMatchToSchedule = signal<Match | null>(null);
   isQualificationPreviewModalOpen = signal(false);
 
+  // Template Modal
+  isTemplatesModalOpen = signal(false);
+
   // Standings Group
   selectedPointsTableGroup = signal('Group A');
 
@@ -140,57 +171,69 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
 
   constructor() {
     // Automatically manage match socket subscription and lineup load when selectedMatch changes
-    effect(() => {
-      const match = this.selectedMatch();
-      
-      if (this.currentSubscribedMatchId) {
-        this.socketService.unsubscribeMatch(this.currentSubscribedMatchId);
-        this.currentSubscribedMatchId = null;
-      }
+    effect(
+      () => {
+        const match = this.selectedMatch();
 
-      if (match) {
-        this.socketService.subscribeMatch(match.id);
-        this.currentSubscribedMatchId = match.id;
-        this.loadMatchLineup(match.id);
-      }
-    }, { allowSignalWrites: true });
+        if (this.currentSubscribedMatchId) {
+          this.socketService.unsubscribeMatch(this.currentSubscribedMatchId);
+          this.currentSubscribedMatchId = null;
+        }
+
+        if (match) {
+          this.socketService.subscribeMatch(match.id);
+          this.currentSubscribedMatchId = match.id;
+          this.loadMatchLineup(match.id);
+        }
+      },
+      { allowSignalWrites: true },
+    );
 
     // Load competitions and standings when selectedEvent changes
-    effect(() => {
-      const event = this.selectedEvent();
-      if (event) {
-        this.loadCompetitions(event.id);
-        this.loadEventStandings(event.id);
-      }
-    }, { allowSignalWrites: true });
+    effect(
+      () => {
+        const event = this.selectedEvent();
+        if (event) {
+          this.loadCompetitions(event.id);
+          this.loadEventStandings(event.id);
+        }
+      },
+      { allowSignalWrites: true },
+    );
 
     // Load stages and teams when selectedCompetition changes
-    effect(() => {
-      const comp = this.selectedCompetition();
-      if (comp) {
-        this.activeCompetitionTab.set('matches');
-        this.competitionStats.set(null);
-        this.selectedStage.set(null);
-        this.selectedMatch.set(null);
-        this.matches.set([]);
-        this.loadStages(comp.id);
-        this.loadCompetitionTeams(comp.id);
-      }
-    }, { allowSignalWrites: true });
+    effect(
+      () => {
+        const comp = this.selectedCompetition();
+        if (comp) {
+          this.activeCompetitionTab.set('matches');
+          this.competitionStats.set(null);
+          this.selectedStage.set(null);
+          this.selectedMatch.set(null);
+          this.matches.set([]);
+          this.loadStages(comp.id);
+          this.loadCompetitionTeams(comp.id);
+        }
+      },
+      { allowSignalWrites: true },
+    );
 
     // Re-trigger advanced search if query changes while advanced search is active
-    effect(() => {
-      const query = this.eventSearchQuery();
-      if (this.searchActive()) {
-        this.triggerAdvancedSearch();
-      }
-    }, { allowSignalWrites: true });
+    effect(
+      () => {
+        const query = this.eventSearchQuery();
+        if (this.searchActive()) {
+          this.triggerAdvancedSearch();
+        }
+      },
+      { allowSignalWrites: true },
+    );
   }
 
   ngOnInit() {
     this.loadSports();
     this.loadArchivedEvents();
-    this.workspaceService.getAll().subscribe(list => {
+    this.workspaceService.getAll().subscribe((list) => {
       this.userWorkspaces.set(list);
     });
     const saved = localStorage.getItem('sem_saved_event_filters');
@@ -203,7 +246,9 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
     }
     this.matchUpdatedSub = this.socketService.matchUpdated$.subscribe((updatedMatch) => {
       if (updatedMatch) {
-        this.matches.update(prev => prev.map(m => m.id === updatedMatch.id ? updatedMatch : m));
+        this.matches.update((prev) =>
+          prev.map((m) => (m.id === updatedMatch.id ? updatedMatch : m)),
+        );
         const currentMatch = this.selectedMatch();
         if (currentMatch && currentMatch.id === updatedMatch.id) {
           this.selectedMatch.set(updatedMatch);
@@ -231,10 +276,11 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
     const query = this.eventSearchQuery().toLowerCase().trim();
     const list = this.events();
     if (!query) return list;
-    return list.filter(e => 
-      e.name.toLowerCase().includes(query) ||
-      e.status.toLowerCase().includes(query) ||
-      (e.description && e.description.toLowerCase().includes(query))
+    return list.filter(
+      (e) =>
+        e.name.toLowerCase().includes(query) ||
+        e.status.toLowerCase().includes(query) ||
+        (e.description && e.description.toLowerCase().includes(query)),
     );
   });
 
@@ -242,10 +288,11 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
     const query = this.eventSearchQuery().toLowerCase().trim();
     const list = this.archivedEvents();
     if (!query) return list;
-    return list.filter(e => 
-      e.name.toLowerCase().includes(query) ||
-      e.status.toLowerCase().includes(query) ||
-      (e.description && e.description.toLowerCase().includes(query))
+    return list.filter(
+      (e) =>
+        e.name.toLowerCase().includes(query) ||
+        e.status.toLowerCase().includes(query) ||
+        (e.description && e.description.toLowerCase().includes(query)),
     );
   });
 
@@ -256,26 +303,32 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
     if (matchesList.length === 0) return false;
 
     if (stage.type === 'league') {
-      return matchesList.every(m => m.status === 'completed');
+      return matchesList.every((m) => m.status === 'completed');
     }
     if (stage.type === 'group' || stage.type === 'group_knockout') {
       const currentGroup = this.selectedPointsTableGroup();
-      const isMultipleGroups = stage.type === 'group_knockout' && stage.config?.groupKnockoutSubtype === 'multiple_groups';
-      
+      const isMultipleGroups =
+        stage.type === 'group_knockout' && stage.config?.groupKnockoutSubtype === 'multiple_groups';
+
       const targetMatches = isMultipleGroups
-        ? matchesList.filter(m => m.config?.round === currentGroup)
-        : matchesList.filter(m => !m.config?.round || m.config.round.toLowerCase().includes('group') || m.config.round.toLowerCase().includes('stage'));
+        ? matchesList.filter((m) => m.config?.round === currentGroup)
+        : matchesList.filter(
+            (m) =>
+              !m.config?.round ||
+              m.config.round.toLowerCase().includes('group') ||
+              m.config.round.toLowerCase().includes('stage'),
+          );
 
       if (targetMatches.length === 0) return false;
-      return targetMatches.every(m => m.status === 'completed');
+      return targetMatches.every((m) => m.status === 'completed');
     }
     if (stage.type === 'knockout') {
-      return matchesList.every(m => m.status === 'completed');
+      return matchesList.every((m) => m.status === 'completed');
     }
     if (stage.type === 'swiss') {
       const maxRounds = stage.config?.roundsCount || Math.ceil(Math.log2(this.teams().length || 2));
-      const maxMatchRound = Math.max(...matchesList.map(m => m.config?.swissRound ?? 0), 0);
-      return maxMatchRound >= maxRounds && matchesList.every(m => m.status === 'completed');
+      const maxMatchRound = Math.max(...matchesList.map((m) => m.config?.swissRound ?? 0), 0);
+      return maxMatchRound >= maxRounds && matchesList.every((m) => m.status === 'completed');
     }
     return false;
   });
@@ -283,7 +336,10 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
   availableGroups = computed(() => {
     const stage = this.selectedStage();
     if (!stage) return [];
-    if (stage.type === 'group_knockout' && stage.config?.groupKnockoutSubtype === 'multiple_groups') {
+    if (
+      stage.type === 'group_knockout' &&
+      stage.config?.groupKnockoutSubtype === 'multiple_groups'
+    ) {
       const groupsCount = stage.config?.groupsCount ?? 2;
       return Array.from({ length: groupsCount }, (_, i) => `Group ${String.fromCharCode(65 + i)}`);
     }
@@ -293,14 +349,20 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
   leagueTable = computed(() => {
     const stage = this.selectedStage();
     if (!stage) return [];
-    if (stage.type !== 'league' && stage.type !== 'group' && stage.type !== 'group_knockout' && stage.type !== 'swiss') {
+    if (
+      stage.type !== 'league' &&
+      stage.type !== 'group' &&
+      stage.type !== 'group_knockout' &&
+      stage.type !== 'swiss'
+    ) {
       return [];
     }
 
     const matchesList = this.matches();
     const enrolledTeams = this.teams(); // Using workspace teams enrolled or stages team mappings
     const currentGroup = this.selectedPointsTableGroup();
-    const isMultipleGroups = stage.type === 'group_knockout' && stage.config?.groupKnockoutSubtype === 'multiple_groups';
+    const isMultipleGroups =
+      stage.type === 'group_knockout' && stage.config?.groupKnockoutSubtype === 'multiple_groups';
 
     const groupTeamIds = new Set<string>();
     if (isMultipleGroups) {
@@ -311,20 +373,23 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
         }
       }
     }
-    
-    const statsMap = new Map<string, {
-      teamId: string;
-      teamName: string;
-      teamLogoUrl?: string | null;
-      played: number;
-      won: number;
-      drawn: number;
-      lost: number;
-      gf: number;
-      ga: number;
-      gd: number;
-      pts: number;
-    }>();
+
+    const statsMap = new Map<
+      string,
+      {
+        teamId: string;
+        teamName: string;
+        teamLogoUrl?: string | null;
+        played: number;
+        won: number;
+        drawn: number;
+        lost: number;
+        gf: number;
+        ga: number;
+        gd: number;
+        pts: number;
+      }
+    >();
 
     for (const t of enrolledTeams) {
       if (isMultipleGroups && !groupTeamIds.has(t.id)) {
@@ -334,7 +399,14 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
         teamId: t.id,
         teamName: t.name,
         teamLogoUrl: t.logoUrl,
-        played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, pts: 0
+        played: 0,
+        won: 0,
+        drawn: 0,
+        lost: 0,
+        gf: 0,
+        ga: 0,
+        gd: 0,
+        pts: 0,
       });
     }
 
@@ -347,7 +419,17 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
         if (teamId) {
           if (!statsMap.has(teamId) && match.homeTeam) {
             statsMap.set(teamId, {
-              teamId, teamName: match.homeTeam.name, teamLogoUrl: match.homeTeam.logoUrl, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, pts: 0
+              teamId,
+              teamName: match.homeTeam.name,
+              teamLogoUrl: match.homeTeam.logoUrl,
+              played: 0,
+              won: 0,
+              drawn: 0,
+              lost: 0,
+              gf: 0,
+              ga: 0,
+              gd: 0,
+              pts: 0,
             });
           }
           const stats = statsMap.get(teamId);
@@ -362,7 +444,10 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
         continue;
       }
 
-      const isGroupMatch = !match.config?.round || match.config.round.toLowerCase().includes('group') || match.config.round.toLowerCase().includes('stage');
+      const isGroupMatch =
+        !match.config?.round ||
+        match.config.round.toLowerCase().includes('group') ||
+        match.config.round.toLowerCase().includes('stage');
       if (stage.type === 'group_knockout' && !isGroupMatch) {
         continue;
       }
@@ -379,12 +464,32 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
 
       if (!home && match.homeTeam) {
         statsMap.set(match.homeTeamId, {
-          teamId: match.homeTeamId, teamName: match.homeTeam.name, teamLogoUrl: match.homeTeam.logoUrl, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, pts: 0
+          teamId: match.homeTeamId,
+          teamName: match.homeTeam.name,
+          teamLogoUrl: match.homeTeam.logoUrl,
+          played: 0,
+          won: 0,
+          drawn: 0,
+          lost: 0,
+          gf: 0,
+          ga: 0,
+          gd: 0,
+          pts: 0,
         });
       }
       if (!away && match.awayTeam) {
         statsMap.set(match.awayTeamId, {
-          teamId: match.awayTeamId, teamName: match.awayTeam.name, teamLogoUrl: match.awayTeam.logoUrl, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, pts: 0
+          teamId: match.awayTeamId,
+          teamName: match.awayTeam.name,
+          teamLogoUrl: match.awayTeam.logoUrl,
+          played: 0,
+          won: 0,
+          drawn: 0,
+          lost: 0,
+          gf: 0,
+          ga: 0,
+          gd: 0,
+          pts: 0,
         });
       }
 
@@ -424,20 +529,26 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
 
     if (stage.type === 'swiss') {
       const teamIds = Array.from(statsMap.keys());
-      const tieBreakScores = new Map<string, {
-        buchholz: number;
-        median_buchholz: number;
-        sonneborn_berger: number;
-        cumulative: number;
-      }>();
+      const tieBreakScores = new Map<
+        string,
+        {
+          buchholz: number;
+          median_buchholz: number;
+          sonneborn_berger: number;
+          cumulative: number;
+        }
+      >();
 
-      const completedMatches = matchesList.filter(m => m.status === 'completed');
+      const completedMatches = matchesList.filter((m) => m.status === 'completed');
       completedMatches.sort((a, b) => (a.config?.swissRound ?? 0) - (b.config?.swissRound ?? 0));
-      const maxSwissRound = Math.max(...completedMatches.map(m => m.config?.swissRound ?? 0), 1);
+      const maxSwissRound = Math.max(...completedMatches.map((m) => m.config?.swissRound ?? 0), 1);
 
       const runningPoints = new Map<string, number>();
       const opponentsMap = new Map<string, string[]>();
-      const resultsMap = new Map<string, { opponentId: string; outcome: 'win' | 'draw' | 'loss' }[]>();
+      const resultsMap = new Map<
+        string,
+        { opponentId: string; outcome: 'win' | 'draw' | 'loss' }[]
+      >();
       const roundPointsMap = new Map<string, number[]>();
 
       for (const tId of teamIds) {
@@ -448,7 +559,7 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
       }
 
       for (let r = 1; r <= maxSwissRound; r++) {
-        const roundMatches = completedMatches.filter(m => m.config?.swissRound === r);
+        const roundMatches = completedMatches.filter((m) => m.config?.swissRound === r);
         for (const m of roundMatches) {
           if (m.config?.isBye) {
             const teamId = m.homeTeamId;
@@ -535,9 +646,11 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
           if (rule === 'buchholz') {
             if (tbB.buchholz !== tbA.buchholz) return tbB.buchholz - tbA.buchholz;
           } else if (rule === 'median_buchholz') {
-            if (tbB.median_buchholz !== tbA.median_buchholz) return tbB.median_buchholz - tbA.median_buchholz;
+            if (tbB.median_buchholz !== tbA.median_buchholz)
+              return tbB.median_buchholz - tbA.median_buchholz;
           } else if (rule === 'sonneborn_berger') {
-            if (tbB.sonneborn_berger !== tbA.sonneborn_berger) return tbB.sonneborn_berger - tbA.sonneborn_berger;
+            if (tbB.sonneborn_berger !== tbA.sonneborn_berger)
+              return tbB.sonneborn_berger - tbA.sonneborn_berger;
           } else if (rule === 'cumulative') {
             if (tbB.cumulative !== tbA.cumulative) return tbB.cumulative - tbA.cumulative;
           } else if (rule === 'gd') {
@@ -564,10 +677,10 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
   // HELPER METHODS
   hasPermission(permission: string): boolean {
     const userId = this.authService.currentUser()?.id;
-    const member = this.members().find(m => m.userId === userId);
+    const member = this.members().find((m) => m.userId === userId);
     if (!member || !member.role) return false;
     if (member.role.slug === 'owner') return true;
-    return member.role.permissions?.some(p => p.slug === permission) ?? false;
+    return member.role.permissions?.some((p) => p.slug === permission) ?? false;
   }
 
   showDatePicker(event: any) {
@@ -622,7 +735,7 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
       error: (err) => {
         console.error('Failed to load competitions', err);
         this.isLoadingCompetitions.set(false);
-      }
+      },
     });
   }
 
@@ -635,7 +748,7 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         console.error('Failed to load event standings', err);
-      }
+      },
     });
   }
 
@@ -654,14 +767,14 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
     if (isEdit) {
       if (saved.isArchived) {
         // If the status became completed, it might have been archived
-        this.events.update(prev => prev.filter(e => e.id !== saved.id));
-        this.archivedEvents.update(prev => {
-          const exists = prev.some(e => e.id === saved.id);
-          return exists ? prev.map(e => e.id === saved.id ? saved : e) : [...prev, saved];
+        this.events.update((prev) => prev.filter((e) => e.id !== saved.id));
+        this.archivedEvents.update((prev) => {
+          const exists = prev.some((e) => e.id === saved.id);
+          return exists ? prev.map((e) => (e.id === saved.id ? saved : e)) : [...prev, saved];
         });
       } else {
-        this.events.update(prev => prev.map(e => e.id === saved.id ? saved : e));
-        this.archivedEvents.update(prev => prev.filter(e => e.id !== saved.id));
+        this.events.update((prev) => prev.map((e) => (e.id === saved.id ? saved : e)));
+        this.archivedEvents.update((prev) => prev.filter((e) => e.id !== saved.id));
       }
       const curEvent = this.selectedEvent();
       if (curEvent && curEvent.id === saved.id) {
@@ -669,9 +782,9 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
       }
     } else {
       if (saved.isArchived) {
-        this.archivedEvents.update(prev => [...prev, saved]);
+        this.archivedEvents.update((prev) => [...prev, saved]);
       } else {
-        this.events.update(prev => [...prev, saved]);
+        this.events.update((prev) => [...prev, saved]);
       }
     }
   }
@@ -683,10 +796,27 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
 
   onEventDuplicated(saved: WorkspaceEvent) {
     if (saved.isArchived) {
-      this.archivedEvents.update(prev => [...prev, saved]);
+      this.archivedEvents.update((prev) => [...prev, saved]);
     } else {
-      this.events.update(prev => [...prev, saved]);
+      this.events.update((prev) => [...prev, saved]);
     }
+  }
+
+  openTemplatesModal() {
+    this.isTemplatesModalOpen.set(true);
+  }
+
+  closeTemplatesModal() {
+    this.isTemplatesModalOpen.set(false);
+  }
+
+  onTemplateEventCreated(newEvent: WorkspaceEvent) {
+    if (newEvent.isArchived) {
+      this.archivedEvents.update((prev) => [...prev, newEvent]);
+    } else {
+      this.events.update((prev) => [...prev, newEvent]);
+    }
+    this.isTemplatesModalOpen.set(false);
   }
 
   async onDeleteEvent(event: WorkspaceEvent) {
@@ -704,8 +834,8 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
     const originalArchivedEvents = this.archivedEvents();
 
     // Optimistic Update
-    this.events.update(prev => prev.filter(e => e.id !== event.id));
-    this.archivedEvents.update(prev => prev.filter(e => e.id !== event.id));
+    this.events.update((prev) => prev.filter((e) => e.id !== event.id));
+    this.archivedEvents.update((prev) => prev.filter((e) => e.id !== event.id));
     if (this.selectedEvent()?.id === event.id) {
       this.selectedEvent.set(null);
       this.competitions.set([]);
@@ -720,7 +850,7 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
         this.events.set(originalEvents);
         this.archivedEvents.set(originalArchivedEvents);
         this.uiService.error(err.error?.message ?? 'Failed to delete event.');
-      }
+      },
     });
   }
 
@@ -729,7 +859,7 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
     if (!ws) return;
     this.eventService.getEvents(ws.id, true).subscribe({
       next: (events) => this.archivedEvents.set(events),
-      error: (err) => console.error('Failed to load archived events', err)
+      error: (err) => console.error('Failed to load archived events', err),
     });
   }
 
@@ -748,15 +878,17 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
       next: (updatedEvent) => {
         this.uiService.success(`Event "${event.name}" archived successfully.`);
         // Remove from active events, add to archived
-        this.events.update(prev => prev.filter(e => e.id !== event.id));
-        this.archivedEvents.update(prev => {
-          const exists = prev.some(e => e.id === updatedEvent.id);
-          return exists ? prev.map(e => e.id === updatedEvent.id ? updatedEvent : e) : [...prev, updatedEvent];
+        this.events.update((prev) => prev.filter((e) => e.id !== event.id));
+        this.archivedEvents.update((prev) => {
+          const exists = prev.some((e) => e.id === updatedEvent.id);
+          return exists
+            ? prev.map((e) => (e.id === updatedEvent.id ? updatedEvent : e))
+            : [...prev, updatedEvent];
         });
       },
       error: (err) => {
         this.uiService.error(err.error?.message ?? 'Failed to archive event.');
-      }
+      },
     });
   }
 
@@ -775,15 +907,17 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
       next: (updatedEvent) => {
         this.uiService.success(`Event "${event.name}" restored successfully.`);
         // Remove from archived, add to active
-        this.archivedEvents.update(prev => prev.filter(e => e.id !== event.id));
-        this.events.update(prev => {
-          const exists = prev.some(e => e.id === updatedEvent.id);
-          return exists ? prev.map(e => e.id === updatedEvent.id ? updatedEvent : e) : [...prev, updatedEvent];
+        this.archivedEvents.update((prev) => prev.filter((e) => e.id !== event.id));
+        this.events.update((prev) => {
+          const exists = prev.some((e) => e.id === updatedEvent.id);
+          return exists
+            ? prev.map((e) => (e.id === updatedEvent.id ? updatedEvent : e))
+            : [...prev, updatedEvent];
         });
       },
       error: (err) => {
         this.uiService.error(err.error?.message ?? 'Failed to restore event.');
-      }
+      },
     });
   }
 
@@ -822,13 +956,13 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
   onCompetitionSaved(saved: Competition) {
     const isEdit = !!this.editingCompetition();
     if (isEdit) {
-      this.competitions.update(prev => prev.map(c => c.id === saved.id ? saved : c));
+      this.competitions.update((prev) => prev.map((c) => (c.id === saved.id ? saved : c)));
       const curComp = this.selectedCompetition();
       if (curComp && curComp.id === saved.id) {
         this.selectedCompetition.set(saved);
       }
     } else {
-      this.competitions.update(prev => [...prev, saved]);
+      this.competitions.update((prev) => [...prev, saved]);
     }
   }
 
@@ -847,7 +981,7 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
     const originalCompetitions = this.competitions();
 
     // Optimistic Update
-    this.competitions.update(prev => prev.filter(c => c.id !== comp.id));
+    this.competitions.update((prev) => prev.filter((c) => c.id !== comp.id));
     if (this.selectedCompetition()?.id === comp.id) {
       this.selectedCompetition.set(null);
       this.stages.set([]);
@@ -862,11 +996,13 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
         // Rollback
         this.competitions.set(originalCompetitions);
         this.uiService.error(err.error?.message ?? 'Failed to delete competition.');
-      }
+      },
     });
   }
 
-  getCompetitionWinnerAndRunnerUp(comp: Competition): { winner?: string; runnerUp?: string } | null {
+  getCompetitionWinnerAndRunnerUp(
+    comp: Competition,
+  ): { winner?: string; runnerUp?: string } | null {
     if (!comp.stages || comp.stages.length === 0) return null;
 
     const sortedStages = [...comp.stages].sort((a, b) => a.sequence - b.sequence);
@@ -898,7 +1034,10 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
       const winPts = lastStage.config?.winPoint ?? 3;
       const drawPts = lastStage.config?.drawPoint ?? 1;
 
-      const statsMap = new Map<string, { teamName: string; pts: number; gd: number; gf: number; ga: number }>();
+      const statsMap = new Map<
+        string,
+        { teamName: string; pts: number; gd: number; gf: number; ga: number }
+      >();
 
       for (const m of lastStage.matches) {
         if (!m.homeTeamId || !m.awayTeamId) continue;
@@ -958,11 +1097,11 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
     const matchesList = this.matches();
     if (matchesList.length === 0) return null;
 
-    const allCompleted = matchesList.every(m => m.status === 'completed');
+    const allCompleted = matchesList.every((m) => m.status === 'completed');
     if (!allCompleted) return null;
 
     if (stage.type === 'knockout' || stage.type === 'group_knockout') {
-      const finalMatch = matchesList.find(m => m.config?.round === 'Final');
+      const finalMatch = matchesList.find((m) => m.config?.round === 'Final');
       if (finalMatch && finalMatch.status === 'completed') {
         const homeScore = finalMatch.homeScore ?? 0;
         const awayScore = finalMatch.awayScore ?? 0;
@@ -1013,7 +1152,7 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
       error: (err) => {
         this.isLoadingStats.set(false);
         this.uiService.error('Failed to load competition statistics.');
-      }
+      },
     });
   }
 
@@ -1033,7 +1172,7 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
       error: (err) => {
         console.error('Failed to load stages', err);
         this.isLoadingStages.set(false);
-      }
+      },
     });
   }
 
@@ -1050,7 +1189,7 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
       error: (err) => {
         console.error('Failed to load competition teams', err);
         this.isLoadingCompetitionTeams.set(false);
-      }
+      },
     });
   }
 
@@ -1074,7 +1213,7 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.uiService.error(err.error?.message ?? 'Failed to load matches.');
-      }
+      },
     });
   }
 
@@ -1109,7 +1248,8 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
 
     const confirmed = await this.uiService.confirm({
       title: 'Reset Stages & Fixtures',
-      message: 'Are you sure you want to delete all stages and all generated fixtures for this competition? This action cannot be undone.',
+      message:
+        'Are you sure you want to delete all stages and all generated fixtures for this competition? This action cannot be undone.',
       confirmText: 'Reset',
       type: 'danger',
     });
@@ -1118,7 +1258,7 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
     this.isResettingStages.set(true);
     try {
       await firstValueFrom(
-        this.competitionService.resetStagesAndFixtures(ws.id, event.id, comp.id)
+        this.competitionService.resetStagesAndFixtures(ws.id, event.id, comp.id),
       );
 
       this.uiService.success('Stages and fixtures have been cleared successfully.');
@@ -1131,7 +1271,7 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
     } catch (err: any) {
       console.error('Failed to reset stages and fixtures', err);
       this.uiService.error(
-        err.error?.message ?? 'Failed to clear stages and fixtures. Please try again.'
+        err.error?.message ?? 'Failed to clear stages and fixtures. Please try again.',
       );
     } finally {
       this.isResettingStages.set(false);
@@ -1171,24 +1311,27 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.competitionService.acquireMatchLock(ws.id, event.id, comp.id, stage.id, match.id).subscribe({
-      next: (res) => {
-        if (res.success) {
-          this.selectedMatch.set(match);
-          this.matchLineup.set([]);
-          this.startLockHeartbeat(match);
-        } else {
+    this.competitionService
+      .acquireMatchLock(ws.id, event.id, comp.id, stage.id, match.id)
+      .subscribe({
+        next: (res) => {
+          if (res.success) {
+            this.selectedMatch.set(match);
+            this.matchLineup.set([]);
+            this.startLockHeartbeat(match);
+          } else {
+            this.uiService.error(
+              `This match is currently locked/being edited by ${res.lockedBy || 'another official'}.`,
+            );
+          }
+        },
+        error: (err) => {
           this.uiService.error(
-            `This match is currently locked/being edited by ${res.lockedBy || 'another official'}.`
+            err.error?.message ||
+              'Failed to acquire edit lock. The match may be currently edited by another official.',
           );
-        }
-      },
-      error: (err) => {
-        this.uiService.error(
-          err.error?.message || 'Failed to acquire edit lock. The match may be currently edited by another official.'
-        );
-      }
-    });
+        },
+      });
   }
 
   startLockHeartbeat(match: Match) {
@@ -1200,15 +1343,19 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
     if (!ws || !event || !comp || !stage) return;
 
     this.lockInterval = setInterval(() => {
-      this.competitionService.acquireMatchLock(ws.id, event.id, comp.id, stage.id, match.id).subscribe({
-        error: (err) => {
-          console.warn('Failed to renew match lock', err);
-          this.uiService.error(err.error?.message || 'Lock expired or lost. Another official may have taken over.');
-          this.stopLockHeartbeat();
-          this.selectedMatch.set(null);
-          this.matchLineup.set([]);
-        }
-      });
+      this.competitionService
+        .acquireMatchLock(ws.id, event.id, comp.id, stage.id, match.id)
+        .subscribe({
+          error: (err) => {
+            console.warn('Failed to renew match lock', err);
+            this.uiService.error(
+              err.error?.message || 'Lock expired or lost. Another official may have taken over.',
+            );
+            this.stopLockHeartbeat();
+            this.selectedMatch.set(null);
+            this.matchLineup.set([]);
+          },
+        });
     }, 20000);
   }
 
@@ -1229,15 +1376,17 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
 
     const canScoreValue = this.hasPermission('match.score');
     if (match.status !== 'completed' && canScoreValue) {
-      this.competitionService.releaseMatchLock(ws.id, event.id, comp.id, stage.id, match.id).subscribe({
-        error: (err) => console.warn('Failed to release match lock', err)
-      });
+      this.competitionService
+        .releaseMatchLock(ws.id, event.id, comp.id, stage.id, match.id)
+        .subscribe({
+          error: (err) => console.warn('Failed to release match lock', err),
+        });
     }
   }
 
   onMatchUpdated(updated: any) {
     this.selectedMatch.set(updated);
-    this.matches.update(prev => prev.map(m => m.id === updated.id ? updated : m));
+    this.matches.update((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
   }
 
   onMatchCompleted() {
@@ -1257,7 +1406,7 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
 
     this.competitionService.getMatchLineup(ws.id, event.id, comp.id, stage.id, matchId).subscribe({
       next: (lineup) => this.matchLineup.set(lineup),
-      error: (err) => console.error('Failed to load match lineup', err)
+      error: (err) => console.error('Failed to load match lineup', err),
     });
   }
 
@@ -1273,25 +1422,35 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
     const list = this.matches();
     const stage = this.selectedStage();
     if (!stage) return [];
-    
+
     const roundsSet = new Set<string>();
     for (const m of list) {
       const round = m.config?.round;
       if (round) {
-        const isGroup = round.toLowerCase().includes('group') || round.toLowerCase().includes('stage');
+        const isGroup =
+          round.toLowerCase().includes('group') || round.toLowerCase().includes('stage');
         if (stage.type === 'group_knockout' && isGroup) {
           continue;
         }
         roundsSet.add(round);
       }
     }
-    
-    const roundOrder = ['round of 32', 'round of 16', 'round of 8', 'quarter-final', 'semi-final', 'final', 'third place match', '3rd place match'];
+
+    const roundOrder = [
+      'round of 32',
+      'round of 16',
+      'round of 8',
+      'quarter-final',
+      'semi-final',
+      'final',
+      'third place match',
+      '3rd place match',
+    ];
     return Array.from(roundsSet).sort((a, b) => {
       const aLower = a.toLowerCase();
       const bLower = b.toLowerCase();
-      const idxA = roundOrder.findIndex(o => aLower.includes(o));
-      const idxB = roundOrder.findIndex(o => bLower.includes(o));
+      const idxA = roundOrder.findIndex((o) => aLower.includes(o));
+      const idxB = roundOrder.findIndex((o) => bLower.includes(o));
       if (idxA !== -1 && idxB !== -1) return idxA - idxB;
       if (idxA !== -1) return -1;
       if (idxB !== -1) return 1;
@@ -1300,7 +1459,9 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
   }
 
   getMatchesForRound(roundName: string): Match[] {
-    return this.matches().filter(m => m.config?.round === roundName && (m.config?.leg === undefined || m.config?.leg === 1));
+    return this.matches().filter(
+      (m) => m.config?.round === roundName && (m.config?.leg === undefined || m.config?.leg === 1),
+    );
   }
 
   onOpenScheduleModal(match: Match) {
@@ -1309,7 +1470,7 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
   }
 
   onMatchScheduled(updated: Match) {
-    this.matches.update(prev => prev.map(m => m.id === updated.id ? updated : m));
+    this.matches.update((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
     if (this.selectedMatch() && this.selectedMatch()!.id === updated.id) {
       this.selectedMatch.set(updated);
     }
@@ -1350,7 +1511,7 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
       sortOrder: this.searchSortOrder(),
     };
     const current = this.savedFilters();
-    const updated = current.filter(sf => sf.name.toLowerCase() !== name.toLowerCase());
+    const updated = current.filter((sf) => sf.name.toLowerCase() !== name.toLowerCase());
     updated.push({ name, filters });
     this.savedFilters.set(updated);
     localStorage.setItem('sem_saved_event_filters', JSON.stringify(updated));
@@ -1358,7 +1519,7 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
   }
 
   deleteSavedFilter(name: string) {
-    const updated = this.savedFilters().filter(sf => sf.name !== name);
+    const updated = this.savedFilters().filter((sf) => sf.name !== name);
     this.savedFilters.set(updated);
     localStorage.setItem('sem_saved_event_filters', JSON.stringify(updated));
   }
@@ -1393,7 +1554,7 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
       competitionName: this.searchCompetitionName(),
       workspaceIdFilter: this.searchWorkspaceId(),
       sortBy: this.searchSortBy(),
-      sortOrder: this.searchSortOrder()
+      sortOrder: this.searchSortOrder(),
     };
     this.eventService.searchEvents(ws.id, params).subscribe({
       next: (results) => {
@@ -1401,7 +1562,7 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         console.error('Advanced search failed:', err);
-      }
+      },
     });
   }
 }

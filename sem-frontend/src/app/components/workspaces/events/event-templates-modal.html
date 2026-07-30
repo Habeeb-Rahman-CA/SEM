@@ -1,0 +1,552 @@
+<!-- ═══════════════════════════════════════════════════════════════
+     Event Templates Modal
+     Uses Flaticon uicons only (fi fi-rr-* / fi fi-sr-*)
+═══════════════════════════════════════════════════════════════ -->
+<div class="etm-backdrop" (click)="close()"></div>
+
+<div class="etm-modal" role="dialog" aria-modal="true" aria-labelledby="etm-title">
+  <!-- ── Header ──────────────────────────────────────────────────── -->
+  <header class="etm-header">
+    <div class="etm-header-left">
+      @if (view() !== 'list') {
+        <button
+          class="etm-back-btn"
+          id="etm-back-btn"
+          (click)="backToList()"
+          aria-label="Back to list"
+        >
+          <i class="fi fi-rr-arrow-left"></i>
+        </button>
+      }
+      <div class="etm-header-icon">
+        <i class="fi fi-sr-template"></i>
+      </div>
+      <div>
+        <h2 class="etm-title" id="etm-title">
+          @switch (view()) {
+            @case ('list') {
+              Event Templates
+            }
+            @case ('create') {
+              New Template
+            }
+            @case ('edit') {
+              Edit Template
+            }
+            @case ('instantiate') {
+              Create from Template
+            }
+            @case ('save-from-event') {
+              Save Event as Template
+            }
+          }
+        </h2>
+        <p class="etm-subtitle">
+          @switch (view()) {
+            @case ('list') {
+              Reuse branding, settings &amp; workflows across events
+            }
+            @case ('create') {
+              Define a reusable event configuration blueprint
+            }
+            @case ('edit') {
+              Modify this template's configuration
+            }
+            @case ('instantiate') {
+              Spin up a new event in seconds
+            }
+            @case ('save-from-event') {
+              Capture an existing event's setup
+            }
+          }
+        </p>
+      </div>
+    </div>
+    <button class="etm-close-btn" id="etm-close-btn" (click)="close()" aria-label="Close">
+      <i class="fi fi-rr-cross"></i>
+    </button>
+  </header>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       VIEW: LIST
+  ══════════════════════════════════════════════════════════════ -->
+  @if (view() === 'list') {
+    <div class="etm-list-toolbar">
+      <div class="etm-search-wrap">
+        <i class="fi fi-rr-search etm-search-icon"></i>
+        <input
+          id="etm-search-input"
+          class="etm-search"
+          type="text"
+          placeholder="Search templates..."
+          [value]="searchQuery()"
+          (input)="searchQuery.set($any($event.target).value)"
+        />
+      </div>
+      <div class="etm-toolbar-actions">
+        <button
+          class="etm-btn etm-btn-secondary"
+          id="etm-save-from-event-btn"
+          (click)="openSaveFromEventView()"
+        >
+          <i class="fi fi-rr-download"></i>
+          Save from Event
+        </button>
+        <button
+          class="etm-btn etm-btn-primary"
+          id="etm-new-template-btn"
+          (click)="openCreateView()"
+        >
+          <i class="fi fi-rr-plus"></i>
+          New Template
+        </button>
+      </div>
+    </div>
+
+    <div class="etm-body">
+      @if (isLoading()) {
+        <div class="etm-empty">
+          <i class="fi fi-rr-loading etm-spin etm-empty-icon"></i>
+          <p>Loading templates…</p>
+        </div>
+      } @else if (filteredTemplates().length === 0) {
+        <div class="etm-empty">
+          <i class="fi fi-rr-template etm-empty-icon"></i>
+          <h3>No templates yet</h3>
+          <p>Create your first template to speed up future event setup.</p>
+          <button
+            class="etm-btn etm-btn-primary"
+            id="etm-empty-create-btn"
+            (click)="openCreateView()"
+          >
+            <i class="fi fi-rr-plus"></i> Create Template
+          </button>
+        </div>
+      } @else {
+        <div class="etm-grid">
+          @for (template of filteredTemplates(); track template.id) {
+            <article class="etm-card" id="etm-card-{{ template.id }}">
+              <!-- Card Header -->
+              <div class="etm-card-header">
+                @if (template.logoUrl) {
+                  <img class="etm-card-logo" [src]="template.logoUrl" alt="" />
+                } @else {
+                  <div class="etm-card-logo-placeholder">
+                    <i class="fi fi-sr-template"></i>
+                  </div>
+                }
+                <div class="etm-card-meta">
+                  <h3 class="etm-card-name">{{ template.name }}</h3>
+                  @if (template.sport) {
+                    <span class="etm-card-sport">
+                      <i class="fi fi-rr-ball"></i> {{ template.sport }}
+                    </span>
+                  }
+                </div>
+                <span class="etm-use-badge" title="Times used">
+                  <i class="fi fi-rr-chart-histogram"></i>
+                  {{ template.useCount }}x
+                </span>
+              </div>
+
+              <!-- Description -->
+              @if (template.description) {
+                <p class="etm-card-desc">{{ template.description }}</p>
+              }
+
+              <!-- Info chips -->
+              <div class="etm-card-chips">
+                @if (templateCompetitionCount(template) > 0) {
+                  <span class="etm-chip etm-chip-blue">
+                    <i class="fi fi-rr-trophy"></i>
+                    {{ templateCompetitionCount(template) }} competition{{
+                      templateCompetitionCount(template) > 1 ? 's' : ''
+                    }}
+                  </span>
+                }
+                @if (template.venue) {
+                  <span class="etm-chip etm-chip-gray">
+                    <i class="fi fi-rr-marker"></i>
+                    {{ template.venue }}
+                  </span>
+                }
+                @if (template.defaultIsPublic) {
+                  <span class="etm-chip etm-chip-green">
+                    <i class="fi fi-rr-globe"></i>
+                    Public
+                  </span>
+                }
+              </div>
+
+              <!-- Card Actions -->
+              <div class="etm-card-actions">
+                <button
+                  class="etm-btn etm-btn-primary etm-btn-sm"
+                  id="etm-use-btn-{{ template.id }}"
+                  (click)="openInstantiateView(template)"
+                >
+                  <i class="fi fi-rr-magic-wand"></i>
+                  Use Template
+                </button>
+                <button
+                  class="etm-btn etm-btn-ghost etm-btn-sm"
+                  id="etm-edit-btn-{{ template.id }}"
+                  (click)="openEditView(template)"
+                  aria-label="Edit template"
+                >
+                  <i class="fi fi-rr-pencil"></i>
+                </button>
+                <button
+                  class="etm-btn etm-btn-danger-ghost etm-btn-sm"
+                  id="etm-delete-btn-{{ template.id }}"
+                  (click)="deleteTemplate(template)"
+                  aria-label="Delete template"
+                >
+                  <i class="fi fi-rr-trash"></i>
+                </button>
+              </div>
+            </article>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ══════════════════════════════════════════════════════════════
+       VIEW: CREATE / EDIT
+  ══════════════════════════════════════════════════════════════ -->
+  @if (view() === 'create' || view() === 'edit') {
+    <div class="etm-body etm-form-body">
+      <div class="etm-form-grid">
+        <!-- Name -->
+        <div class="etm-form-group etm-span-2">
+          <label class="etm-label" for="etm-form-name">
+            <i class="fi fi-rr-text"></i> Template Name *
+          </label>
+          <input
+            id="etm-form-name"
+            class="etm-input"
+            type="text"
+            placeholder="e.g. Annual Football Cup"
+            [value]="formName()"
+            (input)="formName.set($any($event.target).value)"
+          />
+        </div>
+
+        <!-- Description -->
+        <div class="etm-form-group etm-span-2">
+          <label class="etm-label" for="etm-form-desc">
+            <i class="fi fi-rr-document"></i> Description
+          </label>
+          <textarea
+            id="etm-form-desc"
+            class="etm-input etm-textarea"
+            placeholder="Describe what this template is for…"
+            rows="2"
+            [value]="formDescription()"
+            (input)="formDescription.set($any($event.target).value)"
+          ></textarea>
+        </div>
+
+        <!-- Sport -->
+        <div class="etm-form-group">
+          <label class="etm-label" for="etm-form-sport">
+            <i class="fi fi-rr-ball"></i> Default Sport
+          </label>
+          <input
+            id="etm-form-sport"
+            class="etm-input"
+            type="text"
+            placeholder="Football, Cricket…"
+            [value]="formSport()"
+            (input)="formSport.set($any($event.target).value)"
+          />
+        </div>
+
+        <!-- Venue -->
+        <div class="etm-form-group">
+          <label class="etm-label" for="etm-form-venue">
+            <i class="fi fi-rr-marker"></i> Default Venue
+          </label>
+          <input
+            id="etm-form-venue"
+            class="etm-input"
+            type="text"
+            placeholder="Stadium name…"
+            [value]="formVenue()"
+            (input)="formVenue.set($any($event.target).value)"
+          />
+        </div>
+
+        <!-- Organizers -->
+        <div class="etm-form-group">
+          <label class="etm-label" for="etm-form-org">
+            <i class="fi fi-rr-users-alt"></i> Default Organizers
+          </label>
+          <input
+            id="etm-form-org"
+            class="etm-input"
+            type="text"
+            placeholder="Organizing body…"
+            [value]="formOrganizers()"
+            (input)="formOrganizers.set($any($event.target).value)"
+          />
+        </div>
+
+        <!-- Registration Status -->
+        <div class="etm-form-group">
+          <label class="etm-label" for="etm-form-reg-status">
+            <i class="fi fi-rr-list-check"></i> Default Registration Status
+          </label>
+          <select
+            id="etm-form-reg-status"
+            class="etm-select"
+            [value]="formRegistrationStatus()"
+            (change)="formRegistrationStatus.set($any($event.target).value)"
+          >
+            <option value="open">Open</option>
+            <option value="closed">Closed</option>
+            <option value="invite_only">Invite Only</option>
+          </select>
+        </div>
+
+        <!-- Logo URL -->
+        <div class="etm-form-group etm-span-2">
+          <label class="etm-label" for="etm-form-logo">
+            <i class="fi fi-rr-picture"></i> Logo URL
+          </label>
+          <input
+            id="etm-form-logo"
+            class="etm-input"
+            type="url"
+            placeholder="https://…"
+            [value]="formLogoUrl()"
+            (input)="formLogoUrl.set($any($event.target).value)"
+          />
+        </div>
+
+        <!-- Is Public -->
+        <div class="etm-form-group etm-span-2">
+          <label class="etm-toggle-label" for="etm-form-public">
+            <div class="etm-toggle-wrap">
+              <input
+                type="checkbox"
+                id="etm-form-public"
+                class="etm-toggle-input"
+                [checked]="formIsPublic()"
+                (change)="formIsPublic.set($any($event.target).checked)"
+              />
+              <span class="etm-toggle-track">
+                <span class="etm-toggle-thumb"></span>
+              </span>
+            </div>
+            <span class="etm-toggle-text">
+              <i class="fi fi-rr-globe"></i>
+              Default to Public Event
+            </span>
+          </label>
+        </div>
+
+        <!-- Hint about competitions -->
+        <div class="etm-form-group etm-span-2">
+          <div class="etm-hint">
+            <i class="fi fi-rr-info"></i>
+            To save competition &amp; stage blueprints, use <strong>"Save from Event"</strong>
+            which captures the full competition structure automatically.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="etm-footer">
+      <button class="etm-btn etm-btn-ghost" id="etm-form-cancel-btn" (click)="backToList()">
+        Cancel
+      </button>
+      <button
+        class="etm-btn etm-btn-primary"
+        id="etm-form-save-btn"
+        [disabled]="isSaving()"
+        (click)="saveTemplate()"
+      >
+        @if (isSaving()) {
+          <i class="fi fi-rr-loading etm-spin"></i> Saving…
+        } @else {
+          <i class="fi fi-rr-disk"></i>
+          {{ view() === 'edit' ? 'Update Template' : 'Create Template' }}
+        }
+      </button>
+    </footer>
+  }
+
+  <!-- ══════════════════════════════════════════════════════════════
+       VIEW: INSTANTIATE
+  ══════════════════════════════════════════════════════════════ -->
+  @if (view() === 'instantiate') {
+    @let tmpl = selectedTemplate();
+    @if (tmpl) {
+      <div class="etm-body">
+        <!-- Template Preview Card -->
+        <div class="etm-preview-card">
+          <div class="etm-preview-header">
+            @if (tmpl.logoUrl) {
+              <img class="etm-preview-logo" [src]="tmpl.logoUrl" alt="" />
+            } @else {
+              <div class="etm-preview-logo-placeholder">
+                <i class="fi fi-sr-template"></i>
+              </div>
+            }
+            <div>
+              <h3 class="etm-preview-name">{{ tmpl.name }}</h3>
+              @if (tmpl.description) {
+                <p class="etm-preview-desc">{{ tmpl.description }}</p>
+              }
+            </div>
+          </div>
+          <div class="etm-preview-chips">
+            @if (tmpl.sport) {
+              <span class="etm-chip etm-chip-blue"
+                ><i class="fi fi-rr-ball"></i> {{ tmpl.sport }}</span
+              >
+            }
+            @if (templateCompetitionCount(tmpl) > 0) {
+              <span class="etm-chip etm-chip-purple">
+                <i class="fi fi-rr-trophy"></i>
+                {{ templateCompetitionCount(tmpl) }} competition{{
+                  templateCompetitionCount(tmpl) > 1 ? 's' : ''
+                }}
+                will be created
+              </span>
+            }
+            @if (tmpl.venue) {
+              <span class="etm-chip etm-chip-gray"
+                ><i class="fi fi-rr-marker"></i> {{ tmpl.venue }}</span
+              >
+            }
+          </div>
+        </div>
+
+        <!-- Instantiate Form -->
+        <div class="etm-form-grid etm-inst-form">
+          <div class="etm-form-group etm-span-2">
+            <label class="etm-label" for="etm-inst-name">
+              <i class="fi fi-rr-calendar"></i> Event Name *
+            </label>
+            <input
+              id="etm-inst-name"
+              class="etm-input"
+              type="text"
+              placeholder="New event name…"
+              [value]="instantiateName()"
+              (input)="instantiateName.set($any($event.target).value)"
+            />
+          </div>
+          <div class="etm-form-group">
+            <label class="etm-label" for="etm-inst-start">
+              <i class="fi fi-rr-calendar"></i> Start Date
+            </label>
+            <input
+              id="etm-inst-start"
+              class="etm-input"
+              type="datetime-local"
+              [value]="instantiateStartDate()"
+              (click)="showDatePicker($event)"
+              (input)="instantiateStartDate.set($any($event.target).value)"
+            />
+          </div>
+          <div class="etm-form-group">
+            <label class="etm-label" for="etm-inst-end">
+              <i class="fi fi-rr-calendar"></i> End Date
+            </label>
+            <input
+              id="etm-inst-end"
+              class="etm-input"
+              type="datetime-local"
+              [value]="instantiateEndDate()"
+              (click)="showDatePicker($event)"
+              (input)="instantiateEndDate.set($any($event.target).value)"
+            />
+          </div>
+        </div>
+      </div>
+
+      <footer class="etm-footer">
+        <button class="etm-btn etm-btn-ghost" id="etm-inst-cancel-btn" (click)="backToList()">
+          Cancel
+        </button>
+        <button
+          class="etm-btn etm-btn-primary etm-btn-lg"
+          id="etm-inst-confirm-btn"
+          [disabled]="isSaving()"
+          (click)="instantiate()"
+        >
+          @if (isSaving()) {
+            <i class="fi fi-rr-loading etm-spin"></i> Creating Event…
+          } @else {
+            <i class="fi fi-rr-magic-wand"></i> Create Event
+          }
+        </button>
+      </footer>
+    }
+  }
+
+  <!-- ══════════════════════════════════════════════════════════════
+       VIEW: SAVE FROM EVENT
+  ══════════════════════════════════════════════════════════════ -->
+  @if (view() === 'save-from-event') {
+    <div class="etm-body">
+      <div class="etm-hint etm-hint-lg">
+        <i class="fi fi-rr-info"></i>
+        Select an existing event to capture its branding, settings, competitions, stages, and point
+        systems as a reusable template.
+      </div>
+      <div class="etm-form-grid">
+        <div class="etm-form-group etm-span-2">
+          <label class="etm-label" for="etm-sfe-event">
+            <i class="fi fi-rr-calendar"></i> Source Event *
+          </label>
+          <select
+            id="etm-sfe-event"
+            class="etm-select"
+            [value]="saveFromEventId()"
+            (change)="saveFromEventId.set($any($event.target).value)"
+          >
+            <option value="">— Select an event —</option>
+            @for (event of events(); track event.id) {
+              <option [value]="event.id">{{ event.name }}</option>
+            }
+          </select>
+        </div>
+        <div class="etm-form-group etm-span-2">
+          <label class="etm-label" for="etm-sfe-name">
+            <i class="fi fi-rr-text"></i> Template Name *
+          </label>
+          <input
+            id="etm-sfe-name"
+            class="etm-input"
+            type="text"
+            placeholder="e.g. Annual Football Cup Template"
+            [value]="saveFromEventTemplateName()"
+            (input)="saveFromEventTemplateName.set($any($event.target).value)"
+          />
+        </div>
+      </div>
+    </div>
+    <footer class="etm-footer">
+      <button class="etm-btn etm-btn-ghost" id="etm-sfe-cancel-btn" (click)="backToList()">
+        Cancel
+      </button>
+      <button
+        class="etm-btn etm-btn-primary"
+        id="etm-sfe-save-btn"
+        [disabled]="isSaving()"
+        (click)="saveFromEvent()"
+      >
+        @if (isSaving()) {
+          <i class="fi fi-rr-loading etm-spin"></i> Saving…
+        } @else {
+          <i class="fi fi-rr-download"></i> Save as Template
+        }
+      </button>
+    </footer>
+  }
+</div>

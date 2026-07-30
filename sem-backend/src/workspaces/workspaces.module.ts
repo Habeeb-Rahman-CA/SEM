@@ -21,6 +21,7 @@ import { AuditLog } from './entities/audit-log.entity';
 import { SystemConfig } from './entities/system-config.entity';
 import { WorkspaceFile } from './entities/workspace-file.entity';
 import { WorkspaceFileVersion } from './entities/workspace-file-version.entity';
+import { EventTemplate } from './entities/event-template.entity';
 import { WorkspacesService } from './workspaces.service';
 import { WorkspacesController } from './workspaces.controller';
 import { SystemSettingsController } from './system-settings.controller';
@@ -61,6 +62,7 @@ import { WorkspaceMembersService } from './members/members.service';
       SystemConfig,
       WorkspaceFile,
       WorkspaceFileVersion,
+      EventTemplate,
     ]),
     UsersModule,
     UploadModule,
