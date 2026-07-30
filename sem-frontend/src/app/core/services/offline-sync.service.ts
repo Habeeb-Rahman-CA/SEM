@@ -107,7 +107,7 @@ export class OfflineSyncService {
         homeTeam: currentMatch.homeTeam,
         awayTeam: currentMatch.awayTeam,
         venue: currentMatch.venue,
-        stage: currentMatch.stage,
+        stage: (currentMatch as any).stage,
       });
     }
 

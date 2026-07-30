@@ -1441,6 +1441,19 @@
   </div>
 </div>
 
+<!-- ─── MATCH EVIDENCE PHOTOS ─── -->
+<div class="mt-6">
+  <app-match-evidence-panel
+    [workspaceId]="workspaceId()"
+    [eventId]="eventId()"
+    [competitionId]="competitionId()"
+    [stageId]="stageId()"
+    [match]="match()"
+    [canScore]="canScore()"
+    (matchUpdated)="matchUpdated.emit($event)"
+  />
+</div>
+
 <!-- ─── EDIT EVENT MODAL ─── -->
 @if (editingEvent()) {
   <div class="fixed inset-0 z-[60] flex items-center justify-center p-4">

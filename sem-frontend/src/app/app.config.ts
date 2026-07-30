@@ -12,9 +12,15 @@ import { cacheInterceptor } from './core/interceptors/cache.interceptor';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { retryInterceptor } from './core/interceptors/retry.interceptor';
 import { AuthService } from './features/auth/services/auth.service';
+import { CapacitorService } from './core/services/capacitor.service';
 
-export function initializeApp(authService: AuthService) {
-  return () => authService.init();
+export function initializeApp(authService: AuthService, capacitor: CapacitorService) {
+  return async () => {
+    // Native shell (status bar, hardware back, platform CSS classes) is
+    // orthogonal to auth — fire and forget so it never blocks bootstrap.
+    void capacitor.initNativeShell();
+    await authService.init();
+  };
 }
 
 export const appConfig: ApplicationConfig = {
@@ -29,7 +35,7 @@ export const appConfig: ApplicationConfig = {
     {
       provide: APP_INITIALIZER,
       useFactory: initializeApp,
-      deps: [AuthService],
+      deps: [AuthService, CapacitorService],
       multi: true,
     },
   ],

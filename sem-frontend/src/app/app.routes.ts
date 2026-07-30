@@ -36,6 +36,12 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
   {
+    path: 'workspaces/:id/check-in',
+    loadComponent: () =>
+      import('./features/check-in/pages/check-in').then((m) => m.CheckInComponent),
+    canActivate: [authGuard],
+  },
+  {
     path: 'system-settings',
     loadComponent: () =>
       import('./features/system-settings/pages/system-settings').then(

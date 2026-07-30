@@ -243,6 +243,17 @@
       <span [class.lg:hidden]="!isSidebarOpen()">Reports</span>
     </button>
 
+    <a
+      [routerLink]="['/workspaces', workspace()?.id, 'check-in']"
+      (click)="closeSidebarOnMobile()"
+      [class.lg:justify-center]="!isSidebarOpen()"
+      [class.lg:px-0]="!isSidebarOpen()"
+      class="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold rounded-xl transition-all cursor-pointer text-slate-400 hover:text-white border border-transparent hover:bg-white/5 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500"
+    >
+      <i class="fi fi-rr-qrcode text-base shrink-0"></i>
+      <span [class.lg:hidden]="!isSidebarOpen()">Check-in</span>
+    </a>
+
     <button
       (click)="activeTab.set('files'); closeSidebarOnMobile()"
       [attr.aria-current]="activeTab() === 'files' ? 'page' : null"

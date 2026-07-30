@@ -7,11 +7,20 @@ import { AuthService } from '../../auth/services/auth.service';
 import { WorkspaceService } from '../../workspaces/services/workspace.service';
 import { UiService } from '../../../core/services/ui.service';
 import { AvatarComponent } from '../../../shared/components/avatar/avatar';
+import { PhotoCaptureComponent } from '../../../shared/components/photo-capture/photo-capture';
 
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [CommonModule, FormsModule, DatePipe, RouterLink, AvatarComponent, QuicklinkDirective],
+  imports: [
+    CommonModule,
+    FormsModule,
+    DatePipe,
+    RouterLink,
+    AvatarComponent,
+    QuicklinkDirective,
+    PhotoCaptureComponent,
+  ],
   templateUrl: './profile.html',
   styleUrl: './profile.css',
 })
@@ -70,33 +79,42 @@ export class ProfileComponent implements OnInit {
     });
   }
 
+  /** Legacy topbar/dropdown file-input path — kept for the small avatar in the nav. */
   onAvatarSelected(event: any) {
     const file = event.target.files?.[0];
     if (!file) return;
 
     this.isUploadingAvatar.set(true);
     this.workspaceService.uploadImage(file, 'user').subscribe({
-      next: (res) => {
-        this.authService.updateProfile(undefined, res.url).subscribe({
-          next: (user) => {
-            this.isUploadingAvatar.set(false);
-            if (this.profileDetails()) {
-              this.profileDetails.update((prev) => ({
-                ...prev,
-                user: { ...prev.user, avatarUrl: user.avatarUrl },
-              }));
-            }
-            this.uiService.success('Profile picture updated successfully!');
-          },
-          error: (err) => {
-            this.isUploadingAvatar.set(false);
-            this.uiService.error('Failed to update avatar.');
-          },
-        });
-      },
-      error: (err) => {
+      next: (res) => this.persistAvatarUrl(res.url),
+      error: () => {
         this.isUploadingAvatar.set(false);
         this.uiService.error('Image upload failed.');
+      },
+    });
+  }
+
+  /** Called by <app-photo-capture> after Cloudinary upload succeeds. */
+  onAvatarUploaded(url: string) {
+    this.isUploadingAvatar.set(true);
+    this.persistAvatarUrl(url);
+  }
+
+  private persistAvatarUrl(url: string) {
+    this.authService.updateProfile(undefined, url).subscribe({
+      next: (user) => {
+        this.isUploadingAvatar.set(false);
+        if (this.profileDetails()) {
+          this.profileDetails.update((prev) => ({
+            ...prev,
+            user: { ...prev.user, avatarUrl: user.avatarUrl },
+          }));
+        }
+        this.uiService.success('Profile picture updated successfully!');
+      },
+      error: () => {
+        this.isUploadingAvatar.set(false);
+        this.uiService.error('Failed to update avatar.');
       },
     });
   }

@@ -1,15 +1,15 @@
 import { Component, input, output, signal, effect, inject, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { VenueService, Venue } from '../services/venue.service';
-import { WorkspaceService } from '../../workspaces/services/workspace.service';
 import { UiService } from '../../../core/services/ui.service';
+import { PhotoCaptureComponent } from '../../../shared/components/photo-capture/photo-capture';
 
 declare const L: any;
 
 @Component({
   selector: 'app-venue-modal',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, PhotoCaptureComponent],
   template: `
     @if (isOpen()) {
       <div
@@ -112,78 +112,16 @@ declare const L: any;
               class="flex flex-col gap-4 text-left"
             >
               <!-- Venue Image (Optional) -->
-              <div class="flex flex-col gap-1.5">
-                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
-                  >Venue Image (Optional)</label
-                >
-                <div class="flex items-center gap-3">
-                  <div
-                    class="w-12 h-12 rounded-xl bg-slate-800 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0 relative"
-                  >
-                    @if (isUploadingImage()) {
-                      <div
-                        class="absolute inset-0 bg-slate-950/80 flex items-center justify-center"
-                      >
-                        <svg
-                          class="animate-spin h-4 w-4 text-violet-500"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                        >
-                          <circle
-                            class="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            stroke-width="4"
-                          ></circle>
-                          <path
-                            class="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                          ></path>
-                        </svg>
-                      </div>
-                    } @else {
-                      @if (imageUrl()) {
-                        <img
-                          [src]="imageUrl()"
-                          alt="Venue Preview"
-                          class="w-full h-full object-cover"
-                        />
-                      } @else {
-                        <i class="fi fi-rr-marker text-slate-500"></i>
-                      }
-                    }
-                  </div>
-                  <label
-                    class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 border border-white/10 text-white hover:text-slate-950 text-xs font-bold rounded-xl transition-all cursor-pointer flex-shrink-0"
-                    [class.opacity-50]="isUploadingImage()"
-                    [class.pointer-events-none]="isUploadingImage()"
-                  >
-                    @if (isUploadingImage()) {
-                      <span class="animate-pulse">Uploading...</span>
-                    } @else {
-                      Upload Image
-                      <input
-                        type="file"
-                        class="hidden"
-                        accept="image/*"
-                        (change)="onImageUpload($event)"
-                      />
-                    }
-                  </label>
-                  @if (imageUrl()) {
-                    <button
-                      type="button"
-                      (click)="imageUrl.set('')"
-                      class="text-xs text-rose-450 hover:text-rose-300 font-bold transition cursor-pointer"
-                    >
-                      Remove
-                    </button>
-                  }
-                </div>
-              </div>
+              <app-photo-capture
+                label="Venue Image"
+                hint="optional"
+                uploadType="venue"
+                shape="thumb"
+                buttonLabel="Add Image"
+                [imageUrl]="imageUrl()"
+                (imageUploaded)="onVenueImageUploaded($event)"
+                (imageRemoved)="imageUrl.set('')"
+              />
 
               <!-- Venue Name -->
               <div class="flex flex-col gap-1.5">
@@ -320,7 +258,6 @@ export class VenueModalComponent implements OnDestroy {
   save = output<Venue>();
 
   private venueService = inject(VenueService);
-  private workspaceService = inject(WorkspaceService);
   private uiService = inject(UiService);
 
   name = signal('');
@@ -329,7 +266,6 @@ export class VenueModalComponent implements OnDestroy {
   imageUrl = signal('');
 
   isSaving = signal(false);
-  isUploadingImage = signal(false);
   saveSuccess = signal('');
   saveError = signal('');
 
@@ -515,23 +451,9 @@ export class VenueModalComponent implements OnDestroy {
       });
   }
 
-  onImageUpload(event: any) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    this.isUploadingImage.set(true);
-    this.workspaceService.uploadImage(file, 'venue').subscribe({
-      next: (res) => {
-        this.isUploadingImage.set(false);
-        this.imageUrl.set(res.url);
-        this.uiService.success('Venue image uploaded successfully.');
-      },
-      error: (err) => {
-        this.isUploadingImage.set(false);
-        console.error(err);
-        this.uiService.error('Venue image upload failed.');
-      },
-    });
+  onVenueImageUploaded(url: string) {
+    this.imageUrl.set(url);
+    this.uiService.success('Venue image uploaded successfully.');
   }
 
   onSubmit() {
