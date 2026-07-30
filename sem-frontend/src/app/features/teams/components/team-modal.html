@@ -4,7 +4,7 @@
     (click)="closeModal()"
   >
     <div
-      class="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col shadow-2xl relative overflow-hidden"
+      class="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl relative overflow-hidden"
       (click)="$event.stopPropagation()"
     >
       <!-- Gradient top line -->
@@ -204,6 +204,208 @@
               (ngModelChange)="description.set($event)"
               name="teamDesc"
             ></textarea>
+          </div>
+
+          <!-- Coaches editor -->
+          <div class="flex flex-col gap-2 border-t border-white/5 pt-4">
+            <div class="flex flex-col gap-0.5">
+              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                Coaches &amp; staff
+              </span>
+              <span class="text-[10px] text-slate-500">
+                Head coach, assistants, physios — shown on the public team profile.
+              </span>
+            </div>
+
+            <div class="p-3 bg-slate-950/40 border border-white/5 rounded-xl flex flex-col gap-2">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <input
+                  type="text"
+                  placeholder="Name"
+                  class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2 text-xs text-white placeholder-slate-500 outline-none transition-all w-full"
+                  [ngModel]="newCoachName()"
+                  (ngModelChange)="newCoachName.set($event)"
+                  name="teamNewCoachName"
+                />
+                <input
+                  type="text"
+                  placeholder="Role (e.g. Head Coach)"
+                  class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2 text-xs text-white placeholder-slate-500 outline-none transition-all w-full"
+                  [ngModel]="newCoachRole()"
+                  (ngModelChange)="newCoachRole.set($event)"
+                  name="teamNewCoachRole"
+                />
+              </div>
+              <input
+                type="url"
+                placeholder="Avatar URL (optional)"
+                class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2 text-xs text-white placeholder-slate-500 outline-none transition-all w-full"
+                [ngModel]="newCoachAvatar()"
+                (ngModelChange)="newCoachAvatar.set($event)"
+                name="teamNewCoachAvatar"
+              />
+              <button
+                type="button"
+                (click)="addCoach()"
+                [disabled]="!newCoachName().trim()"
+                class="self-end px-3 py-1.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-[11px] font-bold rounded-lg transition-all cursor-pointer"
+              >
+                Add coach
+              </button>
+            </div>
+
+            <div class="flex flex-col gap-1.5 max-h-[180px] overflow-y-auto pr-1 custom-scrollbar">
+              @for (c of coaches(); track c.id) {
+                <div
+                  class="p-2.5 bg-slate-950/20 border border-white/5 rounded-lg flex items-center justify-between gap-3"
+                >
+                  <div class="flex items-center gap-2.5 flex-1 min-w-0">
+                    <div
+                      class="w-8 h-8 rounded-lg bg-slate-800 border border-white/5 flex items-center justify-center overflow-hidden flex-shrink-0"
+                    >
+                      @if (c.avatarUrl) {
+                        <img
+                          [src]="c.avatarUrl"
+                          [alt]="c.name"
+                          class="w-full h-full object-cover"
+                        />
+                      } @else {
+                        <span class="text-[10px] font-black text-slate-400">
+                          {{ c.name.charAt(0).toUpperCase() }}
+                        </span>
+                      }
+                    </div>
+                    <div class="min-w-0">
+                      <div class="text-xs font-bold text-white truncate">{{ c.name }}</div>
+                      @if (c.role) {
+                        <div class="text-[10px] text-slate-400 truncate">{{ c.role }}</div>
+                      }
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    (click)="removeCoach(c.id)"
+                    class="text-slate-500 hover:text-rose-400 transition cursor-pointer flex-shrink-0 bg-transparent border-0"
+                    aria-label="Remove coach"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      class="w-3.5 h-3.5"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                    >
+                      <path
+                        d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              } @empty {
+                <div class="py-4 text-center text-[11px] text-slate-500">No coaches added.</div>
+              }
+            </div>
+          </div>
+
+          <!-- Achievements/trophies editor -->
+          <div class="flex flex-col gap-2 border-t border-white/5 pt-4">
+            <div class="flex flex-col gap-0.5">
+              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                Trophies &amp; achievements
+              </span>
+              <span class="text-[10px] text-slate-500">
+                Titles won, tournament finishes, records — highlights on the public profile.
+              </span>
+            </div>
+
+            <div class="p-3 bg-slate-950/40 border border-white/5 rounded-xl flex flex-col gap-2">
+              <div class="grid grid-cols-1 sm:grid-cols-[1fr_100px] gap-2">
+                <input
+                  type="text"
+                  placeholder="Title (e.g. Champions 2027)"
+                  class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2 text-xs text-white placeholder-slate-500 outline-none transition-all w-full"
+                  [ngModel]="newAchTitle()"
+                  (ngModelChange)="newAchTitle.set($event)"
+                  name="teamNewAchTitle"
+                />
+                <input
+                  type="number"
+                  placeholder="Year"
+                  class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2 text-xs text-white placeholder-slate-500 outline-none transition-all w-full"
+                  [ngModel]="newAchYear()"
+                  (ngModelChange)="newAchYear.set($event)"
+                  name="teamNewAchYear"
+                />
+              </div>
+              <input
+                type="text"
+                placeholder="Competition name (optional)"
+                class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2 text-xs text-white placeholder-slate-500 outline-none transition-all w-full"
+                [ngModel]="newAchComp()"
+                (ngModelChange)="newAchComp.set($event)"
+                name="teamNewAchComp"
+              />
+              <button
+                type="button"
+                (click)="addAchievement()"
+                [disabled]="!newAchTitle().trim()"
+                class="self-end px-3 py-1.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-[11px] font-bold rounded-lg transition-all cursor-pointer"
+              >
+                Add trophy
+              </button>
+            </div>
+
+            <div class="flex flex-col gap-1.5 max-h-[180px] overflow-y-auto pr-1 custom-scrollbar">
+              @for (a of achievements(); track a.id) {
+                <div
+                  class="p-2.5 bg-slate-950/20 border border-white/5 rounded-lg flex items-center justify-between gap-3"
+                >
+                  <div class="flex items-center gap-2.5 flex-1 min-w-0">
+                    <div
+                      class="w-8 h-8 rounded-lg bg-amber-500/15 border border-amber-500/25 flex items-center justify-center flex-shrink-0 text-amber-300"
+                    >
+                      <i class="fi fi-sr-trophy text-xs"></i>
+                    </div>
+                    <div class="min-w-0">
+                      <div class="flex items-center gap-2">
+                        <span class="text-xs font-bold text-white truncate">{{ a.title }}</span>
+                        @if (a.year) {
+                          <span
+                            class="text-[9px] font-bold text-amber-300 bg-amber-500/10 border border-amber-500/25 rounded-md px-1.5 py-0.5"
+                            >{{ a.year }}</span
+                          >
+                        }
+                      </div>
+                      @if (a.competitionName) {
+                        <div class="text-[10px] text-slate-400 truncate">
+                          {{ a.competitionName }}
+                        </div>
+                      }
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    (click)="removeAchievement(a.id)"
+                    class="text-slate-500 hover:text-rose-400 transition cursor-pointer flex-shrink-0 bg-transparent border-0"
+                    aria-label="Remove trophy"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      class="w-3.5 h-3.5"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                    >
+                      <path
+                        d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              } @empty {
+                <div class="py-4 text-center text-[11px] text-slate-500">
+                  No trophies added yet.
+                </div>
+              }
+            </div>
           </div>
 
           <!-- Footer Buttons -->

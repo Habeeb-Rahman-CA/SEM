@@ -36,6 +36,20 @@ export class Player extends AuditableEntity {
   })
   jerseyNumber: string | null;
 
+  @Column({ type: 'text', nullable: true })
+  bio: string | null;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  position: string | null;
+
+  @Column({ name: 'achievements', type: 'jsonb', nullable: true })
+  achievements: Array<{
+    id: string;
+    title: string;
+    description?: string | null;
+    year?: number | null;
+  }> | null;
+
   @Column({ name: 'workspace_id', type: 'uuid' })
   workspaceId: string;
 

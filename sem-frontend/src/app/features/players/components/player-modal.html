@@ -158,23 +158,156 @@
               </select>
             </div>
 
+            <div class="grid grid-cols-2 gap-3">
+              <div class="flex flex-col gap-1.5">
+                <label
+                  for="modal-p-jersey"
+                  class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+                  >Jersey #
+                  <span class="text-slate-600 font-normal normal-case">(optional)</span></label
+                >
+                <input
+                  id="modal-p-jersey"
+                  type="text"
+                  placeholder="e.g. 10"
+                  autocomplete="off"
+                  class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition-all w-full"
+                  [ngModel]="jerseyNumber()"
+                  (ngModelChange)="jerseyNumber.set($event)"
+                  name="pJersey"
+                />
+              </div>
+
+              <div class="flex flex-col gap-1.5">
+                <label
+                  for="modal-p-pos"
+                  class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+                  >Position
+                  <span class="text-slate-600 font-normal normal-case">(optional)</span></label
+                >
+                <input
+                  id="modal-p-pos"
+                  type="text"
+                  placeholder="e.g. Forward, Batsman"
+                  autocomplete="off"
+                  class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition-all w-full"
+                  [ngModel]="position()"
+                  (ngModelChange)="position.set($event)"
+                  name="pPosition"
+                />
+              </div>
+            </div>
+
             <div class="flex flex-col gap-1.5">
               <label
-                for="modal-p-jersey"
+                for="modal-p-bio"
                 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
-                >Jersey #
+                >Biography
                 <span class="text-slate-600 font-normal normal-case">(optional)</span></label
               >
-              <input
-                id="modal-p-jersey"
-                type="text"
-                placeholder="e.g. 10"
-                autocomplete="off"
-                class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition-all w-full"
-                [ngModel]="jerseyNumber()"
-                (ngModelChange)="jerseyNumber.set($event)"
-                name="pJersey"
-              />
+              <textarea
+                id="modal-p-bio"
+                placeholder="Short bio, playing style, career highlights..."
+                rows="3"
+                class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition-all w-full resize-none"
+                [ngModel]="bio()"
+                (ngModelChange)="bio.set($event)"
+                name="pBio"
+              ></textarea>
+            </div>
+
+            <!-- Achievements editor -->
+            <div class="flex flex-col gap-2">
+              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                Achievements
+                <span class="text-slate-600 font-normal normal-case"
+                  >(awards, honours, records)</span
+                >
+              </span>
+              <div class="p-3 bg-slate-950/40 border border-white/5 rounded-xl flex flex-col gap-2">
+                <div class="grid grid-cols-1 sm:grid-cols-[1fr_100px] gap-2">
+                  <input
+                    type="text"
+                    placeholder="Title (e.g. Golden Boot 2027)"
+                    class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2 text-xs text-white placeholder-slate-500 outline-none transition-all w-full"
+                    [ngModel]="newAchTitle()"
+                    (ngModelChange)="newAchTitle.set($event)"
+                    name="pNewAchTitle"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Year"
+                    class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2 text-xs text-white placeholder-slate-500 outline-none transition-all w-full"
+                    [ngModel]="newAchYear()"
+                    (ngModelChange)="newAchYear.set($event)"
+                    name="pNewAchYear"
+                  />
+                </div>
+                <textarea
+                  placeholder="Description (optional)"
+                  rows="1"
+                  class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 outline-none transition-all w-full resize-none"
+                  [ngModel]="newAchDesc()"
+                  (ngModelChange)="newAchDesc.set($event)"
+                  name="pNewAchDesc"
+                ></textarea>
+                <button
+                  type="button"
+                  (click)="addAchievement()"
+                  [disabled]="!newAchTitle().trim()"
+                  class="self-end px-3 py-1.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-[11px] font-bold rounded-lg transition-all cursor-pointer"
+                >
+                  Add achievement
+                </button>
+              </div>
+
+              <div
+                class="flex flex-col gap-1.5 max-h-[180px] overflow-y-auto pr-1 custom-scrollbar"
+              >
+                @for (ach of achievements(); track ach.id) {
+                  <div
+                    class="p-2.5 bg-slate-950/20 border border-white/5 rounded-lg flex items-center justify-between gap-3"
+                  >
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-2">
+                        <span class="text-xs font-bold text-white truncate">{{ ach.title }}</span>
+                        @if (ach.year) {
+                          <span
+                            class="text-[9px] font-bold text-amber-300 bg-amber-500/10 border border-amber-500/25 rounded-md px-1.5 py-0.5"
+                            >{{ ach.year }}</span
+                          >
+                        }
+                      </div>
+                      @if (ach.description) {
+                        <p class="text-[10px] text-slate-400 mt-0.5 truncate">
+                          {{ ach.description }}
+                        </p>
+                      }
+                    </div>
+                    <button
+                      type="button"
+                      (click)="removeAchievement(ach.id)"
+                      class="text-slate-500 hover:text-rose-400 transition cursor-pointer flex-shrink-0"
+                      aria-label="Remove achievement"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="w-3.5 h-3.5"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                      >
+                        <path
+                          d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                } @empty {
+                  <div class="py-4 text-center text-[11px] text-slate-500">
+                    No achievements yet.
+                  </div>
+                }
+              </div>
             </div>
 
             <!-- Footer Buttons -->

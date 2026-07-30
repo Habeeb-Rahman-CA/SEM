@@ -31,6 +31,20 @@ export class TeamService {
       logoUrl?: string | null;
       primaryColor?: string | null;
       secondaryColor?: string | null;
+      coaches?: Array<{
+        id: string;
+        name: string;
+        role?: string | null;
+        avatarUrl?: string | null;
+        bio?: string | null;
+      }>;
+      achievements?: Array<{
+        id: string;
+        title: string;
+        year?: number | null;
+        competitionName?: string | null;
+        description?: string | null;
+      }>;
     },
   ): Observable<Team> {
     return this.http.post<Team>(`${this.apiUrl}/${workspaceId}/teams`, payload, {
@@ -48,6 +62,20 @@ export class TeamService {
       logoUrl?: string | null;
       primaryColor?: string | null;
       secondaryColor?: string | null;
+      coaches?: Array<{
+        id: string;
+        name: string;
+        role?: string | null;
+        avatarUrl?: string | null;
+        bio?: string | null;
+      }>;
+      achievements?: Array<{
+        id: string;
+        title: string;
+        year?: number | null;
+        competitionName?: string | null;
+        description?: string | null;
+      }>;
     },
   ): Observable<Team> {
     return this.http.patch<Team>(`${this.apiUrl}/${workspaceId}/teams/${teamId}`, payload, {
@@ -65,5 +93,9 @@ export class TeamService {
     return this.http.get<any>(`${this.apiUrl}/${workspaceId}/teams/${teamId}/stats`, {
       headers: this.headers,
     });
+  }
+
+  getPublicTeam(teamId: string): Observable<any> {
+    return this.http.get<any>(`${environment.apiUrl}/public/teams/${teamId}`);
   }
 }

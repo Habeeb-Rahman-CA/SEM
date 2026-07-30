@@ -90,6 +90,20 @@ export interface Team {
   workspaceId: string;
   createdAt: string;
   updatedAt: string;
+  coaches?: Array<{
+    id: string;
+    name: string;
+    role?: string | null;
+    avatarUrl?: string | null;
+    bio?: string | null;
+  }> | null;
+  achievements?: Array<{
+    id: string;
+    title: string;
+    year?: number | null;
+    competitionName?: string | null;
+    description?: string | null;
+  }> | null;
 }
 
 export interface Player {
@@ -106,6 +120,14 @@ export interface Player {
   workspaceId: string;
   createdAt: string;
   updatedAt: string;
+  bio?: string | null;
+  position?: string | null;
+  achievements?: Array<{
+    id: string;
+    title: string;
+    description?: string | null;
+    year?: number | null;
+  }> | null;
 }
 
 export interface WorkspaceEvent {

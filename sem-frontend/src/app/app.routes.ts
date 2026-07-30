@@ -83,6 +83,22 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/public-event/pages/public-event').then((m) => m.PublicEventComponent),
   },
+  // Public player profile
+  {
+    path: 'public/players/:id',
+    loadComponent: () =>
+      import('./features/public-event/pages/player/public-player-profile').then(
+        (m) => m.PublicPlayerProfileComponent,
+      ),
+  },
+  // Public team profile
+  {
+    path: 'public/teams/:id',
+    loadComponent: () =>
+      import('./features/public-event/pages/team/public-team-profile').then(
+        (m) => m.PublicTeamProfileComponent,
+      ),
+  },
 
   // Catch-all → back to the landing page
   { path: '**', redirectTo: '' },

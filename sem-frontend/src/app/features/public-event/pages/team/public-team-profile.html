@@ -1,0 +1,542 @@
+<div class="min-h-screen bg-slate-950 text-white font-sans overflow-x-hidden">
+  <div
+    class="pointer-events-none fixed inset-x-0 top-[-6rem] h-[36rem] -z-0"
+    style="
+      background: radial-gradient(60% 60% at 50% 40%, rgba(139, 92, 246, 0.18), transparent 70%);
+    "
+    aria-hidden="true"
+  ></div>
+
+  <header
+    class="fixed inset-x-0 top-0 z-40 safe-top bg-slate-950/70 backdrop-blur-md border-b border-white/5"
+  >
+    <div class="max-w-6xl mx-auto px-5 sm:px-8 h-14 flex items-center justify-between">
+      <a routerLink="/" class="flex items-center gap-2.5 text-sm font-black tracking-tight">
+        <span
+          class="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-violet-500/25"
+        >
+          <i class="fi fi-sr-trophy text-white text-xs"></i>
+        </span>
+        <span>SEM</span>
+      </a>
+      <nav class="hidden md:flex items-center gap-7 text-xs font-semibold text-slate-400">
+        <a routerLink="/" class="hover:text-white transition">Home</a>
+        <a routerLink="/events" class="hover:text-white transition">Events</a>
+        <a routerLink="/live" class="hover:text-white transition inline-flex items-center gap-1.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          Live
+        </a>
+      </nav>
+      <a
+        routerLink="/events"
+        class="text-xs font-bold text-slate-300 hover:text-white px-3 py-2 rounded-lg transition cursor-pointer"
+      >
+        <i class="fi fi-rr-arrow-small-left mr-1"></i>
+        Back
+      </a>
+    </div>
+  </header>
+
+  <div class="relative max-w-6xl mx-auto px-5 sm:px-8 pt-24 sm:pt-28 pb-20">
+    @if (isLoading()) {
+      <div class="rounded-3xl border border-white/5 bg-slate-900/40 p-10 flex flex-col gap-4">
+        <div class="h-6 w-1/3 bg-slate-800/60 rounded animate-pulse"></div>
+        <div class="h-32 w-full bg-slate-800/40 rounded animate-pulse"></div>
+      </div>
+    } @else if (error()) {
+      <div
+        class="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-6 text-center text-sm text-rose-200"
+      >
+        <i class="fi fi-rr-triangle-warning text-2xl block mb-2"></i>
+        {{ error() }}
+      </div>
+    } @else if (profile(); as p) {
+      <!-- Hero -->
+      <div
+        class="relative rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900 via-slate-900/80 to-violet-900/20 overflow-hidden"
+      >
+        <div
+          class="absolute inset-0 opacity-40"
+          [style.background]="
+            'linear-gradient(135deg, ' + (p.team.primaryColor ?? '#7c3aed') + '55, transparent 60%)'
+          "
+          aria-hidden="true"
+        ></div>
+
+        <div class="relative p-6 sm:p-10 flex flex-col md:flex-row items-center md:items-end gap-6">
+          <div
+            class="w-28 h-28 sm:w-32 sm:h-32 rounded-2xl border-4 border-white/10 bg-slate-800 flex items-center justify-center overflow-hidden shadow-2xl flex-shrink-0"
+          >
+            @if (p.team.logoUrl) {
+              <img [src]="p.team.logoUrl" [alt]="p.team.name" class="w-full h-full object-cover" />
+            } @else {
+              <span class="text-4xl font-black text-slate-400">
+                {{ p.team.name.charAt(0).toUpperCase() }}
+              </span>
+            }
+          </div>
+
+          <div class="flex-1 min-w-0 text-center md:text-left">
+            <div
+              class="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-violet-300 bg-violet-500/10 border border-violet-500/25 rounded-full px-2.5 py-1 mb-3"
+            >
+              {{ p.team.code }}
+            </div>
+            <h1 class="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-white">
+              {{ p.team.name }}
+            </h1>
+            @if (p.team.description) {
+              <p class="mt-3 text-sm text-slate-300 max-w-2xl leading-relaxed">
+                {{ p.team.description }}
+              </p>
+            }
+
+            <div
+              class="mt-4 flex items-center gap-4 justify-center md:justify-start text-xs text-slate-400"
+            >
+              <span class="inline-flex items-center gap-1.5">
+                <i class="fi fi-rr-calendar text-[11px]"></i>
+                Founded {{ p.team.createdAt | date: 'yyyy' }}
+              </span>
+              <span class="inline-flex items-center gap-1.5">
+                <i class="fi fi-rr-users-alt text-[11px]"></i>
+                {{ p.squad.length }} players
+              </span>
+              @if (p.allTime.mvps > 0) {
+                <span class="inline-flex items-center gap-1.5 text-amber-300">
+                  <i class="fi fi-sr-star text-[11px]"></i>
+                  {{ p.allTime.mvps }} MVP{{ p.allTime.mvps === 1 ? '' : 's' }}
+                </span>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Headline stat cards -->
+      <div class="mt-6 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+        <div class="rounded-2xl border border-white/5 bg-slate-900/40 p-4">
+          <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">
+            Competitions
+          </div>
+          <div class="text-2xl font-black text-white tabular-nums">
+            {{ p.allTime.participations }}
+          </div>
+        </div>
+        <div class="rounded-2xl border border-white/5 bg-slate-900/40 p-4">
+          <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Matches</div>
+          <div class="text-2xl font-black text-white tabular-nums">{{ p.allTime.totalGames }}</div>
+        </div>
+        <div class="rounded-2xl border border-white/5 bg-slate-900/40 p-4">
+          <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Goals</div>
+          <div class="text-2xl font-black text-white tabular-nums">{{ p.allTime.goals ?? 0 }}</div>
+        </div>
+        <div class="rounded-2xl border border-white/5 bg-slate-900/40 p-4">
+          <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Runs</div>
+          <div class="text-2xl font-black text-white tabular-nums">{{ p.allTime.runs ?? 0 }}</div>
+        </div>
+        <div class="rounded-2xl border border-white/5 bg-slate-900/40 p-4">
+          <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">MVPs</div>
+          <div class="text-2xl font-black text-amber-300 tabular-nums">{{ p.allTime.mvps }}</div>
+        </div>
+        <div class="rounded-2xl border border-white/5 bg-slate-900/40 p-4">
+          <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Trophies</div>
+          <div class="text-2xl font-black text-amber-300 tabular-nums">
+            {{ p.team.achievements?.length ?? 0 }}
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Left: Coaches + Trophies + Best players -->
+        <div class="lg:col-span-1 flex flex-col gap-6">
+          <!-- Coaches -->
+          <div class="rounded-3xl border border-white/10 bg-slate-900 p-6 shadow-xl">
+            <h2
+              class="text-xs font-black text-slate-300 uppercase tracking-widest flex items-center gap-2 mb-3"
+            >
+              <i class="fi fi-rr-briefcase text-violet-400"></i>
+              Coaches &amp; staff
+              <span class="ml-auto text-slate-500 font-bold">{{
+                p.team.coaches?.length ?? 0
+              }}</span>
+            </h2>
+            <div class="flex flex-col gap-2">
+              @for (c of p.team.coaches ?? []; track c.id) {
+                <div
+                  class="flex items-center gap-3 p-2.5 rounded-xl bg-slate-950/40 border border-white/5"
+                >
+                  <div
+                    class="w-10 h-10 rounded-lg bg-slate-800 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0"
+                  >
+                    @if (c.avatarUrl) {
+                      <img [src]="c.avatarUrl" [alt]="c.name" class="w-full h-full object-cover" />
+                    } @else {
+                      <span class="text-xs font-black text-slate-400">
+                        {{ c.name.charAt(0).toUpperCase() }}
+                      </span>
+                    }
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <div class="text-sm font-bold text-white truncate">{{ c.name }}</div>
+                    @if (c.role) {
+                      <div class="text-[11px] text-violet-300 truncate">{{ c.role }}</div>
+                    }
+                  </div>
+                </div>
+              } @empty {
+                <div class="py-6 text-center text-xs text-slate-500">No coaches listed.</div>
+              }
+            </div>
+          </div>
+
+          <!-- Trophies -->
+          <div class="rounded-3xl border border-white/10 bg-slate-900 p-6 shadow-xl">
+            <h2
+              class="text-xs font-black text-slate-300 uppercase tracking-widest flex items-center gap-2 mb-3"
+            >
+              <i class="fi fi-sr-trophy text-amber-400"></i>
+              Trophy cabinet
+              <span class="ml-auto text-slate-500 font-bold">{{
+                p.team.achievements?.length ?? 0
+              }}</span>
+            </h2>
+            <div class="flex flex-col gap-2">
+              @for (a of p.team.achievements ?? []; track a.id) {
+                <div
+                  class="p-3 rounded-xl bg-gradient-to-r from-amber-500/10 to-slate-900 border border-amber-500/20 flex items-start gap-3"
+                >
+                  <div
+                    class="w-9 h-9 rounded-lg bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-300 flex-shrink-0"
+                  >
+                    <i class="fi fi-sr-trophy text-sm"></i>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2">
+                      <span class="text-sm font-bold text-white">{{ a.title }}</span>
+                      @if (a.year) {
+                        <span
+                          class="text-[10px] font-bold text-amber-300 bg-amber-500/10 border border-amber-500/25 rounded-md px-1.5 py-0.5"
+                          >{{ a.year }}</span
+                        >
+                      }
+                    </div>
+                    @if (a.competitionName) {
+                      <p class="text-[11px] text-slate-400 mt-0.5">{{ a.competitionName }}</p>
+                    }
+                    @if (a.description) {
+                      <p class="text-[11px] text-slate-500 mt-0.5">{{ a.description }}</p>
+                    }
+                  </div>
+                </div>
+              } @empty {
+                <div class="py-6 text-center text-xs text-slate-500">
+                  No trophies published yet.
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Best players per sport -->
+          @if (bestPlayersList().length > 0) {
+            <div class="rounded-3xl border border-white/10 bg-slate-900 p-6 shadow-xl">
+              <h2
+                class="text-xs font-black text-slate-300 uppercase tracking-widest flex items-center gap-2 mb-3"
+              >
+                <i class="fi fi-sr-star text-amber-400"></i>
+                Best players by sport
+              </h2>
+              <div class="flex flex-col gap-2">
+                @for (bp of bestPlayersList(); track bp.playerId) {
+                  <a
+                    [routerLink]="['/public/players', bp.playerId]"
+                    class="flex items-center gap-3 p-2.5 rounded-xl bg-slate-950/40 border border-white/5 hover:border-violet-500/30 transition"
+                  >
+                    <span
+                      [class]="
+                        'inline-flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider border ' +
+                        getSportBadgeClass(bp.sport)
+                      "
+                    >
+                      <i [class]="getSportIconClass(bp.sport) + ' text-[9px]'"></i>
+                      {{ bp.sport }}
+                    </span>
+                    <div class="min-w-0 flex-1">
+                      <div class="text-sm font-bold text-white truncate">{{ bp.playerName }}</div>
+                      <div class="text-[10px] text-slate-500">
+                        Avg {{ bp.avgRating.toFixed(2) }} · {{ bp.appearances }} apps
+                      </div>
+                    </div>
+                    <i class="fi fi-rr-arrow-small-right text-xs text-violet-400"></i>
+                  </a>
+                }
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- Right: Recent matches + Squad + Per-competition -->
+        <div class="lg:col-span-2 flex flex-col gap-6">
+          <!-- Recent matches -->
+          <div class="rounded-3xl border border-white/10 bg-slate-900 p-6 shadow-xl">
+            <h2
+              class="text-xs font-black text-slate-300 uppercase tracking-widest flex items-center gap-2 mb-4"
+            >
+              <i class="fi fi-rr-time-past text-violet-400"></i>
+              Recent matches
+              <span class="ml-auto text-slate-500 font-bold">{{ p.recentMatches.length }}</span>
+            </h2>
+
+            @if (p.recentMatches.length === 0) {
+              <div class="py-6 text-center text-xs text-slate-500">No completed matches yet.</div>
+            } @else {
+              <div class="flex flex-col gap-2">
+                @for (m of p.recentMatches; track m.id) {
+                  <a
+                    [routerLink]="
+                      m.competition.eventId ? ['/public/events', m.competition.eventId] : []
+                    "
+                    class="flex items-center gap-3 p-3 rounded-xl bg-slate-950/40 border border-white/5 hover:border-violet-500/30 transition"
+                  >
+                    <div class="flex-1 min-w-0">
+                      <div class="text-[10px] text-slate-500 truncate mb-0.5">
+                        {{ m.competition.name }}
+                      </div>
+                      <div class="flex items-center gap-2 min-w-0">
+                        @if (opponentOf(m, p.team.id); as opp) {
+                          <span class="text-xs font-bold text-white truncate"
+                            >vs {{ opp.name }}</span
+                          >
+                        }
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-3 flex-shrink-0">
+                      <div class="text-right">
+                        <div class="text-lg font-black text-white tabular-nums">
+                          {{ m.homeTeam?.id === p.team.id ? m.homeScore : m.awayScore }}
+                          <span class="text-slate-600 mx-0.5">:</span>
+                          {{ m.homeTeam?.id === p.team.id ? m.awayScore : m.homeScore }}
+                        </div>
+                        <div class="text-[9px] text-slate-500">
+                          {{ m.scheduledAt | date: 'mediumDate' }}
+                        </div>
+                      </div>
+                      @switch (isTeamWinner(m, p.team.id)) {
+                        @case ('win') {
+                          <span
+                            class="w-6 h-6 rounded-md bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 flex items-center justify-center text-[9px] font-black"
+                          >
+                            W
+                          </span>
+                        }
+                        @case ('loss') {
+                          <span
+                            class="w-6 h-6 rounded-md bg-rose-500/15 border border-rose-500/30 text-rose-300 flex items-center justify-center text-[9px] font-black"
+                          >
+                            L
+                          </span>
+                        }
+                        @default {
+                          <span
+                            class="w-6 h-6 rounded-md bg-slate-500/15 border border-slate-500/30 text-slate-300 flex items-center justify-center text-[9px] font-black"
+                          >
+                            D
+                          </span>
+                        }
+                      }
+                    </div>
+                  </a>
+                }
+              </div>
+            }
+          </div>
+
+          <!-- Squad -->
+          <div class="rounded-3xl border border-white/10 bg-slate-900 p-6 shadow-xl">
+            <h2
+              class="text-xs font-black text-slate-300 uppercase tracking-widest flex items-center gap-2 mb-4"
+            >
+              <i class="fi fi-rr-users text-violet-400"></i>
+              Squad
+              <span class="ml-auto text-slate-500 font-bold">{{ p.squad.length }}</span>
+            </h2>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              @for (pl of p.squad; track pl.id) {
+                <a
+                  [routerLink]="['/public/players', pl.id]"
+                  class="flex items-center gap-3 p-3 rounded-xl bg-slate-950/40 border border-white/5 hover:border-violet-500/30 transition"
+                >
+                  <app-avatar
+                    [name]="pl.user.username"
+                    [logoUrl]="pl.user.avatarUrl"
+                    customClass="w-9 h-9 rounded-lg flex-shrink-0"
+                    textClass="text-xs font-black text-white"
+                  />
+                  <div class="min-w-0 flex-1">
+                    <div class="text-xs font-bold text-white truncate flex items-center gap-1.5">
+                      {{ pl.user.username }}
+                      @if (pl.jerseyNumber) {
+                        <span class="text-slate-500 text-[10px]">#{{ pl.jerseyNumber }}</span>
+                      }
+                    </div>
+                    @if (pl.position) {
+                      <div class="text-[10px] text-violet-300 truncate">{{ pl.position }}</div>
+                    }
+                  </div>
+                </a>
+              } @empty {
+                <div class="col-span-full py-6 text-center text-xs text-slate-500">
+                  No players in the squad.
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Per-competition performance -->
+          <div class="rounded-3xl border border-white/10 bg-slate-900 p-6 shadow-xl">
+            <h2
+              class="text-xs font-black text-slate-300 uppercase tracking-widest flex items-center gap-2 mb-4"
+            >
+              <i class="fi fi-rr-chart-histogram text-violet-400"></i>
+              Performance across competitions
+              <span class="ml-auto text-slate-500 font-bold">{{ p.competitions.length }}</span>
+            </h2>
+
+            @if (p.competitions.length === 0) {
+              <div class="py-6 text-center text-xs text-slate-500">No competition history yet.</div>
+            } @else {
+              <div class="flex flex-col gap-3">
+                @for (c of p.competitions; track c.competitionId) {
+                  <div
+                    class="p-4 rounded-2xl bg-slate-950/40 border border-white/5 hover:border-white/10 transition"
+                  >
+                    <div class="flex items-center justify-between gap-3 mb-3">
+                      <div class="flex items-center gap-2 min-w-0">
+                        <span
+                          [class]="
+                            'inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider border ' +
+                            getSportBadgeClass(c.sportCode)
+                          "
+                        >
+                          <i [class]="getSportIconClass(c.sportCode) + ' text-[10px]'"></i>
+                          {{ c.sportCode }}
+                        </span>
+                        <span class="text-sm font-bold text-white truncate">
+                          {{ c.competitionName }}
+                        </span>
+                      </div>
+                      <span class="text-[11px] text-slate-500 font-mono">
+                        {{ c.gamesPlayed }} game{{ c.gamesPlayed === 1 ? '' : 's' }}
+                      </span>
+                    </div>
+
+                    <div class="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                      @if (c.sportCode === 'football') {
+                        <div class="flex flex-col">
+                          <span
+                            class="text-[9px] uppercase tracking-wider text-slate-500 font-bold"
+                          >
+                            Goals
+                          </span>
+                          <span class="text-lg font-black text-white tabular-nums">{{
+                            c.goals ?? 0
+                          }}</span>
+                        </div>
+                        <div class="flex flex-col">
+                          <span
+                            class="text-[9px] uppercase tracking-wider text-slate-500 font-bold"
+                          >
+                            Assists
+                          </span>
+                          <span class="text-lg font-black text-white tabular-nums">{{
+                            c.assists ?? 0
+                          }}</span>
+                        </div>
+                      } @else if (c.sportCode === 'cricket') {
+                        <div class="flex flex-col">
+                          <span
+                            class="text-[9px] uppercase tracking-wider text-slate-500 font-bold"
+                          >
+                            Runs
+                          </span>
+                          <span class="text-lg font-black text-white tabular-nums">{{
+                            c.runs ?? 0
+                          }}</span>
+                        </div>
+                        <div class="flex flex-col">
+                          <span
+                            class="text-[9px] uppercase tracking-wider text-slate-500 font-bold"
+                          >
+                            Wickets
+                          </span>
+                          <span class="text-lg font-black text-white tabular-nums">{{
+                            c.wickets ?? 0
+                          }}</span>
+                        </div>
+                      } @else if (c.sportCode === 'badminton') {
+                        <div class="flex flex-col">
+                          <span
+                            class="text-[9px] uppercase tracking-wider text-slate-500 font-bold"
+                          >
+                            Rallies won
+                          </span>
+                          <span class="text-lg font-black text-white tabular-nums">{{
+                            c.ralliesWon ?? 0
+                          }}</span>
+                        </div>
+                        <div class="flex flex-col">
+                          <span
+                            class="text-[9px] uppercase tracking-wider text-slate-500 font-bold"
+                          >
+                            Rallies lost
+                          </span>
+                          <span class="text-lg font-black text-white tabular-nums">{{
+                            c.ralliesLost ?? 0
+                          }}</span>
+                        </div>
+                      } @else if (c.sportCode === 'basketball') {
+                        <div class="flex flex-col">
+                          <span
+                            class="text-[9px] uppercase tracking-wider text-slate-500 font-bold"
+                          >
+                            Points
+                          </span>
+                          <span class="text-lg font-black text-white tabular-nums">{{
+                            c.points ?? 0
+                          }}</span>
+                        </div>
+                      }
+                      <div class="flex flex-col">
+                        <span class="text-[9px] uppercase tracking-wider text-slate-500 font-bold">
+                          MVPs
+                        </span>
+                        <span class="text-lg font-black text-amber-300 tabular-nums">{{
+                          c.mvps
+                        }}</span>
+                      </div>
+                      @if (c.bestPlayer) {
+                        <div class="flex flex-col">
+                          <span
+                            class="text-[9px] uppercase tracking-wider text-slate-500 font-bold"
+                          >
+                            Best player
+                          </span>
+                          <a
+                            [routerLink]="['/public/players', c.bestPlayer.playerId]"
+                            class="text-xs font-bold text-violet-300 hover:text-violet-200 truncate transition"
+                          >
+                            {{ c.bestPlayer.playerName }}
+                          </a>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+</div>

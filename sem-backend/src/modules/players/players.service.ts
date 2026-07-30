@@ -81,6 +81,9 @@ export class PlayersService {
       jerseyNumber: dto.jerseyNumber ?? null,
       teamId: dto.teamId,
       workspaceId,
+      bio: dto.bio ?? null,
+      position: dto.position ?? null,
+      achievements: dto.achievements ?? null,
     });
     const saved = await this.playerRepo.save(player);
     saved.team = team;
@@ -147,6 +150,9 @@ export class PlayersService {
 
     Object.assign(player, {
       ...(dto.jerseyNumber !== undefined && { jerseyNumber: dto.jerseyNumber }),
+      ...(dto.bio !== undefined && { bio: dto.bio }),
+      ...(dto.position !== undefined && { position: dto.position }),
+      ...(dto.achievements !== undefined && { achievements: dto.achievements }),
     });
 
     const saved = await this.playerRepo.save(player);
@@ -197,6 +203,22 @@ export class PlayersService {
     await this.searchService.deletePlayer(playerId);
   }
 
+  /**
+   * Public profile — same shape as getPlayerStats but no workspace-member
+   * check and looked up by player id alone. Used by the public /public/players/:id
+   * spectator page.
+   */
+  async getPublicPlayerProfile(playerId: string) {
+    const player = await this.playerRepo.findOne({
+      where: { id: playerId },
+      relations: { user: true, team: true },
+    });
+    if (!player) {
+      throw new NotFoundException('Player not found');
+    }
+    return this.buildPlayerProfile(player);
+  }
+
   async getPlayerStats(workspaceId: string, playerId: string, userId: string) {
     await this.workspacesService.ensureMember(workspaceId, userId);
 
@@ -207,7 +229,10 @@ export class PlayersService {
     if (!player) {
       throw new NotFoundException('Player not found');
     }
+    return this.buildPlayerProfile(player);
+  }
 
+  private async buildPlayerProfile(player: Player) {
     // 1. Find all competitions this team is registered in
     const compTeams = await this.memberRepo.manager.find(CompetitionTeam, {
       where: { teamId: player.teamId },
@@ -222,7 +247,11 @@ export class PlayersService {
 
     // 2. Fetch all completed match-player entries for this player
     const completedMatchPlayers = await this.matchPlayerRepo.find({
-      where: { playerId, isPlaying: true, match: { status: 'completed' } },
+      where: {
+        playerId: player.id,
+        isPlaying: true,
+        match: { status: 'completed' },
+      },
       relations: {
         match: {
           stage: {
@@ -611,6 +640,9 @@ export class PlayersService {
       player: {
         id: player.id,
         jerseyNumber: player.jerseyNumber,
+        bio: player.bio,
+        position: player.position,
+        achievements: player.achievements,
         team: {
           id: player.team?.id,
           name: player.team?.name,
