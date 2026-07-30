@@ -1,20 +1,16 @@
 import { Component, inject, signal, effect, model, input, output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
-import {
-  WorkspaceService,
-  Workspace,
-  Team,
-  WorkspaceEvent,
-} from '../../workspaces/services/workspace.service';
+import { Workspace, Team, WorkspaceEvent } from '../../workspaces/services/workspace.service';
 import { EventService } from '../services/event.service';
 import { UiService } from '../../../core/services/ui.service';
 import { AvatarComponent } from '../../../shared/components/avatar/avatar';
+import { PhotoCaptureComponent } from '../../../shared/components/photo-capture/photo-capture';
 
 @Component({
   selector: 'app-event-modal',
   standalone: true,
-  imports: [FormsModule, AvatarComponent, DatePipe],
+  imports: [FormsModule, AvatarComponent, DatePipe, PhotoCaptureComponent],
   template: `
     @if (isOpen()) {
       <div
@@ -164,89 +160,15 @@ import { AvatarComponent } from '../../../shared/components/avatar/avatar';
                       />
                     </div>
 
-                    <div class="flex flex-col gap-1.5 text-left">
-                      <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
-                        >Event Logo</label
-                      >
-                      <div class="flex items-center gap-3">
-                        <div
-                          class="w-10 h-10 rounded-xl bg-slate-950 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0 relative"
-                        >
-                          @if (isUploadingLogo()) {
-                            <div
-                              class="absolute inset-0 bg-slate-950/80 flex items-center justify-center"
-                            >
-                              <svg
-                                class="animate-spin h-4 w-4 text-violet-500"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                              >
-                                <circle
-                                  class="opacity-25"
-                                  cx="12"
-                                  cy="12"
-                                  r="10"
-                                  stroke="currentColor"
-                                  stroke-width="4"
-                                ></circle>
-                                <path
-                                  class="opacity-75"
-                                  fill="currentColor"
-                                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                                ></path>
-                              </svg>
-                            </div>
-                          } @else if (logoUrl()) {
-                            <img
-                              [src]="logoUrl()"
-                              alt="Logo Preview"
-                              class="w-full h-full object-cover"
-                            />
-                          } @else {
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              class="w-5 h-5 text-slate-500"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                              />
-                            </svg>
-                          }
-                        </div>
-                        <label
-                          class="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 border border-white/10 text-white hover:text-slate-950 text-xs font-bold rounded-xl transition-all cursor-pointer flex-shrink-0"
-                          [class.opacity-50]="isUploadingLogo()"
-                          [class.pointer-events-none]="isUploadingLogo()"
-                        >
-                          @if (isUploadingLogo()) {
-                            <span class="animate-pulse">Uploading...</span>
-                          } @else {
-                            Upload Logo
-                            <input
-                              type="file"
-                              class="hidden"
-                              accept="image/*"
-                              (change)="onLogoUpload($event)"
-                            />
-                          }
-                        </label>
-                        @if (logoUrl()) {
-                          <button
-                            type="button"
-                            (click)="logoUrl.set('')"
-                            class="text-xs text-rose-450 hover:text-rose-300 font-bold transition"
-                          >
-                            Remove
-                          </button>
-                        }
-                      </div>
-                    </div>
+                    <app-photo-capture
+                      label="Event Logo / Banner"
+                      uploadType="event"
+                      shape="thumb"
+                      buttonLabel="Upload Logo"
+                      [imageUrl]="logoUrl()"
+                      (imageUploaded)="onEventLogoUploaded($event)"
+                      (imageRemoved)="logoUrl.set('')"
+                    />
 
                     <div class="flex flex-col gap-1.5 text-left">
                       <label
@@ -514,18 +436,18 @@ import { AvatarComponent } from '../../../shared/components/avatar/avatar';
                       >
                         Add URL
                       </button>
-                      <label
-                        class="px-3 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex-shrink-0 relative"
-                      >
-                        Upload
-                        <input
-                          type="file"
-                          class="hidden"
-                          accept="image/*"
-                          (change)="onGalleryImageUpload($event)"
-                        />
-                      </label>
                     </div>
+
+                    <!-- Camera/Gallery capture pushes into the gallery list on upload -->
+                    <app-photo-capture
+                      label="Attach from Camera or Device"
+                      hint="captured images go into the gallery"
+                      uploadType="event"
+                      shape="thumb"
+                      buttonLabel="Capture Image"
+                      [imageUrl]="null"
+                      (imageUploaded)="onGalleryImageUploaded($event)"
+                    />
 
                     <!-- Gallery Preview Grid -->
                     <div
@@ -710,7 +632,6 @@ import { AvatarComponent } from '../../../shared/components/avatar/avatar';
   `,
 })
 export class EventModalComponent {
-  private workspaceService = inject(WorkspaceService);
   private eventService = inject(EventService);
   private uiService = inject(UiService);
 
@@ -749,7 +670,6 @@ export class EventModalComponent {
   newAnnContent = signal('');
 
   isSaving = signal(false);
-  isUploadingLogo = signal(false);
   error = signal('');
   success = signal('');
 
@@ -829,20 +749,9 @@ export class EventModalComponent {
     this.gallery.update((prev) => prev.filter((u) => u !== url));
   }
 
-  onGalleryImageUpload(event: any) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    this.workspaceService.uploadImage(file, 'event').subscribe({
-      next: (res) => {
-        this.gallery.update((prev) => [...prev, res.url]);
-        this.uiService.success('Gallery image uploaded successfully.');
-      },
-      error: (err) => {
-        console.error(err);
-        this.uiService.error('Gallery image upload failed.');
-      },
-    });
+  onGalleryImageUploaded(url: string) {
+    this.gallery.update((prev) => [...prev, url]);
+    this.uiService.success('Gallery image uploaded successfully.');
   }
 
   addAnnouncement() {
@@ -876,23 +785,9 @@ export class EventModalComponent {
     return localDate.toISOString().substring(0, 16);
   }
 
-  onLogoUpload(event: any) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    this.isUploadingLogo.set(true);
-    this.workspaceService.uploadImage(file, 'event').subscribe({
-      next: (res) => {
-        this.isUploadingLogo.set(false);
-        this.logoUrl.set(res.url);
-        this.uiService.success('Event logo uploaded successfully.');
-      },
-      error: (err) => {
-        this.isUploadingLogo.set(false);
-        console.error(err);
-        this.uiService.error('Event logo upload failed.');
-      },
-    });
+  onEventLogoUploaded(url: string) {
+    this.logoUrl.set(url);
+    this.uiService.success('Event logo uploaded successfully.');
   }
 
   onSubmit() {

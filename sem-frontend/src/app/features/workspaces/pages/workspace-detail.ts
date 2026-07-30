@@ -36,6 +36,7 @@ import { VenueService, Venue } from '../../venues/services/venue.service';
 import { AuthService } from '../../auth/services/auth.service';
 import { UiService } from '../../../core/services/ui.service';
 import { SocketService } from '../../../core/services/socket.service';
+import { StorageService } from '../../../core/services/storage.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { VenueListComponent } from '../../venues/pages/venue-list';
 import { VenueModalComponent } from '../../venues/components/venue-modal';
@@ -54,6 +55,13 @@ import { WorkspaceMembersComponent } from './members/members';
 import { WorkspaceSettingsComponent } from './settings/settings';
 import { WorkspaceReportsComponent } from '../../reports/pages/reports';
 import { WorkspaceFilesComponent } from './files/files';
+import { RefereeDashboardComponent } from '../components/referee-dashboard/referee-dashboard';
+import { FootballConsoleComponent } from '../../competitions/consoles/football-console/football-console';
+import { CricketConsoleComponent } from '../../competitions/consoles/cricket-console/cricket-console';
+import { BadmintonConsoleComponent } from '../../competitions/consoles/badminton-console/badminton-console';
+import { GenericConsoleComponent } from '../../competitions/consoles/generic-console/generic-console';
+import { LineupModalComponent } from '../../competitions/components/lineup-modal';
+import { BottomNavComponent, BottomNavTab } from '../../../layouts/bottom-nav/bottom-nav';
 import {
   getSportBadgeClass,
   getSportIconClass,
@@ -83,6 +91,13 @@ declare const L: any;
     WorkspaceReportsComponent,
     WorkspaceFilesComponent,
     QuicklinkDirective,
+    RefereeDashboardComponent,
+    FootballConsoleComponent,
+    CricketConsoleComponent,
+    BadmintonConsoleComponent,
+    GenericConsoleComponent,
+    LineupModalComponent,
+    BottomNavComponent,
   ],
   templateUrl: './workspace-detail.html',
   styleUrl: './workspace-detail.css',
@@ -101,6 +116,7 @@ export class WorkspaceDetailComponent implements OnInit {
   private playerService = inject(PlayerService);
   private eventService = inject(EventService);
   private competitionService = inject(CompetitionService);
+  private storage = inject(StorageService);
 
   selectedPlayerId = signal<string | null>(null);
   selectedTeamId = signal<string | null>(null);
@@ -194,6 +210,13 @@ export class WorkspaceDetailComponent implements OnInit {
   overviewLiveMatches = signal<any[]>([]);
   overviewUpcomingMatches = signal<any[]>([]);
   overviewCompletedMatches = signal<any[]>([]);
+  allWorkspaceMatches = computed(() => {
+    return [
+      ...this.overviewLiveMatches(),
+      ...this.overviewUpcomingMatches(),
+      ...this.overviewCompletedMatches(),
+    ];
+  });
   overviewRunningCompetitions = signal<any[]>([]);
   overviewTopScorers = signal<any[]>([]);
   overviewTopRatedPlayers = signal<any[]>([]);
@@ -510,6 +533,10 @@ export class WorkspaceDetailComponent implements OnInit {
       if (this.currentSubscribedWorkspaceId) {
         this.socketService.unsubscribeWorkspace(this.currentSubscribedWorkspaceId);
       }
+      const match = this.selectedMatch();
+      if (match) {
+        this.releaseActiveLock(match);
+      }
     });
 
     this.route.paramMap.subscribe((params) => {
@@ -573,41 +600,21 @@ export class WorkspaceDetailComponent implements OnInit {
   }
 
   loadWorkspaceDashboard(workspaceId: string) {
+    if (this.uiService.isOffline()) {
+      this.storage.getItem(`cached_dashboard_${workspaceId}`).then((cached) => {
+        if (cached) {
+          const data = JSON.parse(cached);
+          this.applyDashboardData(data, workspaceId);
+        }
+      });
+      return;
+    }
+
     this.isOverviewLoading.set(true);
     this.workspaceService.getDashboardOverview().subscribe({
       next: (data) => {
-        const live = (data.liveMatches || []).filter(
-          (m: any) =>
-            m.workspaceId === workspaceId ||
-            m.stage?.competition?.event?.workspaceId === workspaceId,
-        );
-        this.overviewLiveMatches.set(live);
-
-        const upcoming = (data.upcomingMatches || []).filter(
-          (m: any) =>
-            m.workspaceId === workspaceId ||
-            m.stage?.competition?.event?.workspaceId === workspaceId,
-        );
-        this.overviewUpcomingMatches.set(upcoming);
-
-        const completed = (data.completedMatches || []).filter(
-          (m: any) =>
-            m.workspaceId === workspaceId ||
-            m.stage?.competition?.event?.workspaceId === workspaceId,
-        );
-        this.overviewCompletedMatches.set(completed);
-
-        const runningComps = (data.runningCompetitions || []).filter(
-          (c: any) => c.event?.workspaceId === workspaceId || c.workspaceId === workspaceId,
-        );
-        this.overviewRunningCompetitions.set(runningComps);
-        if (runningComps.length > 0) {
-          this.selectedOverviewCompId.set(runningComps[0].id);
-          this.selectedOverviewComp.set(runningComps[0]);
-        }
-
-        this.overviewTopScorers.set(data.topScorers || []);
-        this.overviewTopRatedPlayers.set(data.topRatedPlayers || []);
+        this.storage.setItem(`cached_dashboard_${workspaceId}`, JSON.stringify(data));
+        this.applyDashboardData(data, workspaceId);
         this.isOverviewLoading.set(false);
       },
       error: (err) => {
@@ -615,6 +622,38 @@ export class WorkspaceDetailComponent implements OnInit {
         this.isOverviewLoading.set(false);
       },
     });
+  }
+
+  private applyDashboardData(data: any, workspaceId: string) {
+    const live = (data.liveMatches || []).filter(
+      (m: any) =>
+        m.workspaceId === workspaceId || m.stage?.competition?.event?.workspaceId === workspaceId,
+    );
+    this.overviewLiveMatches.set(live);
+
+    const upcoming = (data.upcomingMatches || []).filter(
+      (m: any) =>
+        m.workspaceId === workspaceId || m.stage?.competition?.event?.workspaceId === workspaceId,
+    );
+    this.overviewUpcomingMatches.set(upcoming);
+
+    const completed = (data.completedMatches || []).filter(
+      (m: any) =>
+        m.workspaceId === workspaceId || m.stage?.competition?.event?.workspaceId === workspaceId,
+    );
+    this.overviewCompletedMatches.set(completed);
+
+    const runningComps = (data.runningCompetitions || []).filter(
+      (c: any) => c.event?.workspaceId === workspaceId || c.workspaceId === workspaceId,
+    );
+    this.overviewRunningCompetitions.set(runningComps);
+    if (runningComps.length > 0) {
+      this.selectedOverviewCompId.set(runningComps[0].id);
+      this.selectedOverviewComp.set(runningComps[0]);
+    }
+
+    this.overviewTopScorers.set(data.topScorers || []);
+    this.overviewTopRatedPlayers.set(data.topRatedPlayers || []);
   }
 
   onSelectOverviewCompetition(comp: any) {
@@ -653,6 +692,43 @@ export class WorkspaceDetailComponent implements OnInit {
   }
 
   formatMatchStatusDetail = formatMatchStatusDetail;
+
+  // Map the sidebar's fine-grained activeTab down to the four visible
+  // destinations rendered in the mobile bottom nav.
+  bottomNavKey = computed<BottomNavTab>(() => {
+    const tab = this.activeTab();
+    if (
+      tab === 'events' ||
+      tab === 'venues' ||
+      tab === 'reports' ||
+      tab === 'settings' ||
+      tab === 'files'
+    ) {
+      return tab === 'events' ? 'events' : 'overview';
+    }
+    if (tab === 'players' || tab === 'teams') return 'players';
+    return 'overview';
+  });
+
+  onBottomNavTab(
+    tab: 'overview' | 'events' | 'players' | 'venues' | 'reports' | 'settings' | 'files',
+  ) {
+    this.activeTab.set(tab);
+  }
+
+  /** Referee dashboard pull-to-refresh: reload workspace dashboard data. */
+  onRefereeDashboardRefresh(done: () => void) {
+    const ws = this.workspace();
+    if (!ws) return done();
+    this.workspaceService.getDashboardOverview().subscribe({
+      next: (data) => {
+        this.storage.setItem(`cached_dashboard_${ws.id}`, JSON.stringify(data));
+        this.applyDashboardData(data, ws.id);
+        done();
+      },
+      error: () => done(),
+    });
+  }
 
   handleDeepLink(params: any) {
     const { eventId, competitionId, stageId, matchId } = params;
@@ -1275,5 +1351,185 @@ export class WorkspaceDetailComponent implements OnInit {
         this.uiService.error('Failed to upload image.');
       },
     });
+  }
+
+  isLineupModalOpen = signal(false);
+  private lockInterval: any = null;
+
+  onSelectMatch(match: any) {
+    const previousMatch = this.selectedMatch();
+    if (previousMatch) {
+      this.releaseActiveLock(previousMatch);
+    }
+
+    if (!match) {
+      this.selectedMatch.set(null);
+      this.matchLineup.set([]);
+      return;
+    }
+
+    const canScoreValue = this.hasPermission('match.score');
+    if (match.status === 'completed' || !canScoreValue) {
+      this.selectedMatch.set(match);
+      this.matchLineup.set([]);
+      return;
+    }
+
+    const ws = this.workspace();
+    const eventId = match.stage?.competition?.eventId || match.eventId;
+    const competitionId = match.stage?.competitionId || match.competitionId;
+    const stageId = match.stageId;
+
+    if (!ws || !eventId || !competitionId || !stageId) {
+      this.selectedMatch.set(match);
+      this.matchLineup.set([]);
+      return;
+    }
+
+    // Set selected Event/Competition/Stage to ensure matching console parameters are fed properly
+    const ev = this.events().find((e) => e.id === eventId);
+    if (ev) this.selectedEvent.set(ev);
+    const comp = this.allCompetitions().find((c) => c.id === competitionId);
+    if (comp) this.selectedCompetition.set(comp);
+    const stage =
+      this.stages().find((s) => s.id === stageId) || ({ id: stageId, name: 'Stage' } as any);
+    this.selectedStage.set(stage);
+
+    if (this.uiService.isOffline()) {
+      this.selectedMatch.set(match);
+      this.matchLineup.set([]);
+      this.loadMatchLineup(match.id);
+      return;
+    }
+
+    this.competitionService
+      .acquireMatchLock(ws.id, eventId, competitionId, stageId, match.id)
+      .subscribe({
+        next: (res) => {
+          if (res.success) {
+            this.selectedMatch.set(match);
+            this.matchLineup.set([]);
+            this.startLockHeartbeat(match);
+            this.loadMatchLineup(match.id);
+          } else {
+            this.uiService.error(
+              `This match is currently locked/being edited by ${res.lockedBy || 'another official'}.`,
+            );
+          }
+        },
+        error: (err) => {
+          this.uiService.error(
+            err.error?.message ||
+              'Failed to acquire edit lock. The match may be currently edited by another official.',
+          );
+        },
+      });
+  }
+
+  startLockHeartbeat(match: any) {
+    this.stopLockHeartbeat();
+    const ws = this.workspace();
+    const eventId = match.stage?.competition?.eventId || match.eventId;
+    const competitionId = match.stage?.competitionId || match.competitionId;
+    const stageId = match.stageId;
+    if (!ws || !eventId || !competitionId || !stageId) return;
+
+    this.lockInterval = setInterval(() => {
+      this.competitionService
+        .acquireMatchLock(ws.id, eventId, competitionId, stageId, match.id)
+        .subscribe({
+          error: (err) => {
+            console.warn('Failed to renew match lock', err);
+            this.uiService.error(
+              err.error?.message || 'Lock expired or lost. Another official may have taken over.',
+            );
+            this.stopLockHeartbeat();
+            this.selectedMatch.set(null);
+            this.matchLineup.set([]);
+          },
+        });
+    }, 20000);
+  }
+
+  stopLockHeartbeat() {
+    if (this.lockInterval) {
+      clearInterval(this.lockInterval);
+      this.lockInterval = null;
+    }
+  }
+
+  releaseActiveLock(match: any) {
+    this.stopLockHeartbeat();
+    if (this.uiService.isOffline()) return;
+    const ws = this.workspace();
+    const eventId = match.stage?.competition?.eventId || match.eventId;
+    const competitionId = match.stage?.competitionId || match.competitionId;
+    const stageId = match.stageId;
+    if (!ws || !eventId || !competitionId || !stageId) return;
+
+    const canScoreValue = this.hasPermission('match.score');
+    if (match.status !== 'completed' && canScoreValue) {
+      this.competitionService
+        .releaseMatchLock(ws.id, eventId, competitionId, stageId, match.id)
+        .subscribe({
+          error: (err) => console.warn('Failed to release match lock', err),
+        });
+    }
+  }
+
+  loadMatchLineup(matchId: string) {
+    const ws = this.workspace();
+    const match: any =
+      this.selectedMatch() ||
+      this.overviewLiveMatches().find((m) => m.id === matchId) ||
+      this.overviewUpcomingMatches().find((m) => m.id === matchId);
+    if (!match) return;
+    const eventId = match.stage?.competition?.eventId || match.eventId;
+    const competitionId = match.stage?.competitionId || match.competitionId;
+    const stageId = match.stageId;
+    if (!ws || !eventId || !competitionId || !stageId) return;
+
+    if (this.uiService.isOffline()) {
+      this.storage.getItem(`cached_lineup_${matchId}`).then((cached) => {
+        if (cached) {
+          this.matchLineup.set(JSON.parse(cached));
+        }
+      });
+      return;
+    }
+
+    this.competitionService
+      .getMatchLineup(ws.id, eventId, competitionId, stageId, matchId)
+      .subscribe({
+        next: (lineup) => this.matchLineup.set(lineup),
+        error: (err) => console.error('Failed to load match lineup', err),
+      });
+  }
+
+  openLineupModal() {
+    this.isLineupModalOpen.set(true);
+  }
+
+  onLineupSaved(updatedLineup: any[]) {
+    this.matchLineup.set(updatedLineup);
+  }
+
+  onMatchUpdated(updated: any) {
+    this.selectedMatch.set(updated);
+    this.matches.update((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+    this.overviewLiveMatches.update((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+    this.overviewUpcomingMatches.update((prev) =>
+      prev.map((m) => (m.id === updated.id ? updated : m)),
+    );
+    this.overviewCompletedMatches.update((prev) =>
+      prev.map((m) => (m.id === updated.id ? updated : m)),
+    );
+  }
+
+  onMatchCompleted() {
+    const ws = this.workspace();
+    if (ws) {
+      this.loadWorkspaceDashboard(ws.id);
+    }
   }
 }

@@ -101,226 +101,354 @@
   }
 
   @if (!isLoading() && !error() && workspace()) {
-    <!-- Flex Container for Sidebar + Main Content -->
-    <div class="flex flex-col lg:flex-row h-screen overflow-hidden bg-slate-950 text-white w-full">
-      <!-- Sidebar Component -->
-      <app-sidebar
-        [workspace]="workspace()"
-        [(isSidebarOpen)]="isSidebarOpen"
-        [(activeTab)]="activeTab"
-        [membersCount]="members().length"
-        [teamsCount]="teams().length"
-        [playersCount]="players().length"
-        [eventsCount]="events().length"
-        [venuesCount]="venues().length"
-        [hasSettingsPermission]="hasPermission('workspace.update')"
-      />
-
-      <!-- Main Content Area -->
-      <main class="flex-1 flex flex-col min-w-0 h-full overflow-hidden p-6 lg:p-10">
-        <!-- Top Bar Component -->
-        <app-topbar
+    @if (getCurrentUserRoleSlug() === 'referee') {
+      <!-- Dedicated Referee View -->
+      @if (!selectedMatch()) {
+        <app-referee-dashboard
           [workspace]="workspace()"
-          [allWorkspaces]="allWorkspaces()"
-          [(globalSearchQuery)]="globalSearchQuery"
-          [(showGlobalSearchResults)]="showGlobalSearchResults"
-          [searchResults]="globalSearchResults()"
-          [(isNotificationOpen)]="isNotificationOpen"
-          [pendingInvitations]="pendingInvitations()"
-          [notifications]="notifications()"
-          [unreadNotificationsCount]="unreadNotificationsCount()"
-          [isProcessingInvitation]="isProcessingInvitation()"
-          [(isUserDropdownOpen)]="isUserDropdownOpen"
-          [currentUser]="authService.currentUser()"
-          [userRoleSlug]="getCurrentUserRoleSlug()"
-          [isUploadingAvatar]="isUploadingAvatar()"
-          (switchWorkspace)="onSwitchWorkspace($event)"
-          (selectTeam)="selectGlobalTeam($event)"
-          (selectPlayer)="selectGlobalPlayer($event)"
-          (selectEvent)="selectGlobalEvent($event)"
-          (selectCompetition)="selectGlobalCompetition($event)"
-          (selectVenue)="selectGlobalVenue($event)"
-          (selectMember)="selectGlobalMember($event)"
-          (selectFile)="selectGlobalFile($event)"
-          (acceptInvitation)="acceptInvite($event.workspaceId, $event.name)"
-          (rejectInvitation)="rejectInvite($event.workspaceId, $event.name)"
-          (markNotificationsRead)="markNotificationsAsRead()"
+          [matches]="allWorkspaceMatches()"
+          [teams]="teams()"
+          [venues]="venues()"
+          (enterMatch)="onSelectMatch($event)"
           (signOut)="onSignOut()"
-          (avatarUpload)="onAvatarUpload($event)"
+          (refreshRequested)="onRefereeDashboardRefresh($event)"
+        />
+      } @else {
+        <!-- Referee scoring consoles -->
+        @let match = selectedMatch()!;
+        @let sport = selectedCompetition()?.sport?.code;
+        @let canScoreValue = hasPermission('match.score');
+
+        <div class="h-screen w-full bg-slate-950 overflow-auto p-4 z-50">
+          <div class="max-w-4xl mx-auto">
+            <button
+              (click)="onSelectMatch(null)"
+              class="mb-4 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer border border-white/5"
+            >
+              <i class="fi fi-rr-arrow-small-left text-sm"></i> Back to Referee Center
+            </button>
+
+            @if (sport === 'football') {
+              <app-football-console
+                [workspaceId]="workspace()!.id"
+                [eventId]="selectedEvent()!.id"
+                [competitionId]="selectedCompetition()!.id"
+                [stageId]="selectedStage()!.id"
+                [stage]="selectedStage()"
+                [match]="match"
+                [players]="players()"
+                [teams]="teams()"
+                [matchLineup]="matchLineup()"
+                [canScore]="canScoreValue"
+                (matchCompleted)="onMatchCompleted()"
+                (matchUpdated)="onMatchUpdated($event)"
+                (openLineupModal)="openLineupModal()"
+              >
+              </app-football-console>
+            } @else if (sport === 'cricket') {
+              <app-cricket-console
+                [workspaceId]="workspace()!.id"
+                [eventId]="selectedEvent()!.id"
+                [competitionId]="selectedCompetition()!.id"
+                [stageId]="selectedStage()!.id"
+                [stage]="selectedStage()"
+                [match]="match"
+                [players]="players()"
+                [teams]="teams()"
+                [matchLineup]="matchLineup()"
+                [canScore]="canScoreValue"
+                (matchCompleted)="onMatchCompleted()"
+                (matchUpdated)="onMatchUpdated($event)"
+                (openLineupModal)="openLineupModal()"
+              >
+              </app-cricket-console>
+            } @else if (sport === 'badminton') {
+              <app-badminton-console
+                [workspaceId]="workspace()!.id"
+                [eventId]="selectedEvent()!.id"
+                [competitionId]="selectedCompetition()!.id"
+                [stageId]="selectedStage()!.id"
+                [stage]="selectedStage()"
+                [match]="match"
+                [players]="players()"
+                [teams]="teams()"
+                [matchLineup]="matchLineup()"
+                [canScore]="canScoreValue"
+                (matchCompleted)="onMatchCompleted()"
+                (matchUpdated)="onMatchUpdated($event)"
+                (openLineupModal)="openLineupModal()"
+              >
+              </app-badminton-console>
+            } @else {
+              <app-generic-console
+                [workspaceId]="workspace()!.id"
+                [eventId]="selectedEvent()!.id"
+                [competitionId]="selectedCompetition()!.id"
+                [stageId]="selectedStage()!.id"
+                [stage]="selectedStage()"
+                [match]="match"
+                [players]="players()"
+                [teams]="teams()"
+                [matchLineup]="matchLineup()"
+                [canScore]="canScoreValue"
+                [sport]="selectedCompetition()?.sport"
+                (matchCompleted)="onMatchCompleted()"
+                (matchUpdated)="onMatchUpdated($event)"
+                (openLineupModal)="openLineupModal()"
+              >
+              </app-generic-console>
+            }
+          </div>
+        </div>
+      }
+
+      <app-lineup-modal
+        [(isOpen)]="isLineupModalOpen"
+        [workspace]="workspace()"
+        [selectedEvent]="selectedEvent()"
+        [selectedCompetition]="selectedCompetition()"
+        [selectedStage]="selectedStage()"
+        [selectedMatch]="selectedMatch()"
+        [players]="players()"
+        [matchLineup]="matchLineup()"
+        (lineupSaved)="onLineupSaved($event)"
+      />
+    } @else {
+      <!-- Flex Container for Sidebar + Main Content -->
+      <div
+        class="flex flex-col lg:flex-row h-screen overflow-hidden bg-slate-950 text-white w-full"
+      >
+        <!-- Sidebar Component -->
+        <app-sidebar
+          [workspace]="workspace()"
+          [(isSidebarOpen)]="isSidebarOpen"
+          [(activeTab)]="activeTab"
+          [membersCount]="members().length"
+          [teamsCount]="teams().length"
+          [playersCount]="players().length"
+          [eventsCount]="events().length"
+          [venuesCount]="venues().length"
+          [hasSettingsPermission]="hasPermission('workspace.update')"
         />
 
-        <!-- Tab Content Area -->
-        <div class="flex-1 min-h-0 mt-6">
-          <!-- ═══════════════ OVERVIEW TAB ═══════════════ -->
-          @if (activeTab() === 'overview') {
-            <div class="h-full overflow-y-auto min-h-0 pr-1">
-              <app-workspace-dashboard
+        <!-- Main Content Area -->
+        <main
+          class="flex-1 flex flex-col min-w-0 h-full overflow-hidden p-6 lg:p-10 pb-24 lg:pb-10"
+        >
+          <!-- Top Bar Component -->
+          <app-topbar
+            [workspace]="workspace()"
+            [allWorkspaces]="allWorkspaces()"
+            [(globalSearchQuery)]="globalSearchQuery"
+            [(showGlobalSearchResults)]="showGlobalSearchResults"
+            [searchResults]="globalSearchResults()"
+            [(isNotificationOpen)]="isNotificationOpen"
+            [pendingInvitations]="pendingInvitations()"
+            [notifications]="notifications()"
+            [unreadNotificationsCount]="unreadNotificationsCount()"
+            [isProcessingInvitation]="isProcessingInvitation()"
+            [(isUserDropdownOpen)]="isUserDropdownOpen"
+            [currentUser]="authService.currentUser()"
+            [userRoleSlug]="getCurrentUserRoleSlug()"
+            [isUploadingAvatar]="isUploadingAvatar()"
+            (switchWorkspace)="onSwitchWorkspace($event)"
+            (selectTeam)="selectGlobalTeam($event)"
+            (selectPlayer)="selectGlobalPlayer($event)"
+            (selectEvent)="selectGlobalEvent($event)"
+            (selectCompetition)="selectGlobalCompetition($event)"
+            (selectVenue)="selectGlobalVenue($event)"
+            (selectMember)="selectGlobalMember($event)"
+            (selectFile)="selectGlobalFile($event)"
+            (acceptInvitation)="acceptInvite($event.workspaceId, $event.name)"
+            (rejectInvitation)="rejectInvite($event.workspaceId, $event.name)"
+            (markNotificationsRead)="markNotificationsAsRead()"
+            (signOut)="onSignOut()"
+            (avatarUpload)="onAvatarUpload($event)"
+          />
+
+          <!-- Tab Content Area -->
+          <div class="flex-1 min-h-0 mt-6">
+            <!-- ═══════════════ OVERVIEW TAB ═══════════════ -->
+            @if (activeTab() === 'overview') {
+              <div class="h-full overflow-y-auto min-h-0 pr-1">
+                <app-workspace-dashboard
+                  [workspace]="workspace()"
+                  [(activeTab)]="activeTab"
+                  [liveMatches]="overviewLiveMatches()"
+                  [upcomingMatches]="overviewUpcomingMatches()"
+                  [completedMatches]="overviewCompletedMatches()"
+                  [runningCompetitions]="overviewRunningCompetitions()"
+                  [topScorers]="overviewTopScorers()"
+                  [topRatedPlayers]="overviewTopRatedPlayers()"
+                  [teamsCount]="teams().length"
+                  [playersCount]="players().length"
+                  [eventsCount]="events().length"
+                  [venuesCount]="venues().length"
+                  [membersCount]="members().length"
+                  [teams]="teams()"
+                  [players]="players()"
+                  [events]="events()"
+                  [venues]="venues()"
+                  [members]="members()"
+                  [notifications]="notifications()"
+                  [isOverviewLoading]="isOverviewLoading()"
+                  [canCreateEvent]="hasPermission('event.create')"
+                  [canManageTeams]="hasPermission('team.manage')"
+                  [canManagePlayers]="hasPermission('player.manage')"
+                  [canManageVenues]="hasPermission('venue.manage')"
+                  [(selectedOverviewCompId)]="selectedOverviewCompId"
+                  [(selectedOverviewComp)]="selectedOverviewComp"
+                  (enterLiveMatch)="onEnterLiveMatchFromOverview($event)"
+                />
+              </div>
+            }
+
+            <!-- ═══════════════ MEMBERS TAB ═══════════════ -->
+            @if (activeTab() === 'members') {
+              <app-workspace-members
+                class="h-full block min-h-0"
                 [workspace]="workspace()"
-                [(activeTab)]="activeTab"
-                [liveMatches]="overviewLiveMatches()"
-                [upcomingMatches]="overviewUpcomingMatches()"
-                [completedMatches]="overviewCompletedMatches()"
-                [runningCompetitions]="overviewRunningCompetitions()"
-                [topScorers]="overviewTopScorers()"
-                [topRatedPlayers]="overviewTopRatedPlayers()"
-                [teamsCount]="teams().length"
-                [playersCount]="players().length"
-                [eventsCount]="events().length"
-                [venuesCount]="venues().length"
-                [membersCount]="members().length"
-                [teams]="teams()"
-                [players]="players()"
-                [events]="events()"
-                [venues]="venues()"
-                [members]="members()"
-                [notifications]="notifications()"
-                [isOverviewLoading]="isOverviewLoading()"
-                [canCreateEvent]="hasPermission('event.create')"
-                [canManageTeams]="hasPermission('team.manage')"
-                [canManagePlayers]="hasPermission('player.manage')"
-                [canManageVenues]="hasPermission('venue.manage')"
-                [(selectedOverviewCompId)]="selectedOverviewCompId"
-                [(selectedOverviewComp)]="selectedOverviewComp"
-                (enterLiveMatch)="onEnterLiveMatchFromOverview($event)"
+                [(members)]="members"
+                [assignableRoles]="assignableRoles"
+                [canInvite]="hasPermission('member.invite')"
+                [canUpdate]="hasPermission('member.update')"
+                [canRemove]="hasPermission('member.remove')"
               />
-            </div>
-          }
+            }
 
-          <!-- ═══════════════ MEMBERS TAB ═══════════════ -->
-          @if (activeTab() === 'members') {
-            <app-workspace-members
-              class="h-full block min-h-0"
-              [workspace]="workspace()"
-              [(members)]="members"
-              [assignableRoles]="assignableRoles"
-              [canInvite]="hasPermission('member.invite')"
-              [canUpdate]="hasPermission('member.update')"
-              [canRemove]="hasPermission('member.remove')"
-            />
-          }
+            <!-- ═══════════════ SETTINGS VIEW ═══════════════ -->
+            @if (activeTab() === 'settings') {
+              <div class="h-full overflow-y-auto min-h-0 pr-1">
+                <app-workspace-settings [(workspace)]="workspace" [(activeTab)]="activeTab" />
+              </div>
+            }
 
-          <!-- ═══════════════ SETTINGS VIEW ═══════════════ -->
-          @if (activeTab() === 'settings') {
-            <div class="h-full overflow-y-auto min-h-0 pr-1">
-              <app-workspace-settings [(workspace)]="workspace" [(activeTab)]="activeTab" />
-            </div>
-          }
+            <!-- ═══════════════ REPORTS TAB ═══════════════ -->
+            @if (activeTab() === 'reports') {
+              <div class="h-full overflow-y-auto min-h-0 pr-1">
+                <app-workspace-reports
+                  [workspace]="workspace()"
+                  [teams]="teams()"
+                  [players]="players()"
+                  [events]="events()"
+                  [venues]="venues()"
+                  [members]="members()"
+                  [roles]="roles()"
+                />
+              </div>
+            }
 
-          <!-- ═══════════════ REPORTS TAB ═══════════════ -->
-          @if (activeTab() === 'reports') {
-            <div class="h-full overflow-y-auto min-h-0 pr-1">
-              <app-workspace-reports
-                [workspace]="workspace()"
+            <!-- ═══════════════ FILES TAB ═══════════════ -->
+            @if (activeTab() === 'files') {
+              <div class="h-full overflow-y-auto min-h-0 pr-1">
+                <app-workspace-files
+                  [workspace]="workspace()"
+                  [selectedFileId]="selectedFileId()"
+                />
+              </div>
+            }
+
+            <!-- ═══════════════ TEAMS TAB ═══════════════ -->
+            @if (activeTab() === 'teams') {
+              <app-team-list
+                class="h-full block min-h-0"
+                [workspaceId]="workspace()?.id || ''"
                 [teams]="teams()"
+                [canUpdate]="hasPermission('team.manage')"
+                [(selectedTeamId)]="selectedTeamId"
+                (add)="onAddTeam()"
+                (edit)="onEditTeam($event)"
+                (delete)="onDeleteTeam($event)"
+                (teamsImported)="onTeamsImported($event)"
+              >
+              </app-team-list>
+            }
+
+            <!-- ═══════════════ PLAYERS TAB ═══════════════ -->
+            @if (activeTab() === 'players') {
+              <app-player-list
+                class="h-full block min-h-0"
+                [workspaceId]="workspace()?.id || ''"
                 [players]="players()"
-                [events]="events()"
-                [venues]="venues()"
                 [members]="members()"
-                [roles]="roles()"
-              />
-            </div>
-          }
+                [teams]="teams()"
+                [canUpdate]="hasPermission('player.manage')"
+                [(selectedPlayerId)]="selectedPlayerId"
+                (add)="onAddPlayer()"
+                (edit)="onEditPlayer($event)"
+                (delete)="onDeletePlayer($event)"
+                (playersImported)="onPlayersImported($event)"
+              >
+              </app-player-list>
+            }
 
-          <!-- ═══════════════ FILES TAB ═══════════════ -->
-          @if (activeTab() === 'files') {
-            <div class="h-full overflow-y-auto min-h-0 pr-1">
-              <app-workspace-files [workspace]="workspace()" [selectedFileId]="selectedFileId()" />
-            </div>
-          }
-
-          <!-- ═══════════════ TEAMS TAB ═══════════════ -->
-          @if (activeTab() === 'teams') {
-            <app-team-list
-              class="h-full block min-h-0"
+            <!-- Player Add/Edit Modal -->
+            <app-player-modal
+              [isOpen]="isPlayerModalOpen()"
+              [player]="editingPlayer()"
               [workspaceId]="workspace()?.id || ''"
-              [teams]="teams()"
-              [canUpdate]="hasPermission('team.manage')"
-              [(selectedTeamId)]="selectedTeamId"
-              (add)="onAddTeam()"
-              (edit)="onEditTeam($event)"
-              (delete)="onDeleteTeam($event)"
-              (teamsImported)="onTeamsImported($event)"
-            >
-            </app-team-list>
-          }
-
-          <!-- ═══════════════ PLAYERS TAB ═══════════════ -->
-          @if (activeTab() === 'players') {
-            <app-player-list
-              class="h-full block min-h-0"
-              [workspaceId]="workspace()?.id || ''"
-              [players]="players()"
               [members]="members()"
               [teams]="teams()"
-              [canUpdate]="hasPermission('player.manage')"
-              [(selectedPlayerId)]="selectedPlayerId"
-              (add)="onAddPlayer()"
-              (edit)="onEditPlayer($event)"
-              (delete)="onDeletePlayer($event)"
-              (playersImported)="onPlayersImported($event)"
+              (close)="closePlayerModal()"
+              (save)="onPlayerSaved($event)"
             >
-            </app-player-list>
-          }
+            </app-player-modal>
 
-          <!-- Player Add/Edit Modal -->
-          <app-player-modal
-            [isOpen]="isPlayerModalOpen()"
-            [player]="editingPlayer()"
-            [workspaceId]="workspace()?.id || ''"
-            [members]="members()"
-            [teams]="teams()"
-            (close)="closePlayerModal()"
-            (save)="onPlayerSaved($event)"
-          >
-          </app-player-modal>
-
-          <!-- ═══════════════ VENUES TAB ═══════════════ -->
-          @if (activeTab() === 'venues') {
-            <app-venue-list
-              class="h-full block min-h-0"
-              [venues]="venues()"
-              [canUpdate]="hasPermission('workspace.update')"
-              (add)="onAddVenue()"
-              (edit)="onEditVenue($event)"
-              (delete)="onDeleteVenue($event)"
-            >
-            </app-venue-list>
-          }
-
-          <!-- Venue Add/Edit Modal -->
-          <app-venue-modal
-            [isOpen]="isVenueModalOpen()"
-            [venue]="editingVenue()"
-            [workspaceId]="workspace()?.id || ''"
-            (close)="closeVenueModal()"
-            (save)="onVenueSaved($event)"
-          >
-          </app-venue-modal>
-
-          <!-- ═══════════════ EVENTS TAB ═══════════════ -->
-          @if (activeTab() === 'events') {
-            <div class="h-full overflow-y-auto min-h-0 pr-1">
-              <app-workspace-events
-                [workspace]="workspace()"
-                [players]="players()"
-                [teams]="teams()"
+            <!-- ═══════════════ VENUES TAB ═══════════════ -->
+            @if (activeTab() === 'venues') {
+              <app-venue-list
+                class="h-full block min-h-0"
                 [venues]="venues()"
-                [members]="members()"
-                [(events)]="events"
-                [(selectedEvent)]="selectedEvent"
-                [(competitions)]="competitions"
-                [(selectedCompetition)]="selectedCompetition"
-                [(stages)]="stages"
-                [(selectedStage)]="selectedStage"
-                [(selectedMatch)]="selectedMatch"
-                [(matches)]="matches"
-                [(matchLineup)]="matchLineup"
-                [(activeCompetitionTab)]="activeCompetitionTab"
-              ></app-workspace-events>
-            </div>
-          }
-        </div>
-      </main>
-    </div>
+                [canUpdate]="hasPermission('workspace.update')"
+                (add)="onAddVenue()"
+                (edit)="onEditVenue($event)"
+                (delete)="onDeleteVenue($event)"
+              >
+              </app-venue-list>
+            }
+
+            <!-- Venue Add/Edit Modal -->
+            <app-venue-modal
+              [isOpen]="isVenueModalOpen()"
+              [venue]="editingVenue()"
+              [workspaceId]="workspace()?.id || ''"
+              (close)="closeVenueModal()"
+              (save)="onVenueSaved($event)"
+            >
+            </app-venue-modal>
+
+            <!-- ═══════════════ EVENTS TAB ═══════════════ -->
+            @if (activeTab() === 'events') {
+              <div class="h-full overflow-y-auto min-h-0 pr-1">
+                <app-workspace-events
+                  [workspace]="workspace()"
+                  [players]="players()"
+                  [teams]="teams()"
+                  [venues]="venues()"
+                  [members]="members()"
+                  [(events)]="events"
+                  [(selectedEvent)]="selectedEvent"
+                  [(competitions)]="competitions"
+                  [(selectedCompetition)]="selectedCompetition"
+                  [(stages)]="stages"
+                  [(selectedStage)]="selectedStage"
+                  [(selectedMatch)]="selectedMatch"
+                  [(matches)]="matches"
+                  [(matchLineup)]="matchLineup"
+                  [(activeCompetitionTab)]="activeCompetitionTab"
+                ></app-workspace-events>
+              </div>
+            }
+          </div>
+        </main>
+      </div>
+
+      <!-- Mobile-only bottom tab bar (hidden lg+) -->
+      <app-bottom-nav
+        [workspaceId]="workspace()?.id ?? null"
+        [activeKey]="bottomNavKey()"
+        (tabChanged)="onBottomNavTab($event)"
+      />
+    }
   }
 </div>

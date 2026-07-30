@@ -3,6 +3,8 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, tap, catchError, throwError, from } from 'rxjs';
 import { Router } from '@angular/router';
 import { environment } from '../../../../environments/environment';
+import { StorageService } from '../../../core/services/storage.service';
+import { CapacitorService } from '../../../core/services/capacitor.service';
 
 // ─── Interfaces ───────────────────────────────────────────────────────────────
 
@@ -31,46 +33,74 @@ export interface AuthResponse extends TokenPair {
 export class AuthService {
   private http = inject(HttpClient);
   private router = inject(Router);
+  private storage = inject(StorageService);
+  private capacitorService = inject(CapacitorService);
   private apiUrl = `${environment.apiUrl}/auth`;
 
   // ── Reactive state signals ──────────────────────────────────────────────────
   currentUser = signal<User | null>(null);
   isAuthenticated = signal<boolean>(false);
   token = signal<string | null>(null);
+  defaultWorkspaceId = signal<string | null>(null);
 
   // ── Private: refresh token stored only in memory for XSS protection ─────────
   private _refreshToken: string | null = null;
 
   constructor() {
-    this.restoreSession();
+    // Session is restored asynchronously via init() in APP_INITIALIZER
+  }
+
+  async init(): Promise<void> {
+    await this.restoreSession();
   }
 
   // ─── Session persistence ────────────────────────────────────────────────────
 
-  private restoreSession(): void {
-    const savedToken = localStorage.getItem('token');
-    const savedUser = localStorage.getItem('user');
-    // Refresh token is stored in sessionStorage to survive page refresh
-    // but NOT persist across browser sessions (more secure than localStorage)
-    this._refreshToken = sessionStorage.getItem('refreshToken');
+  private async restoreSession(): Promise<void> {
+    const savedToken = await this.storage.getItem('token');
+    const savedUser = await this.storage.getItem('user');
+    this._refreshToken = await this.storage.getSessionItem('refreshToken');
 
     if (savedToken && savedUser) {
+      const user = JSON.parse(savedUser);
       this.token.set(savedToken);
-      this.currentUser.set(JSON.parse(savedUser));
+      this.currentUser.set(user);
       this.isAuthenticated.set(true);
 
+      if (user?.id) {
+        this.defaultWorkspaceId.set(await this.storage.getItem(`default_ws_${user.id}`));
+      } else {
+        this.defaultWorkspaceId.set(await this.storage.getItem('default_ws'));
+      }
+
+      // Register native push notifications
+      this.capacitorService.registerPushNotifications(
+        (token) => this.savePushToken(token).subscribe(),
+        (notification) => console.log('Push notification received:', notification),
+      );
+
       // Silently verify token; refresh if expired
-      this.fetchProfile().subscribe({
-        error: () => {
-          if (this._refreshToken) {
-            from(this.doRefresh(this._refreshToken)).subscribe({
-              next: (tokens) => this.applyAccessToken(tokens.accessToken),
-              error: () => this.logout(),
-            });
-          } else {
-            this.logout();
-          }
-        },
+      return new Promise<void>((resolve) => {
+        this.fetchProfile().subscribe({
+          next: () => resolve(),
+          error: () => {
+            if (this._refreshToken) {
+              from(this.doRefresh(this._refreshToken)).subscribe({
+                next: (tokens) => {
+                  this.applyAccessToken(tokens.accessToken);
+                  resolve();
+                },
+                error: () => {
+                  this.logout();
+                  resolve();
+                },
+              });
+            } else {
+              this.logout();
+              resolve();
+            }
+          },
+        });
       });
     }
   }
@@ -117,7 +147,7 @@ export class AuthService {
     this.applyAccessToken(response.accessToken);
     if (response.refreshToken) {
       this._refreshToken = response.refreshToken;
-      sessionStorage.setItem('refreshToken', response.refreshToken);
+      await this.storage.setSessionItem('refreshToken', response.refreshToken);
     }
     return response;
   }
@@ -128,29 +158,42 @@ export class AuthService {
   }
 
   private applySession(response: AuthResponse): void {
-    localStorage.setItem('token', response.accessToken);
-    localStorage.setItem('user', JSON.stringify(response.user));
+    this.storage.setItem('token', response.accessToken);
+    this.storage.setItem('user', JSON.stringify(response.user));
     this._refreshToken = response.refreshToken;
-    sessionStorage.setItem('refreshToken', response.refreshToken);
+    this.storage.setSessionItem('refreshToken', response.refreshToken);
 
     this.token.set(response.accessToken);
     this.currentUser.set(response.user);
     this.isAuthenticated.set(true);
+
+    if (response.user?.id) {
+      this.storage.getItem(`default_ws_${response.user.id}`).then((val) => {
+        this.defaultWorkspaceId.set(val);
+      });
+    }
+
+    // Register native push notifications
+    this.capacitorService.registerPushNotifications(
+      (token) => this.savePushToken(token).subscribe(),
+      (notification) => console.log('Push notification received:', notification),
+    );
   }
 
   private applyAccessToken(accessToken: string): void {
-    localStorage.setItem('token', accessToken);
+    this.storage.setItem('token', accessToken);
     this.token.set(accessToken);
   }
 
   private clearSession(): void {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    sessionStorage.removeItem('refreshToken');
+    this.storage.removeItem('token');
+    this.storage.removeItem('user');
+    this.storage.removeSessionItem('refreshToken');
     this._refreshToken = null;
     this.token.set(null);
     this.currentUser.set(null);
     this.isAuthenticated.set(false);
+    this.defaultWorkspaceId.set(null);
   }
 
   // ─── Profile ─────────────────────────────────────────────────────────────────
@@ -159,7 +202,7 @@ export class AuthService {
     return this.http.get<User>(`${this.apiUrl}/profile`).pipe(
       tap((user) => {
         this.currentUser.set(user);
-        localStorage.setItem('user', JSON.stringify(user));
+        this.storage.setItem('user', JSON.stringify(user));
       }),
       catchError((err) => throwError(() => err)),
     );
@@ -169,7 +212,7 @@ export class AuthService {
     return this.http.patch<User>(`${this.apiUrl}/profile`, { username, avatarUrl }).pipe(
       tap((user) => {
         this.currentUser.set(user);
-        localStorage.setItem('user', JSON.stringify(user));
+        this.storage.setItem('user', JSON.stringify(user));
       }),
     );
   }
@@ -179,6 +222,10 @@ export class AuthService {
       oldPassword,
       newPassword,
     });
+  }
+
+  savePushToken(pushToken: string | null): Observable<any> {
+    return this.http.post(`${this.apiUrl}/push-token`, { pushToken });
   }
 
   fetchProfileDetails(): Observable<{
@@ -227,18 +274,16 @@ export class AuthService {
   // ─── Default workspace helpers (unchanged) ────────────────────────────────────
 
   getDefaultWorkspaceId(): string | null {
-    const user = this.currentUser();
-    if (user?.id) {
-      return localStorage.getItem(`default_ws_${user.id}`);
-    }
-    return localStorage.getItem('default_ws');
+    return this.defaultWorkspaceId();
   }
 
   setDefaultWorkspaceId(workspaceId: string): void {
     const user = this.currentUser();
+    this.defaultWorkspaceId.set(workspaceId);
     if (user?.id) {
-      localStorage.setItem(`default_ws_${user.id}`, workspaceId);
+      this.storage.setItem(`default_ws_${user.id}`, workspaceId);
+    } else {
+      this.storage.setItem('default_ws', workspaceId);
     }
-    localStorage.setItem('default_ws', workspaceId);
   }
 }

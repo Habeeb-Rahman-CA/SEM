@@ -1,13 +1,14 @@
 import { Component, input, output, signal, effect, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { TeamService } from '../services/team.service';
-import { WorkspaceService, Team } from '../../workspaces/services/workspace.service';
+import { Team } from '../../workspaces/services/workspace.service';
 import { UiService } from '../../../core/services/ui.service';
+import { PhotoCaptureComponent } from '../../../shared/components/photo-capture/photo-capture';
 
 @Component({
   selector: 'app-team-modal',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, PhotoCaptureComponent],
   templateUrl: './team-modal.html',
 })
 export class TeamModalComponent {
@@ -19,7 +20,6 @@ export class TeamModalComponent {
   save = output<Team>();
 
   private teamService = inject(TeamService);
-  private workspaceService = inject(WorkspaceService);
   private uiService = inject(UiService);
 
   name = signal('');
@@ -30,7 +30,6 @@ export class TeamModalComponent {
   secondaryColor = signal('#4f46e5');
 
   isSaving = signal(false);
-  isUploadingLogo = signal(false);
   saveSuccess = signal('');
   saveError = signal('');
 
@@ -63,24 +62,9 @@ export class TeamModalComponent {
     this.close.emit();
   }
 
-  onLogoUpload(event: Event) {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    if (!file) return;
-
-    this.isUploadingLogo.set(true);
-    this.workspaceService.uploadImage(file, 'team').subscribe({
-      next: (res) => {
-        this.isUploadingLogo.set(false);
-        this.logoUrl.set(res.url);
-        this.uiService.success('Team logo uploaded successfully.');
-      },
-      error: (err) => {
-        this.isUploadingLogo.set(false);
-        console.error(err);
-        this.uiService.error('Team logo upload failed.');
-      },
-    });
+  onTeamLogoUploaded(url: string) {
+    this.logoUrl.set(url);
+    this.uiService.success('Team logo uploaded successfully.');
   }
 
   onSubmit() {

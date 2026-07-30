@@ -129,4 +129,17 @@ export class AuthController {
     );
     return { message: 'Password changed successfully' };
   }
+
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Register or update device push token' })
+  @UseGuards(JwtAuthGuard)
+  @Post('push-token')
+  @HttpCode(HttpStatus.OK)
+  async updatePushToken(
+    @CurrentUser() user: JwtPayloadUser,
+    @Body() body: { pushToken: string | null },
+  ) {
+    await this.usersService.updatePushToken(user.id, body.pushToken);
+    return { message: 'Push token updated successfully' };
+  }
 }

@@ -1,0 +1,294 @@
+<div class="min-h-screen bg-slate-950 text-slate-100 flex flex-col w-full pb-10">
+  <!-- Top Navigation Header -->
+  <header
+    class="bg-slate-900/60 backdrop-blur-md border-b border-white/5 px-4 py-4 flex items-center justify-between sticky top-0 z-40"
+  >
+    <div class="flex items-center gap-3">
+      <div
+        class="h-9 w-9 rounded-xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-400"
+      >
+        <i class="fi fi-rr-referee"></i>
+      </div>
+      <div>
+        <h1 class="text-sm font-bold tracking-tight">Referee Center</h1>
+        <p class="text-[10px] text-slate-400 font-medium">{{ workspace()?.name }}</p>
+      </div>
+    </div>
+
+    <button
+      (click)="signOut.emit()"
+      class="h-8 px-3 rounded-lg bg-rose-500/10 hover:bg-rose-500 text-rose-400 hover:text-white border border-rose-500/20 hover:border-transparent text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+    >
+      <i class="fi fi-rr-sign-out-alt"></i>
+      <span>Exit</span>
+    </button>
+  </header>
+
+  <!-- Synchronization / Connection Banner -->
+  <div class="px-4 mt-4">
+    @if (syncService.getPendingCount() > 0) {
+      <div
+        class="bg-gradient-to-r from-amber-500/20 to-orange-500/10 border border-amber-500/30 rounded-xl p-3.5 flex items-center justify-between shadow-lg shadow-amber-500/5 animate-pulse"
+      >
+        <div class="flex items-center gap-3">
+          <div
+            class="h-8 w-8 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-400 text-sm"
+          >
+            <i class="fi fi-rr-cloud-share"></i>
+          </div>
+          <div>
+            <h4 class="text-xs font-bold text-amber-300">Offline Matches Queued</h4>
+            <p class="text-[10px] text-slate-400 mt-0.5">
+              {{ syncService.getPendingCount() }} scoring update(s) ready to sync.
+            </p>
+          </div>
+        </div>
+        <button
+          (click)="onTriggerSync()"
+          class="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-[10px] font-bold rounded-lg transition-all shadow-md shadow-amber-500/10 cursor-pointer"
+        >
+          Sync Now
+        </button>
+      </div>
+    } @else {
+      <div
+        class="bg-emerald-500/5 border border-emerald-500/15 rounded-xl p-2.5 flex items-center gap-2.5 text-emerald-400"
+      >
+        <i class="fi fi-rr-checkbox text-sm"></i>
+        <span class="text-[11px] font-medium tracking-wide"
+          >Device database synced & connection stable</span
+        >
+      </div>
+    }
+  </div>
+
+  <!-- Search & Pills Filtering -->
+  <div class="px-4 mt-5 flex flex-col gap-3">
+    <!-- Search Bar -->
+    <div class="relative w-full">
+      <span
+        class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500"
+      >
+        <i class="fi fi-rr-search text-xs"></i>
+      </span>
+      <input
+        type="text"
+        [(ngModel)]="searchQuery"
+        placeholder="Search match or team..."
+        class="w-full bg-slate-900 border border-white/5 focus:border-violet-500/50 rounded-xl pl-9 pr-4 py-2.5 text-xs text-slate-200 placeholder-slate-500 outline-none transition-all"
+      />
+    </div>
+
+    <!-- Status Pills Selection -->
+    <div class="flex gap-2 overflow-x-auto pb-1 select-none">
+      <button
+        (click)="statusFilter.set('all')"
+        class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all border whitespace-nowrap cursor-pointer"
+        [class]="
+          statusFilter() === 'all'
+            ? 'bg-violet-600 border-transparent text-white shadow-md shadow-violet-600/15'
+            : 'bg-slate-900 border-white/5 text-slate-400 hover:text-white'
+        "
+      >
+        All Fixtures ({{ matches().length }})
+      </button>
+      <button
+        (click)="statusFilter.set('live')"
+        class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all border whitespace-nowrap cursor-pointer flex items-center gap-1.5"
+        [class]="
+          statusFilter() === 'live'
+            ? 'bg-cyan-600 border-transparent text-white shadow-md shadow-cyan-600/15'
+            : 'bg-slate-900 border-white/5 text-slate-400 hover:text-white'
+        "
+      >
+        <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping"></span>
+        Live Scoring
+      </button>
+      <button
+        (click)="statusFilter.set('upcoming')"
+        class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all border whitespace-nowrap cursor-pointer"
+        [class]="
+          statusFilter() === 'upcoming'
+            ? 'bg-emerald-600 border-transparent text-white shadow-md shadow-emerald-600/15'
+            : 'bg-slate-900 border-white/5 text-slate-400 hover:text-white'
+        "
+      >
+        Upcoming
+      </button>
+      <button
+        (click)="statusFilter.set('completed')"
+        class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all border whitespace-nowrap cursor-pointer"
+        [class]="
+          statusFilter() === 'completed'
+            ? 'bg-slate-700 border-transparent text-white'
+            : 'bg-slate-900 border-white/5 text-slate-400 hover:text-white'
+        "
+      >
+        Completed
+      </button>
+    </div>
+  </div>
+
+  <!-- Match Fixtures List -->
+  <div
+    #matchPull="pullToRefresh"
+    appPullToRefresh
+    (refresh)="onPullRefresh(matchPull)"
+    class="px-4 mt-4 flex flex-col gap-3 overflow-y-auto"
+  >
+    @for (match of filteredMatches(); track match.id) {
+      <div
+        class="bg-slate-900/40 border border-white/5 hover:border-white/10 rounded-2xl p-4 transition-all flex flex-col gap-3.5 relative overflow-hidden"
+      >
+        <!-- Card Background Highlight for Live Matches -->
+        @if (match.status === 'live') {
+          <div
+            class="absolute inset-0 bg-gradient-to-r from-cyan-500/5 to-transparent pointer-events-none"
+          ></div>
+        }
+
+        <!-- Top Header Info -->
+        <div class="flex items-center justify-between z-10">
+          <div class="flex items-center gap-2">
+            <span
+              class="text-[10px] px-2 py-0.5 bg-slate-800 text-slate-300 font-bold rounded-md uppercase tracking-wider"
+            >
+              {{ match.stage?.competition?.sport?.name || 'Sport' }}
+            </span>
+            <span class="text-[10px] text-slate-500 font-semibold max-w-[120px] truncate">
+              {{ match.stage?.competition?.name }}
+            </span>
+          </div>
+
+          <!-- Status Indicator -->
+          @if (match.status === 'live') {
+            <span
+              class="text-[9px] px-2 py-0.5 bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 rounded font-black tracking-wider uppercase flex items-center gap-1"
+            >
+              <span class="w-1 h-1 rounded-full bg-cyan-400 animate-pulse"></span>
+              LIVE
+            </span>
+          } @else if (match.status === 'completed') {
+            <span
+              class="text-[9px] px-2 py-0.5 bg-slate-800 text-slate-400 rounded font-black tracking-wider uppercase"
+            >
+              FINISHED
+            </span>
+          } @else {
+            <span
+              class="text-[9px] px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded font-bold"
+            >
+              {{ match.scheduledAt | date: 'MMM d, h:mm a' }}
+            </span>
+          }
+        </div>
+
+        <!-- Team Scores Matchup -->
+        <div class="grid grid-cols-7 items-center justify-center z-10 py-1.5">
+          <!-- Home Team -->
+          <div class="col-span-3 flex flex-col items-center gap-1.5 text-center">
+            @if (getTeamLogo(match.homeTeamId); as logo) {
+              <img [src]="logo" class="w-9 h-9 object-contain rounded" alt="home logo" />
+            } @else {
+              <div
+                class="w-9 h-9 rounded bg-slate-800 border border-white/5 flex items-center justify-center text-xs font-black text-white uppercase"
+              >
+                {{ match.homeTeam?.name || 'H' | slice: 0 : 2 }}
+              </div>
+            }
+            <span class="text-[11px] font-bold text-white max-w-[80px] truncate">{{
+              match.homeTeam?.name || 'TBD'
+            }}</span>
+          </div>
+
+          <!-- Score / VS Center -->
+          <div class="col-span-1 flex flex-col items-center justify-center">
+            @if (match.status === 'live' || match.status === 'completed') {
+              <div
+                class="flex items-center gap-1 bg-slate-950/80 border border-white/5 rounded-lg px-2.5 py-1 text-sm font-black text-white"
+              >
+                <span>{{ match.homeScore ?? 0 }}</span>
+                <span class="text-slate-650 font-normal">-</span>
+                <span>{{ match.awayScore ?? 0 }}</span>
+              </div>
+            } @else {
+              <span class="text-[10px] text-slate-600 font-bold uppercase tracking-wider">VS</span>
+            }
+          </div>
+
+          <!-- Away Team -->
+          <div class="col-span-3 flex flex-col items-center gap-1.5 text-center">
+            @if (getTeamLogo(match.awayTeamId); as logo) {
+              <img [src]="logo" class="w-9 h-9 object-contain rounded" alt="away logo" />
+            } @else {
+              <div
+                class="w-9 h-9 rounded bg-slate-800 border border-white/5 flex items-center justify-center text-xs font-black text-white uppercase"
+              >
+                {{ match.awayTeam?.name || 'A' | slice: 0 : 2 }}
+              </div>
+            }
+            <span class="text-[11px] font-bold text-white max-w-[80px] truncate">{{
+              match.awayTeam?.name || 'TBD'
+            }}</span>
+          </div>
+        </div>
+
+        <!-- Match Venue / Location Info -->
+        <div
+          class="flex items-center justify-between text-[10px] text-slate-500 border-t border-white/5 pt-3"
+        >
+          <span class="flex items-center gap-1">
+            <i class="fi fi-rr-marker text-[11px]"></i>
+            {{ getVenueName(match.venueId) }}
+          </span>
+          @if (match.config?.round) {
+            <span class="font-medium bg-slate-900 px-2 py-0.5 rounded border border-white/5">
+              {{ match.config.round }}
+            </span>
+          }
+        </div>
+
+        <!-- Big Thumb Action Buttons -->
+        <div class="mt-1 flex items-center justify-end z-10">
+          @if (match.status === 'live') {
+            <button
+              (click)="enterMatch.emit(match)"
+              class="w-full py-2.5 bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 text-slate-950 text-xs font-black rounded-xl shadow-lg shadow-cyan-900/15 flex items-center justify-center gap-1.5 cursor-pointer border-0"
+            >
+              <i class="fi fi-rr-play-alt text-sm"></i>
+              <span>Resume Scoring</span>
+            </button>
+          } @else if (match.status === 'completed') {
+            <button
+              (click)="enterMatch.emit(match)"
+              class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 cursor-pointer border-0"
+            >
+              <i class="fi fi-rr-eye text-sm"></i>
+              <span>View Match Details</span>
+            </button>
+          } @else {
+            <button
+              (click)="enterMatch.emit(match)"
+              class="w-full py-2.5 bg-gradient-to-r from-violet-600 to-violet-500 hover:from-violet-500 hover:to-violet-400 text-white text-xs font-black rounded-xl shadow-lg shadow-violet-900/15 flex items-center justify-center gap-1.5 cursor-pointer border-0"
+            >
+              <i class="fi fi-rr-bolt text-sm"></i>
+              <span>Start & Score Match</span>
+            </button>
+          }
+        </div>
+      </div>
+    } @empty {
+      <div
+        class="rounded-2xl border border-dashed border-white/10 p-12 text-center flex flex-col items-center justify-center gap-3 bg-slate-900/10"
+      >
+        <span class="text-3xl text-slate-500"><i class="fi fi-rr-ball"></i></span>
+        <div>
+          <h3 class="text-xs font-bold text-white uppercase tracking-wider">No Matches Found</h3>
+          <p class="text-[11px] text-slate-500 mt-1">
+            Try another search term or filter selection.
+          </p>
+        </div>
+      </div>
+    }
+  </div>
+</div>

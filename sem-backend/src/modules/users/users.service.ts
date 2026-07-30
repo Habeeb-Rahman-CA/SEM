@@ -140,6 +140,15 @@ export class UsersService {
     );
   }
 
+  async updatePushToken(id: string, token: string | null): Promise<void> {
+    const user = await this.findOneById(id);
+    if (!user) {
+      throw new ConflictException('User not found');
+    }
+    user.pushToken = token;
+    await this.userRepository.save(user);
+  }
+
   async countAll(): Promise<number> {
     return await this.userRepository.count();
   }

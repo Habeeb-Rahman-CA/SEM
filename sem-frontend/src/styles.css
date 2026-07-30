@@ -1,55 +1,55 @@
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&display=swap');
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @theme {
   --font-sans: 'Space Grotesk', sans-serif;
   --font-display: 'Space Grotesk', sans-serif;
-  
+
   /* Core palette configuration */
   --color-canvas: #222831;
-  --color-surface: #393E46;
-  --color-accent: #00ADB5;
-  --color-highlight: #00ADB5;
-  --color-text-main: #EEEEEE;
+  --color-surface: #393e46;
+  --color-accent: #00adb5;
+  --color-highlight: #00adb5;
+  --color-text-main: #eeeeee;
 
   /* Override standard colors to conform to the new palette */
   --color-slate-950: #222831;
-  --color-slate-900: #393E46;
-  --color-slate-800: #4B525D;
-  --color-slate-700: #EEEEEE;
-  --color-slate-600: #A9B2C3;
-  --color-slate-500: #8892A2;
-  --color-slate-400: #EEEEEE;
-  --color-slate-300: #EEEEEE;
-  --color-slate-200: #EEEEEE;
-  --color-slate-100: #EEEEEE;
-  
-  --color-white: #EEEEEE;
+  --color-slate-900: #393e46;
+  --color-slate-800: #4b525d;
+  --color-slate-700: #eeeeee;
+  --color-slate-600: #a9b2c3;
+  --color-slate-500: #8892a2;
+  --color-slate-400: #eeeeee;
+  --color-slate-300: #eeeeee;
+  --color-slate-200: #eeeeee;
+  --color-slate-100: #eeeeee;
+
+  --color-white: #eeeeee;
 
   /* Redirect violet (accent) to #00ADB5 */
   --color-violet-950: #222831;
-  --color-violet-900: #393E46;
-  --color-violet-850: #393E46;
-  --color-violet-800: #00ADB5;
-  --color-violet-700: #00ADB5;
-  --color-violet-600: #00ADB5;
-  --color-violet-500: #00ADB5;
-  --color-violet-400: #00ADB5;
-  --color-violet-300: #00ADB5;
-  --color-violet-200: #00ADB5;
-  --color-violet-100: #00ADB5;
+  --color-violet-900: #393e46;
+  --color-violet-850: #393e46;
+  --color-violet-800: #00adb5;
+  --color-violet-700: #00adb5;
+  --color-violet-600: #00adb5;
+  --color-violet-500: #00adb5;
+  --color-violet-400: #00adb5;
+  --color-violet-300: #00adb5;
+  --color-violet-200: #00adb5;
+  --color-violet-100: #00adb5;
 
   /* Redirect indigo (accent/gradient highlights) to #00ADB5 */
   --color-indigo-950: #222831;
-  --color-indigo-900: #393E46;
-  --color-indigo-800: #00ADB5;
-  --color-indigo-700: #00ADB5;
-  --color-indigo-600: #00ADB5;
-  --color-indigo-500: #00ADB5;
-  --color-indigo-400: #00ADB5;
-  --color-indigo-300: #00ADB5;
-  --color-indigo-200: #00ADB5;
-  --color-indigo-100: #00ADB5;
+  --color-indigo-900: #393e46;
+  --color-indigo-800: #00adb5;
+  --color-indigo-700: #00adb5;
+  --color-indigo-600: #00adb5;
+  --color-indigo-500: #00adb5;
+  --color-indigo-400: #00adb5;
+  --color-indigo-300: #00adb5;
+  --color-indigo-200: #00adb5;
+  --color-indigo-100: #00adb5;
 
   --animate-scaleUp: scaleUp 0.15s ease-out;
   --animate-slideIn: slideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
@@ -81,12 +81,53 @@ body {
   font-family: var(--font-sans);
   background-color: var(--color-canvas);
   color: var(--color-text-main);
+  /* Enable rubber-band-free momentum scroll and prevent horizontal bounce on iOS */
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Expose safe-area insets as CSS variables so components can pad without JS. */
+:root {
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-right: env(safe-area-inset-right, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-left: env(safe-area-inset-left, 0px);
+}
+
+/* Utility classes for common safe-area paddings */
+.safe-top {
+  padding-top: var(--safe-area-top);
+}
+.safe-bottom {
+  padding-bottom: var(--safe-area-bottom);
+}
+.safe-x {
+  padding-left: var(--safe-area-left);
+  padding-right: var(--safe-area-right);
+}
+
+/* Bottom nav gets an extra bump for the iOS home indicator */
+.bottom-nav-safe {
+  padding-bottom: calc(var(--safe-area-bottom) + 0.5rem);
+}
+
+/* Native-only tweaks: no text selection on chrome, smoother tap targets */
+html.native,
+html.native body {
+  user-select: none;
+  -webkit-user-select: none;
+}
+html.native input,
+html.native textarea,
+html.native [contenteditable='true'] {
+  user-select: auto;
+  -webkit-user-select: auto;
 }
 
 /* Global Thin Custom Scrollbar */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #00ADB5 rgba(34, 40, 49, 0.5);
+  scrollbar-color: #00adb5 rgba(34, 40, 49, 0.5);
 }
 
 /* Chrome, Edge, and Safari */
@@ -101,10 +142,20 @@ body {
 }
 
 *::-webkit-scrollbar-thumb {
-  background-color: #00ADB5;
+  background-color: #00adb5;
   border-radius: 4px;
 }
 
 *::-webkit-scrollbar-thumb:hover {
   background-color: #008f96;
+}
+
+/* QR Scanner Transparent Body styling */
+body.qr-scanner-active {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+body.qr-scanner-active .hide-on-scan {
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
