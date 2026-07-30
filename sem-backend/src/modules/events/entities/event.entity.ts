@@ -69,6 +69,15 @@ export class Event extends AuditableEntity {
     createdAt: Date;
   }> | null;
 
+  @Column({ name: 'sponsors', type: 'jsonb', nullable: true })
+  sponsors: Array<{
+    id: string;
+    name: string;
+    logoUrl?: string | null;
+    url?: string | null;
+    tier?: string | null;
+  }> | null;
+
   @Column({
     name: 'registration_status',
     type: 'varchar',

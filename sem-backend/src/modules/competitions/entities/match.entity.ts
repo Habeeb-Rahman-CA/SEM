@@ -128,4 +128,16 @@ export class Match extends AuditableEntity {
 
   @Column({ type: 'json', nullable: true })
   liveData: any;
+
+  @Column({ type: 'text', nullable: true })
+  summary: string | null;
+
+  @Column({ name: 'highlight_videos', type: 'jsonb', nullable: true })
+  highlightVideos: Array<{
+    id: string;
+    platform: 'youtube' | 'vimeo' | 'other';
+    url: string;
+    title?: string | null;
+    thumbnailUrl?: string | null;
+  }> | null;
 }

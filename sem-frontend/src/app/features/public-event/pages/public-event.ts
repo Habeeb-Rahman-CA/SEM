@@ -9,6 +9,8 @@ import { WorkspaceEvent } from '../../workspaces/services/workspace.service';
 import { SocketService } from '../../../core/services/socket.service';
 import { AvatarComponent } from '../../../shared/components/avatar/avatar';
 import { getSportBadgeClass, getSportIconClass } from '../../../shared';
+import { GalleryPhoto, GalleryService } from '../../gallery/services/gallery.service';
+import { ShareService } from '../../share/services/share.service';
 
 @Component({
   selector: 'app-public-event',
@@ -20,6 +22,8 @@ export class PublicEventComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private eventService = inject(EventService);
   private socketService = inject(SocketService);
+  private galleryService = inject(GalleryService);
+  private shareService = inject(ShareService);
 
   private pollSub: Subscription | null = null;
   private socketSub: Subscription | null = null;
@@ -224,6 +228,72 @@ export class PublicEventComponent implements OnInit, OnDestroy {
   // Lightbox for Gallery
   selectedImage = signal<string | null>(null);
 
+  // Organized gallery photos (new gallery_photos table)
+  galleryPhotos = signal<GalleryPhoto[]>([]);
+  isLoadingGallery = signal<boolean>(false);
+  galleryLoaded = signal<boolean>(false);
+  galleryFilter = signal<'all' | 'event' | 'comp'>('all');
+  galleryCompFilterId = signal<string | null>(null);
+
+  filteredGalleryPhotos = computed(() => {
+    const filter = this.galleryFilter();
+    const list = this.galleryPhotos();
+    if (filter === 'all') return list;
+    if (filter === 'event') {
+      return list.filter((p) => !p.competitionId && !p.matchId);
+    }
+    const cid = this.galleryCompFilterId();
+    return list.filter((p) => p.competitionId === cid);
+  });
+
+  galleryCompetitionsWithPhotos = computed(() => {
+    const evtComps = this.event()?.competitions ?? [];
+    const seen = new Set<string>();
+    for (const p of this.galleryPhotos()) {
+      if (p.competitionId) seen.add(p.competitionId);
+    }
+    return evtComps.filter((c: any) => seen.has(c.id));
+  });
+
+  galleryCountByComp(compId: string): number {
+    return this.galleryPhotos().filter((p) => p.competitionId === compId).length;
+  }
+
+  galleryEventLevelCount = computed(
+    () => this.galleryPhotos().filter((p) => !p.competitionId && !p.matchId).length,
+  );
+
+  thumbFor(url: string): string {
+    return this.galleryService.optimize(url, { width: 500 });
+  }
+
+  goToGallery() {
+    this.activeTab.set('gallery');
+    if (!this.galleryLoaded()) this.loadGalleryPhotos();
+  }
+
+  setGalleryFilter(kind: 'all' | 'event' | 'comp', compId: string | null = null) {
+    this.galleryFilter.set(kind);
+    this.galleryCompFilterId.set(compId);
+  }
+
+  loadGalleryPhotos() {
+    const id = this.eventId();
+    if (!id) return;
+    this.isLoadingGallery.set(true);
+    this.galleryService.listPublicPhotos(id).subscribe({
+      next: (list) => {
+        this.galleryPhotos.set(list);
+        this.isLoadingGallery.set(false);
+        this.galleryLoaded.set(true);
+      },
+      error: () => {
+        this.isLoadingGallery.set(false);
+        this.galleryLoaded.set(true);
+      },
+    });
+  }
+
   // Exposed helper functions
   getSportBadgeClass = getSportBadgeClass;
   getSportIconClass = getSportIconClass;
@@ -301,6 +371,17 @@ export class PublicEventComponent implements OnInit, OnDestroy {
         this.event.set(evt);
         this.isLoading.set(false);
 
+        this.shareService.setPageMeta({
+          title: evt.name,
+          description:
+            evt.description ??
+            `${evt.venue ?? 'Sports event'}${
+              evt.startDate ? ' · ' + new Date(evt.startDate).toDateString() : ''
+            }`,
+          image: evt.logoUrl,
+          url: this.shareService.spaUrl('events', evt.id),
+        });
+
         if (evt.workspaceId) {
           this.socketService.subscribeWorkspace(evt.workspaceId);
         }
@@ -322,6 +403,9 @@ export class PublicEventComponent implements OnInit, OnDestroy {
             if (targetComp) this.selectStandingsCompetition(targetComp, stageId);
           } else if (tab === 'results') {
             if (targetComp) this.selectResultsCompetition(targetComp);
+          } else if (tab === 'gallery') {
+            this.loadGalleryPhotos();
+            if (targetComp) this.selectCompetition(targetComp, stageId);
           } else {
             if (targetComp) this.selectCompetition(targetComp, stageId);
           }

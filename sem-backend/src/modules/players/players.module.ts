@@ -7,6 +7,7 @@ import { MatchPlayer } from './entities/match-player.entity';
 import { WorkspaceMember } from '../workspaces/entities/workspace-member.entity';
 import { PlayersService } from './players.service';
 import { PlayersController } from './players.controller';
+import { PublicPlayersController } from './public-players.controller';
 import { WorkspacesModule } from '../workspaces/workspaces.module';
 import { UsersModule } from '../users/users.module';
 import { SearchModule } from '../search/search.module';
@@ -24,7 +25,7 @@ import { SearchModule } from '../search/search.module';
     UsersModule,
     SearchModule,
   ],
-  controllers: [PlayersController],
+  controllers: [PlayersController, PublicPlayersController],
   providers: [PlayersService],
   exports: [PlayersService],
 })

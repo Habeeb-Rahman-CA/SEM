@@ -90,6 +90,20 @@ export interface Team {
   workspaceId: string;
   createdAt: string;
   updatedAt: string;
+  coaches?: Array<{
+    id: string;
+    name: string;
+    role?: string | null;
+    avatarUrl?: string | null;
+    bio?: string | null;
+  }> | null;
+  achievements?: Array<{
+    id: string;
+    title: string;
+    year?: number | null;
+    competitionName?: string | null;
+    description?: string | null;
+  }> | null;
 }
 
 export interface Player {
@@ -106,6 +120,14 @@ export interface Player {
   workspaceId: string;
   createdAt: string;
   updatedAt: string;
+  bio?: string | null;
+  position?: string | null;
+  achievements?: Array<{
+    id: string;
+    title: string;
+    description?: string | null;
+    year?: number | null;
+  }> | null;
 }
 
 export interface WorkspaceEvent {
@@ -124,11 +146,26 @@ export interface WorkspaceEvent {
   isPublic?: boolean;
   gallery?: string[] | null;
   announcements?: Array<{ id: string; title: string; content: string; createdAt: string }> | null;
+  sponsors?: Array<{
+    id: string;
+    name: string;
+    logoUrl?: string | null;
+    url?: string | null;
+    tier?: string | null;
+  }> | null;
   registrationStatus?: string;
   venue?: string | null;
   sport?: string | null;
   organizers?: string | null;
+  slug?: string | null;
   isArchived?: boolean;
+}
+
+export interface PublicEventsPage {
+  items: WorkspaceEvent[];
+  total: number;
+  limit: number;
+  offset: number;
 }
 
 export interface Sport {
@@ -216,6 +253,14 @@ export interface Match {
     isBye?: boolean;
   };
   liveData: any;
+  summary?: string | null;
+  highlightVideos?: Array<{
+    id: string;
+    platform: 'youtube' | 'vimeo' | 'other';
+    url: string;
+    title?: string | null;
+    thumbnailUrl?: string | null;
+  }> | null;
   createdAt: string;
   updatedAt: string;
   mvp?: {

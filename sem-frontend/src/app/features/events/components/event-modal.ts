@@ -6,11 +6,12 @@ import { EventService } from '../services/event.service';
 import { UiService } from '../../../core/services/ui.service';
 import { AvatarComponent } from '../../../shared/components/avatar/avatar';
 import { PhotoCaptureComponent } from '../../../shared/components/photo-capture/photo-capture';
+import { GalleryManagerComponent } from '../../gallery/components/gallery-manager';
 
 @Component({
   selector: 'app-event-modal',
   standalone: true,
-  imports: [FormsModule, AvatarComponent, DatePipe, PhotoCaptureComponent],
+  imports: [FormsModule, AvatarComponent, DatePipe, PhotoCaptureComponent, GalleryManagerComponent],
   template: `
     @if (isOpen()) {
       <div
@@ -96,6 +97,28 @@ import { PhotoCaptureComponent } from '../../../shared/components/photo-capture/
             >
               Announcements
             </button>
+            <button
+              type="button"
+              (click)="activeTab.set('sponsors')"
+              class="py-3 px-1 border-b-2 transition-all cursor-pointer outline-none"
+              [class.border-violet-500]="activeTab() === 'sponsors'"
+              [class.text-white]="activeTab() === 'sponsors'"
+              [class.border-transparent]="activeTab() !== 'sponsors'"
+            >
+              Sponsors
+            </button>
+            @if (editingEvent()) {
+              <button
+                type="button"
+                (click)="activeTab.set('photos')"
+                class="py-3 px-1 border-b-2 transition-all cursor-pointer outline-none"
+                [class.border-violet-500]="activeTab() === 'photos'"
+                [class.text-white]="activeTab() === 'photos'"
+                [class.border-transparent]="activeTab() !== 'photos'"
+              >
+                Photos
+              </button>
+            }
           </div>
 
           <!-- Form Content -->
@@ -588,6 +611,182 @@ import { PhotoCaptureComponent } from '../../../shared/components/photo-capture/
                 </div>
               }
 
+              <!-- Tab 4: Sponsors -->
+              @if (activeTab() === 'sponsors') {
+                <div class="flex flex-col gap-4 text-left">
+                  <div class="flex flex-col gap-1">
+                    <span class="text-xs font-bold text-white">Event Sponsors & Partners</span>
+                    <span class="text-[10px] text-slate-400"
+                      >Showcase the brands and organizations supporting your event. Sponsors appear
+                      on the public event page.</span
+                    >
+                  </div>
+
+                  <!-- Add Sponsor -->
+                  <div
+                    class="p-4 bg-slate-950/40 border border-white/5 rounded-xl flex flex-col gap-3"
+                  >
+                    <span class="text-[10px] font-bold text-violet-400 uppercase tracking-wider"
+                      >New Sponsor</span
+                    >
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div class="flex flex-col gap-1.5">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+                          >Sponsor Name <span class="text-rose-400">*</span></label
+                        >
+                        <input
+                          type="text"
+                          placeholder="e.g. Acme Corp"
+                          class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2 text-xs text-white placeholder-slate-500 outline-none transition-all w-full"
+                          [ngModel]="newSponsorName()"
+                          (ngModelChange)="newSponsorName.set($event)"
+                          name="eNewSpName"
+                        />
+                      </div>
+                      <div class="flex flex-col gap-1.5">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+                          >Tier / Label</label
+                        >
+                        <select
+                          class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2 text-xs text-white outline-none transition-all w-full"
+                          [ngModel]="newSponsorTier()"
+                          (ngModelChange)="newSponsorTier.set($event)"
+                          name="eNewSpTier"
+                        >
+                          <option value="">— None —</option>
+                          <option value="Title">Title Sponsor</option>
+                          <option value="Platinum">Platinum</option>
+                          <option value="Gold">Gold</option>
+                          <option value="Silver">Silver</option>
+                          <option value="Bronze">Bronze</option>
+                          <option value="Partner">Partner</option>
+                        </select>
+                      </div>
+                      <div class="flex flex-col gap-1.5 md:col-span-2">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+                          >Website URL</label
+                        >
+                        <input
+                          type="url"
+                          placeholder="https://example.com"
+                          class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2 text-xs text-white placeholder-slate-500 outline-none transition-all w-full"
+                          [ngModel]="newSponsorUrl()"
+                          (ngModelChange)="newSponsorUrl.set($event)"
+                          name="eNewSpUrl"
+                        />
+                      </div>
+                    </div>
+
+                    <app-photo-capture
+                      label="Sponsor Logo"
+                      hint="upload or paste a URL"
+                      uploadType="event"
+                      shape="thumb"
+                      buttonLabel="Upload Logo"
+                      [imageUrl]="newSponsorLogoUrl()"
+                      (imageUploaded)="newSponsorLogoUrl.set($event)"
+                      (imageRemoved)="newSponsorLogoUrl.set('')"
+                    />
+
+                    <button
+                      type="button"
+                      (click)="addSponsor()"
+                      [disabled]="!newSponsorName().trim()"
+                      class="self-end px-4 py-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-all cursor-pointer"
+                    >
+                      Add Sponsor
+                    </button>
+                  </div>
+
+                  <!-- Sponsors List -->
+                  <div
+                    class="flex flex-col gap-2 max-h-[280px] overflow-y-auto pr-1 custom-scrollbar"
+                  >
+                    @for (sp of sponsors(); track sp.id) {
+                      <div
+                        class="p-3 bg-slate-950/20 border border-white/5 rounded-xl flex items-center justify-between gap-3"
+                      >
+                        <div class="flex items-center gap-3 flex-1 min-w-0">
+                          <app-avatar
+                            [name]="sp.name"
+                            [logoUrl]="sp.logoUrl ?? undefined"
+                            customClass="w-9 h-9 rounded-lg flex-shrink-0"
+                            textClass="text-[10px] font-extrabold text-white"
+                          />
+                          <div class="flex flex-col gap-0.5 min-w-0">
+                            <div class="flex items-center gap-2">
+                              <span class="text-xs font-bold text-white truncate">{{
+                                sp.name
+                              }}</span>
+                              @if (sp.tier) {
+                                <span
+                                  class="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-violet-500/15 text-violet-300 border border-violet-500/25"
+                                  >{{ sp.tier }}</span
+                                >
+                              }
+                            </div>
+                            @if (sp.url) {
+                              <a
+                                [href]="sp.url"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="text-[10px] text-slate-400 hover:text-violet-300 truncate"
+                                >{{ sp.url }}</a
+                              >
+                            }
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          (click)="removeSponsor(sp.id)"
+                          class="text-slate-500 hover:text-rose-400 transition cursor-pointer flex-shrink-0"
+                          aria-label="Remove sponsor"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            class="w-4 h-4"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                          >
+                            <path
+                              d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    } @empty {
+                      <div
+                        class="py-8 rounded-xl border border-dashed border-white/5 flex flex-col items-center justify-center text-center text-xs text-slate-500"
+                      >
+                        <i class="fi fi-rr-star text-lg mb-1"></i>
+                        No sponsors added yet.
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+
+              <!-- Tab 5: Organized Photos -->
+              @if (activeTab() === 'photos' && editingEvent(); as evt) {
+                <div class="flex flex-col gap-4 text-left">
+                  <div class="flex flex-col gap-1">
+                    <span class="text-xs font-bold text-white">Organized event photos</span>
+                    <span class="text-[10px] text-slate-400">
+                      Upload photos from the event and tag them by competition so spectators can
+                      filter what they see on the public page.
+                    </span>
+                  </div>
+
+                  <app-gallery-manager
+                    [workspaceId]="workspace()!.id"
+                    [eventId]="evt.id"
+                    [competitions]="evt.competitions ?? []"
+                    [matches]="[]"
+                  />
+                </div>
+              }
+
               <!-- Full Width Action Buttons -->
               <div class="md:col-span-2 pt-2 flex gap-2">
                 <button
@@ -643,7 +842,7 @@ export class EventModalComponent {
   eventSaved = output<WorkspaceEvent>();
 
   // Tabs
-  activeTab = signal<'general' | 'public' | 'announcements'>('general');
+  activeTab = signal<'general' | 'public' | 'announcements' | 'sponsors' | 'photos'>('general');
 
   // Local Form Signals
   name = signal('');
@@ -660,6 +859,15 @@ export class EventModalComponent {
   announcements = signal<Array<{ id: string; title: string; content: string; createdAt: string }>>(
     [],
   );
+  sponsors = signal<
+    Array<{
+      id: string;
+      name: string;
+      logoUrl?: string | null;
+      url?: string | null;
+      tier?: string | null;
+    }>
+  >([]);
   registrationStatus = signal('open');
   venue = signal('');
   sport = signal('');
@@ -668,6 +876,10 @@ export class EventModalComponent {
   newGalleryUrl = signal('');
   newAnnTitle = signal('');
   newAnnContent = signal('');
+  newSponsorName = signal('');
+  newSponsorUrl = signal('');
+  newSponsorTier = signal('');
+  newSponsorLogoUrl = signal('');
 
   isSaving = signal(false);
   error = signal('');
@@ -691,6 +903,7 @@ export class EventModalComponent {
             this.isPublic.set(event.isPublic ?? false);
             this.gallery.set(event.gallery || []);
             this.announcements.set(event.announcements || []);
+            this.sponsors.set(event.sponsors || []);
             this.registrationStatus.set(event.registrationStatus ?? 'open');
             this.venue.set(event.venue ?? '');
             this.sport.set(event.sport ?? '');
@@ -706,6 +919,7 @@ export class EventModalComponent {
             this.isPublic.set(false);
             this.gallery.set([]);
             this.announcements.set([]);
+            this.sponsors.set([]);
             this.registrationStatus.set('open');
             this.venue.set('');
             this.sport.set('');
@@ -714,6 +928,10 @@ export class EventModalComponent {
           this.newGalleryUrl.set('');
           this.newAnnTitle.set('');
           this.newAnnContent.set('');
+          this.newSponsorName.set('');
+          this.newSponsorUrl.set('');
+          this.newSponsorTier.set('');
+          this.newSponsorLogoUrl.set('');
           this.error.set('');
           this.success.set('');
         }
@@ -776,6 +994,29 @@ export class EventModalComponent {
     this.uiService.success('Announcement removed.');
   }
 
+  addSponsor() {
+    const name = this.newSponsorName().trim();
+    if (!name) return;
+    const sponsor = {
+      id: crypto.randomUUID(),
+      name,
+      logoUrl: this.newSponsorLogoUrl().trim() || null,
+      url: this.newSponsorUrl().trim() || null,
+      tier: this.newSponsorTier().trim() || null,
+    };
+    this.sponsors.update((prev) => [...prev, sponsor]);
+    this.newSponsorName.set('');
+    this.newSponsorUrl.set('');
+    this.newSponsorTier.set('');
+    this.newSponsorLogoUrl.set('');
+    this.uiService.success('Sponsor added.');
+  }
+
+  removeSponsor(id: string) {
+    this.sponsors.update((prev) => prev.filter((sp) => sp.id !== id));
+    this.uiService.success('Sponsor removed.');
+  }
+
   private formatToLocalDatetime(dateStr: string | null | undefined): string {
     if (!dateStr) return '';
     const date = new Date(dateStr);
@@ -809,6 +1050,7 @@ export class EventModalComponent {
       isPublic: this.isPublic(),
       gallery: this.gallery(),
       announcements: this.announcements(),
+      sponsors: this.sponsors(),
       registrationStatus: this.registrationStatus(),
       venue: this.venue().trim() || undefined,
       sport: this.sport().trim() || undefined,

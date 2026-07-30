@@ -1,8 +1,9 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { RequestMethod, ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { RequestContextInterceptor } from './common/interceptors/request-context.interceptor';
+import { PublicCacheInterceptor } from './common/interceptors/public-cache.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -34,10 +35,19 @@ async function bootstrap() {
   }
 
   // ── Global prefix ─────────────────────────────────────────────────────────
-  app.setGlobalPrefix('api');
+  // Exclude SEO endpoints so search engines can find them at the URL root.
+  app.setGlobalPrefix('api', {
+    exclude: [
+      { path: 'robots.txt', method: RequestMethod.GET },
+      { path: 'sitemap.xml', method: RequestMethod.GET },
+    ],
+  });
 
   // ── Request context (audit trail for createdBy/updatedBy) ────────────────
-  app.useGlobalInterceptors(new RequestContextInterceptor());
+  app.useGlobalInterceptors(
+    new RequestContextInterceptor(),
+    new PublicCacheInterceptor(),
+  );
 
   // Note: AllExceptionsFilter is registered via APP_FILTER in AppModule
   // so it is fully DI-aware (ErrorLoggerService injected automatically)

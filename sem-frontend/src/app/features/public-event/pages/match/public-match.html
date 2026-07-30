@@ -1,0 +1,355 @@
+<div class="min-h-screen bg-slate-950 text-white font-sans overflow-x-hidden">
+  <div
+    class="pointer-events-none fixed inset-x-0 top-[-6rem] h-[36rem] -z-0"
+    style="
+      background: radial-gradient(60% 60% at 50% 40%, rgba(139, 92, 246, 0.18), transparent 70%);
+    "
+    aria-hidden="true"
+  ></div>
+
+  <header
+    class="fixed inset-x-0 top-0 z-40 safe-top bg-slate-950/70 backdrop-blur-md border-b border-white/5"
+  >
+    <div class="max-w-6xl mx-auto px-5 sm:px-8 h-14 flex items-center justify-between">
+      <a routerLink="/" class="flex items-center gap-2.5 text-sm font-black tracking-tight">
+        <span
+          class="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-violet-500/25"
+        >
+          <i class="fi fi-sr-trophy text-white text-xs"></i>
+        </span>
+        <span>SEM</span>
+      </a>
+      <nav class="hidden md:flex items-center gap-7 text-xs font-semibold text-slate-400">
+        <a routerLink="/" class="hover:text-white transition">Home</a>
+        <a routerLink="/events" class="hover:text-white transition">Events</a>
+        <a routerLink="/live" class="hover:text-white transition inline-flex items-center gap-1.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          Live
+        </a>
+      </nav>
+      <a
+        routerLink="/events"
+        class="text-xs font-bold text-slate-300 hover:text-white px-3 py-2 rounded-lg transition cursor-pointer"
+      >
+        <i class="fi fi-rr-arrow-small-left mr-1"></i>
+        Back
+      </a>
+    </div>
+  </header>
+
+  <div class="relative max-w-5xl mx-auto px-5 sm:px-8 pt-24 sm:pt-28 pb-20">
+    @if (isLoading()) {
+      <div class="rounded-3xl border border-white/5 bg-slate-900/40 p-10 flex flex-col gap-4">
+        <div class="h-6 w-1/3 bg-slate-800/60 rounded animate-pulse"></div>
+        <div class="h-32 w-full bg-slate-800/40 rounded animate-pulse"></div>
+      </div>
+    } @else if (error()) {
+      <div
+        class="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-6 text-center text-sm text-rose-200"
+      >
+        <i class="fi fi-rr-triangle-warning text-2xl block mb-2"></i>
+        {{ error() }}
+      </div>
+    } @else if (match(); as m) {
+      <!-- Hero: teams + score -->
+      <div
+        class="relative rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900 via-slate-900/80 to-violet-900/20 overflow-hidden"
+      >
+        <div class="relative p-6 sm:p-10">
+          <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center gap-2 min-w-0">
+              @if (m.competition.sport) {
+                <span
+                  [class]="
+                    'inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider border ' +
+                    getSportBadgeClass(m.competition.sport.code)
+                  "
+                >
+                  <i [class]="getSportIconClass(m.competition.sport.code) + ' text-[10px]'"></i>
+                  {{ m.competition.sport.name }}
+                </span>
+              }
+              @if (m.status === 'live') {
+                <span
+                  class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 uppercase tracking-wider"
+                >
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  Live
+                </span>
+              } @else if (m.status === 'completed') {
+                <span
+                  class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-500/15 text-slate-300 border border-slate-500/25 uppercase tracking-wider"
+                >
+                  Full-time
+                </span>
+              }
+            </div>
+            <app-share-button entity="matches" [entityId]="m.id" [shareTitle]="matchTitle()" />
+          </div>
+
+          <div class="flex flex-col gap-1 mb-6 text-center sm:text-left">
+            <a
+              [routerLink]="['/public/events', m.event.id]"
+              class="text-[11px] text-slate-400 hover:text-violet-300 transition"
+            >
+              <i class="fi fi-rr-trophy text-[10px] mr-1"></i>
+              {{ m.event.name }}
+            </a>
+            <div class="text-sm font-bold text-slate-300">
+              {{ m.competition.name }}
+              <span class="text-slate-600">·</span>
+              <span class="text-slate-500 font-semibold">{{ m.stage.name }}</span>
+            </div>
+          </div>
+
+          <!-- Scoreboard -->
+          <div class="grid grid-cols-[1fr_auto_1fr] gap-4 items-center">
+            <a
+              [routerLink]="m.homeTeam ? ['/public/teams', m.homeTeam.id] : []"
+              class="flex flex-col items-center gap-3 text-center group"
+            >
+              <div
+                class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-slate-800 border border-white/10 flex items-center justify-center overflow-hidden group-hover:scale-105 transition"
+              >
+                @if (m.homeTeam?.logoUrl) {
+                  <img
+                    [src]="m.homeTeam?.logoUrl"
+                    [alt]="m.homeTeam?.name"
+                    class="w-full h-full object-cover"
+                  />
+                } @else {
+                  <span class="text-2xl font-black text-slate-400">
+                    {{ (m.homeTeam?.name ?? '?').charAt(0) }}
+                  </span>
+                }
+              </div>
+              <div
+                class="text-xs sm:text-sm font-bold text-white group-hover:text-violet-200 transition truncate max-w-[140px]"
+              >
+                {{ m.homeTeam?.name ?? 'Home' }}
+              </div>
+            </a>
+
+            <div class="flex flex-col items-center min-w-[120px]">
+              <div class="text-3xl sm:text-5xl font-black text-white tabular-nums leading-none">
+                {{ m.homeScore ?? 0 }}
+                <span class="text-slate-700 mx-2">:</span>
+                {{ m.awayScore ?? 0 }}
+              </div>
+              @if (m.scheduledAt) {
+                <div class="mt-3 text-[10px] text-slate-500 font-mono">
+                  {{ m.scheduledAt | date: 'medium' }}
+                </div>
+              }
+              @if (m.venue) {
+                <div class="text-[10px] text-slate-500">
+                  <i class="fi fi-rr-marker text-[9px] mr-1"></i>
+                  {{ m.venue.name }}
+                </div>
+              }
+            </div>
+
+            <a
+              [routerLink]="m.awayTeam ? ['/public/teams', m.awayTeam.id] : []"
+              class="flex flex-col items-center gap-3 text-center group"
+            >
+              <div
+                class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-slate-800 border border-white/10 flex items-center justify-center overflow-hidden group-hover:scale-105 transition"
+              >
+                @if (m.awayTeam?.logoUrl) {
+                  <img
+                    [src]="m.awayTeam?.logoUrl"
+                    [alt]="m.awayTeam?.name"
+                    class="w-full h-full object-cover"
+                  />
+                } @else {
+                  <span class="text-2xl font-black text-slate-400">
+                    {{ (m.awayTeam?.name ?? '?').charAt(0) }}
+                  </span>
+                }
+              </div>
+              <div
+                class="text-xs sm:text-sm font-bold text-white group-hover:text-violet-200 transition truncate max-w-[140px]"
+              >
+                {{ m.awayTeam?.name ?? 'Away' }}
+              </div>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Left: Summary + Videos -->
+        <div class="lg:col-span-2 flex flex-col gap-6">
+          <!-- Summary -->
+          <div class="rounded-3xl border border-white/10 bg-slate-900 p-6 shadow-xl">
+            <h2
+              class="text-xs font-black text-slate-300 uppercase tracking-widest flex items-center gap-2 mb-3"
+            >
+              <i class="fi fi-rr-align-left text-violet-400"></i>
+              Match summary
+            </h2>
+            @if (m.summary) {
+              <p class="text-sm text-slate-300 leading-relaxed whitespace-pre-line">
+                {{ m.summary }}
+              </p>
+            } @else {
+              <p class="text-sm text-slate-500 italic">
+                No summary has been published for this match yet.
+              </p>
+            }
+          </div>
+
+          <!-- Highlight videos -->
+          <div class="rounded-3xl border border-white/10 bg-slate-900 p-6 shadow-xl">
+            <h2
+              class="text-xs font-black text-slate-300 uppercase tracking-widest flex items-center gap-2 mb-4"
+            >
+              <i class="fi fi-rr-video-camera text-violet-400"></i>
+              Highlight videos
+              <span class="ml-auto text-slate-500 font-bold">{{ m.highlightVideos.length }}</span>
+            </h2>
+
+            @if (m.highlightVideos.length === 0) {
+              <div class="py-10 text-center text-xs text-slate-500">
+                No highlight videos yet. Check back after the match.
+              </div>
+            } @else {
+              <div class="flex flex-col gap-5">
+                @for (v of highlightVideoUrls(); track v.id) {
+                  <div class="flex flex-col gap-2">
+                    @if (v.raw.title) {
+                      <div class="text-sm font-bold text-white">{{ v.raw.title }}</div>
+                    }
+                    @if (v.embed) {
+                      <div
+                        class="relative w-full pt-[56.25%] rounded-2xl overflow-hidden border border-white/10 bg-slate-950"
+                      >
+                        <iframe
+                          [src]="v.embed"
+                          class="absolute inset-0 w-full h-full"
+                          allow="
+                            accelerometer;
+                            autoplay;
+                            clipboard-write;
+                            encrypted-media;
+                            gyroscope;
+                            picture-in-picture;
+                            web-share;
+                          "
+                          allowfullscreen
+                          loading="lazy"
+                        ></iframe>
+                      </div>
+                    } @else {
+                      <a
+                        [href]="v.raw.url"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="inline-flex items-center gap-2 text-xs text-violet-300 hover:text-violet-200 font-bold"
+                      >
+                        <i class="fi fi-rr-play-circle text-sm"></i>
+                        Watch on {{ v.raw.platform }}
+                        <span class="text-slate-500 font-normal truncate">· {{ v.raw.url }}</span>
+                      </a>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Right: Timeline -->
+        <div class="lg:col-span-1">
+          <div class="rounded-3xl border border-white/10 bg-slate-900 p-6 shadow-xl sticky top-20">
+            <h2
+              class="text-xs font-black text-slate-300 uppercase tracking-widest flex items-center gap-2 mb-4"
+            >
+              <i class="fi fi-rr-time-past text-violet-400"></i>
+              Timeline
+              <span class="ml-auto text-slate-500 font-bold">{{ timeline().length }}</span>
+            </h2>
+
+            @if (timeline().length === 0) {
+              <div class="py-6 text-center text-xs text-slate-500">
+                No timeline events recorded.
+              </div>
+            } @else {
+              <div class="flex flex-col gap-2 max-h-[560px] overflow-y-auto pr-1 custom-scrollbar">
+                @for (t of timeline(); track $index) {
+                  <div
+                    [class]="
+                      'flex items-start gap-3 p-2.5 rounded-lg border-l-2 bg-slate-950/40 ' +
+                      teamSideClass(t.teamSide ?? null)
+                    "
+                  >
+                    <div
+                      [class]="
+                        'w-7 h-7 rounded-lg flex items-center justify-center border flex-shrink-0 text-xs ' +
+                        t.colorClass
+                      "
+                    >
+                      <i [class]="t.icon"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-1.5 text-[10px] text-slate-500 font-mono">
+                        @if (t.minute !== null && t.minute !== undefined) {
+                          <span>{{ t.minute }}'</span>
+                        } @else if (t.over) {
+                          <span>ov {{ t.over }}</span>
+                        }
+                        @if (t.teamSide) {
+                          <span class="uppercase tracking-wider">
+                            {{ teamSideLabel(t.teamSide, m) }}
+                          </span>
+                        }
+                      </div>
+                      <div class="text-xs font-bold text-white leading-snug">{{ t.label }}</div>
+                      @if (t.detail) {
+                        <div class="text-[11px] text-slate-400 mt-0.5">{{ t.detail }}</div>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Awards / MVPs at the bottom -->
+      @if (ratedPlayers().length > 0) {
+        <div class="mt-8 rounded-3xl border border-white/10 bg-slate-900 p-6 shadow-xl">
+          <h2
+            class="text-xs font-black text-slate-300 uppercase tracking-widest flex items-center gap-2 mb-4"
+          >
+            <i class="fi fi-sr-trophy text-amber-400"></i>
+            Top rated players
+          </h2>
+          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            @for (p of ratedPlayers(); track p.playerId) {
+              <a
+                [routerLink]="['/public/players', p.playerId]"
+                class="flex items-center gap-2.5 p-3 rounded-xl bg-slate-950/40 border border-white/5 hover:border-violet-500/30 transition"
+              >
+                <app-avatar
+                  [name]="p.playerName"
+                  customClass="w-9 h-9 rounded-lg flex-shrink-0"
+                  textClass="text-xs font-black text-white"
+                />
+                <div class="min-w-0 flex-1">
+                  <div class="text-xs font-bold text-white truncate">{{ p.playerName }}</div>
+                  <div class="text-[10px] text-slate-500 truncate">{{ p.teamName }}</div>
+                </div>
+                <span class="text-xs font-black text-emerald-300 tabular-nums flex-shrink-0">
+                  {{ p.rating }}
+                </span>
+              </a>
+            }
+          </div>
+        </div>
+      }
+    }
+  </div>
+</div>

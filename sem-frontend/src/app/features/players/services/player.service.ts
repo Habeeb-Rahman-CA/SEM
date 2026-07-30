@@ -28,6 +28,14 @@ export class PlayerService {
       userId: string;
       jerseyNumber?: string | null;
       teamId: string;
+      bio?: string;
+      position?: string;
+      achievements?: Array<{
+        id: string;
+        title: string;
+        description?: string | null;
+        year?: number | null;
+      }>;
     },
   ): Observable<Player> {
     return this.http.post<Player>(`${this.apiUrl}/${workspaceId}/players`, payload, {
@@ -41,6 +49,14 @@ export class PlayerService {
     payload: {
       jerseyNumber?: string | null;
       teamId?: string | null;
+      bio?: string;
+      position?: string;
+      achievements?: Array<{
+        id: string;
+        title: string;
+        description?: string | null;
+        year?: number | null;
+      }>;
     },
   ): Observable<Player> {
     return this.http.patch<Player>(`${this.apiUrl}/${workspaceId}/players/${playerId}`, payload, {
@@ -58,5 +74,9 @@ export class PlayerService {
     return this.http.get<any>(`${this.apiUrl}/${workspaceId}/players/${playerId}/stats`, {
       headers: this.headers,
     });
+  }
+
+  getPublicPlayer(playerId: string): Observable<any> {
+    return this.http.get<any>(`${environment.apiUrl}/public/players/${playerId}`);
   }
 }

@@ -24,6 +24,14 @@ export class PlayerModalComponent {
   userId = signal('');
   teamId = signal('');
   jerseyNumber = signal('');
+  bio = signal('');
+  position = signal('');
+  achievements = signal<
+    Array<{ id: string; title: string; description?: string | null; year?: number | null }>
+  >([]);
+  newAchTitle = signal('');
+  newAchDesc = signal('');
+  newAchYear = signal('');
 
   isSaving = signal(false);
   saveSuccess = signal('');
@@ -37,15 +45,45 @@ export class PlayerModalComponent {
           this.userId.set(p.userId);
           this.teamId.set(p.teamId);
           this.jerseyNumber.set(p.jerseyNumber ?? '');
+          this.bio.set(p.bio ?? '');
+          this.position.set(p.position ?? '');
+          this.achievements.set(p.achievements ?? []);
         } else {
           this.userId.set('');
           this.teamId.set('');
           this.jerseyNumber.set('');
+          this.bio.set('');
+          this.position.set('');
+          this.achievements.set([]);
         }
+        this.newAchTitle.set('');
+        this.newAchDesc.set('');
+        this.newAchYear.set('');
         this.saveSuccess.set('');
         this.saveError.set('');
       }
     });
+  }
+
+  addAchievement() {
+    const title = this.newAchTitle().trim();
+    if (!title) return;
+    const yearRaw = this.newAchYear().trim();
+    const year = yearRaw ? Number(yearRaw) : null;
+    const entry = {
+      id: crypto.randomUUID(),
+      title,
+      description: this.newAchDesc().trim() || null,
+      year: Number.isFinite(year as number) ? year : null,
+    };
+    this.achievements.update((prev) => [entry, ...prev]);
+    this.newAchTitle.set('');
+    this.newAchDesc.set('');
+    this.newAchYear.set('');
+  }
+
+  removeAchievement(id: string) {
+    this.achievements.update((prev) => prev.filter((a) => a.id !== id));
   }
 
   closeModal() {
@@ -70,6 +108,9 @@ export class PlayerModalComponent {
       const payload = {
         teamId: teamVal,
         jerseyNumber: jerseyVal || null,
+        bio: this.bio().trim(),
+        position: this.position().trim(),
+        achievements: this.achievements(),
       };
 
       this.playerService.updatePlayer(wsId, p.id, payload).subscribe({
@@ -90,6 +131,9 @@ export class PlayerModalComponent {
         userId: userVal,
         teamId: teamVal,
         jerseyNumber: jerseyVal || null,
+        bio: this.bio().trim(),
+        position: this.position().trim(),
+        achievements: this.achievements(),
       };
 
       this.playerService.createPlayer(wsId, payload).subscribe({

@@ -537,6 +537,12 @@ export class MatchLineupService {
     if (dto.liveData !== undefined) {
       match.liveData = dto.liveData as Record<string, unknown>;
     }
+    if (dto.summary !== undefined) {
+      match.summary = dto.summary;
+    }
+    if (dto.highlightVideos !== undefined) {
+      match.highlightVideos = dto.highlightVideos;
+    }
 
     const saved = await this.matchRepo.save(match);
     this.matchLockService.forceReleaseLock(matchId);

@@ -4,6 +4,7 @@ import {
   IsString,
   MaxLength,
   MinLength,
+  IsArray,
 } from 'class-validator';
 
 export class CreateTeamDto {
@@ -38,4 +39,24 @@ export class CreateTeamDto {
   @IsString()
   @MaxLength(50)
   secondaryColor?: string;
+
+  @IsOptional()
+  @IsArray()
+  coaches?: Array<{
+    id: string;
+    name: string;
+    role?: string | null;
+    avatarUrl?: string | null;
+    bio?: string | null;
+  }>;
+
+  @IsOptional()
+  @IsArray()
+  achievements?: Array<{
+    id: string;
+    title: string;
+    year?: number | null;
+    competitionName?: string | null;
+    description?: string | null;
+  }>;
 }

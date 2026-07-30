@@ -1,7 +1,14 @@
-import { Controller, Get, Param } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
+import { Controller, Get, Param, Query } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { EventsService } from './events.service';
 import { CompetitionsService } from '../competitions/competitions.service';
+import { SearchPublicEventsDto } from './dto/search-public-events.dto';
 
 @ApiTags('public-events')
 @Controller('public/events')
@@ -10,6 +17,66 @@ export class PublicEventsController {
     private readonly eventsService: EventsService,
     private readonly competitionsService: CompetitionsService,
   ) {}
+
+  @Get('match/:matchId')
+  @ApiOperation({
+    summary: 'Get public match details (highlights + timeline)',
+    description:
+      'Returns full match details for a public event — score, timeline (liveData events), summary, and highlight videos. Used by the spectator match highlights page.',
+  })
+  @ApiParam({ name: 'matchId', description: 'Match UUID' })
+  @ApiResponse({ status: 200, description: 'Match details' })
+  @ApiResponse({ status: 404, description: 'Match or event not public' })
+  async getPublicMatchDetails(@Param('matchId') matchId: string) {
+    return this.competitionsService.getPublicMatchDetails(matchId);
+  }
+
+  @Get('live-matches')
+  @ApiOperation({
+    summary: 'List all currently live matches across published events',
+    description:
+      'Returns every match with status="live" that belongs to a public event. Supports optional filtering by sport code or a specific event.',
+  })
+  @ApiQuery({
+    name: 'sport',
+    required: false,
+    description: 'Sport code, e.g. football',
+  })
+  @ApiQuery({ name: 'eventId', required: false })
+  @ApiResponse({ status: 200, description: 'Array of live match summaries' })
+  async getLiveMatches(
+    @Query('sport') sport?: string,
+    @Query('eventId') eventId?: string,
+  ) {
+    return this.competitionsService.getPublicLiveMatches({ sport, eventId });
+  }
+
+  @Get()
+  @ApiOperation({
+    summary: 'Browse published events (public portal)',
+    description:
+      'Returns a paginated list of events where isPublic=true. Supports filtering by status (upcoming/ongoing/completed), sport, venue and free-text search across name/description/venue/organizers.',
+  })
+  @ApiQuery({ name: 'query', required: false })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: ['upcoming', 'ongoing', 'completed'],
+  })
+  @ApiQuery({ name: 'sport', required: false })
+  @ApiQuery({ name: 'venue', required: false })
+  @ApiQuery({ name: 'limit', required: false, example: 24 })
+  @ApiQuery({ name: 'offset', required: false, example: 0 })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    enum: ['startDate', 'name', 'status'],
+  })
+  @ApiQuery({ name: 'sortOrder', required: false, enum: ['ASC', 'DESC'] })
+  @ApiResponse({ status: 200, description: 'Paginated list of public events' })
+  async listPublicEvents(@Query() dto: SearchPublicEventsDto) {
+    return this.eventsService.searchPublicEvents(dto);
+  }
 
   @Get(':eventId')
   @ApiOperation({
