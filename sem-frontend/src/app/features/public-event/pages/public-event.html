@@ -361,8 +361,8 @@
           </div>
         </div>
 
-        <!-- Sponsors Strip -->
-        @if (evt.sponsors && evt.sponsors.length > 0) {
+        <!-- Sponsors Strip (unions workspace catalog + legacy JSONB) -->
+        @if (allSponsors().length > 0) {
           <div
             class="mt-8 bg-slate-900 border border-white/10 rounded-3xl p-6 shadow-xl flex flex-col gap-5"
           >
@@ -374,12 +374,12 @@
               <span
                 class="text-xs px-2 py-0.5 bg-slate-800 text-slate-400 rounded-lg font-bold ml-auto"
               >
-                {{ evt.sponsors.length }}
+                {{ allSponsors().length }}
               </span>
             </h2>
 
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              @for (sp of evt.sponsors; track sp.id) {
+              @for (sp of allSponsors(); track sp.key) {
                 <a
                   [href]="sp.url || null"
                   [attr.target]="sp.url ? '_blank' : null"
@@ -3341,6 +3341,65 @@
               </div>
             }
           </div>
+
+          <!-- Sponsored by strip — rotates through this event's sponsors -->
+          @if (allSponsors().length > 0) {
+            <div
+              class="px-6 py-3 bg-gradient-to-r from-slate-950/60 via-slate-900/60 to-slate-950/60 border-t border-white/5 flex items-center gap-4 overflow-hidden"
+            >
+              <span
+                class="text-[9px] font-black uppercase tracking-widest text-slate-500 flex-shrink-0"
+              >
+                Sponsored by
+              </span>
+              <div class="flex-1 overflow-hidden">
+                <div class="flex items-center gap-6 animate-marquee">
+                  @for (sp of allSponsors(); track sp.key) {
+                    <a
+                      [href]="sp.url || null"
+                      [attr.target]="sp.url ? '_blank' : null"
+                      [attr.rel]="sp.url ? 'noopener noreferrer' : null"
+                      class="flex items-center gap-2 flex-shrink-0 hover:opacity-90 transition"
+                      [title]="sp.name"
+                    >
+                      @if (sp.logoUrl) {
+                        <img
+                          [src]="sp.logoUrl"
+                          [alt]="sp.name"
+                          class="h-6 object-contain"
+                          loading="lazy"
+                        />
+                      } @else {
+                        <span class="text-[10px] font-bold text-slate-300">{{ sp.name }}</span>
+                      }
+                    </a>
+                  }
+                  <!-- Duplicate for seamless marquee loop -->
+                  @for (sp of allSponsors(); track sp.key + '_dup') {
+                    <a
+                      [href]="sp.url || null"
+                      [attr.target]="sp.url ? '_blank' : null"
+                      [attr.rel]="sp.url ? 'noopener noreferrer' : null"
+                      class="flex items-center gap-2 flex-shrink-0 hover:opacity-90 transition"
+                      [title]="sp.name"
+                      aria-hidden="true"
+                    >
+                      @if (sp.logoUrl) {
+                        <img
+                          [src]="sp.logoUrl"
+                          [alt]="sp.name"
+                          class="h-6 object-contain"
+                          loading="lazy"
+                        />
+                      } @else {
+                        <span class="text-[10px] font-bold text-slate-300">{{ sp.name }}</span>
+                      }
+                    </a>
+                  }
+                </div>
+              </div>
+            </div>
+          }
 
           <!-- Modal Footer -->
           <div

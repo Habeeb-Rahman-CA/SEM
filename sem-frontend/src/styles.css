@@ -159,3 +159,25 @@ body.qr-scanner-active .hide-on-scan {
   opacity: 0 !important;
   pointer-events: none !important;
 }
+
+/* Sponsor marquee — endless scroll of sponsor logos on live scoreboards.
+   The template renders the sponsor list twice back-to-back and animates a
+   -50% translate so the second copy seamlessly picks up where the first
+   ends. Respects prefers-reduced-motion. */
+@keyframes marquee-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.animate-marquee {
+  animation: marquee-scroll 30s linear infinite;
+  will-change: transform;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee {
+    animation: none;
+  }
+}

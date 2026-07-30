@@ -65,6 +65,14 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
   {
+    path: 'workspaces/:id/sponsors',
+    loadComponent: () =>
+      import('./features/sponsors/pages/sponsor-list/sponsor-list').then(
+        (m) => m.SponsorListComponent,
+      ),
+    canActivate: [authGuard],
+  },
+  {
     path: 'system-settings',
     loadComponent: () =>
       import('./features/system-settings/pages/system-settings').then(

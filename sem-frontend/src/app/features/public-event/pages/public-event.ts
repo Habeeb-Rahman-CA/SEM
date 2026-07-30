@@ -11,6 +11,7 @@ import { AvatarComponent } from '../../../shared/components/avatar/avatar';
 import { getSportBadgeClass, getSportIconClass } from '../../../shared';
 import { GalleryPhoto, GalleryService } from '../../gallery/services/gallery.service';
 import { ShareService } from '../../share/services/share.service';
+import { PublicEventSponsor, SponsorService } from '../../sponsors/services/sponsor.service';
 
 @Component({
   selector: 'app-public-event',
@@ -24,6 +25,7 @@ export class PublicEventComponent implements OnInit, OnDestroy {
   private socketService = inject(SocketService);
   private galleryService = inject(GalleryService);
   private shareService = inject(ShareService);
+  private sponsorService = inject(SponsorService);
 
   private pollSub: Subscription | null = null;
   private socketSub: Subscription | null = null;
@@ -228,6 +230,56 @@ export class PublicEventComponent implements OnInit, OnDestroy {
   // Lightbox for Gallery
   selectedImage = signal<string | null>(null);
 
+  // Relational sponsors (new sponsors + event_sponsors tables)
+  relationalSponsors = signal<PublicEventSponsor[]>([]);
+
+  /**
+   * Unified list of sponsors for public display. Combines the new
+   * relational sponsors (workspace catalog attachments) with the legacy
+   * `evt.sponsors[]` JSONB list, deduped by lowercase name so orgs who
+   * migrated some but not all sponsors don't see duplicates.
+   */
+  allSponsors = computed(() => {
+    const relational = this.relationalSponsors();
+    const legacy = this.event()?.sponsors ?? [];
+    const seen = new Set<string>();
+    const merged: Array<{
+      key: string;
+      name: string;
+      logoUrl?: string | null;
+      url?: string | null;
+      tier?: string | null;
+      description?: string | null;
+    }> = [];
+    for (const s of relational) {
+      const key = s.name.trim().toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      merged.push({
+        key: s.id,
+        name: s.name,
+        logoUrl: s.logoUrl,
+        url: s.websiteUrl,
+        tier: s.tier,
+        description: s.description,
+      });
+    }
+    for (const s of legacy) {
+      const key = (s.name ?? '').trim().toLowerCase();
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      merged.push({
+        key: s.id,
+        name: s.name,
+        logoUrl: s.logoUrl ?? null,
+        url: s.url ?? null,
+        tier: s.tier ?? null,
+        description: null,
+      });
+    }
+    return merged;
+  });
+
   // Organized gallery photos (new gallery_photos table)
   galleryPhotos = signal<GalleryPhoto[]>([]);
   isLoadingGallery = signal<boolean>(false);
@@ -370,6 +422,14 @@ export class PublicEventComponent implements OnInit, OnDestroy {
       next: (evt) => {
         this.event.set(evt);
         this.isLoading.set(false);
+
+        // Fire-and-forget: sponsors are a nice-to-have. Silent failure —
+        // if the endpoint is unavailable we still render the legacy
+        // evt.sponsors[] list below.
+        this.sponsorService.listPublicForEvent(evt.id).subscribe({
+          next: (sponsors) => this.relationalSponsors.set(sponsors),
+          error: () => this.relationalSponsors.set([]),
+        });
 
         this.shareService.setPageMeta({
           title: evt.name,

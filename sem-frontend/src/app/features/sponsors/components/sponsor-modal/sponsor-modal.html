@@ -1,0 +1,258 @@
+@if (isOpen()) {
+  <div
+    class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+    (click)="close()"
+  >
+    <div
+      class="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl relative overflow-hidden"
+      (click)="$event.stopPropagation()"
+    >
+      <div
+        class="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-violet-500 to-indigo-500"
+      ></div>
+
+      <div class="px-6 py-5 border-b border-white/5 flex items-center justify-between">
+        <div>
+          <h3 class="text-base font-bold text-white flex items-center gap-2">
+            @if (editingSponsor()) {
+              <span>Edit sponsor:</span>
+              <span class="text-violet-400">{{ editingSponsor()?.name }}</span>
+            } @else {
+              <span>Add sponsor to workspace</span>
+            }
+          </h3>
+          <p class="text-xs text-slate-400 mt-1">
+            Sponsors added here can be attached to any event in this workspace.
+          </p>
+        </div>
+        <button
+          type="button"
+          (click)="close()"
+          class="text-slate-400 hover:text-white transition cursor-pointer bg-transparent border-0"
+          aria-label="Close"
+        >
+          <i class="fi fi-rr-cross-small text-lg"></i>
+        </button>
+      </div>
+
+      <div class="p-6 overflow-y-auto flex-1 text-left flex flex-col gap-4">
+        @if (error()) {
+          <div
+            class="rounded-xl bg-rose-500/10 border border-rose-500/30 p-3 text-rose-300 text-xs flex items-center gap-2"
+          >
+            <i class="fi fi-rr-triangle-warning text-xs"></i>
+            {{ error() }}
+          </div>
+        }
+
+        <!-- Logo + Name -->
+        <div class="grid grid-cols-1 sm:grid-cols-[160px_1fr] gap-4 items-start">
+          <div class="flex flex-col gap-1.5">
+            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              Logo
+            </label>
+            <app-photo-capture
+              label=""
+              hint="square works best"
+              uploadType="event"
+              shape="thumb"
+              buttonLabel="Upload logo"
+              [imageUrl]="logoUrl() || null"
+              (imageUploaded)="onLogoUploaded($event)"
+              (imageRemoved)="logoUrl.set('')"
+            />
+          </div>
+
+          <div class="flex flex-col gap-3">
+            <div class="flex flex-col gap-1.5">
+              <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                Sponsor name <span class="text-rose-400">*</span>
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Acme Corp"
+                [ngModel]="name()"
+                (ngModelChange)="name.set($event)"
+                class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition-all w-full"
+              />
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div class="flex flex-col gap-1.5">
+                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  Category
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Financial, Apparel"
+                  [ngModel]="category()"
+                  (ngModelChange)="category.set($event)"
+                  class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2 text-xs text-white placeholder-slate-500 outline-none transition-all w-full"
+                />
+              </div>
+              <div class="flex flex-col gap-1.5">
+                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  Tier / level
+                </label>
+                <select
+                  [ngModel]="tier()"
+                  (ngModelChange)="tier.set($event)"
+                  class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2 text-xs text-white outline-none transition-all w-full"
+                >
+                  <option value="">— None —</option>
+                  @for (opt of tierOptions; track opt.value) {
+                    <option [value]="opt.value">{{ opt.label }}</option>
+                  }
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Description -->
+        <div class="flex flex-col gap-1.5">
+          <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+            Description
+          </label>
+          <textarea
+            rows="2"
+            placeholder="Short blurb shown to spectators"
+            [ngModel]="description()"
+            (ngModelChange)="description.set($event)"
+            class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition-all w-full resize-none"
+          ></textarea>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="flex flex-col gap-1.5">
+            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              Website URL
+            </label>
+            <input
+              type="url"
+              placeholder="https://…"
+              [ngModel]="websiteUrl()"
+              (ngModelChange)="websiteUrl.set($event)"
+              class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2 text-xs text-white placeholder-slate-500 outline-none transition-all w-full"
+            />
+          </div>
+          <label
+            class="flex items-center justify-between gap-3 p-3 rounded-xl bg-slate-950/40 border border-white/5 cursor-pointer"
+          >
+            <div>
+              <div class="text-xs font-bold text-white">Visible publicly</div>
+              <div class="text-[10px] text-slate-400">
+                Toggle off to hide from spectator pages instantly.
+              </div>
+            </div>
+            <input
+              type="checkbox"
+              class="accent-violet-500 w-4 h-4"
+              [checked]="isActive()"
+              (change)="isActive.set(!isActive())"
+            />
+          </label>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="flex flex-col gap-1.5">
+            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              Contact name
+            </label>
+            <input
+              type="text"
+              [ngModel]="contactName()"
+              (ngModelChange)="contactName.set($event)"
+              class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2 text-xs text-white placeholder-slate-500 outline-none transition-all w-full"
+            />
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              Contact email
+            </label>
+            <input
+              type="email"
+              [ngModel]="contactEmail()"
+              (ngModelChange)="contactEmail.set($event)"
+              class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2 text-xs text-white placeholder-slate-500 outline-none transition-all w-full"
+            />
+          </div>
+        </div>
+
+        <!-- Sponsorship period -->
+        <div class="flex flex-col gap-2 border-t border-white/5 pt-4">
+          <div class="flex flex-col gap-0.5">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              Sponsorship period
+            </span>
+            <span class="text-[10px] text-slate-500">
+              Leave a bound blank for "always". Spectator pages auto-hide the sponsor outside this
+              window.
+            </span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="flex flex-col gap-1.5">
+              <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                Starts
+              </label>
+              <input
+                type="date"
+                [ngModel]="startDate()"
+                (ngModelChange)="startDate.set($event)"
+                class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2 text-xs text-white outline-none transition-all w-full"
+              />
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                Ends
+              </label>
+              <input
+                type="date"
+                [ngModel]="endDate()"
+                (ngModelChange)="endDate.set($event)"
+                class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2 text-xs text-white outline-none transition-all w-full"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Internal notes -->
+        <div class="flex flex-col gap-1.5">
+          <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+            Internal notes
+            <span class="text-slate-600 font-normal normal-case">(never shown publicly)</span>
+          </label>
+          <textarea
+            rows="2"
+            [ngModel]="notes()"
+            (ngModelChange)="notes.set($event)"
+            class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-3.5 py-2 text-xs text-white outline-none transition-all w-full resize-none"
+          ></textarea>
+        </div>
+      </div>
+
+      <div class="px-6 py-4 border-t border-white/5 flex justify-end gap-2">
+        <button
+          type="button"
+          (click)="close()"
+          class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-lg transition cursor-pointer"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          (click)="save()"
+          [disabled]="isSaving()"
+          class="px-4 py-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-xs font-bold rounded-lg transition cursor-pointer inline-flex items-center gap-2"
+        >
+          @if (isSaving()) {
+            <i class="fi fi-rr-spinner animate-spin text-xs"></i>
+            Saving…
+          } @else {
+            {{ editingSponsor() ? 'Save changes' : 'Add sponsor' }}
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}

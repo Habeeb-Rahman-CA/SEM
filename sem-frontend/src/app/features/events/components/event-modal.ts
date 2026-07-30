@@ -1,6 +1,7 @@
 import { Component, inject, signal, effect, model, input, output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { Workspace, Team, WorkspaceEvent } from '../../workspaces/services/workspace.service';
 import { EventService } from '../services/event.service';
 import { UiService } from '../../../core/services/ui.service';
@@ -11,7 +12,14 @@ import { GalleryManagerComponent } from '../../gallery/components/gallery-manage
 @Component({
   selector: 'app-event-modal',
   standalone: true,
-  imports: [FormsModule, AvatarComponent, DatePipe, PhotoCaptureComponent, GalleryManagerComponent],
+  imports: [
+    FormsModule,
+    AvatarComponent,
+    DatePipe,
+    PhotoCaptureComponent,
+    GalleryManagerComponent,
+    RouterLink,
+  ],
   template: `
     @if (isOpen()) {
       <div
@@ -621,6 +629,25 @@ import { GalleryManagerComponent } from '../../gallery/components/gallery-manage
                       on the public event page.</span
                     >
                   </div>
+
+                  @if (editingEvent()) {
+                    <a
+                      [routerLink]="['/workspaces', workspace()?.id, 'sponsors']"
+                      class="rounded-xl border border-violet-500/20 bg-violet-500/5 p-3 flex items-center gap-3 hover:border-violet-500/40 hover:bg-violet-500/10 transition group"
+                    >
+                      <i class="fi fi-rr-star text-violet-300 text-base"></i>
+                      <div class="flex-1 min-w-0 text-[11px]">
+                        <div class="font-bold text-violet-200">Workspace sponsor catalog</div>
+                        <div class="text-slate-400 mt-0.5">
+                          Register sponsors once at the workspace level and reuse them across every
+                          event, with per-event tier overrides and visibility windows.
+                        </div>
+                      </div>
+                      <i
+                        class="fi fi-rr-arrow-small-right text-violet-300 group-hover:translate-x-0.5 transition"
+                      ></i>
+                    </a>
+                  }
 
                   <!-- Add Sponsor -->
                   <div

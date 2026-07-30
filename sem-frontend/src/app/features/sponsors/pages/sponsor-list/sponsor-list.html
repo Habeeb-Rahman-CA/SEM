@@ -1,0 +1,240 @@
+<div class="max-w-6xl mx-auto p-5 sm:p-8 text-white">
+  <div class="flex items-center gap-3 mb-6">
+    <a
+      [routerLink]="['/workspaces', workspaceId()]"
+      class="text-xs font-bold text-slate-400 hover:text-white transition inline-flex items-center gap-1"
+    >
+      <i class="fi fi-rr-arrow-small-left text-sm"></i>
+      Back to workspace
+    </a>
+  </div>
+
+  <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-3 mb-6">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-black tracking-tight">Sponsor management</h1>
+      <p class="text-sm text-slate-400 mt-1 max-w-2xl">
+        Register the sponsors that back your workspace. Attach them to individual events from the
+        event editor — each attachment can override tier and display order.
+      </p>
+    </div>
+    <button
+      type="button"
+      (click)="openNew()"
+      class="inline-flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-xl transition cursor-pointer shadow-md shadow-violet-500/20"
+    >
+      <i class="fi fi-rr-plus text-xs"></i>
+      Add sponsor
+    </button>
+  </div>
+
+  @if (isLoading()) {
+    <div class="h-64 rounded-3xl border border-white/5 bg-slate-900/40 animate-pulse"></div>
+  } @else if (error()) {
+    <div class="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-rose-200">
+      <i class="fi fi-rr-triangle-warning text-2xl block mb-2"></i>
+      {{ error() }}
+    </div>
+  } @else {
+    <!-- Stat strip -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+      <div class="rounded-2xl border border-white/10 bg-slate-900 p-4">
+        <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Total</div>
+        <div class="text-2xl font-black text-white tabular-nums mt-1">{{ counts().total }}</div>
+      </div>
+      <div class="rounded-2xl border border-white/10 bg-slate-900 p-4">
+        <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Active</div>
+        <div class="text-2xl font-black text-emerald-300 tabular-nums mt-1">
+          {{ counts().active }}
+        </div>
+      </div>
+      <div class="rounded-2xl border border-white/10 bg-slate-900 p-4">
+        <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Hidden</div>
+        <div class="text-2xl font-black text-slate-400 tabular-nums mt-1">
+          {{ counts().inactive }}
+        </div>
+      </div>
+      <div class="rounded-2xl border border-white/10 bg-slate-900 p-4">
+        <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Title tier</div>
+        <div class="text-2xl font-black text-rose-300 tabular-nums mt-1">
+          {{ counts().byTier['title'] ?? 0 }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div
+      class="flex flex-col sm:flex-row sm:items-center gap-3 mb-4 p-3 bg-slate-900/60 border border-white/5 rounded-xl"
+    >
+      <div class="relative flex-1">
+        <i
+          class="fi fi-rr-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs pointer-events-none"
+        ></i>
+        <input
+          type="search"
+          placeholder="Search by name or category…"
+          [ngModel]="searchQuery()"
+          (ngModelChange)="searchQuery.set($event)"
+          class="w-full pl-9 pr-3 py-2 bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-lg text-xs text-white outline-none transition-all"
+        />
+      </div>
+      <select
+        [ngModel]="tierFilter()"
+        (ngModelChange)="tierFilter.set($event)"
+        class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-lg px-3 py-2 text-xs text-white outline-none transition-all"
+      >
+        <option value="all">All tiers</option>
+        <option value="title">Title</option>
+        <option value="platinum">Platinum</option>
+        <option value="gold">Gold</option>
+        <option value="silver">Silver</option>
+        <option value="bronze">Bronze</option>
+        <option value="partner">Partner</option>
+      </select>
+      <select
+        [ngModel]="activeFilter()"
+        (ngModelChange)="activeFilter.set($event)"
+        class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-lg px-3 py-2 text-xs text-white outline-none transition-all"
+      >
+        <option value="all">All visibility</option>
+        <option value="active">Active only</option>
+        <option value="inactive">Hidden only</option>
+      </select>
+    </div>
+
+    @if (filtered().length === 0) {
+      <div
+        class="py-16 rounded-3xl border border-dashed border-white/10 text-center text-xs text-slate-500 flex flex-col items-center gap-2"
+      >
+        <i class="fi fi-rr-star text-3xl"></i>
+        @if (sponsors().length === 0) {
+          <div>No sponsors yet. Click "Add sponsor" to register your first one.</div>
+        } @else {
+          <div>No sponsors match your filters.</div>
+        }
+      </div>
+    } @else {
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        @for (sponsor of filtered(); track sponsor.id) {
+          <div
+            class="rounded-2xl border border-white/10 bg-slate-900 p-4 flex flex-col gap-3 hover:border-violet-500/30 transition"
+          >
+            <div class="flex items-start gap-3">
+              <div
+                class="w-14 h-14 rounded-xl bg-slate-800 border border-white/5 flex items-center justify-center overflow-hidden flex-shrink-0"
+              >
+                @if (sponsor.logoUrl) {
+                  <img
+                    [src]="sponsor.logoUrl"
+                    [alt]="sponsor.name"
+                    class="w-full h-full object-contain p-1.5"
+                    loading="lazy"
+                  />
+                } @else {
+                  <span class="text-lg font-black text-slate-500">
+                    {{ sponsor.name.charAt(0) }}
+                  </span>
+                }
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="text-sm font-bold text-white truncate">{{ sponsor.name }}</span>
+                  @if (sponsor.tier) {
+                    <span
+                      [class]="
+                        'text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md border ' +
+                        tierBadgeClass(sponsor.tier)
+                      "
+                    >
+                      {{ sponsor.tier }}
+                    </span>
+                  }
+                </div>
+                @if (sponsor.category) {
+                  <div class="text-[10px] text-slate-400 mt-0.5">{{ sponsor.category }}</div>
+                }
+                <div class="flex items-center gap-2 mt-1.5 text-[10px]">
+                  @if (isWithinWindow(sponsor)) {
+                    <span
+                      class="inline-flex items-center gap-1 text-emerald-300 bg-emerald-500/10 border border-emerald-500/25 rounded-md px-1.5 py-0.5"
+                    >
+                      <span class="w-1 h-1 rounded-full bg-emerald-400"></span>
+                      Visible
+                    </span>
+                  } @else {
+                    <span
+                      class="inline-flex items-center gap-1 text-slate-400 bg-slate-500/10 border border-slate-500/25 rounded-md px-1.5 py-0.5"
+                    >
+                      <i class="fi fi-rr-eye-crossed text-[9px]"></i>
+                      Hidden
+                    </span>
+                  }
+                  <span class="text-slate-500">{{ periodLabel(sponsor) }}</span>
+                </div>
+              </div>
+            </div>
+
+            @if (sponsor.description) {
+              <p class="text-[11px] text-slate-400 line-clamp-2">{{ sponsor.description }}</p>
+            }
+
+            <div class="flex items-center justify-between text-[10px] pt-2 border-t border-white/5">
+              <div class="flex items-center gap-2">
+                @if (sponsor.websiteUrl) {
+                  <a
+                    [href]="sponsor.websiteUrl"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="text-slate-400 hover:text-violet-300 truncate max-w-[140px]"
+                  >
+                    <i class="fi fi-rr-globe text-[10px] mr-1"></i>
+                    Website
+                  </a>
+                }
+                @if (sponsor.contactEmail) {
+                  <a
+                    [href]="'mailto:' + sponsor.contactEmail"
+                    class="text-slate-400 hover:text-violet-300 truncate"
+                  >
+                    <i class="fi fi-rr-envelope text-[10px] mr-1"></i>
+                    Contact
+                  </a>
+                }
+              </div>
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  (click)="toggleActive(sponsor)"
+                  class="text-[10px] font-bold text-slate-400 hover:text-white transition cursor-pointer bg-transparent border-0"
+                  [title]="sponsor.isActive ? 'Hide from public pages' : 'Show on public pages'"
+                >
+                  {{ sponsor.isActive ? 'Hide' : 'Show' }}
+                </button>
+                <button
+                  type="button"
+                  (click)="openEdit(sponsor)"
+                  class="text-[10px] font-bold text-violet-300 hover:text-violet-200 transition cursor-pointer bg-transparent border-0"
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  (click)="remove(sponsor)"
+                  class="text-[10px] font-bold text-rose-400 hover:text-rose-300 transition cursor-pointer bg-transparent border-0"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  }
+
+  <app-sponsor-modal
+    [workspaceId]="workspaceId()"
+    [editingSponsor]="editingSponsor()"
+    [(isOpen)]="isModalOpen"
+    (saved)="onSaved($event)"
+  />
+</div>
