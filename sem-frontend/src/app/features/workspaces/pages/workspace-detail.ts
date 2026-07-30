@@ -54,6 +54,12 @@ import { WorkspaceMembersComponent } from './members/members';
 import { WorkspaceSettingsComponent } from './settings/settings';
 import { WorkspaceReportsComponent } from '../../reports/pages/reports';
 import { WorkspaceFilesComponent } from './files/files';
+import { RefereeDashboardComponent } from '../components/referee-dashboard/referee-dashboard';
+import { FootballConsoleComponent } from '../../competitions/consoles/football-console/football-console';
+import { CricketConsoleComponent } from '../../competitions/consoles/cricket-console/cricket-console';
+import { BadmintonConsoleComponent } from '../../competitions/consoles/badminton-console/badminton-console';
+import { GenericConsoleComponent } from '../../competitions/consoles/generic-console/generic-console';
+import { LineupModalComponent } from '../../competitions/components/lineup-modal';
 import {
   getSportBadgeClass,
   getSportIconClass,
@@ -83,6 +89,12 @@ declare const L: any;
     WorkspaceReportsComponent,
     WorkspaceFilesComponent,
     QuicklinkDirective,
+    RefereeDashboardComponent,
+    FootballConsoleComponent,
+    CricketConsoleComponent,
+    BadmintonConsoleComponent,
+    GenericConsoleComponent,
+    LineupModalComponent,
   ],
   templateUrl: './workspace-detail.html',
   styleUrl: './workspace-detail.css',
@@ -194,6 +206,13 @@ export class WorkspaceDetailComponent implements OnInit {
   overviewLiveMatches = signal<any[]>([]);
   overviewUpcomingMatches = signal<any[]>([]);
   overviewCompletedMatches = signal<any[]>([]);
+  allWorkspaceMatches = computed(() => {
+    return [
+      ...this.overviewLiveMatches(),
+      ...this.overviewUpcomingMatches(),
+      ...this.overviewCompletedMatches(),
+    ];
+  });
   overviewRunningCompetitions = signal<any[]>([]);
   overviewTopScorers = signal<any[]>([]);
   overviewTopRatedPlayers = signal<any[]>([]);
@@ -509,6 +528,10 @@ export class WorkspaceDetailComponent implements OnInit {
     this.destroyRef.onDestroy(() => {
       if (this.currentSubscribedWorkspaceId) {
         this.socketService.unsubscribeWorkspace(this.currentSubscribedWorkspaceId);
+      }
+      const match = this.selectedMatch();
+      if (match) {
+        this.releaseActiveLock(match);
       }
     });
 
@@ -1275,5 +1298,168 @@ export class WorkspaceDetailComponent implements OnInit {
         this.uiService.error('Failed to upload image.');
       },
     });
+  }
+
+  isLineupModalOpen = signal(false);
+  private lockInterval: any = null;
+
+  onSelectMatch(match: any) {
+    const previousMatch = this.selectedMatch();
+    if (previousMatch) {
+      this.releaseActiveLock(previousMatch);
+    }
+
+    if (!match) {
+      this.selectedMatch.set(null);
+      this.matchLineup.set([]);
+      return;
+    }
+
+    const canScoreValue = this.hasPermission('match.score');
+    if (match.status === 'completed' || !canScoreValue) {
+      this.selectedMatch.set(match);
+      this.matchLineup.set([]);
+      return;
+    }
+
+    const ws = this.workspace();
+    const eventId = match.stage?.competition?.eventId || match.eventId;
+    const competitionId = match.stage?.competitionId || match.competitionId;
+    const stageId = match.stageId;
+
+    if (!ws || !eventId || !competitionId || !stageId) {
+      this.selectedMatch.set(match);
+      this.matchLineup.set([]);
+      return;
+    }
+
+    // Set selected Event/Competition/Stage to ensure matching console parameters are fed properly
+    const ev = this.events().find((e) => e.id === eventId);
+    if (ev) this.selectedEvent.set(ev);
+    const comp = this.allCompetitions().find((c) => c.id === competitionId);
+    if (comp) this.selectedCompetition.set(comp);
+    const stage =
+      this.stages().find((s) => s.id === stageId) || ({ id: stageId, name: 'Stage' } as any);
+    this.selectedStage.set(stage);
+
+    this.competitionService
+      .acquireMatchLock(ws.id, eventId, competitionId, stageId, match.id)
+      .subscribe({
+        next: (res) => {
+          if (res.success) {
+            this.selectedMatch.set(match);
+            this.matchLineup.set([]);
+            this.startLockHeartbeat(match);
+            this.loadMatchLineup(match.id);
+          } else {
+            this.uiService.error(
+              `This match is currently locked/being edited by ${res.lockedBy || 'another official'}.`,
+            );
+          }
+        },
+        error: (err) => {
+          this.uiService.error(
+            err.error?.message ||
+              'Failed to acquire edit lock. The match may be currently edited by another official.',
+          );
+        },
+      });
+  }
+
+  startLockHeartbeat(match: any) {
+    this.stopLockHeartbeat();
+    const ws = this.workspace();
+    const eventId = match.stage?.competition?.eventId || match.eventId;
+    const competitionId = match.stage?.competitionId || match.competitionId;
+    const stageId = match.stageId;
+    if (!ws || !eventId || !competitionId || !stageId) return;
+
+    this.lockInterval = setInterval(() => {
+      this.competitionService
+        .acquireMatchLock(ws.id, eventId, competitionId, stageId, match.id)
+        .subscribe({
+          error: (err) => {
+            console.warn('Failed to renew match lock', err);
+            this.uiService.error(
+              err.error?.message || 'Lock expired or lost. Another official may have taken over.',
+            );
+            this.stopLockHeartbeat();
+            this.selectedMatch.set(null);
+            this.matchLineup.set([]);
+          },
+        });
+    }, 20000);
+  }
+
+  stopLockHeartbeat() {
+    if (this.lockInterval) {
+      clearInterval(this.lockInterval);
+      this.lockInterval = null;
+    }
+  }
+
+  releaseActiveLock(match: any) {
+    this.stopLockHeartbeat();
+    const ws = this.workspace();
+    const eventId = match.stage?.competition?.eventId || match.eventId;
+    const competitionId = match.stage?.competitionId || match.competitionId;
+    const stageId = match.stageId;
+    if (!ws || !eventId || !competitionId || !stageId) return;
+
+    const canScoreValue = this.hasPermission('match.score');
+    if (match.status !== 'completed' && canScoreValue) {
+      this.competitionService
+        .releaseMatchLock(ws.id, eventId, competitionId, stageId, match.id)
+        .subscribe({
+          error: (err) => console.warn('Failed to release match lock', err),
+        });
+    }
+  }
+
+  loadMatchLineup(matchId: string) {
+    const ws = this.workspace();
+    const match: any =
+      this.selectedMatch() ||
+      this.overviewLiveMatches().find((m) => m.id === matchId) ||
+      this.overviewUpcomingMatches().find((m) => m.id === matchId);
+    if (!match) return;
+    const eventId = match.stage?.competition?.eventId || match.eventId;
+    const competitionId = match.stage?.competitionId || match.competitionId;
+    const stageId = match.stageId;
+    if (!ws || !eventId || !competitionId || !stageId) return;
+
+    this.competitionService
+      .getMatchLineup(ws.id, eventId, competitionId, stageId, matchId)
+      .subscribe({
+        next: (lineup) => this.matchLineup.set(lineup),
+        error: (err) => console.error('Failed to load match lineup', err),
+      });
+  }
+
+  openLineupModal() {
+    this.isLineupModalOpen.set(true);
+  }
+
+  onLineupSaved(updatedLineup: any[]) {
+    this.matchLineup.set(updatedLineup);
+  }
+
+  onMatchUpdated(updated: any) {
+    this.selectedMatch.set(updated);
+    this.matches.update((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+    this.overviewLiveMatches.update((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+    this.overviewUpcomingMatches.update((prev) =>
+      prev.map((m) => (m.id === updated.id ? updated : m)),
+    );
+    this.overviewCompletedMatches.update((prev) =>
+      prev.map((m) => (m.id === updated.id ? updated : m)),
+    );
+  }
+
+  onMatchCompleted() {
+    const ws = this.workspace();
+    if (ws) {
+      this.loadWorkspaceDashboard(ws.id);
+    }
   }
 }

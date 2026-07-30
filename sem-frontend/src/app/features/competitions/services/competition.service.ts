@@ -3,6 +3,8 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { AuthService } from '../../auth/services/auth.service';
+import { UiService } from '../../../core/services/ui.service';
+import { OfflineSyncService } from '../../../core/services/offline-sync.service';
 import {
   Sport,
   Competition,
@@ -17,6 +19,8 @@ import {
 export class CompetitionService {
   private http = inject(HttpClient);
   private authService = inject(AuthService);
+  private uiService = inject(UiService);
+  private offlineSyncService = inject(OfflineSyncService);
   private readonly apiUrl = `${environment.apiUrl}/workspaces`;
 
   private get headers(): HttpHeaders {
@@ -258,6 +262,16 @@ export class CompetitionService {
       scheduledAt?: string | null;
     },
   ): Observable<Match> {
+    if (this.uiService.isOffline()) {
+      return this.offlineSyncService.queueMatchUpdate(
+        workspaceId,
+        eventId,
+        competitionId,
+        stageId,
+        matchId,
+        payload,
+      );
+    }
     return this.http.patch<Match>(
       `${this.apiUrl}/${workspaceId}/events/${eventId}/competitions/${competitionId}/stages/${stageId}/matches/${matchId}`,
       payload,
