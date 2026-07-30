@@ -1,6 +1,7 @@
 import { Component, signal, inject, OnInit } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { QuicklinkDirective } from 'ngx-quicklink';
 import {
   WorkspaceService,
   Workspace,
@@ -33,6 +34,7 @@ import { WorkspacesManagementComponent } from './workspaces-management/workspace
     SystemHealthComponent,
     GlobalPreferencesComponent,
     WorkspacesManagementComponent,
+    QuicklinkDirective,
   ],
   templateUrl: './system-settings.html',
   styleUrl: './system-settings.css',
@@ -81,14 +83,14 @@ export class SystemSettingsComponent implements OnInit {
             console.error(err);
             this.isUploadingAvatar.set(false);
             this.uiService.error('Failed to update profile with new avatar.');
-          }
+          },
         });
       },
       error: (err) => {
         console.error(err);
         this.isUploadingAvatar.set(false);
         this.uiService.error('Failed to upload avatar image.');
-      }
+      },
     });
   }
 
@@ -111,14 +113,16 @@ export class SystemSettingsComponent implements OnInit {
   loadGlobalRoles() {
     this.workspaceService.getGlobalRoles().subscribe({
       next: (roles) => this.roles.set(roles),
-      error: (err) => console.error('Failed to load global roles in system settings dashboard', err),
+      error: (err) =>
+        console.error('Failed to load global roles in system settings dashboard', err),
     });
   }
 
   loadGlobalPermissions() {
     this.workspaceService.getGlobalPermissions().subscribe({
       next: (perms) => this.permissions.set(perms),
-      error: (err) => console.error('Failed to load global permissions in system settings dashboard', err),
+      error: (err) =>
+        console.error('Failed to load global permissions in system settings dashboard', err),
     });
   }
 
@@ -139,7 +143,8 @@ export class SystemSettingsComponent implements OnInit {
   loadSystemMetrics() {
     this.workspaceService.getSystemMetrics().subscribe({
       next: (metrics) => this.systemMetrics.set(metrics),
-      error: (err) => console.error('Failed to load system metrics in system settings dashboard', err),
+      error: (err) =>
+        console.error('Failed to load system metrics in system settings dashboard', err),
     });
   }
 }

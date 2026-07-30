@@ -2,6 +2,7 @@ import { Component, OnInit, signal, inject } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { QuicklinkDirective } from 'ngx-quicklink';
 import { AuthService } from '../../services/auth.service';
 import { WorkspaceService } from '../../services/workspace.service';
 import { UiService } from '../../services/ui.service';
@@ -10,9 +11,9 @@ import { AvatarComponent } from '../../shared/components/avatar/avatar';
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [CommonModule, FormsModule, DatePipe, RouterLink, AvatarComponent],
+  imports: [CommonModule, FormsModule, DatePipe, RouterLink, AvatarComponent, QuicklinkDirective],
   templateUrl: './profile.html',
-  styleUrl: './profile.css'
+  styleUrl: './profile.css',
 })
 export class ProfileComponent implements OnInit {
   authService = inject(AuthService);
@@ -65,7 +66,7 @@ export class ProfileComponent implements OnInit {
       error: (err) => {
         this.isLoading.set(false);
         this.uiService.error('Failed to load profile details.');
-      }
+      },
     });
   }
 
@@ -80,9 +81,9 @@ export class ProfileComponent implements OnInit {
           next: (user) => {
             this.isUploadingAvatar.set(false);
             if (this.profileDetails()) {
-              this.profileDetails.update(prev => ({
+              this.profileDetails.update((prev) => ({
                 ...prev,
-                user: { ...prev.user, avatarUrl: user.avatarUrl }
+                user: { ...prev.user, avatarUrl: user.avatarUrl },
               }));
             }
             this.uiService.success('Profile picture updated successfully!');
@@ -90,13 +91,13 @@ export class ProfileComponent implements OnInit {
           error: (err) => {
             this.isUploadingAvatar.set(false);
             this.uiService.error('Failed to update avatar.');
-          }
+          },
         });
       },
       error: (err) => {
         this.isUploadingAvatar.set(false);
         this.uiService.error('Image upload failed.');
-      }
+      },
     });
   }
 
@@ -113,16 +114,16 @@ export class ProfileComponent implements OnInit {
         this.isSavingInfo.set(false);
         this.infoSuccess.set('Profile details updated successfully!');
         if (this.profileDetails()) {
-          this.profileDetails.update(prev => ({
+          this.profileDetails.update((prev) => ({
             ...prev,
-            user: { ...prev.user, username }
+            user: { ...prev.user, username },
           }));
         }
       },
       error: (err) => {
         this.isSavingInfo.set(false);
         this.infoError.set(err.error?.message ?? 'Failed to update username.');
-      }
+      },
     });
   }
 
@@ -163,7 +164,7 @@ export class ProfileComponent implements OnInit {
       error: (err) => {
         this.isSavingPassword.set(false);
         this.securityError.set(err.error?.message ?? 'Failed to change password.');
-      }
+      },
     });
   }
 

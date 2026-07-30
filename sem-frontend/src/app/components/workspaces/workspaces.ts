@@ -2,7 +2,13 @@ import { Component, OnInit, signal, inject, computed, DestroyRef } from '@angula
 import { Router, RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { WorkspaceService, Workspace, WorkspaceMember, AppNotification } from '../../services/workspace.service';
+import { QuicklinkDirective } from 'ngx-quicklink';
+import {
+  WorkspaceService,
+  Workspace,
+  WorkspaceMember,
+  AppNotification,
+} from '../../services/workspace.service';
 import { AuthService } from '../../services/auth.service';
 import { UiService } from '../../services/ui.service';
 import { SocketService } from '../../services/socket.service';
@@ -16,7 +22,17 @@ import { InitialsPipe } from '../../shared/pipes/initials.pipe';
 @Component({
   selector: 'app-workspaces',
   standalone: true,
-  imports: [RouterLink, DatePipe, FormsModule, AvatarComponent, ButtonComponent, ModalComponent, EmptyStateComponent, InitialsPipe],
+  imports: [
+    RouterLink,
+    DatePipe,
+    FormsModule,
+    AvatarComponent,
+    ButtonComponent,
+    ModalComponent,
+    EmptyStateComponent,
+    InitialsPipe,
+    QuicklinkDirective,
+  ],
   templateUrl: './workspaces.html',
   styleUrl: './workspaces.css',
 })
@@ -42,8 +58,10 @@ export class WorkspacesComponent implements OnInit {
   isNotificationOpen = signal(false);
   isProcessingInvitation = signal(false);
 
-  unreadNotificationsCount = computed(() => this.notifications().filter(n => !n.isRead).length);
-  totalBadgeCount = computed(() => this.pendingInvitations().length + this.unreadNotificationsCount());
+  unreadNotificationsCount = computed(() => this.notifications().filter((n) => !n.isRead).length);
+  totalBadgeCount = computed(
+    () => this.pendingInvitations().length + this.unreadNotificationsCount(),
+  );
 
   ngOnInit() {
     this.socketService.notification$
@@ -60,7 +78,7 @@ export class WorkspacesComponent implements OnInit {
         // If user has 1 or more workspaces, redirect to their configured default workspace (or first workspace)
         if (data.length > 0) {
           const defaultWsId = this.authService.getDefaultWorkspaceId();
-          const targetWs = (defaultWsId && data.find(w => w.id === defaultWsId)) || data[0];
+          const targetWs = (defaultWsId && data.find((w) => w.id === defaultWsId)) || data[0];
           this.router.navigate(['/workspaces', targetWs.id], { replaceUrl: true });
         }
       },
@@ -98,14 +116,14 @@ export class WorkspacesComponent implements OnInit {
             console.error(err);
             this.isUploadingAvatar.set(false);
             this.uiService.error('Failed to update profile with new avatar.');
-          }
+          },
         });
       },
       error: (err) => {
         console.error(err);
         this.isUploadingAvatar.set(false);
         this.uiService.error('Failed to upload avatar image.');
-      }
+      },
     });
   }
 
@@ -116,14 +134,15 @@ export class WorkspacesComponent implements OnInit {
   isCreating = signal(false);
   createError = signal('');
 
-  slugPreview = computed(() =>
-    this.name()
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .slice(0, 60) || 'your-workspace'
+  slugPreview = computed(
+    () =>
+      this.name()
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .slice(0, 60) || 'your-workspace',
   );
 
   openCreateModal() {
@@ -148,24 +167,28 @@ export class WorkspacesComponent implements OnInit {
     this.isCreating.set(true);
     this.createError.set('');
 
-    this.workspaceService.create({ name, description: this.description().trim() || undefined }).subscribe({
-      next: (ws) => {
-        this.isCreating.set(false);
-        this.closeCreateModal();
-        this.router.navigate(['/workspaces', ws.id]);
-      },
-      error: (err) => {
-        this.isCreating.set(false);
-        console.error(err);
-        if (err.status === 409) {
-          this.createError.set('A workspace with that name/slug already exists.');
-        } else if (err.error?.message) {
-          this.createError.set(Array.isArray(err.error.message) ? err.error.message.join(', ') : err.error.message);
-        } else {
-          this.createError.set('Failed to create workspace. Please try again.');
-        }
-      },
-    });
+    this.workspaceService
+      .create({ name, description: this.description().trim() || undefined })
+      .subscribe({
+        next: (ws) => {
+          this.isCreating.set(false);
+          this.closeCreateModal();
+          this.router.navigate(['/workspaces', ws.id]);
+        },
+        error: (err) => {
+          this.isCreating.set(false);
+          console.error(err);
+          if (err.status === 409) {
+            this.createError.set('A workspace with that name/slug already exists.');
+          } else if (err.error?.message) {
+            this.createError.set(
+              Array.isArray(err.error.message) ? err.error.message.join(', ') : err.error.message,
+            );
+          } else {
+            this.createError.set('Failed to create workspace. Please try again.');
+          }
+        },
+      });
   }
 
   loadInvitationsAndNotifications() {
@@ -175,7 +198,7 @@ export class WorkspacesComponent implements OnInit {
       },
       error: (err) => {
         console.error('Failed to load invitations', err);
-      }
+      },
     });
 
     this.workspaceService.getNotifications().subscribe({
@@ -184,7 +207,7 @@ export class WorkspacesComponent implements OnInit {
       },
       error: (err) => {
         console.error('Failed to load notifications', err);
-      }
+      },
     });
   }
 
@@ -196,13 +219,13 @@ export class WorkspacesComponent implements OnInit {
         this.isNotificationOpen.set(false);
         this.uiService.success(`You joined the ${workspaceName} workspace!`);
         this.loadInvitationsAndNotifications();
-        this.workspaceService.getAll().subscribe(data => this.workspaces.set(data));
+        this.workspaceService.getAll().subscribe((data) => this.workspaces.set(data));
       },
       error: (err) => {
         this.isProcessingInvitation.set(false);
         console.error(err);
         this.uiService.error(err.error?.message ?? 'Failed to accept invitation.');
-      }
+      },
     });
   }
 
@@ -219,7 +242,7 @@ export class WorkspacesComponent implements OnInit {
         this.isProcessingInvitation.set(false);
         console.error(err);
         this.uiService.error(err.error?.message ?? 'Failed to reject invitation.');
-      }
+      },
     });
   }
 
@@ -231,7 +254,7 @@ export class WorkspacesComponent implements OnInit {
       },
       error: (err) => {
         console.error('Failed to mark notifications as read', err);
-      }
+      },
     });
   }
 }

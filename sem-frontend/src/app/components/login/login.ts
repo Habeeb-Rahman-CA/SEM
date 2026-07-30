@@ -1,14 +1,15 @@
 import { Component, inject, signal } from '@angular/core';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { QuicklinkDirective } from 'ngx-quicklink';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, QuicklinkDirective],
   templateUrl: './login.html',
-  styleUrl: './login.css'
+  styleUrl: './login.css',
 })
 export class LoginComponent {
   private authService = inject(AuthService);
@@ -51,7 +52,7 @@ export class LoginComponent {
         } else {
           this.errorMessage.set('Could not connect to authentication server.');
         }
-      }
+      },
     });
   }
 }

@@ -1,14 +1,15 @@
 import { Component, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { QuicklinkDirective } from 'ngx-quicklink';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-register',
   standalone: true,
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, QuicklinkDirective],
   templateUrl: './register.html',
-  styleUrl: './register.css'
+  styleUrl: './register.css',
 })
 export class RegisterComponent {
   private authService = inject(AuthService);
@@ -72,7 +73,7 @@ export class RegisterComponent {
         } else {
           this.errorMessage.set('An error occurred during registration.');
         }
-      }
+      },
     });
   }
 }

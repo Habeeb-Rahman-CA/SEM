@@ -1,6 +1,7 @@
 import { Component, signal, inject, OnInit, output } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { QuicklinkDirective } from 'ngx-quicklink';
 import { WorkspaceService, Workspace } from '../../../services/workspace.service';
 import { AuthService } from '../../../services/auth.service';
 import { UiService } from '../../../services/ui.service';
@@ -9,7 +10,7 @@ import { AvatarComponent } from '../../../shared/components/avatar/avatar';
 @Component({
   selector: 'app-workspaces-management',
   standalone: true,
-  imports: [FormsModule, RouterLink, AvatarComponent],
+  imports: [FormsModule, RouterLink, AvatarComponent, QuicklinkDirective],
   templateUrl: './workspaces-management.html',
 })
 export class WorkspacesManagementComponent implements OnInit {
@@ -68,19 +69,21 @@ export class WorkspacesManagementComponent implements OnInit {
     this.isCreatingWs.set(true);
     this.wsCreateError.set('');
 
-    this.workspaceService.create({ name, description: this.wsDescription().trim() || undefined }).subscribe({
-      next: (ws) => {
-        this.isCreatingWs.set(false);
-        this.wsName.set('');
-        this.wsDescription.set('');
-        this.uiService.success(`Workspace "${ws.name}" created successfully!`);
-        this.loadWorkspaces();
-        this.router.navigate(['/workspaces', ws.id]);
-      },
-      error: (err) => {
-        this.isCreatingWs.set(false);
-        this.wsCreateError.set(err.error?.message ?? 'Failed to create workspace.');
-      },
-    });
+    this.workspaceService
+      .create({ name, description: this.wsDescription().trim() || undefined })
+      .subscribe({
+        next: (ws) => {
+          this.isCreatingWs.set(false);
+          this.wsName.set('');
+          this.wsDescription.set('');
+          this.uiService.success(`Workspace "${ws.name}" created successfully!`);
+          this.loadWorkspaces();
+          this.router.navigate(['/workspaces', ws.id]);
+        },
+        error: (err) => {
+          this.isCreatingWs.set(false);
+          this.wsCreateError.set(err.error?.message ?? 'Failed to create workspace.');
+        },
+      });
   }
 }

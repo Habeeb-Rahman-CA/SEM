@@ -1,6 +1,7 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
-import { provideRouter, withPreloading, PreloadAllModules } from '@angular/router';
+import { provideRouter, withPreloading } from '@angular/router';
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
+import { QuicklinkStrategy, quicklinkProviders } from 'ngx-quicklink';
 
 import { routes } from './app.routes';
 import { cacheInterceptor } from './interceptors/cache.interceptor';
@@ -9,11 +10,12 @@ import { retryInterceptor } from './interceptors/retry.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
+    quicklinkProviders,
     provideBrowserGlobalErrorListeners(),
-    provideRouter(routes, withPreloading(PreloadAllModules)),
+    provideRouter(routes, withPreloading(QuicklinkStrategy)),
     provideHttpClient(
-      withFetch(),                                              // Use Fetch API (HTTP/2 multiplexing)
+      withFetch(), // Use Fetch API (HTTP/2 multiplexing)
       withInterceptors([authInterceptor, retryInterceptor, cacheInterceptor]), // Auth token + auto retry + in-memory GET cache
     ),
-  ]
+  ],
 };

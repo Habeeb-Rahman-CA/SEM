@@ -1,11 +1,12 @@
 import { Component, input, model, output, HostListener } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { QuicklinkDirective } from 'ngx-quicklink';
 import { AvatarComponent } from '../../../../shared/components/avatar/avatar';
 
 @Component({
   selector: 'app-user-dropdown',
   standalone: true,
-  imports: [RouterLink, AvatarComponent],
+  imports: [RouterLink, AvatarComponent, QuicklinkDirective],
   templateUrl: './user-dropdown.html',
 })
 export class UserDropdownComponent {

@@ -1,8 +1,37 @@
-import { Component, OnInit, signal, inject, computed, effect, HostListener, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  signal,
+  inject,
+  computed,
+  effect,
+  HostListener,
+  DestroyRef,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { FormsModule } from '@angular/forms';
-import { WorkspaceService, Workspace, WorkspaceMember, AppNotification, Role, Team, Player, WorkspaceEvent, Sport, Competition, CompetitionStage, CompetitionTeam, Match, PointsConfigEntry, MatchPlayer, CompetitionStats, WorkspaceFile } from '../../services/workspace.service';
+import { QuicklinkDirective } from 'ngx-quicklink';
+import {
+  WorkspaceService,
+  Workspace,
+  WorkspaceMember,
+  AppNotification,
+  Role,
+  Team,
+  Player,
+  WorkspaceEvent,
+  Sport,
+  Competition,
+  CompetitionStage,
+  CompetitionTeam,
+  Match,
+  PointsConfigEntry,
+  MatchPlayer,
+  CompetitionStats,
+  WorkspaceFile,
+} from '../../services/workspace.service';
 import { VenueService, Venue } from '../../services/venue.service';
 import { AuthService } from '../../services/auth.service';
 import { UiService } from '../../services/ui.service';
@@ -25,7 +54,12 @@ import { WorkspaceMembersComponent } from './members/members';
 import { WorkspaceSettingsComponent } from './settings/settings';
 import { WorkspaceReportsComponent } from './reports/reports';
 import { WorkspaceFilesComponent } from './files/files';
-import { getSportBadgeClass, getSportIconClass, formatMatchStatusDetail, roleBadgeClass } from '../../shared';
+import {
+  getSportBadgeClass,
+  getSportIconClass,
+  formatMatchStatusDetail,
+  roleBadgeClass,
+} from '../../shared';
 
 declare const L: any;
 
@@ -48,6 +82,7 @@ declare const L: any;
     WorkspaceSettingsComponent,
     WorkspaceReportsComponent,
     WorkspaceFilesComponent,
+    QuicklinkDirective,
   ],
   templateUrl: './workspace-detail.html',
   styleUrl: './workspace-detail.css',
@@ -79,41 +114,46 @@ export class WorkspaceDetailComponent implements OnInit {
       this.selectedFileId.set(null);
     });
 
-    effect(() => {
-      const query = this.globalSearchQuery().trim();
-      const workspaceId = this.workspace()?.id;
-      if (query && workspaceId) {
-        this.workspaceService.globalSearch(workspaceId, query).subscribe({
-          next: (res) => {
-            this.serverSearchResults.set({
-              files: res.files || [],
-              teams: res.teams || [],
-              players: res.players || [],
-            });
-          },
-          error: (err) => {
-            console.error('Server global search failed:', err);
-            // Fallback: search locally
-            const queryLower = query.toLowerCase();
-            const matchedTeams = this.teams().filter(t => 
-              t.name.toLowerCase().includes(queryLower) || 
-              (t.code && t.code.toLowerCase().includes(queryLower))
-            );
-            const matchedPlayers = this.players().filter(p => 
-              p.user.username.toLowerCase().includes(queryLower) ||
-              p.team.name.toLowerCase().includes(queryLower)
-            );
-            this.serverSearchResults.set({
-              files: [],
-              teams: matchedTeams,
-              players: matchedPlayers
-            });
-          }
-        });
-      } else {
-        this.serverSearchResults.set({ files: [], teams: [], players: [] });
-      }
-    }, { allowSignalWrites: true });
+    effect(
+      () => {
+        const query = this.globalSearchQuery().trim();
+        const workspaceId = this.workspace()?.id;
+        if (query && workspaceId) {
+          this.workspaceService.globalSearch(workspaceId, query).subscribe({
+            next: (res) => {
+              this.serverSearchResults.set({
+                files: res.files || [],
+                teams: res.teams || [],
+                players: res.players || [],
+              });
+            },
+            error: (err) => {
+              console.error('Server global search failed:', err);
+              // Fallback: search locally
+              const queryLower = query.toLowerCase();
+              const matchedTeams = this.teams().filter(
+                (t) =>
+                  t.name.toLowerCase().includes(queryLower) ||
+                  (t.code && t.code.toLowerCase().includes(queryLower)),
+              );
+              const matchedPlayers = this.players().filter(
+                (p) =>
+                  p.user.username.toLowerCase().includes(queryLower) ||
+                  p.team.name.toLowerCase().includes(queryLower),
+              );
+              this.serverSearchResults.set({
+                files: [],
+                teams: matchedTeams,
+                players: matchedPlayers,
+              });
+            },
+          });
+        } else {
+          this.serverSearchResults.set({ files: [], teams: [], players: [] });
+        }
+      },
+      { allowSignalWrites: true },
+    );
   }
 
   @HostListener('document:keydown', ['$event'])
@@ -137,7 +177,17 @@ export class WorkspaceDetailComponent implements OnInit {
   roles = signal<Role[]>([]);
   isLoading = signal(true);
   error = signal('');
-  activeTab = signal<'overview' | 'members' | 'settings' | 'teams' | 'players' | 'events' | 'venues' | 'reports' | 'files'>('overview');
+  activeTab = signal<
+    | 'overview'
+    | 'members'
+    | 'settings'
+    | 'teams'
+    | 'players'
+    | 'events'
+    | 'venues'
+    | 'reports'
+    | 'files'
+  >('overview');
   isSidebarOpen = signal(true);
 
   // ── Workspace Dashboard Overview Signals ─────────────────────────────────────
@@ -155,7 +205,11 @@ export class WorkspaceDetailComponent implements OnInit {
   globalSearchQuery = signal<string>('');
   showGlobalSearchResults = signal<boolean>(false);
   allCompetitions = signal<Competition[]>([]);
-  serverSearchResults = signal<{ files: any[]; teams: any[]; players: any[] }>({ files: [], teams: [], players: [] });
+  serverSearchResults = signal<{ files: any[]; teams: any[]; players: any[] }>({
+    files: [],
+    teams: [],
+    players: [],
+  });
   selectedFileId = signal<string | null>(null);
 
   // ── Search State & Filtered Computed Listings ────────────────────────────────
@@ -169,9 +223,9 @@ export class WorkspaceDetailComponent implements OnInit {
     const query = this.memberSearchQuery().toLowerCase().trim();
     const list = this.members();
     if (!query) return list;
-    return list.filter(m => 
-      m.user.username.toLowerCase().includes(query) ||
-      m.role.name.toLowerCase().includes(query)
+    return list.filter(
+      (m) =>
+        m.user.username.toLowerCase().includes(query) || m.role.name.toLowerCase().includes(query),
     );
   });
 
@@ -179,10 +233,11 @@ export class WorkspaceDetailComponent implements OnInit {
     const query = this.teamSearchQuery().toLowerCase().trim();
     const list = this.teams();
     if (!query) return list;
-    return list.filter(t => 
-      t.name.toLowerCase().includes(query) ||
-      (t.code && t.code.toLowerCase().includes(query)) ||
-      (t.description && t.description.toLowerCase().includes(query))
+    return list.filter(
+      (t) =>
+        t.name.toLowerCase().includes(query) ||
+        (t.code && t.code.toLowerCase().includes(query)) ||
+        (t.description && t.description.toLowerCase().includes(query)),
     );
   });
 
@@ -190,10 +245,11 @@ export class WorkspaceDetailComponent implements OnInit {
     const query = this.playerSearchQuery().toLowerCase().trim();
     const list = this.players();
     if (!query) return list;
-    return list.filter(p => 
-      p.user.username.toLowerCase().includes(query) ||
-      p.team.name.toLowerCase().includes(query) ||
-      (p.jerseyNumber && String(p.jerseyNumber).toLowerCase().includes(query))
+    return list.filter(
+      (p) =>
+        p.user.username.toLowerCase().includes(query) ||
+        p.team.name.toLowerCase().includes(query) ||
+        (p.jerseyNumber && String(p.jerseyNumber).toLowerCase().includes(query)),
     );
   });
 
@@ -201,10 +257,11 @@ export class WorkspaceDetailComponent implements OnInit {
     const query = this.eventSearchQuery().toLowerCase().trim();
     const list = this.events();
     if (!query) return list;
-    return list.filter(e => 
-      e.name.toLowerCase().includes(query) ||
-      e.status.toLowerCase().includes(query) ||
-      (e.description && e.description.toLowerCase().includes(query))
+    return list.filter(
+      (e) =>
+        e.name.toLowerCase().includes(query) ||
+        e.status.toLowerCase().includes(query) ||
+        (e.description && e.description.toLowerCase().includes(query)),
     );
   });
 
@@ -212,9 +269,10 @@ export class WorkspaceDetailComponent implements OnInit {
     const query = this.venueSearchQuery().toLowerCase().trim();
     const list = this.venues();
     if (!query) return list;
-    return list.filter(v => 
-      v.name.toLowerCase().includes(query) ||
-      (v.location && v.location.toLowerCase().includes(query))
+    return list.filter(
+      (v) =>
+        v.name.toLowerCase().includes(query) ||
+        (v.location && v.location.toLowerCase().includes(query)),
     );
   });
 
@@ -229,30 +287,33 @@ export class WorkspaceDetailComponent implements OnInit {
         venues: [],
         members: [],
         files: [],
-        totalCount: 0
+        totalCount: 0,
       };
     }
 
-    const matchedEvents = this.events().filter(e => 
-      e.name.toLowerCase().includes(query) || 
-      e.status.toLowerCase().includes(query) ||
-      (e.description && e.description.toLowerCase().includes(query))
+    const matchedEvents = this.events().filter(
+      (e) =>
+        e.name.toLowerCase().includes(query) ||
+        e.status.toLowerCase().includes(query) ||
+        (e.description && e.description.toLowerCase().includes(query)),
     );
 
-    const matchedCompetitions = this.allCompetitions().filter(c => 
-      c.name.toLowerCase().includes(query) ||
-      c.status.toLowerCase().includes(query) ||
-      (c.sport?.name && c.sport.name.toLowerCase().includes(query))
+    const matchedCompetitions = this.allCompetitions().filter(
+      (c) =>
+        c.name.toLowerCase().includes(query) ||
+        c.status.toLowerCase().includes(query) ||
+        (c.sport?.name && c.sport.name.toLowerCase().includes(query)),
     );
 
-    const matchedVenues = this.venues().filter(v => 
-      v.name.toLowerCase().includes(query) ||
-      (v.location && v.location.toLowerCase().includes(query))
+    const matchedVenues = this.venues().filter(
+      (v) =>
+        v.name.toLowerCase().includes(query) ||
+        (v.location && v.location.toLowerCase().includes(query)),
     );
 
-    const matchedMembers = this.members().filter(m => 
-      m.user.username.toLowerCase().includes(query) ||
-      m.role.name.toLowerCase().includes(query)
+    const matchedMembers = this.members().filter(
+      (m) =>
+        m.user.username.toLowerCase().includes(query) || m.role.name.toLowerCase().includes(query),
     );
 
     // Merge server-side search results (Elasticsearch / OpenSearch)
@@ -261,7 +322,14 @@ export class WorkspaceDetailComponent implements OnInit {
     const matchedPlayers = serverResults.players;
     const matchedFiles = serverResults.files;
 
-    const totalCount = matchedTeams.length + matchedPlayers.length + matchedEvents.length + matchedCompetitions.length + matchedVenues.length + matchedMembers.length + matchedFiles.length;
+    const totalCount =
+      matchedTeams.length +
+      matchedPlayers.length +
+      matchedEvents.length +
+      matchedCompetitions.length +
+      matchedVenues.length +
+      matchedMembers.length +
+      matchedFiles.length;
 
     return {
       teams: matchedTeams,
@@ -271,7 +339,7 @@ export class WorkspaceDetailComponent implements OnInit {
       venues: matchedVenues,
       members: matchedMembers,
       files: matchedFiles,
-      totalCount
+      totalCount,
     };
   });
 
@@ -295,7 +363,7 @@ export class WorkspaceDetailComponent implements OnInit {
 
   selectGlobalCompetition(comp: Competition) {
     this.activeTab.set('events');
-    const parentEvent = this.events().find(e => e.id === comp.eventId);
+    const parentEvent = this.events().find((e) => e.id === comp.eventId);
     if (parentEvent) {
       this.selectedEvent.set(parentEvent);
       this.selectedCompetition.set(comp);
@@ -330,8 +398,10 @@ export class WorkspaceDetailComponent implements OnInit {
   isNotificationOpen = signal(false);
   isProcessingInvitation = signal(false);
 
-  unreadNotificationsCount = computed(() => this.notifications().filter(n => !n.isRead).length);
-  totalBadgeCount = computed(() => this.pendingInvitations().length + this.unreadNotificationsCount());
+  unreadNotificationsCount = computed(() => this.notifications().filter((n) => !n.isRead).length);
+  totalBadgeCount = computed(
+    () => this.pendingInvitations().length + this.unreadNotificationsCount(),
+  );
   enableExtraTime = signal(false);
   enablePenaltyShootout = signal(false);
   extraTimeHalfDuration = signal(15);
@@ -351,7 +421,6 @@ export class WorkspaceDetailComponent implements OnInit {
   players = signal<Player[]>([]);
   isPlayerModalOpen = signal(false);
   editingPlayer = signal<Player | null>(null);
-
 
   // ── Events State ────────────────────────────────────────────────────────────
   events = signal<WorkspaceEvent[]>([]);
@@ -388,7 +457,7 @@ export class WorkspaceDetailComponent implements OnInit {
 
   // ── Assignable roles for invite/member dropdown (non-owner) ───────────────
   get assignableRoles(): Role[] {
-    return this.roles().filter(r => r.slug !== 'owner');
+    return this.roles().filter((r) => r.slug !== 'owner');
   }
 
   closeSidebarOnMobile() {
@@ -413,22 +482,22 @@ export class WorkspaceDetailComponent implements OnInit {
       .subscribe((updatedMatch) => {
         // 1. Update in the matches list signal
         this.matches.update((prev) =>
-          prev.map((m) => (m.id === updatedMatch.id ? updatedMatch : m))
+          prev.map((m) => (m.id === updatedMatch.id ? updatedMatch : m)),
         );
 
         // 2. Update in overviewLiveMatches
         this.overviewLiveMatches.update((prev) =>
-          prev.map((m) => (m.id === updatedMatch.id ? updatedMatch : m))
+          prev.map((m) => (m.id === updatedMatch.id ? updatedMatch : m)),
         );
 
         // 3. Update in overviewUpcomingMatches
         this.overviewUpcomingMatches.update((prev) =>
-          prev.map((m) => (m.id === updatedMatch.id ? updatedMatch : m))
+          prev.map((m) => (m.id === updatedMatch.id ? updatedMatch : m)),
         );
 
         // Update in overviewCompletedMatches
         this.overviewCompletedMatches.update((prev) =>
-          prev.map((m) => (m.id === updatedMatch.id ? updatedMatch : m))
+          prev.map((m) => (m.id === updatedMatch.id ? updatedMatch : m)),
         );
 
         // 4. Update selectedMatch if currently viewing this match in live console
@@ -507,26 +576,29 @@ export class WorkspaceDetailComponent implements OnInit {
     this.isOverviewLoading.set(true);
     this.workspaceService.getDashboardOverview().subscribe({
       next: (data) => {
-        const live = (data.liveMatches || []).filter((m: any) =>
-          m.workspaceId === workspaceId ||
-          m.stage?.competition?.event?.workspaceId === workspaceId
+        const live = (data.liveMatches || []).filter(
+          (m: any) =>
+            m.workspaceId === workspaceId ||
+            m.stage?.competition?.event?.workspaceId === workspaceId,
         );
         this.overviewLiveMatches.set(live);
 
-        const upcoming = (data.upcomingMatches || []).filter((m: any) =>
-          m.workspaceId === workspaceId ||
-          m.stage?.competition?.event?.workspaceId === workspaceId
+        const upcoming = (data.upcomingMatches || []).filter(
+          (m: any) =>
+            m.workspaceId === workspaceId ||
+            m.stage?.competition?.event?.workspaceId === workspaceId,
         );
         this.overviewUpcomingMatches.set(upcoming);
 
-        const completed = (data.completedMatches || []).filter((m: any) =>
-          m.workspaceId === workspaceId ||
-          m.stage?.competition?.event?.workspaceId === workspaceId
+        const completed = (data.completedMatches || []).filter(
+          (m: any) =>
+            m.workspaceId === workspaceId ||
+            m.stage?.competition?.event?.workspaceId === workspaceId,
         );
         this.overviewCompletedMatches.set(completed);
 
-        const runningComps = (data.runningCompetitions || []).filter((c: any) =>
-          c.event?.workspaceId === workspaceId || c.workspaceId === workspaceId
+        const runningComps = (data.runningCompetitions || []).filter(
+          (c: any) => c.event?.workspaceId === workspaceId || c.workspaceId === workspaceId,
         );
         this.overviewRunningCompetitions.set(runningComps);
         if (runningComps.length > 0) {
@@ -541,7 +613,7 @@ export class WorkspaceDetailComponent implements OnInit {
       error: (err) => {
         console.error('Failed to load workspace overview', err);
         this.isOverviewLoading.set(false);
-      }
+      },
     });
   }
 
@@ -612,20 +684,22 @@ export class WorkspaceDetailComponent implements OnInit {
                 this.selectedStage.set(stage);
 
                 if (!matchId) return;
-                this.competitionService.getMatches(ws.id, eventId, competitionId, stage.id).subscribe({
-                  next: (matches) => {
-                    this.matches.set(matches);
-                    const m = matches.find((match) => match.id === matchId);
-                    if (m) {
-                      this.selectedMatch.set(m);
-                    }
-                  }
-                });
-              }
+                this.competitionService
+                  .getMatches(ws.id, eventId, competitionId, stage.id)
+                  .subscribe({
+                    next: (matches) => {
+                      this.matches.set(matches);
+                      const m = matches.find((match) => match.id === matchId);
+                      if (m) {
+                        this.selectedMatch.set(m);
+                      }
+                    },
+                  });
+              },
             });
-          }
+          },
         });
-      }
+      },
     });
   }
 
@@ -652,7 +726,7 @@ export class WorkspaceDetailComponent implements OnInit {
 
   getCurrentUserRoleSlug(): string {
     const userId = this.authService.currentUser()?.id;
-    return this.members().find(m => m.userId === userId)?.role?.slug ?? 'viewer';
+    return this.members().find((m) => m.userId === userId)?.role?.slug ?? 'viewer';
   }
 
   canManageMembers(): boolean {
@@ -662,10 +736,10 @@ export class WorkspaceDetailComponent implements OnInit {
 
   hasPermission(permission: string): boolean {
     const userId = this.authService.currentUser()?.id;
-    const member = this.members().find(m => m.userId === userId);
+    const member = this.members().find((m) => m.userId === userId);
     if (!member || !member.role) return false;
     if (member.role.slug === 'owner') return true;
-    return member.role.permissions?.some(p => p.slug === permission) ?? false;
+    return member.role.permissions?.some((p) => p.slug === permission) ?? false;
   }
 
   onSignOut(): void {
@@ -694,7 +768,7 @@ export class WorkspaceDetailComponent implements OnInit {
   roleBadgeClass = roleBadgeClass;
 
   memberCountForRole(roleId: string): number {
-    return this.members().filter(m => m.role?.id === roleId).length;
+    return this.members().filter((m) => m.role?.id === roleId).length;
   }
 
   // ── Invite Member ──────────────────────────────────────────────────────────
@@ -718,7 +792,7 @@ export class WorkspaceDetailComponent implements OnInit {
       error: (err) => {
         this.isInviting.set(false);
         this.inviteError.set(err.error?.message ?? 'Failed to invite user.');
-      }
+      },
     });
   }
 
@@ -730,25 +804,31 @@ export class WorkspaceDetailComponent implements OnInit {
     const ws = this.workspace();
     if (!ws) return;
 
-    const newRole = this.roles().find(r => r.slug === newRoleSlug);
+    const newRole = this.roles().find((r) => r.slug === newRoleSlug);
     if (!newRole) return;
 
     const originalRole = member.role;
 
     // Optimistic Update
-    this.members.update(prev => prev.map(m => m.id === member.id ? { ...m, role: newRole } : m));
+    this.members.update((prev) =>
+      prev.map((m) => (m.id === member.id ? { ...m, role: newRole } : m)),
+    );
 
     this.workspaceService.updateMemberRole(ws.id, member.userId, newRoleSlug).subscribe({
       next: (updated) => {
-        this.members.update(prev => prev.map(m => m.id === member.id ? { ...m, role: updated.role } : m));
+        this.members.update((prev) =>
+          prev.map((m) => (m.id === member.id ? { ...m, role: updated.role } : m)),
+        );
         this.uiService.success(`Role for ${member.user.username} updated to ${updated.role.name}.`);
       },
       error: (err) => {
         // Rollback
-        this.members.update(prev => prev.map(m => m.id === member.id ? { ...m, role: originalRole } : m));
+        this.members.update((prev) =>
+          prev.map((m) => (m.id === member.id ? { ...m, role: originalRole } : m)),
+        );
         select.value = originalRole?.slug ?? '';
         this.uiService.error(err.error?.message ?? 'Failed to update member role.');
-      }
+      },
     });
   }
 
@@ -768,7 +848,7 @@ export class WorkspaceDetailComponent implements OnInit {
     const originalMembers = this.members();
 
     // Optimistic Update
-    this.members.update(prev => prev.filter(m => m.userId !== member.userId));
+    this.members.update((prev) => prev.filter((m) => m.userId !== member.userId));
 
     this.workspaceService.removeMember(ws.id, member.userId).subscribe({
       next: () => {
@@ -800,12 +880,12 @@ export class WorkspaceDetailComponent implements OnInit {
         this.roleCreateSuccess.set(`Role "${role.name}" created!`);
         this.newRoleName.set('');
         this.newRoleDescription.set('');
-        this.roles.update(prev => [...prev, role]);
+        this.roles.update((prev) => [...prev, role]);
       },
       error: (err) => {
         this.isCreatingRole.set(false);
         this.roleCreateError.set(err.error?.message ?? 'Failed to create role.');
-      }
+      },
     });
   }
 
@@ -825,7 +905,7 @@ export class WorkspaceDetailComponent implements OnInit {
     const originalRoles = this.roles();
 
     // Optimistic Update
-    this.roles.update(prev => prev.filter(r => r.id !== role.id));
+    this.roles.update((prev) => prev.filter((r) => r.id !== role.id));
 
     this.workspaceService.removeRole(ws.id, role.id).subscribe({
       next: () => {
@@ -864,12 +944,14 @@ export class WorkspaceDetailComponent implements OnInit {
   }
 
   onVenueSaved(savedVenue: Venue) {
-    const isEdit = this.venues().some(v => v.id === savedVenue.id);
+    const isEdit = this.venues().some((v) => v.id === savedVenue.id);
     if (isEdit) {
-      this.venues.update(prev => prev.map(v => v.id === savedVenue.id ? savedVenue : v));
-      this.matches.update(prevMatches => prevMatches.map(m => m.venueId === savedVenue.id ? { ...m, venue: savedVenue } : m));
+      this.venues.update((prev) => prev.map((v) => (v.id === savedVenue.id ? savedVenue : v)));
+      this.matches.update((prevMatches) =>
+        prevMatches.map((m) => (m.venueId === savedVenue.id ? { ...m, venue: savedVenue } : m)),
+      );
     } else {
-      this.venues.update(prev => [...prev, savedVenue]);
+      this.venues.update((prev) => [...prev, savedVenue]);
     }
   }
 
@@ -888,8 +970,10 @@ export class WorkspaceDetailComponent implements OnInit {
     const originalMatches = this.matches();
 
     // Optimistic Update
-    this.venues.update(prev => prev.filter(v => v.id !== venue.id));
-    this.matches.update(prevMatches => prevMatches.map(m => m.venueId === venue.id ? { ...m, venueId: null, venue: null } : m));
+    this.venues.update((prev) => prev.filter((v) => v.id !== venue.id));
+    this.matches.update((prevMatches) =>
+      prevMatches.map((m) => (m.venueId === venue.id ? { ...m, venueId: null, venue: null } : m)),
+    );
 
     this.venueService.removeVenue(ws.id, venue.id).subscribe({
       next: () => {
@@ -929,26 +1013,28 @@ export class WorkspaceDetailComponent implements OnInit {
   }
 
   onTeamSaved(savedTeam: Team) {
-    const isEdit = this.teams().some(t => t.id === savedTeam.id);
+    const isEdit = this.teams().some((t) => t.id === savedTeam.id);
     if (isEdit) {
-      this.teams.update(prev => prev.map(t => t.id === savedTeam.id ? savedTeam : t));
-      this.matches.update(prevMatches => prevMatches.map(m => {
-        let updated = { ...m };
-        if (m.homeTeamId === savedTeam.id) {
-          updated.homeTeam = savedTeam;
-        }
-        if (m.awayTeamId === savedTeam.id) {
-          updated.awayTeam = savedTeam;
-        }
-        return updated;
-      }));
+      this.teams.update((prev) => prev.map((t) => (t.id === savedTeam.id ? savedTeam : t)));
+      this.matches.update((prevMatches) =>
+        prevMatches.map((m) => {
+          let updated = { ...m };
+          if (m.homeTeamId === savedTeam.id) {
+            updated.homeTeam = savedTeam;
+          }
+          if (m.awayTeamId === savedTeam.id) {
+            updated.awayTeam = savedTeam;
+          }
+          return updated;
+        }),
+      );
     } else {
-      this.teams.update(prev => [...prev, savedTeam]);
+      this.teams.update((prev) => [...prev, savedTeam]);
     }
   }
 
   onTeamsImported(importedList: Team[]) {
-    this.teams.update(prev => [...prev, ...importedList]);
+    this.teams.update((prev) => [...prev, ...importedList]);
   }
 
   async onDeleteTeam(team: Team) {
@@ -966,19 +1052,21 @@ export class WorkspaceDetailComponent implements OnInit {
     const originalMatches = this.matches();
 
     // Optimistic Update
-    this.teams.update(prev => prev.filter(t => t.id !== team.id));
-    this.matches.update(prevMatches => prevMatches.map(m => {
-      let updated = { ...m };
-      if (m.homeTeamId === team.id) {
-        updated.homeTeamId = null;
-        updated.homeTeam = null;
-      }
-      if (m.awayTeamId === team.id) {
-        updated.awayTeamId = null;
-        updated.awayTeam = null;
-      }
-      return updated;
-    }));
+    this.teams.update((prev) => prev.filter((t) => t.id !== team.id));
+    this.matches.update((prevMatches) =>
+      prevMatches.map((m) => {
+        let updated = { ...m };
+        if (m.homeTeamId === team.id) {
+          updated.homeTeamId = null;
+          updated.homeTeam = null;
+        }
+        if (m.awayTeamId === team.id) {
+          updated.awayTeamId = null;
+          updated.awayTeam = null;
+        }
+        return updated;
+      }),
+    );
 
     this.teamService.removeTeam(ws.id, team.id).subscribe({
       next: () => {
@@ -989,7 +1077,7 @@ export class WorkspaceDetailComponent implements OnInit {
         this.teams.set(originalTeams);
         this.matches.set(originalMatches);
         this.uiService.error(err.error?.message ?? 'Failed to delete team.');
-      }
+      },
     });
   }
 
@@ -1018,20 +1106,20 @@ export class WorkspaceDetailComponent implements OnInit {
   }
 
   onPlayerSaved(player: Player) {
-    const exists = this.players().some(p => p.id === player.id);
+    const exists = this.players().some((p) => p.id === player.id);
     if (exists) {
-      this.players.update(prev => prev.map(p => p.id === player.id ? player : p));
+      this.players.update((prev) => prev.map((p) => (p.id === player.id ? player : p)));
     } else {
-      this.players.update(prev => [...prev, player]);
+      this.players.update((prev) => [...prev, player]);
     }
   }
 
   onPlayersImported(importedList: Player[]) {
     if (importedList && importedList.length > 0) {
-      this.players.update(prev => {
+      this.players.update((prev) => {
         const list = [...prev];
-        importedList.forEach(p => {
-          if (!list.some(x => x.id === p.id)) {
+        importedList.forEach((p) => {
+          if (!list.some((x) => x.id === p.id)) {
             list.push(p);
           }
         });
@@ -1039,9 +1127,6 @@ export class WorkspaceDetailComponent implements OnInit {
       });
     }
   }
-
-
-
 
   async onDeletePlayer(player: Player) {
     const ws = this.workspace();
@@ -1057,7 +1142,7 @@ export class WorkspaceDetailComponent implements OnInit {
     const originalPlayers = this.players();
 
     // Optimistic Update
-    this.players.update(prev => prev.filter(p => p.id !== player.id));
+    this.players.update((prev) => prev.filter((p) => p.id !== player.id));
 
     this.playerService.removePlayer(ws.id, player.id).subscribe({
       next: () => {
@@ -1067,7 +1152,7 @@ export class WorkspaceDetailComponent implements OnInit {
         // Rollback
         this.players.set(originalPlayers);
         this.uiService.error(err.error?.message ?? 'Failed to delete player.');
-      }
+      },
     });
   }
 
@@ -1088,9 +1173,9 @@ export class WorkspaceDetailComponent implements OnInit {
     for (const event of events) {
       this.competitionService.getCompetitions(workspaceId, event.id).subscribe({
         next: (comps) => {
-          this.allCompetitions.update(prev => {
-            const ids = new Set(prev.map(c => c.id));
-            const newComps = comps.filter(c => !ids.has(c.id));
+          this.allCompetitions.update((prev) => {
+            const ids = new Set(prev.map((c) => c.id));
+            const newComps = comps.filter((c) => !ids.has(c.id));
             return [...prev, ...newComps];
           });
         },
@@ -1106,7 +1191,7 @@ export class WorkspaceDetailComponent implements OnInit {
       },
       error: (err) => {
         console.error('Failed to load invitations', err);
-      }
+      },
     });
 
     this.workspaceService.getNotifications().subscribe({
@@ -1115,7 +1200,7 @@ export class WorkspaceDetailComponent implements OnInit {
       },
       error: (err) => {
         console.error('Failed to load notifications', err);
-      }
+      },
     });
   }
 
@@ -1132,7 +1217,7 @@ export class WorkspaceDetailComponent implements OnInit {
         this.isProcessingInvitation.set(false);
         console.error(err);
         this.uiService.error(err.error?.message ?? 'Failed to accept invitation.');
-      }
+      },
     });
   }
 
@@ -1149,7 +1234,7 @@ export class WorkspaceDetailComponent implements OnInit {
         this.isProcessingInvitation.set(false);
         console.error(err);
         this.uiService.error(err.error?.message ?? 'Failed to reject invitation.');
-      }
+      },
     });
   }
 
@@ -1161,7 +1246,7 @@ export class WorkspaceDetailComponent implements OnInit {
       },
       error: (err) => {
         console.error('Failed to mark notifications as read', err);
-      }
+      },
     });
   }
 
@@ -1181,14 +1266,14 @@ export class WorkspaceDetailComponent implements OnInit {
             console.error(err);
             this.isUploadingAvatar.set(false);
             this.uiService.error('Failed to update profile picture.');
-          }
+          },
         });
       },
       error: (err) => {
         console.error(err);
         this.isUploadingAvatar.set(false);
         this.uiService.error('Failed to upload image.');
-      }
+      },
     });
   }
 }
