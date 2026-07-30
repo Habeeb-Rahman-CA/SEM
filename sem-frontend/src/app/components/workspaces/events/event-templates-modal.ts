@@ -9,7 +9,6 @@ import {
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { DatePipe } from '@angular/common';
 import {
   EventTemplateService,
   EventTemplate,
@@ -27,6 +26,7 @@ import {
 import { UiService } from '../../../services/ui.service';
 import { WorkspaceEvent, Sport, Competition } from '../../../services/workspace.service';
 import { Workspace } from '../../../services/workspace.service';
+import { CompetitionService } from '../../../services/competition.service';
 
 type ModalView =
   | 'list'
@@ -42,7 +42,7 @@ type ModalView =
 @Component({
   selector: 'app-event-templates-modal',
   standalone: true,
-  imports: [FormsModule, DatePipe],
+  imports: [FormsModule],
   templateUrl: './event-templates-modal.html',
   styleUrl: './event-templates-modal.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -257,10 +257,10 @@ export class EventTemplatesModalComponent implements OnInit {
       return;
     }
     this.competitionService.getCompetitions(ws.id, eventId).subscribe({
-      next: (list) => {
+      next: (list: Competition[]) => {
         this.saveFromCompetitionCompetitions.set(list || []);
       },
-      error: (err) => {
+      error: (err: any) => {
         console.error('Failed to load event competitions', err);
         this.saveFromCompetitionCompetitions.set([]);
       },
