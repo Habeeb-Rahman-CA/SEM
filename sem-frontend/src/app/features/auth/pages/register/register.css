@@ -1,1 +1,2 @@
-/* Register component styles */
+/* Split-panel auth shell — shared with the login page. */
+@import '../../styles/auth-shell.css';
