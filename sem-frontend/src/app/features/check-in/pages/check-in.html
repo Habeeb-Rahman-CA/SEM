@@ -1,0 +1,203 @@
+<div class="min-h-screen bg-slate-950 text-white font-sans">
+  <!-- Top Nav -->
+  <nav class="border-b border-white/10 bg-slate-900/80 backdrop-blur-md sticky top-0 z-40">
+    <div class="w-full px-6 lg:px-10 h-16 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3 min-w-0">
+        <a
+          [routerLink]="['/workspaces', workspaceId()]"
+          class="flex items-center gap-2 text-sm text-slate-400 hover:text-white transition cursor-pointer"
+        >
+          <i class="fi fi-rr-apps"></i>
+          <span class="hidden sm:inline">{{ workspace()?.name || 'Workspace' }}</span>
+        </a>
+        <i class="fi fi-rr-angle-small-right text-slate-700 text-sm"></i>
+        <span class="text-sm font-bold text-white truncate">Check-in & Accreditation</span>
+      </div>
+
+      <button
+        (click)="onClearHistory()"
+        class="text-xs text-rose-400 hover:text-rose-300 font-bold cursor-pointer"
+      >
+        Clear Log
+      </button>
+    </div>
+  </nav>
+
+  <div class="max-w-5xl mx-auto px-6 lg:px-10 py-8 flex flex-col gap-6 text-left">
+    <div>
+      <h1 class="text-2xl font-extrabold text-white tracking-tight">Check-in & Accreditation</h1>
+      <p class="text-xs text-slate-400 mt-1.5">
+        Scan a participant's QR badge to verify their registration, or scan an event pass to
+        validate accreditation at the venue gate.
+      </p>
+    </div>
+
+    <!-- Event context + filter -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+          Active Event <span class="text-slate-600 font-normal normal-case">(optional filter)</span>
+        </label>
+        <select
+          class="bg-slate-900 border border-white/10 focus:border-violet-500 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition"
+          [ngModel]="selectedEventId()"
+          (ngModelChange)="selectedEventId.set($event)"
+        >
+          <option value="">— All events —</option>
+          @for (ev of events(); track ev.id) {
+            <option [value]="ev.id">{{ ev.name }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+          >Search log</label
+        >
+        <input
+          type="text"
+          placeholder="Filter by name or code..."
+          class="bg-slate-900 border border-white/10 focus:border-violet-500 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition"
+          [ngModel]="filterQuery()"
+          (ngModelChange)="filterQuery.set($event)"
+        />
+      </div>
+    </div>
+
+    <!-- Scanner -->
+    <div class="bg-slate-900 border border-white/10 rounded-2xl p-5 flex flex-col gap-4 shadow-xl">
+      <div class="flex items-center justify-between gap-4">
+        <div>
+          <h2 class="text-sm font-bold text-white flex items-center gap-2">
+            <i class="fi fi-rr-qrcode text-violet-400"></i> QR Scanner
+          </h2>
+          <p class="text-[11px] text-slate-400 mt-0.5">
+            Point the camera at a badge, event pass or team accreditation. On desktop you can also
+            paste the code below.
+          </p>
+        </div>
+        <div class="text-right hidden sm:block">
+          <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Session</div>
+          <div class="text-xs text-white font-mono">
+            <span class="text-emerald-400 font-bold">{{ checkedInCount() }}</span>
+            checked &middot;
+            <span class="text-amber-400 font-bold">{{ unverifiedCount() }}</span>
+            flagged
+          </div>
+        </div>
+      </div>
+
+      <app-qr-scanner
+        label="Scan QR Code"
+        [showManualEntry]="true"
+        manualPlaceholder="Paste code or subject id..."
+        (scanned)="onScanned($event)"
+      />
+
+      @if (lastResult(); as r) {
+        <div
+          class="rounded-xl border p-4 flex items-start gap-4"
+          [class.bg-emerald-500/10]="r.verified"
+          [class.border-emerald-500/30]="r.verified"
+          [class.bg-rose-500/10]="!r.verified"
+          [class.border-rose-500/30]="!r.verified"
+        >
+          <div
+            class="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
+            [class.bg-emerald-500/20]="r.verified"
+            [class.text-emerald-300]="r.verified"
+            [class.bg-rose-500/20]="!r.verified"
+            [class.text-rose-300]="!r.verified"
+          >
+            <i
+              class="fi"
+              [class.fi-rr-check-circle]="r.verified"
+              [class.fi-rr-cross-circle]="!r.verified"
+            ></i>
+          </div>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="text-sm font-bold text-white truncate">{{ r.displayName }}</span>
+              <span
+                class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md border"
+                [class.bg-emerald-500/10]="r.verified"
+                [class.text-emerald-300]="r.verified"
+                [class.border-emerald-500/30]="r.verified"
+                [class.bg-rose-500/10]="!r.verified"
+                [class.text-rose-300]="!r.verified"
+                [class.border-rose-500/30]="!r.verified"
+              >
+                {{ r.subjectKind }}
+              </span>
+            </div>
+            @if (r.detail) {
+              <p class="text-[11px] text-slate-300 mt-0.5">{{ r.detail }}</p>
+            }
+            @if (r.note) {
+              <p class="text-[11px] text-rose-300 mt-0.5">{{ r.note }}</p>
+            }
+            <p class="text-[10px] text-slate-500 mt-1 font-mono truncate">{{ r.code }}</p>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- History -->
+    <div class="bg-slate-900 border border-white/10 rounded-2xl p-5 flex flex-col gap-4 shadow-xl">
+      <div class="flex items-center justify-between gap-4">
+        <h2 class="text-sm font-bold text-white flex items-center gap-2">
+          <i class="fi fi-rr-time-past text-violet-400"></i> Recent Check-ins
+          <span
+            class="ml-1 px-2 py-0.5 text-[10px] bg-slate-800 text-slate-400 rounded-md border border-white/5"
+            >{{ filteredHistory().length }}</span
+          >
+        </h2>
+      </div>
+
+      @if (filteredHistory().length === 0) {
+        <div
+          class="rounded-xl border border-dashed border-white/10 py-10 text-center text-xs text-slate-500"
+        >
+          @if (isLoading()) {
+            Loading workspace data...
+          } @else {
+            Scanned check-ins will appear here.
+          }
+        </div>
+      } @else {
+        <div class="flex flex-col divide-y divide-white/5">
+          @for (r of filteredHistory(); track r.id) {
+            <div class="py-3 flex items-center gap-3">
+              <app-avatar
+                [name]="r.displayName"
+                customClass="w-8 h-8 rounded-lg"
+                textClass="text-[10px] font-bold text-white"
+              />
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="text-xs font-bold text-white truncate">{{ r.displayName }}</span>
+                  <span
+                    class="text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded-md border"
+                    [class.bg-emerald-500/10]="r.verified"
+                    [class.text-emerald-300]="r.verified"
+                    [class.border-emerald-500/30]="r.verified"
+                    [class.bg-rose-500/10]="!r.verified"
+                    [class.text-rose-300]="!r.verified"
+                    [class.border-rose-500/30]="!r.verified"
+                    >{{ r.subjectKind }}</span
+                  >
+                </div>
+                @if (r.detail) {
+                  <p class="text-[10px] text-slate-400 truncate">{{ r.detail }}</p>
+                }
+              </div>
+              <span class="text-[10px] text-slate-500 font-mono whitespace-nowrap">
+                {{ r.scannedAt | date: 'short' }}
+              </span>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+</div>

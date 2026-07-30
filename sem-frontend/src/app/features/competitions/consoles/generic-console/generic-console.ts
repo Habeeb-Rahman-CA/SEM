@@ -20,11 +20,12 @@ import {
   Sport,
 } from '../../../workspaces/services/workspace.service';
 import { getSportIconClass } from '../../../../shared';
+import { MatchEvidencePanelComponent } from '../../components/match-evidence/match-evidence-panel';
 
 @Component({
   selector: 'app-generic-console',
   standalone: true,
-  imports: [FormsModule, AvatarComponent],
+  imports: [FormsModule, AvatarComponent, MatchEvidencePanelComponent],
   templateUrl: './generic-console.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

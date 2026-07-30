@@ -1,11 +1,12 @@
 import { Component, input, model } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { Workspace } from '../../features/workspaces/services/workspace.service';
 import { AvatarComponent } from '../../shared/components/avatar/avatar';
 
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [AvatarComponent],
+  imports: [AvatarComponent, RouterLink],
   templateUrl: './sidebar.html',
 })
 export class SidebarComponent {
