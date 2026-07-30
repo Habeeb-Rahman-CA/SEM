@@ -1,0 +1,333 @@
+<div class="max-w-6xl mx-auto p-5 sm:p-8 text-white">
+  <div class="flex items-center gap-3 mb-6">
+    <a
+      [routerLink]="['/workspaces', workspaceId()]"
+      class="text-xs font-bold text-slate-400 hover:text-white transition inline-flex items-center gap-1"
+    >
+      <i class="fi fi-rr-arrow-small-left text-sm"></i>
+      Back to workspace
+    </a>
+  </div>
+
+  <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-3 mb-6">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-black tracking-tight">Advertisements</h1>
+      <p class="text-sm text-slate-400 mt-1 max-w-2xl">
+        Configure banner creatives shown on public pages and the live scoreboard. Ads linked to
+        active sponsors get first-pick priority in the rotation.
+      </p>
+    </div>
+    <button
+      type="button"
+      (click)="openNew()"
+      class="inline-flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-xl transition cursor-pointer shadow-md shadow-violet-500/20"
+    >
+      <i class="fi fi-rr-plus text-xs"></i>
+      New ad
+    </button>
+  </div>
+
+  @if (isLoading()) {
+    <div class="h-64 rounded-3xl border border-white/5 bg-slate-900/40 animate-pulse"></div>
+  } @else if (error()) {
+    <div class="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-rose-200">
+      <i class="fi fi-rr-triangle-warning text-2xl block mb-2"></i>
+      {{ error() }}
+    </div>
+  } @else {
+    <!-- Aggregate stats -->
+    @if (stats(); as s) {
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <div class="rounded-2xl border border-white/10 bg-slate-900 p-4">
+          <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">
+            Active ads
+          </div>
+          <div class="text-2xl font-black text-emerald-300 tabular-nums mt-1">
+            {{ s.activeAds }}
+          </div>
+          <div class="text-[10px] text-slate-500 mt-0.5">of {{ s.totalAds }} total</div>
+        </div>
+        <div class="rounded-2xl border border-white/10 bg-slate-900 p-4">
+          <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">
+            Impressions
+          </div>
+          <div class="text-2xl font-black text-white tabular-nums mt-1">
+            {{ s.totalImpressions.toLocaleString() }}
+          </div>
+        </div>
+        <div class="rounded-2xl border border-white/10 bg-slate-900 p-4">
+          <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Clicks</div>
+          <div class="text-2xl font-black text-violet-300 tabular-nums mt-1">
+            {{ s.totalClicks.toLocaleString() }}
+          </div>
+        </div>
+        <div class="rounded-2xl border border-white/10 bg-slate-900 p-4">
+          <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">
+            Overall CTR
+          </div>
+          <div class="text-2xl font-black text-amber-300 tabular-nums mt-1">
+            {{ s.overallCtr.toFixed(2) }}%
+          </div>
+        </div>
+      </div>
+
+      @if (s.perPlacement.length > 0) {
+        <div class="rounded-3xl border border-white/10 bg-slate-900 shadow-xl overflow-hidden mb-6">
+          <div class="px-6 py-3 border-b border-white/5">
+            <h2
+              class="text-xs font-black text-slate-300 uppercase tracking-widest flex items-center gap-2"
+            >
+              <i class="fi fi-rr-chart-histogram text-violet-400"></i>
+              By placement
+            </h2>
+          </div>
+          <table class="w-full text-xs">
+            <thead>
+              <tr class="border-b border-white/5 bg-slate-950/40">
+                <th
+                  class="text-left px-6 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-500"
+                >
+                  Placement
+                </th>
+                <th
+                  class="text-right px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-500"
+                >
+                  Ads
+                </th>
+                <th
+                  class="text-right px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-500"
+                >
+                  Impressions
+                </th>
+                <th
+                  class="text-right px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-500"
+                >
+                  Clicks
+                </th>
+                <th
+                  class="text-right px-6 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-500"
+                >
+                  CTR
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of s.perPlacement; track row.placement) {
+                <tr class="border-b border-white/5 last:border-b-0">
+                  <td class="px-6 py-3 text-slate-200">{{ placementLabel(row.placement) }}</td>
+                  <td class="px-4 py-3 text-right text-white tabular-nums">{{ row.ads }}</td>
+                  <td class="px-4 py-3 text-right text-white tabular-nums">
+                    {{ row.impressions.toLocaleString() }}
+                  </td>
+                  <td class="px-4 py-3 text-right text-violet-300 tabular-nums">
+                    {{ row.clicks.toLocaleString() }}
+                  </td>
+                  <td class="px-6 py-3 text-right text-amber-300 tabular-nums">
+                    {{ row.ctr.toFixed(2) }}%
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    }
+
+    <!-- Filters -->
+    <div
+      class="flex flex-col sm:flex-row sm:items-center gap-3 mb-4 p-3 bg-slate-900/60 border border-white/5 rounded-xl"
+    >
+      <div class="relative flex-1">
+        <i
+          class="fi fi-rr-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs pointer-events-none"
+        ></i>
+        <input
+          type="search"
+          placeholder="Search by name or headline…"
+          [ngModel]="searchQuery()"
+          (ngModelChange)="searchQuery.set($event)"
+          class="w-full pl-9 pr-3 py-2 bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-lg text-xs text-white outline-none transition-all"
+        />
+      </div>
+      <select
+        [ngModel]="placementFilter()"
+        (ngModelChange)="placementFilter.set($event)"
+        class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-lg px-3 py-2 text-xs text-white outline-none transition-all"
+      >
+        <option value="all">All placements</option>
+        <option value="public-portal">Events portal</option>
+        <option value="public-event">Event page</option>
+        <option value="live-hub">Live hub</option>
+        <option value="live-match">Live scoreboard</option>
+      </select>
+      <select
+        [ngModel]="statusFilter()"
+        (ngModelChange)="statusFilter.set($event)"
+        class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-lg px-3 py-2 text-xs text-white outline-none transition-all"
+      >
+        <option value="all">All statuses</option>
+        <option value="active">Active</option>
+        <option value="paused">Paused</option>
+        <option value="scheduled">Scheduled</option>
+        <option value="expired">Expired</option>
+      </select>
+    </div>
+
+    @if (filtered().length === 0) {
+      <div
+        class="py-16 rounded-3xl border border-dashed border-white/10 text-center text-xs text-slate-500 flex flex-col items-center gap-2"
+      >
+        <i class="fi fi-rr-picture text-3xl"></i>
+        @if (ads().length === 0) {
+          <div>No advertisements yet. Click "New ad" to create your first banner.</div>
+        } @else {
+          <div>No ads match your filters.</div>
+        }
+      </div>
+    } @else {
+      <div class="flex flex-col gap-3">
+        @for (ad of filtered(); track ad.id) {
+          <div
+            class="rounded-2xl border border-white/10 bg-slate-900 p-4 flex flex-col sm:flex-row gap-4 hover:border-violet-500/30 transition"
+          >
+            <a
+              [href]="ad.targetUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="w-full sm:w-48 aspect-video sm:aspect-auto sm:h-24 rounded-xl bg-slate-950 border border-white/10 overflow-hidden flex-shrink-0 hover:opacity-90 transition"
+            >
+              <img
+                [src]="ad.imageUrl"
+                [alt]="ad.title ?? ad.name"
+                class="w-full h-full object-cover"
+                loading="lazy"
+              />
+            </a>
+
+            <div class="flex-1 min-w-0 flex flex-col gap-1.5">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-sm font-bold text-white truncate">{{ ad.name }}</span>
+                <span
+                  [class]="
+                    'text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ' +
+                    statusBadgeClass(statusOf(ad))
+                  "
+                >
+                  {{ statusOf(ad) }}
+                </span>
+                <span
+                  class="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 border border-white/10"
+                >
+                  {{ placementLabel(ad.placement) }}
+                </span>
+                @if (ad.sponsor) {
+                  <span
+                    class="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-300 border border-amber-500/30 inline-flex items-center gap-1"
+                    title="Sponsor-linked ads get priority in rotation"
+                  >
+                    <i class="fi fi-sr-star text-[9px]"></i>
+                    {{ ad.sponsor.name }}
+                  </span>
+                }
+              </div>
+
+              @if (ad.title) {
+                <div class="text-[11px] text-slate-400 truncate">{{ ad.title }}</div>
+              }
+
+              <div class="flex items-center gap-4 text-[10px] text-slate-500 flex-wrap">
+                @if (ad.event) {
+                  <span class="inline-flex items-center gap-1">
+                    <i class="fi fi-rr-calendar text-[10px]"></i>
+                    {{ ad.event.name }}
+                  </span>
+                } @else {
+                  <span class="inline-flex items-center gap-1">
+                    <i class="fi fi-rr-globe text-[10px]"></i>
+                    Workspace-wide
+                  </span>
+                }
+                @if (ad.startDate || ad.endDate) {
+                  <span>
+                    @if (ad.startDate) {
+                      From {{ ad.startDate | date: 'shortDate' }}
+                    }
+                    @if (ad.endDate) {
+                      &nbsp;until {{ ad.endDate | date: 'shortDate' }}
+                    }
+                  </span>
+                }
+                <span
+                  >Weight: <span class="text-slate-300">{{ ad.weight }}</span></span
+                >
+              </div>
+            </div>
+
+            <!-- Metrics + actions -->
+            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-shrink-0">
+              <div class="flex items-center gap-4 text-[11px]">
+                <div class="text-center">
+                  <div class="text-[9px] uppercase tracking-wider text-slate-500 font-bold">
+                    Impr.
+                  </div>
+                  <div class="text-sm font-black text-white tabular-nums">
+                    {{ ad.impressionCount.toLocaleString() }}
+                  </div>
+                </div>
+                <div class="text-center">
+                  <div class="text-[9px] uppercase tracking-wider text-slate-500 font-bold">
+                    Clicks
+                  </div>
+                  <div class="text-sm font-black text-violet-300 tabular-nums">
+                    {{ ad.clickCount.toLocaleString() }}
+                  </div>
+                </div>
+                <div class="text-center">
+                  <div class="text-[9px] uppercase tracking-wider text-slate-500 font-bold">
+                    CTR
+                  </div>
+                  <div class="text-sm font-black text-amber-300 tabular-nums">
+                    {{ ctrFor(ad).toFixed(2) }}%
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  (click)="toggleActive(ad)"
+                  class="text-[10px] font-bold text-slate-400 hover:text-white transition cursor-pointer bg-transparent border-0"
+                >
+                  {{ ad.isActive ? 'Pause' : 'Resume' }}
+                </button>
+                <button
+                  type="button"
+                  (click)="openEdit(ad)"
+                  class="text-[10px] font-bold text-violet-300 hover:text-violet-200 transition cursor-pointer bg-transparent border-0"
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  (click)="remove(ad)"
+                  class="text-[10px] font-bold text-rose-400 hover:text-rose-300 transition cursor-pointer bg-transparent border-0"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  }
+
+  <app-ad-modal
+    [workspaceId]="workspaceId()"
+    [editingAd]="editingAd()"
+    [events]="events()"
+    [sponsors]="sponsors()"
+    [(isOpen)]="isModalOpen"
+    (saved)="onSaved($event)"
+  />
+</div>

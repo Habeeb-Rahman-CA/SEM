@@ -12,11 +12,12 @@ import { getSportBadgeClass, getSportIconClass } from '../../../shared';
 import { GalleryPhoto, GalleryService } from '../../gallery/services/gallery.service';
 import { ShareService } from '../../share/services/share.service';
 import { PublicEventSponsor, SponsorService } from '../../sponsors/services/sponsor.service';
+import { AdBannerComponent } from '../../ads/components/ad-banner/ad-banner';
 
 @Component({
   selector: 'app-public-event',
   standalone: true,
-  imports: [CommonModule, RouterModule, DatePipe, AvatarComponent, FormsModule],
+  imports: [CommonModule, RouterModule, DatePipe, AvatarComponent, FormsModule, AdBannerComponent],
   templateUrl: './public-event.html',
 })
 export class PublicEventComponent implements OnInit, OnDestroy {

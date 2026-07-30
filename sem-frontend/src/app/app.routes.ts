@@ -73,6 +73,12 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
   {
+    path: 'workspaces/:id/ads',
+    loadComponent: () =>
+      import('./features/ads/pages/ad-list/ad-list').then((m) => m.AdListComponent),
+    canActivate: [authGuard],
+  },
+  {
     path: 'system-settings',
     loadComponent: () =>
       import('./features/system-settings/pages/system-settings').then(
