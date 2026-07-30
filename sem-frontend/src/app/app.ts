@@ -1,14 +1,14 @@
 import { Component, inject, effect, HostListener } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { NgClass } from '@angular/common';
-import { UiService } from './services/ui.service';
+import { UiService } from './core/services/ui.service';
 
 @Component({
   selector: 'app-root',
   standalone: true,
   imports: [RouterOutlet, NgClass],
   templateUrl: './app.html',
-  styleUrl: './app.css'
+  styleUrl: './app.css',
 })
 export class App {
   uiService = inject(UiService);

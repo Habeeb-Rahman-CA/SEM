@@ -1,0 +1,314 @@
+@if (isOpen()) {
+  <div
+    class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+    (click)="closeModal()"
+  >
+    <div
+      class="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col shadow-2xl relative overflow-hidden"
+      (click)="$event.stopPropagation()"
+    >
+      <!-- Gradient top line -->
+      <div
+        class="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-violet-500 to-indigo-500"
+      ></div>
+
+      <!-- Header -->
+      <div class="px-6 py-5 border-b border-white/5 flex items-center justify-between">
+        <div>
+          <h3 class="text-base font-bold text-white flex items-center gap-2">
+            @if (team()) {
+              <span>Edit Team:</span>
+              <span class="text-violet-400">{{ team()?.name }}</span>
+            } @else {
+              <span>Register New Team</span>
+            }
+          </h3>
+          <p class="text-xs text-slate-400 mt-1">
+            @if (team()) {
+              Update the team details and configuration.
+            } @else {
+              Add a new team to this workspace.
+            }
+          </p>
+        </div>
+        <button
+          (click)="closeModal()"
+          class="text-slate-400 hover:text-white transition cursor-pointer bg-transparent border-0"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="w-5 h-5"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+          >
+            <path
+              d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
+            />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Form Content -->
+      <div class="p-6 overflow-y-auto flex-1 text-left">
+        @if (saveSuccess()) {
+          <div
+            class="mb-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-3 text-emerald-300 text-xs flex items-center gap-2"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="w-4 h-4 flex-shrink-0"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+            >
+              <path
+                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+              />
+            </svg>
+            {{ saveSuccess() }}
+          </div>
+        }
+        @if (saveError()) {
+          <div
+            class="mb-4 rounded-xl bg-rose-500/10 border border-rose-500/30 p-3 text-rose-300 text-xs flex items-center gap-2"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="w-4 h-4 flex-shrink-0"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+            >
+              <path
+                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"
+              />
+            </svg>
+            {{ saveError() }}
+          </div>
+        }
+
+        <form (submit)="onSubmit(); $event.preventDefault()" class="flex flex-col gap-4">
+          <!-- Team Logo -->
+          <div
+            class="flex flex-col items-center gap-3 p-4 bg-slate-950/20 border border-white/5 rounded-2xl"
+          >
+            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider self-start"
+              >Team Logo
+              <span class="text-slate-600 font-normal normal-case">(optional)</span></label
+            >
+            <div
+              class="w-24 h-24 rounded-2xl bg-slate-950 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0 relative shadow-inner"
+            >
+              @if (isUploadingLogo()) {
+                <div class="absolute inset-0 bg-slate-950/80 flex items-center justify-center">
+                  <svg class="animate-spin h-6 w-6 text-violet-500" fill="none" viewBox="0 0 24 24">
+                    <circle
+                      class="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      stroke-width="4"
+                    ></circle>
+                    <path
+                      class="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                    ></path>
+                  </svg>
+                </div>
+              } @else if (logoUrl()) {
+                <img [src]="logoUrl()" alt="Logo Preview" class="w-full h-full object-cover" />
+              } @else {
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="w-8 h-8 text-slate-500"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
+              }
+            </div>
+            <div class="flex items-center gap-3">
+              <label
+                class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 border border-white/10 text-white hover:text-slate-950 text-xs font-bold rounded-xl transition-all cursor-pointer flex-shrink-0"
+                [class.opacity-50]="isUploadingLogo()"
+                [class.pointer-events-none]="isUploadingLogo()"
+              >
+                @if (isUploadingLogo()) {
+                  <span class="animate-pulse">Uploading...</span>
+                } @else {
+                  Upload Team Logo
+                  <input
+                    type="file"
+                    class="hidden"
+                    accept="image/*"
+                    (change)="onLogoUpload($event)"
+                  />
+                }
+              </label>
+              @if (logoUrl()) {
+                <button
+                  type="button"
+                  (click)="logoUrl.set('')"
+                  class="text-xs text-rose-450 hover:text-rose-400 font-bold transition cursor-pointer bg-transparent border-0"
+                >
+                  Remove
+                </button>
+              }
+            </div>
+          </div>
+
+          <!-- Team Name -->
+          <div class="flex flex-col gap-1.5">
+            <label
+              for="team-name"
+              class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+              >Team Name <span class="text-rose-400">*</span></label
+            >
+            <input
+              id="team-name"
+              type="text"
+              placeholder="e.g. Warriors FC"
+              autocomplete="off"
+              class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition-all w-full"
+              [ngModel]="name()"
+              (ngModelChange)="name.set($event)"
+              name="teamName"
+              required
+            />
+          </div>
+
+          <!-- Team Code -->
+          <div class="flex flex-col gap-1.5">
+            <label
+              for="team-code"
+              class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+              >Team Code <span class="text-rose-400">*</span></label
+            >
+            <input
+              id="team-code"
+              type="text"
+              placeholder="e.g. WAR"
+              autocomplete="off"
+              class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition-all w-full uppercase"
+              [ngModel]="code()"
+              (ngModelChange)="code.set($event)"
+              name="teamCode"
+              required
+            />
+          </div>
+
+          <!-- Team Colors -->
+          <div class="grid grid-cols-2 gap-4">
+            <div class="flex flex-col gap-1.5">
+              <label
+                for="team-primary-color"
+                class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+                >Primary Color</label
+              >
+              <div
+                class="flex items-center gap-2 bg-slate-950 border border-white/10 rounded-xl px-3.5 py-2"
+              >
+                <input
+                  id="team-primary-color"
+                  type="color"
+                  class="w-6 h-6 rounded-md cursor-pointer border-0 outline-none bg-transparent"
+                  [ngModel]="primaryColor()"
+                  (ngModelChange)="primaryColor.set($event)"
+                  name="primaryColor"
+                />
+                <span class="text-[10px] text-slate-350 uppercase font-mono">{{
+                  primaryColor()
+                }}</span>
+              </div>
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label
+                for="team-secondary-color"
+                class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+                >Secondary Color</label
+              >
+              <div
+                class="flex items-center gap-2 bg-slate-950 border border-white/10 rounded-xl px-3.5 py-2"
+              >
+                <input
+                  id="team-secondary-color"
+                  type="color"
+                  class="w-6 h-6 rounded-md cursor-pointer border-0 outline-none bg-transparent"
+                  [ngModel]="secondaryColor()"
+                  (ngModelChange)="secondaryColor.set($event)"
+                  name="secondaryColor"
+                />
+                <span class="text-[10px] text-slate-350 uppercase font-mono">{{
+                  secondaryColor()
+                }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Description -->
+          <div class="flex flex-col gap-1.5">
+            <label
+              for="team-desc"
+              class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+              >Description
+              <span class="text-slate-600 font-normal normal-case">(optional)</span></label
+            >
+            <textarea
+              id="team-desc"
+              placeholder="Brief details about the team..."
+              class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition-all w-full resize-none h-20"
+              [ngModel]="description()"
+              (ngModelChange)="description.set($event)"
+              name="teamDesc"
+            ></textarea>
+          </div>
+
+          <!-- Footer Buttons -->
+          <div class="flex justify-end gap-3 pt-4 border-t border-white/5">
+            <button
+              type="button"
+              (click)="closeModal()"
+              [disabled]="isSaving()"
+              class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white hover:text-slate-950 text-xs font-bold rounded-xl transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              [disabled]="isSaving() || !name().trim() || !code().trim()"
+              class="px-5 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-2"
+            >
+              @if (isSaving()) {
+                <svg class="animate-spin w-4 h-4 text-white" fill="none" viewBox="0 0 24 24">
+                  <circle
+                    class="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="4"
+                  ></circle>
+                  <path
+                    class="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                  ></path>
+                </svg>
+                Saving...
+              } @else {
+                {{ team() ? 'Save' : 'Register Team' }}
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+}

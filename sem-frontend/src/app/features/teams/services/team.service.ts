@@ -1,0 +1,69 @@
+import { Injectable, inject } from '@angular/core';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { environment } from '../../../../environments/environment';
+import { AuthService } from '../../auth/services/auth.service';
+import { Team } from '../../workspaces/services/workspace.service';
+
+@Injectable({ providedIn: 'root' })
+export class TeamService {
+  private http = inject(HttpClient);
+  private authService = inject(AuthService);
+  private readonly apiUrl = `${environment.apiUrl}/workspaces`;
+
+  private get headers(): HttpHeaders {
+    const token = this.authService.token();
+    return new HttpHeaders({ Authorization: `Bearer ${token}` });
+  }
+
+  getTeams(workspaceId: string): Observable<Team[]> {
+    return this.http.get<Team[]>(`${this.apiUrl}/${workspaceId}/teams`, {
+      headers: this.headers,
+    });
+  }
+
+  createTeam(
+    workspaceId: string,
+    payload: {
+      name: string;
+      code?: string | null;
+      description?: string | null;
+      logoUrl?: string | null;
+      primaryColor?: string | null;
+      secondaryColor?: string | null;
+    },
+  ): Observable<Team> {
+    return this.http.post<Team>(`${this.apiUrl}/${workspaceId}/teams`, payload, {
+      headers: this.headers,
+    });
+  }
+
+  updateTeam(
+    workspaceId: string,
+    teamId: string,
+    payload: {
+      name?: string;
+      code?: string | null;
+      description?: string | null;
+      logoUrl?: string | null;
+      primaryColor?: string | null;
+      secondaryColor?: string | null;
+    },
+  ): Observable<Team> {
+    return this.http.patch<Team>(`${this.apiUrl}/${workspaceId}/teams/${teamId}`, payload, {
+      headers: this.headers,
+    });
+  }
+
+  removeTeam(workspaceId: string, teamId: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${workspaceId}/teams/${teamId}`, {
+      headers: this.headers,
+    });
+  }
+
+  getTeamStats(workspaceId: string, teamId: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/${workspaceId}/teams/${teamId}/stats`, {
+      headers: this.headers,
+    });
+  }
+}

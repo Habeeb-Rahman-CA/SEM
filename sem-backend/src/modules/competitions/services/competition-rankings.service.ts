@@ -1,0 +1,778 @@
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Competition } from '../entities/competition.entity';
+import { CompetitionStage } from '../entities/competition-stage.entity';
+import { Match } from '../entities/match.entity';
+
+@Injectable()
+export class CompetitionRankingsService {
+  constructor(
+    @InjectRepository(Competition)
+    private readonly competitionRepo: Repository<Competition>,
+    @InjectRepository(Match)
+    private readonly matchRepo: Repository<Match>,
+  ) {}
+
+  async getCompetitionRankings(
+    competitionId: string,
+  ): Promise<Map<string, number>> {
+    const rankings = new Map<string, number>();
+    const comp = await this.competitionRepo.findOne({
+      where: { id: competitionId },
+      relations: { stages: true },
+    });
+    if (!comp || comp.stages.length === 0) return rankings;
+
+    const sortedStages = [...comp.stages].sort(
+      (a, b) => a.sequence - b.sequence,
+    );
+    const lastStage = sortedStages[sortedStages.length - 1];
+
+    const matches = await this.matchRepo.find({
+      where: { stageId: lastStage.id },
+      relations: { homeTeam: true, awayTeam: true },
+    });
+    if (matches.length === 0) return rankings;
+
+    if (lastStage.type === 'league' || lastStage.type === 'group') {
+      const winPoint = lastStage.config?.winPoint ?? 3;
+      const drawPoint = lastStage.config?.drawPoint ?? 1;
+
+      const teamStats = new Map<
+        string,
+        {
+          teamId: string;
+          group?: string;
+          pts: number;
+          gd: number;
+          gf: number;
+          ga: number;
+        }
+      >();
+      for (const m of matches) {
+        if (!m.homeTeamId || !m.awayTeamId) continue;
+        const g = (m.config as any)?.round || 'Group Stage';
+
+        if (!teamStats.has(m.homeTeamId)) {
+          teamStats.set(m.homeTeamId, {
+            teamId: m.homeTeamId,
+            group: g,
+            pts: 0,
+            gd: 0,
+            gf: 0,
+            ga: 0,
+          });
+        }
+        if (!teamStats.has(m.awayTeamId)) {
+          teamStats.set(m.awayTeamId, {
+            teamId: m.awayTeamId,
+            group: g,
+            pts: 0,
+            gd: 0,
+            gf: 0,
+            ga: 0,
+          });
+        }
+
+        const home = teamStats.get(m.homeTeamId)!;
+        const away = teamStats.get(m.awayTeamId)!;
+
+        if ((home as any).wins === undefined) {
+          Object.assign(home, { wins: 0, losses: 0, draws: 0, played: 0 });
+        }
+        if ((away as any).wins === undefined) {
+          Object.assign(away, { wins: 0, losses: 0, draws: 0, played: 0 });
+        }
+
+        if (m.status === 'completed') {
+          const hScore = m.homeScore ?? 0;
+          const aScore = m.awayScore ?? 0;
+
+          home.gf += hScore;
+          home.ga += aScore;
+          away.gf += aScore;
+          away.ga += hScore;
+          (home as any).played += 1;
+          (away as any).played += 1;
+
+          if (hScore > aScore) {
+            home.pts += winPoint;
+            (home as any).wins += 1;
+            (away as any).losses += 1;
+          } else if (aScore > hScore) {
+            away.pts += winPoint;
+            (away as any).wins += 1;
+            (home as any).losses += 1;
+          } else {
+            home.pts += drawPoint;
+            away.pts += drawPoint;
+            (home as any).draws += 1;
+            (away as any).draws += 1;
+          }
+        }
+      }
+
+      for (const stats of teamStats.values()) {
+        stats.gd = stats.gf - stats.ga;
+      }
+
+      const groups = new Map<string, any[]>();
+      for (const stats of teamStats.values()) {
+        const g = stats.group || 'Group Stage';
+        if (!groups.has(g)) groups.set(g, []);
+        groups.get(g)!.push(stats);
+      }
+
+      const tieBreaks = lastStage.config?.tieBreaks || ['points', 'gd', 'gf'];
+      const customOverrides = lastStage.config?.customOverrides || {};
+
+      const compareHeadToHeadLocal = (
+        teamAId: string,
+        teamBId: string,
+        matchesList: Match[],
+      ): number => {
+        const directMatches = matchesList.filter(
+          (m) =>
+            m.status === 'completed' &&
+            ((m.homeTeamId === teamAId && m.awayTeamId === teamBId) ||
+              (m.homeTeamId === teamBId && m.awayTeamId === teamAId)),
+        );
+
+        let ptsA = 0;
+        let ptsB = 0;
+
+        for (const m of directMatches) {
+          const isHomeA = m.homeTeamId === teamAId;
+          const scoreA = isHomeA ? (m.homeScore ?? 0) : (m.awayScore ?? 0);
+          const scoreB = isHomeA ? (m.awayScore ?? 0) : (m.homeScore ?? 0);
+
+          if (scoreA > scoreB) {
+            ptsA += 3;
+          } else if (scoreB > scoreA) {
+            ptsB += 3;
+          } else {
+            ptsA += 1;
+            ptsB += 1;
+          }
+        }
+
+        return ptsB - ptsA;
+      };
+
+      const sortTeamsLocal = (teamList: any[]) => {
+        return teamList.sort((a, b) => {
+          for (const rule of tieBreaks) {
+            if (rule === 'points' || rule === 'pts') {
+              if (b.pts !== a.pts) return b.pts - a.pts;
+            } else if (rule === 'gd' || rule === 'goalDifference') {
+              if (b.gd !== a.gd) return b.gd - a.gd;
+            } else if (rule === 'gf' || rule === 'goalsFor') {
+              if (b.gf !== a.gf) return b.gf - a.gf;
+            } else if (rule === 'wins') {
+              const winsA = a.wins ?? 0;
+              const winsB = b.wins ?? 0;
+              if (winsB !== winsA) return winsB - winsA;
+            } else if (rule === 'h2h' || rule === 'headToHead') {
+              const h2hDiff = compareHeadToHeadLocal(
+                a.teamId,
+                b.teamId,
+                matches,
+              );
+              if (h2hDiff !== 0) return h2hDiff;
+            } else if (rule === 'custom') {
+              const valA = customOverrides[a.teamId] ?? 0;
+              const valB = customOverrides[b.teamId] ?? 0;
+              if (valB !== valA) return valB - valA;
+            }
+          }
+          if (b.pts !== a.pts) return b.pts - a.pts;
+          if (b.gd !== a.gd) return b.gd - a.gd;
+          return b.gf - a.gf;
+        });
+      };
+
+      for (const [groupName, statsList] of groups.entries()) {
+        sortTeamsLocal(statsList);
+      }
+
+      let rank = 1;
+      const maxGroupSize = Math.max(
+        ...Array.from(groups.values()).map((list) => list.length),
+      );
+
+      for (let pos = 0; pos < maxGroupSize; pos++) {
+        const teamsAtPos: any[] = [];
+        for (const list of groups.values()) {
+          if (list[pos]) teamsAtPos.push(list[pos]);
+        }
+
+        teamsAtPos.sort((a, b) => {
+          if (b.pts !== a.pts) return b.pts - a.pts;
+          if (b.gd !== a.gd) return b.gd - a.gd;
+          return b.gf - a.gf;
+        });
+
+        for (const t of teamsAtPos) {
+          rankings.set(t.teamId, rank++);
+        }
+      }
+    } else if (lastStage.type === 'swiss') {
+      const sortedTeams = await this.getStageRankings(lastStage);
+      let rank = 1;
+      for (const teamId of sortedTeams) {
+        rankings.set(teamId, rank++);
+      }
+    } else if (
+      lastStage.type === 'knockout' ||
+      lastStage.type === 'group_knockout'
+    ) {
+      const groupMatches = matches.filter((m: any) => {
+        const r = m.config?.round || '';
+        return (
+          r.toLowerCase().includes('group') ||
+          r.toLowerCase().includes('league')
+        );
+      });
+      const knockoutMatches = matches.filter((m: any) => {
+        const r = m.config?.round || '';
+        return (
+          !r.toLowerCase().includes('group') &&
+          !r.toLowerCase().includes('league')
+        );
+      });
+
+      const teamHighestRound = new Map<string, string>();
+      const teamFinalStatus = new Map<
+        string,
+        'won_final' | 'lost_final' | 'won_third' | 'lost_third' | 'lost'
+      >();
+
+      const allTeamIds = new Set<string>();
+      for (const m of matches) {
+        if (m.homeTeamId) allTeamIds.add(m.homeTeamId);
+        if (m.awayTeamId) allTeamIds.add(m.awayTeamId);
+      }
+
+      const finalMatch = knockoutMatches.find(
+        (m: any) => m.config?.round?.toLowerCase() === 'final',
+      );
+      if (finalMatch && finalMatch.status === 'completed') {
+        const hScore = finalMatch.homeScore ?? 0;
+        const aScore = finalMatch.awayScore ?? 0;
+        if (hScore > aScore) {
+          teamFinalStatus.set(finalMatch.homeTeamId!, 'won_final');
+          teamFinalStatus.set(finalMatch.awayTeamId!, 'lost_final');
+        } else if (aScore > hScore) {
+          teamFinalStatus.set(finalMatch.awayTeamId!, 'won_final');
+          teamFinalStatus.set(finalMatch.homeTeamId!, 'lost_final');
+        }
+      }
+
+      const thirdPlaceMatch = knockoutMatches.find((m: any) => {
+        const r = m.config?.round?.toLowerCase() || '';
+        return r.includes('third') || r.includes('3rd') || r.includes('bronze');
+      });
+      if (thirdPlaceMatch && thirdPlaceMatch.status === 'completed') {
+        const hScore = thirdPlaceMatch.homeScore ?? 0;
+        const aScore = thirdPlaceMatch.awayScore ?? 0;
+        if (hScore > aScore) {
+          teamFinalStatus.set(thirdPlaceMatch.homeTeamId!, 'won_third');
+          teamFinalStatus.set(thirdPlaceMatch.awayTeamId!, 'lost_third');
+        } else if (aScore > hScore) {
+          teamFinalStatus.set(thirdPlaceMatch.awayTeamId!, 'won_third');
+          teamFinalStatus.set(thirdPlaceMatch.homeTeamId!, 'lost_third');
+        }
+      }
+
+      const getRoundRankWeight = (roundName: string): number => {
+        const r = roundName.toLowerCase();
+        if (r === 'final') return 10;
+        if (r.includes('third') || r.includes('3rd') || r.includes('bronze'))
+          return 9;
+        if (r.includes('semi')) return 8;
+        if (r.includes('quarter')) return 7;
+        if (r.includes('round of 16') || r.includes('1/8')) return 6;
+        if (r.includes('round of 32') || r.includes('1/16')) return 5;
+        return 1;
+      };
+
+      for (const m of knockoutMatches) {
+        const r = (m.config as any)?.round || '';
+        if (m.homeTeamId) {
+          const prev = teamHighestRound.get(m.homeTeamId);
+          if (!prev || getRoundRankWeight(r) > getRoundRankWeight(prev)) {
+            teamHighestRound.set(m.homeTeamId, r);
+          }
+        }
+        if (m.awayTeamId) {
+          const prev = teamHighestRound.get(m.awayTeamId);
+          if (!prev || getRoundRankWeight(r) > getRoundRankWeight(prev)) {
+            teamHighestRound.set(m.awayTeamId, r);
+          }
+        }
+      }
+
+      const winner = Array.from(allTeamIds).find(
+        (id) => teamFinalStatus.get(id) === 'won_final',
+      );
+      const runner = Array.from(allTeamIds).find(
+        (id) => teamFinalStatus.get(id) === 'lost_final',
+      );
+      const third = Array.from(allTeamIds).find(
+        (id) => teamFinalStatus.get(id) === 'won_third',
+      );
+      const fourth = Array.from(allTeamIds).find(
+        (id) => teamFinalStatus.get(id) === 'lost_third',
+      );
+
+      if (winner) rankings.set(winner, 1);
+      if (runner) rankings.set(runner, 2);
+      if (third) rankings.set(third, 3);
+      if (fourth) rankings.set(fourth, 4);
+
+      const semiLosers = Array.from(allTeamIds).filter((id) => {
+        const hr = teamHighestRound.get(id)?.toLowerCase() || '';
+        return (
+          hr.includes('semi') &&
+          id !== winner &&
+          id !== runner &&
+          id !== third &&
+          id !== fourth
+        );
+      });
+      const semiPos = third ? 4 : 3;
+      semiLosers.forEach((id) => rankings.set(id, semiPos));
+
+      const quarterLosers = Array.from(allTeamIds).filter((id) => {
+        const hr = teamHighestRound.get(id)?.toLowerCase() || '';
+        return hr.includes('quarter');
+      });
+      quarterLosers.forEach((id) => rankings.set(id, 5));
+
+      const r16Losers = Array.from(allTeamIds).filter((id) => {
+        const hr = teamHighestRound.get(id)?.toLowerCase() || '';
+        return hr.includes('round of 16') || hr.includes('1/8');
+      });
+      r16Losers.forEach((id) => rankings.set(id, 9));
+
+      const groupOnlyTeams = Array.from(allTeamIds).filter(
+        (id) => !teamHighestRound.has(id),
+      );
+      if (groupOnlyTeams.length > 0 && groupMatches.length > 0) {
+        const winPoint = lastStage.config?.winPoint ?? 3;
+        const drawPoint = lastStage.config?.drawPoint ?? 1;
+
+        const groupStats = new Map<
+          string,
+          { teamId: string; pts: number; gd: number; gf: number; ga: number }
+        >();
+        for (const id of groupOnlyTeams) {
+          groupStats.set(id, { teamId: id, pts: 0, gd: 0, gf: 0, ga: 0 });
+        }
+
+        for (const m of groupMatches) {
+          if (!m.homeTeamId || !m.awayTeamId) continue;
+          if (m.status !== 'completed') continue;
+
+          const hStats = groupStats.get(m.homeTeamId);
+          const aStats = groupStats.get(m.awayTeamId);
+          const hScore = m.homeScore ?? 0;
+          const aScore = m.awayScore ?? 0;
+
+          if (hStats) {
+            hStats.gf += hScore;
+            hStats.ga += aScore;
+            if (hScore > aScore) hStats.pts += winPoint;
+            else if (hScore === aScore) hStats.pts += drawPoint;
+          }
+          if (aStats) {
+            aStats.gf += aScore;
+            aStats.ga += hScore;
+            if (aScore > hScore) aStats.pts += winPoint;
+            else if (hScore === aScore) aStats.pts += drawPoint;
+          }
+        }
+
+        for (const stats of groupStats.values()) {
+          stats.gd = stats.gf - stats.ga;
+        }
+
+        const sortedGroupOnly = Array.from(groupStats.values()).sort((a, b) => {
+          if (b.pts !== a.pts) return b.pts - a.pts;
+          if (b.gd !== a.gd) return b.gd - a.gd;
+          return b.gf - a.gf;
+        });
+
+        const startPos = 17;
+        sortedGroupOnly.forEach((s, idx) => {
+          rankings.set(s.teamId, startPos + idx);
+        });
+      }
+
+      if (lastStage.type === 'knockout') {
+        const prevStage = sortedStages[sortedStages.indexOf(lastStage) - 1];
+        if (
+          prevStage &&
+          (prevStage.type === 'group' || prevStage.type === 'league')
+        ) {
+          const prevRankings = await this.getStageRankings(prevStage);
+          const groupOnlyTeamsPrev = prevRankings.filter(
+            (id) => !allTeamIds.has(id),
+          );
+
+          let nextRank = 5;
+          for (const r of rankings.values()) {
+            if (r >= nextRank) nextRank = r + 1;
+          }
+
+          groupOnlyTeamsPrev.forEach((id) => {
+            rankings.set(id, nextRank++);
+          });
+        }
+      }
+    }
+
+    return rankings;
+  }
+
+  async getStageRankings(stage: CompetitionStage): Promise<string[]> {
+    const matches = await this.matchRepo.find({
+      where: { stageId: stage.id },
+    });
+
+    const winPoint = stage.config?.winPoint ?? 3;
+    const drawPoint = stage.config?.drawPoint ?? 1;
+
+    const teamIds = new Set<string>();
+    for (const m of matches) {
+      if (m.homeTeamId) teamIds.add(m.homeTeamId);
+      if (m.awayTeamId) teamIds.add(m.awayTeamId);
+    }
+
+    if (stage.type === 'swiss') {
+      const tieBreaks = stage.config?.tieBreaks || [
+        'buchholz',
+        'sonneborn_berger',
+        'cumulative',
+      ];
+
+      const teamStats = new Map<
+        string,
+        {
+          teamId: string;
+          pts: number;
+          gd: number;
+          gf: number;
+          ga: number;
+          opponents: string[];
+          results: { opponentId: string; outcome: 'win' | 'draw' | 'loss' }[];
+          roundPoints: number[];
+        }
+      >();
+
+      for (const tId of teamIds) {
+        teamStats.set(tId, {
+          teamId: tId,
+          pts: 0,
+          gd: 0,
+          gf: 0,
+          ga: 0,
+          opponents: [],
+          results: [],
+          roundPoints: [],
+        });
+      }
+
+      const completedMatches = matches.filter((m) => m.status === 'completed');
+      completedMatches.sort(
+        (a, b) =>
+          ((a.config as any)?.swissRound ?? 0) -
+          ((b.config as any)?.swissRound ?? 0),
+      );
+
+      const maxSwissRound = Math.max(
+        ...completedMatches.map((m) => (m.config as any)?.swissRound ?? 0),
+        1,
+      );
+
+      const runningPoints = new Map<string, number>();
+      for (const tId of teamIds) {
+        runningPoints.set(tId, 0);
+      }
+
+      for (let r = 1; r <= maxSwissRound; r++) {
+        const roundMatches = completedMatches.filter(
+          (m) => (m.config as any)?.swissRound === r,
+        );
+        for (const m of roundMatches) {
+          if ((m.config as any)?.isBye) {
+            const teamId = m.homeTeamId;
+            if (teamId && teamStats.has(teamId)) {
+              const stats = teamStats.get(teamId)!;
+              stats.pts += winPoint;
+              stats.gf += 1;
+              stats.gd += 1;
+              runningPoints.set(teamId, runningPoints.get(teamId)! + winPoint);
+            }
+            continue;
+          }
+
+          if (!m.homeTeamId || !m.awayTeamId) continue;
+          const home = teamStats.get(m.homeTeamId);
+          const away = teamStats.get(m.awayTeamId);
+          if (!home || !away) continue;
+
+          home.opponents.push(m.awayTeamId);
+          away.opponents.push(m.homeTeamId);
+
+          const hScore = m.homeScore ?? 0;
+          const aScore = m.awayScore ?? 0;
+
+          home.gf += hScore;
+          home.ga += aScore;
+          home.gd += hScore - aScore;
+
+          away.gf += aScore;
+          away.ga += hScore;
+          away.gd += aScore - hScore;
+
+          if (hScore > aScore) {
+            home.pts += winPoint;
+            home.results.push({ opponentId: m.awayTeamId, outcome: 'win' });
+            away.results.push({ opponentId: m.homeTeamId, outcome: 'loss' });
+            runningPoints.set(
+              m.homeTeamId,
+              runningPoints.get(m.homeTeamId)! + winPoint,
+            );
+          } else if (aScore > hScore) {
+            away.pts += winPoint;
+            away.results.push({ opponentId: m.homeTeamId, outcome: 'win' });
+            home.results.push({ opponentId: m.awayTeamId, outcome: 'loss' });
+            runningPoints.set(
+              m.awayTeamId,
+              runningPoints.get(m.awayTeamId)! + winPoint,
+            );
+          } else {
+            home.pts += drawPoint;
+            away.pts += drawPoint;
+            home.results.push({ opponentId: m.awayTeamId, outcome: 'draw' });
+            away.results.push({ opponentId: m.homeTeamId, outcome: 'draw' });
+            runningPoints.set(
+              m.homeTeamId,
+              runningPoints.get(m.homeTeamId)! + drawPoint,
+            );
+            runningPoints.set(
+              m.awayTeamId,
+              runningPoints.get(m.awayTeamId)! + drawPoint,
+            );
+          }
+        }
+
+        for (const tId of teamIds) {
+          const stats = teamStats.get(tId)!;
+          stats.roundPoints.push(runningPoints.get(tId)!);
+        }
+      }
+
+      const tieBreakScores = new Map<
+        string,
+        {
+          buchholz: number;
+          median_buchholz: number;
+          sonneborn_berger: number;
+          cumulative: number;
+        }
+      >();
+
+      for (const tId of teamIds) {
+        const stats = teamStats.get(tId)!;
+
+        let buchholz = 0;
+        const opponentPoints: number[] = [];
+        for (const oppId of stats.opponents) {
+          const oppPts = teamStats.get(oppId)?.pts ?? 0;
+          buchholz += oppPts;
+          opponentPoints.push(oppPts);
+        }
+
+        let median_buchholz = buchholz;
+        if (opponentPoints.length >= 3) {
+          opponentPoints.sort((a, b) => a - b);
+          median_buchholz = opponentPoints
+            .slice(1, -1)
+            .reduce((sum, val) => sum + val, 0);
+        }
+
+        let sonneborn_berger = 0;
+        for (const res of stats.results) {
+          const oppPts = teamStats.get(res.opponentId)?.pts ?? 0;
+          if (res.outcome === 'win') {
+            sonneborn_berger += oppPts;
+          } else if (res.outcome === 'draw') {
+            sonneborn_berger += oppPts * 0.5;
+          }
+        }
+
+        const cumulative = stats.roundPoints.reduce((sum, val) => sum + val, 0);
+
+        tieBreakScores.set(tId, {
+          buchholz,
+          median_buchholz,
+          sonneborn_berger,
+          cumulative,
+        });
+      }
+
+      return Array.from(teamIds).sort((a, b) => {
+        const statsA = teamStats.get(a)!;
+        const statsB = teamStats.get(b)!;
+
+        if (statsB.pts !== statsA.pts) return statsB.pts - statsA.pts;
+
+        const tbA = tieBreakScores.get(a)!;
+        const tbB = tieBreakScores.get(b)!;
+
+        for (const rule of tieBreaks) {
+          if (rule === 'buchholz') {
+            if (tbB.buchholz !== tbA.buchholz)
+              return tbB.buchholz - tbA.buchholz;
+          } else if (rule === 'median_buchholz') {
+            if (tbB.median_buchholz !== tbA.median_buchholz)
+              return tbB.median_buchholz - tbA.median_buchholz;
+          } else if (rule === 'sonneborn_berger') {
+            if (tbB.sonneborn_berger !== tbA.sonneborn_berger)
+              return tbB.sonneborn_berger - tbA.sonneborn_berger;
+          } else if (rule === 'cumulative') {
+            if (tbB.cumulative !== tbA.cumulative)
+              return tbB.cumulative - tbA.cumulative;
+          } else if (rule === 'gd') {
+            if (statsB.gd !== statsA.gd) return statsB.gd - statsA.gd;
+          } else if (rule === 'gf') {
+            if (statsB.gf !== statsA.gf) return statsB.gf - statsA.gf;
+          }
+        }
+
+        if (!tieBreaks.includes('gd') && statsB.gd !== statsA.gd)
+          return statsB.gd - statsA.gd;
+        if (!tieBreaks.includes('gf') && statsB.gf !== statsA.gf)
+          return statsB.gf - statsA.gf;
+
+        return 0;
+      });
+    }
+
+    const standings = new Map<
+      string,
+      { teamId: string; pts: number; gd: number; gf: number }
+    >();
+    for (const teamId of teamIds) {
+      standings.set(teamId, { teamId, pts: 0, gd: 0, gf: 0 });
+    }
+
+    for (const m of matches) {
+      if (m.status !== 'completed' || !m.homeTeamId || !m.awayTeamId) continue;
+
+      const homeStats = standings.get(m.homeTeamId);
+      const awayStats = standings.get(m.awayTeamId);
+      if (!homeStats || !awayStats) continue;
+
+      const hScore = m.homeScore ?? 0;
+      const aScore = m.awayScore ?? 0;
+
+      homeStats.gf += hScore;
+      awayStats.gf += aScore;
+      homeStats.gd += hScore - aScore;
+      awayStats.gd += aScore - hScore;
+
+      if (hScore > aScore) {
+        homeStats.pts += winPoint;
+      } else if (aScore > hScore) {
+        awayStats.pts += winPoint;
+      } else {
+        homeStats.pts += drawPoint;
+        awayStats.pts += drawPoint;
+      }
+    }
+
+    const tieBreaks = stage.config?.tieBreaks || ['points', 'gd', 'gf'];
+    const customOverrides = stage.config?.customOverrides || {};
+
+    const compareHeadToHeadLocal = (
+      teamAId: string,
+      teamBId: string,
+      matchesList: Match[],
+    ): number => {
+      const directMatches = matchesList.filter(
+        (m) =>
+          m.status === 'completed' &&
+          ((m.homeTeamId === teamAId && m.awayTeamId === teamBId) ||
+            (m.homeTeamId === teamBId && m.awayTeamId === teamAId)),
+      );
+
+      let ptsA = 0;
+      let ptsB = 0;
+
+      for (const m of directMatches) {
+        const isHomeA = m.homeTeamId === teamAId;
+        const scoreA = isHomeA ? (m.homeScore ?? 0) : (m.awayScore ?? 0);
+        const scoreB = isHomeA ? (m.awayScore ?? 0) : (m.homeScore ?? 0);
+
+        if (scoreA > scoreB) {
+          ptsA += 3;
+        } else if (scoreB > scoreA) {
+          ptsB += 3;
+        } else {
+          ptsA += 1;
+          ptsB += 1;
+        }
+      }
+
+      return ptsB - ptsA;
+    };
+
+    return Array.from(teamIds).sort((a, b) => {
+      const statsA = standings.get(a)!;
+      const statsB = standings.get(b)!;
+
+      for (const rule of tieBreaks) {
+        if (rule === 'points' || rule === 'pts') {
+          if (statsB.pts !== statsA.pts) return statsB.pts - statsA.pts;
+        } else if (rule === 'gd' || rule === 'goalDifference') {
+          if (statsB.gd !== statsA.gd) return statsB.gd - statsA.gd;
+        } else if (rule === 'gf' || rule === 'goalsFor') {
+          if (statsB.gf !== statsA.gf) return statsB.gf - statsA.gf;
+        } else if (rule === 'wins') {
+          const winsA = matches.filter(
+            (m) =>
+              m.status === 'completed' &&
+              ((m.homeTeamId === a &&
+                (m.homeScore ?? 0) > (m.awayScore ?? 0)) ||
+                (m.awayTeamId === a &&
+                  (m.awayScore ?? 0) > (m.homeScore ?? 0))),
+          ).length;
+          const winsB = matches.filter(
+            (m) =>
+              m.status === 'completed' &&
+              ((m.homeTeamId === b &&
+                (m.homeScore ?? 0) > (m.awayScore ?? 0)) ||
+                (m.awayTeamId === b &&
+                  (m.awayScore ?? 0) > (m.homeScore ?? 0))),
+          ).length;
+          if (winsB !== winsA) return winsB - winsA;
+        } else if (rule === 'h2h' || rule === 'headToHead') {
+          const h2hDiff = compareHeadToHeadLocal(a, b, matches);
+          if (h2hDiff !== 0) return h2hDiff;
+        } else if (rule === 'custom') {
+          const valA = customOverrides[a] ?? 0;
+          const valB = customOverrides[b] ?? 0;
+          if (valB !== valA) return valB - valA;
+        }
+      }
+
+      if (statsB.pts !== statsA.pts) return statsB.pts - statsA.pts;
+      if (statsB.gd !== statsA.gd) return statsB.gd - statsA.gd;
+      return statsB.gf - statsA.gf;
+    });
+  }
+}

@@ -1,0 +1,536 @@
+<div class="min-h-screen bg-slate-950 text-white">
+  <!-- Top Nav -->
+  <nav class="border-b border-white/10 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50">
+    <div class="w-full px-10 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <!-- Platform Logo -->
+        <div
+          class="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-lg"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="w-5 h-5 text-white"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+          >
+            <path
+              d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"
+            />
+          </svg>
+        </div>
+        <span class="text-sm font-bold text-white tracking-tight">SEM Platform</span>
+      </div>
+
+      <div class="flex items-center gap-4">
+        <!-- Notification Dropdown Menu -->
+        <div class="relative">
+          <button
+            (click)="isNotificationOpen.set(!isNotificationOpen())"
+            class="w-10 h-10 rounded-xl bg-slate-900 hover:bg-slate-800/80 border border-white/5 flex items-center justify-center text-slate-400 hover:text-white transition-all cursor-pointer relative"
+          >
+            <i class="fi fi-rr-bell text-base"></i>
+            @if (totalBadgeCount() > 0) {
+              <span
+                class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-rose-500 text-white rounded-full text-[10px] font-extrabold flex items-center justify-center animate-pulse border-2 border-slate-950"
+              >
+                {{ totalBadgeCount() }}
+              </span>
+            }
+          </button>
+
+          <!-- Dropdown Panel -->
+          @if (isNotificationOpen()) {
+            <div
+              class="fixed inset-0 z-30 bg-black/0 cursor-default"
+              (click)="isNotificationOpen.set(false)"
+            ></div>
+            <div
+              class="absolute right-0 mt-2 w-80 bg-slate-900 border border-white/10 rounded-2xl shadow-2xl py-3 px-4 z-40 animate-fadeIn shrink-0 flex flex-col gap-3"
+            >
+              <div class="border-b border-white/5 pb-2 flex items-center justify-between">
+                <h4 class="text-xs font-bold text-white uppercase tracking-wider">Notifications</h4>
+                @if (unreadNotificationsCount() > 0) {
+                  <button
+                    (click)="markNotificationsAsRead(); $event.stopPropagation()"
+                    class="text-[10px] text-indigo-400 hover:text-indigo-300 font-bold transition cursor-pointer bg-transparent border-0"
+                  >
+                    Mark all as read
+                  </button>
+                }
+              </div>
+
+              <!-- Invitations Section -->
+              <div class="flex flex-col gap-2">
+                <div class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">
+                  Invitations ({{ pendingInvitations().length }})
+                </div>
+                <div class="max-h-40 overflow-y-auto flex flex-col gap-2">
+                  @if (pendingInvitations().length === 0) {
+                    <div class="py-2 text-center text-[10px] text-slate-600 italic">
+                      No pending invitations
+                    </div>
+                  } @else {
+                    @for (invite of pendingInvitations(); track invite.id) {
+                      <div
+                        class="bg-slate-950/40 border border-white/5 rounded-xl p-2.5 flex flex-col gap-2"
+                      >
+                        <div class="flex items-start gap-2.5">
+                          <app-avatar
+                            [name]="invite.workspace?.name || 'W'"
+                            [logoUrl]="invite.workspace?.logoUrl"
+                            customClass="w-7 h-7 rounded-lg shrink-0"
+                            textClass="text-[10px] font-bold text-white"
+                          />
+                          <div class="min-w-0">
+                            <p class="text-xs font-bold text-white truncate">
+                              {{ invite.workspace?.name }}
+                            </p>
+                            <p class="text-[9px] text-slate-400 mt-0.5 capitalize">
+                              Role: {{ invite.role.name || 'Viewer' }}
+                            </p>
+                          </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                          <app-button
+                            label="Accept"
+                            variant="primary"
+                            size="xs"
+                            [fullWidth]="true"
+                            [loading]="isProcessingInvitation()"
+                            (clicked)="
+                              acceptInvite(
+                                invite.workspaceId,
+                                invite.workspace?.name || 'Workspace'
+                              )
+                            "
+                          />
+                          <app-button
+                            label="Reject"
+                            variant="danger"
+                            size="xs"
+                            [fullWidth]="true"
+                            [loading]="isProcessingInvitation()"
+                            (clicked)="
+                              rejectInvite(
+                                invite.workspaceId,
+                                invite.workspace?.name || 'Workspace'
+                              )
+                            "
+                          />
+                        </div>
+                      </div>
+                    }
+                  }
+                </div>
+              </div>
+
+              <!-- General Notifications Section -->
+              <div class="flex flex-col gap-2 pt-2 border-t border-white/5">
+                <div class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">
+                  Recent Activity ({{ notifications().length }})
+                </div>
+                <div class="max-h-44 overflow-y-auto flex flex-col gap-2">
+                  @if (notifications().length === 0) {
+                    <div class="py-2 text-center text-[10px] text-slate-600 italic">
+                      No notifications
+                    </div>
+                  } @else {
+                    @for (notification of notifications(); track notification.id) {
+                      <div
+                        [class.bg-indigo-950/20]="!notification.isRead"
+                        class="bg-slate-950/40 border border-white/5 hover:border-white/10 rounded-xl p-2.5 flex items-start gap-2.5 transition-all"
+                      >
+                        @if (notification.icon) {
+                          <span class="text-xs mt-0.5 shrink-0 select-none">{{
+                            notification.icon
+                          }}</span>
+                        }
+                        <div class="flex-1 min-w-0 flex flex-col gap-1">
+                          <p class="text-[10px] text-white leading-relaxed">
+                            {{ notification.message }}
+                          </p>
+                          <span class="text-[8px] text-slate-500 text-right">{{
+                            notification.createdAt | date: 'shortTime'
+                          }}</span>
+                        </div>
+                      </div>
+                    }
+                  }
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- User Dropdown Menu -->
+        <div class="relative">
+          <button
+            (click)="isUserDropdownOpen.set(!isUserDropdownOpen())"
+            class="flex items-center gap-3 bg-slate-900 hover:bg-slate-800/80 border border-white/5 rounded-xl px-4 py-2 text-left cursor-pointer transition-all"
+          >
+            <!-- Profile Icon (Avatar) -->
+            <div
+              class="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center text-white font-bold text-sm shadow-sm select-none overflow-hidden relative"
+            >
+              @if (isUploadingAvatar()) {
+                <div class="absolute inset-0 bg-slate-950/85 flex items-center justify-center">
+                  <svg
+                    class="animate-spin h-4.5 w-4.5 text-violet-500"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      class="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      stroke-width="4"
+                    ></circle>
+                    <path
+                      class="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                </div>
+              } @else {
+                @if (authService.currentUser()?.avatarUrl) {
+                  <img
+                    [src]="authService.currentUser()?.avatarUrl"
+                    alt="Avatar"
+                    class="w-full h-full object-cover"
+                  />
+                } @else {
+                  {{ authService.currentUser()?.username || 'U' | initials }}
+                }
+                <!-- Hover Upload Overlay -->
+                <label
+                  class="absolute inset-0 bg-black/60 opacity-0 hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="w-4 h-4 text-white"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+                    />
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                  </svg>
+                  <input
+                    type="file"
+                    class="hidden"
+                    accept="image/*"
+                    (change)="onAvatarUpload($event)"
+                  />
+                </label>
+              }
+            </div>
+            <div class="text-left leading-none pr-1">
+              <p class="text-xs font-bold text-white">{{ authService.currentUser()?.username }}</p>
+              <p class="text-[9px] text-slate-500 font-mono mt-0.5 capitalize">Account</p>
+            </div>
+            <i
+              class="fi fi-rr-angle-small-down text-slate-400 text-sm transition-transform duration-200"
+              [class.rotate-180]="isUserDropdownOpen()"
+            ></i>
+          </button>
+
+          <!-- Dropdown Menu -->
+          @if (isUserDropdownOpen()) {
+            <div
+              class="fixed inset-0 z-30 bg-black/0 cursor-default"
+              (click)="isUserDropdownOpen.set(false)"
+            ></div>
+            <div
+              class="absolute right-0 mt-2 w-48 bg-slate-900 border border-white/10 rounded-xl shadow-2xl py-1.5 z-40 animate-fadeIn shrink-0"
+            >
+              <div class="px-4 py-2 border-b border-white/5 mb-1.5">
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                  Signed in as
+                </p>
+                <p class="text-xs font-bold text-white truncate mt-0.5">
+                  {{ authService.currentUser()?.username }}
+                </p>
+              </div>
+              <a
+                routerLink="/profile"
+                (click)="isUserDropdownOpen.set(false)"
+                class="flex items-center gap-2.5 px-4 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/5 transition-all cursor-pointer"
+              >
+                <i class="fi fi-rr-user text-sm"></i>
+                My Profile
+              </a>
+              <a
+                routerLink="/system-settings"
+                (click)="isUserDropdownOpen.set(false)"
+                class="flex items-center gap-2.5 px-4 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/5 transition-all cursor-pointer"
+              >
+                <i class="fi fi-rr-settings text-sm"></i>
+                System Settings
+              </a>
+              <div class="border-t border-white/5 my-1.5"></div>
+              <button
+                (click)="logout(); isUserDropdownOpen.set(false)"
+                class="w-full flex items-center gap-2.5 px-4 py-2 text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-500/5 transition-all cursor-pointer text-left bg-transparent border-0"
+              >
+                <i class="fi fi-rr-sign-out-alt text-sm"></i>
+                Sign Out
+              </button>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="w-full px-10 py-12">
+    <!-- Password change warning banner -->
+    @if (authService.currentUser()?.needsPasswordChange) {
+      <div
+        class="mb-8 w-full bg-amber-950/20 border border-amber-500/25 rounded-2xl p-4 flex items-center justify-between gap-4 animate-pulse"
+      >
+        <div class="flex items-center gap-3">
+          <i class="fi fi-rr-triangle-warning text-amber-400 text-xl flex-shrink-0"></i>
+          <div>
+            <h4 class="text-sm font-bold text-white">Temporary Password Warning</h4>
+            <p class="text-xs text-slate-400 mt-0.5">
+              Your account was created by an administrator. Please change your password immediately
+              for security.
+            </p>
+          </div>
+        </div>
+        <a routerLink="/profile">
+          <app-button
+            label="Change Password"
+            variant="secondary"
+            size="sm"
+            iconClass="fi-rr-lock"
+          />
+        </a>
+      </div>
+    }
+
+    <!-- Header -->
+    <div class="flex items-end justify-between mb-10">
+      <div>
+        <p class="text-xs font-semibold text-violet-400 uppercase tracking-widest mb-2">
+          Sports Event Management
+        </p>
+        <h1 class="text-4xl font-extrabold text-white tracking-tight">Your Workspaces</h1>
+        <p class="text-slate-400 mt-2 text-sm">
+          Select a workspace to manage events, teams, and players — or create a new one.
+        </p>
+      </div>
+      <app-button
+        label="New Workspace"
+        iconClass="fi-rr-plus"
+        size="md"
+        (clicked)="openCreateModal()"
+      />
+    </div>
+
+    <!-- Loading -->
+    @if (isLoading()) {
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        @for (_ of [1, 2, 3]; track $index) {
+          <div class="bg-slate-900 border border-white/10 rounded-2xl p-6 animate-pulse">
+            <div class="flex items-center gap-4 mb-4">
+              <div class="w-12 h-12 rounded-xl bg-slate-800"></div>
+              <div class="flex-1 space-y-2">
+                <div class="h-4 bg-slate-800 rounded w-3/4"></div>
+                <div class="h-3 bg-slate-800 rounded w-1/2"></div>
+              </div>
+            </div>
+            <div class="h-3 bg-slate-800 rounded w-full mb-2"></div>
+            <div class="h-3 bg-slate-800 rounded w-2/3"></div>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Error -->
+    @if (error()) {
+      <div
+        class="rounded-xl bg-rose-500/10 border border-rose-500/30 p-5 text-rose-300 text-sm flex items-center gap-3"
+      >
+        <i class="fi fi-rr-triangle-warning text-rose-400 text-xl flex-shrink-0"></i>
+        {{ error() }}
+      </div>
+    }
+
+    <!-- Empty State -->
+    @if (!isLoading() && !error() && workspaces().length === 0) {
+      <app-empty-state
+        iconClass="fi-rr-layers"
+        title="No workspaces yet"
+        message="Create your first workspace to start managing sports events for your organization."
+      >
+        <app-button
+          label="Create your first workspace"
+          size="md"
+          iconClass="fi-rr-plus"
+          (clicked)="openCreateModal()"
+        />
+      </app-empty-state>
+    }
+
+    <!-- Workspace Cards Grid -->
+    @if (!isLoading() && !error() && workspaces().length > 0) {
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        @for (ws of workspaces(); track ws.id) {
+          <a
+            [routerLink]="['/workspaces', ws.id]"
+            class="group bg-slate-900 hover:bg-slate-800/80 border border-white/10 hover:border-violet-500/40 rounded-2xl p-6 flex flex-col gap-4 transition-all duration-200 cursor-pointer shadow-sm hover:shadow-violet-900/20 hover:shadow-lg"
+          >
+            <!-- Card Header -->
+            <div class="flex items-start gap-4">
+              <app-avatar
+                [name]="ws.name"
+                [logoUrl]="ws.logoUrl"
+                customClass="w-12 h-12 rounded-xl flex-shrink-0 shadow-inner"
+                textClass="text-sm font-bold text-white"
+              />
+              <div class="flex-1 min-w-0">
+                <h2
+                  class="text-base font-bold text-white group-hover:text-violet-300 transition-colors truncate"
+                >
+                  {{ ws.name }}
+                </h2>
+                <p class="text-xs text-slate-500 font-mono mt-0.5">{{ ws.slug }}</p>
+              </div>
+              <i
+                class="fi fi-rr-arrow-right text-slate-600 group-hover:text-violet-400 group-hover:translate-x-0.5 transition-all flex-shrink-0 mt-0.5 text-sm"
+              ></i>
+            </div>
+
+            <!-- Description -->
+            @if (ws.description) {
+              <p class="text-sm text-slate-400 leading-relaxed line-clamp-2">
+                {{ ws.description }}
+              </p>
+            } @else {
+              <p class="text-sm text-slate-600 italic">No description</p>
+            }
+
+            <!-- Footer -->
+            <div class="flex items-center gap-2 pt-2 border-t border-white/5">
+              <i class="fi fi-rr-calendar text-slate-600 text-xs"></i>
+              <span class="text-xs text-slate-500"
+                >Created {{ ws.createdAt | date: 'MMM d, y' }}</span
+              >
+            </div>
+          </a>
+        }
+      </div>
+    }
+  </div>
+
+  <!-- Create Workspace Modal -->
+  <app-modal
+    [open]="isCreateModalOpen()"
+    title="Create a Workspace"
+    subtitle="A workspace represents your organization — college, club, or association."
+    iconClass="fi-rr-layers"
+    size="md"
+    (closed)="closeCreateModal()"
+  >
+    <form
+      (submit)="onCreateWorkspace(); $event.preventDefault()"
+      class="flex flex-col gap-4"
+      id="create-ws-form"
+    >
+      @if (createError()) {
+        <div
+          class="rounded-xl bg-rose-500/10 border border-rose-500/30 p-3 text-rose-300 text-xs flex items-center gap-2"
+        >
+          <i class="fi fi-rr-triangle-warning text-rose-400 flex-shrink-0"></i>
+          {{ createError() }}
+        </div>
+      }
+
+      <!-- Workspace Name -->
+      <div class="flex flex-col gap-1.5">
+        <label for="ws-name" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+          >Workspace Name <span class="text-rose-400">*</span></label
+        >
+        <input
+          id="ws-name"
+          type="text"
+          placeholder="e.g. ABC College, Kerala Sports Association"
+          autocomplete="off"
+          class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition-all w-full"
+          [ngModel]="name()"
+          (ngModelChange)="name.set($event)"
+          name="name"
+          required
+        />
+      </div>
+
+      <!-- Slug Preview -->
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+          >URL Slug</label
+        >
+        <div
+          class="flex items-center bg-slate-950 border border-white/5 rounded-xl px-4 py-2.5 gap-2"
+        >
+          <span class="text-slate-500 text-xs">/workspaces/</span>
+          <span class="text-xs text-violet-400 font-mono font-semibold">{{ slugPreview() }}</span>
+        </div>
+        <p class="text-[10px] text-slate-500">Auto-generated from the workspace name.</p>
+      </div>
+
+      <!-- Description -->
+      <div class="flex flex-col gap-1.5">
+        <label for="ws-desc" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+          >Description <span class="text-slate-500 font-normal normal-case">(optional)</span></label
+        >
+        <textarea
+          id="ws-desc"
+          placeholder="Brief description of this organization or club..."
+          class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition-all w-full resize-none h-20"
+          [ngModel]="description()"
+          (ngModelChange)="description.set($event)"
+          name="description"
+        ></textarea>
+      </div>
+
+      <!-- Info Box -->
+      <div
+        class="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-4 flex items-start gap-2.5"
+      >
+        <i class="fi fi-rr-info text-indigo-400 flex-shrink-0 mt-0.5"></i>
+        <p class="text-[10px] text-indigo-300 leading-relaxed">
+          You will be the <strong class="text-indigo-200">owner</strong> of this workspace. You can
+          invite members, create events, and manage teams after creation.
+        </p>
+      </div>
+    </form>
+
+    <!-- Footer actions projected into modal footer slot -->
+    <ng-container slot="footer">
+      <app-button label="Cancel" variant="secondary" size="sm" (clicked)="closeCreateModal()" />
+      <app-button
+        label="Create Workspace"
+        iconClass="fi-rr-plus"
+        size="sm"
+        [loading]="isCreating()"
+        [disabled]="!name().trim()"
+        type="submit"
+        (clicked)="onCreateWorkspace()"
+      />
+    </ng-container>
+  </app-modal>
+</div>

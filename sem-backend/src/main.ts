@@ -2,7 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
-import { RequestContextInterceptor } from './common/request-context.interceptor';
+import { RequestContextInterceptor } from './common/interceptors/request-context.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -17,7 +17,7 @@ async function bootstrap() {
   // ── Redis Socket.IO adapter (horizontal scaling) ──────────────────────────
   const redisHost = process.env.REDIS_HOST;
   if (redisHost) {
-    const { RedisIoAdapter } = require('./common/redis-io.adapter');
+    const { RedisIoAdapter } = require('./common/adapters/redis-io.adapter');
     const redisPort = process.env.REDIS_PORT
       ? parseInt(process.env.REDIS_PORT, 10)
       : 6379;
