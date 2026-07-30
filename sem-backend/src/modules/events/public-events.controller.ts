@@ -1,7 +1,14 @@
-import { Controller, Get, Param } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
+import { Controller, Get, Param, Query } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { EventsService } from './events.service';
 import { CompetitionsService } from '../competitions/competitions.service';
+import { SearchPublicEventsDto } from './dto/search-public-events.dto';
 
 @ApiTags('public-events')
 @Controller('public/events')
@@ -10,6 +17,33 @@ export class PublicEventsController {
     private readonly eventsService: EventsService,
     private readonly competitionsService: CompetitionsService,
   ) {}
+
+  @Get()
+  @ApiOperation({
+    summary: 'Browse published events (public portal)',
+    description:
+      'Returns a paginated list of events where isPublic=true. Supports filtering by status (upcoming/ongoing/completed), sport, venue and free-text search across name/description/venue/organizers.',
+  })
+  @ApiQuery({ name: 'query', required: false })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: ['upcoming', 'ongoing', 'completed'],
+  })
+  @ApiQuery({ name: 'sport', required: false })
+  @ApiQuery({ name: 'venue', required: false })
+  @ApiQuery({ name: 'limit', required: false, example: 24 })
+  @ApiQuery({ name: 'offset', required: false, example: 0 })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    enum: ['startDate', 'name', 'status'],
+  })
+  @ApiQuery({ name: 'sortOrder', required: false, enum: ['ASC', 'DESC'] })
+  @ApiResponse({ status: 200, description: 'Paginated list of public events' })
+  async listPublicEvents(@Query() dto: SearchPublicEventsDto) {
+    return this.eventsService.searchPublicEvents(dto);
+  }
 
   @Get(':eventId')
   @ApiOperation({

@@ -352,6 +352,68 @@
             </div>
           </div>
         </div>
+
+        <!-- Sponsors Strip -->
+        @if (evt.sponsors && evt.sponsors.length > 0) {
+          <div
+            class="mt-8 bg-slate-900 border border-white/10 rounded-3xl p-6 shadow-xl flex flex-col gap-5"
+          >
+            <h2
+              class="text-base font-black text-white tracking-wide border-b border-white/5 pb-3 uppercase flex items-center gap-2"
+            >
+              <i class="fi fi-rr-star text-violet-400"></i>
+              Sponsors &amp; Partners
+              <span
+                class="text-xs px-2 py-0.5 bg-slate-800 text-slate-400 rounded-lg font-bold ml-auto"
+              >
+                {{ evt.sponsors.length }}
+              </span>
+            </h2>
+
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              @for (sp of evt.sponsors; track sp.id) {
+                <a
+                  [href]="sp.url || null"
+                  [attr.target]="sp.url ? '_blank' : null"
+                  [attr.rel]="sp.url ? 'noopener noreferrer' : null"
+                  class="group flex flex-col items-center gap-2 p-4 rounded-2xl bg-slate-950/40 border border-white/5 hover:border-violet-500/30 hover:bg-slate-950/70 transition-all"
+                >
+                  <div
+                    class="w-16 h-16 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center overflow-hidden group-hover:scale-105 transition"
+                  >
+                    @if (sp.logoUrl) {
+                      <img
+                        [src]="sp.logoUrl"
+                        [alt]="sp.name"
+                        class="w-full h-full object-contain p-2"
+                        loading="lazy"
+                      />
+                    } @else {
+                      <span class="text-lg font-black text-slate-500">
+                        {{ sp.name.charAt(0) }}
+                      </span>
+                    }
+                  </div>
+                  <div class="text-center min-w-0 w-full">
+                    <p
+                      class="text-xs font-bold text-white truncate group-hover:text-violet-200 transition"
+                      [title]="sp.name"
+                    >
+                      {{ sp.name }}
+                    </p>
+                    @if (sp.tier) {
+                      <span
+                        class="mt-1 inline-block text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-violet-500/15 text-violet-300 border border-violet-500/25"
+                      >
+                        {{ sp.tier }}
+                      </span>
+                    }
+                  </div>
+                </a>
+              }
+            </div>
+          </div>
+        }
       }
 
       <!-- Panel 5: Results Tab -->
@@ -2889,9 +2951,7 @@
                         >Current Innings</span
                       >
                       <h4 class="text-sm font-black text-white">
-                        {{
-                          m.liveData?.innings === 1 ? m.homeTeam?.name : m.awayTeam?.name
-                        }}
+                        {{ m.liveData?.innings === 1 ? m.homeTeam?.name : m.awayTeam?.name }}
                         (Innings {{ m.liveData?.innings || 1 }})
                       </h4>
                     </div>

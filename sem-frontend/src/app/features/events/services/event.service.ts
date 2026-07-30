@@ -3,7 +3,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { AuthService } from '../../auth/services/auth.service';
-import { WorkspaceEvent } from '../../workspaces/services/workspace.service';
+import { WorkspaceEvent, PublicEventsPage } from '../../workspaces/services/workspace.service';
 
 @Injectable({ providedIn: 'root' })
 export class EventService {
@@ -103,6 +103,25 @@ export class EventService {
       status?: string;
       logoUrl?: string;
       teamIds?: string[];
+      isPublic?: boolean;
+      gallery?: string[];
+      announcements?: Array<{
+        id: string;
+        title: string;
+        content: string;
+        createdAt: string;
+      }>;
+      sponsors?: Array<{
+        id: string;
+        name: string;
+        logoUrl?: string | null;
+        url?: string | null;
+        tier?: string | null;
+      }>;
+      registrationStatus?: string;
+      venue?: string;
+      sport?: string;
+      organizers?: string;
     },
   ): Observable<WorkspaceEvent> {
     return this.http.post<WorkspaceEvent>(`${this.apiUrl}/${workspaceId}/events`, payload, {
@@ -121,6 +140,25 @@ export class EventService {
       status?: string;
       logoUrl?: string;
       teamIds?: string[];
+      isPublic?: boolean;
+      gallery?: string[];
+      announcements?: Array<{
+        id: string;
+        title: string;
+        content: string;
+        createdAt: string;
+      }>;
+      sponsors?: Array<{
+        id: string;
+        name: string;
+        logoUrl?: string | null;
+        url?: string | null;
+        tier?: string | null;
+      }>;
+      registrationStatus?: string;
+      venue?: string;
+      sport?: string;
+      organizers?: string;
     },
   ): Observable<WorkspaceEvent> {
     return this.http.patch<WorkspaceEvent>(
@@ -144,6 +182,29 @@ export class EventService {
 
   getPublicEvent(eventId: string): Observable<WorkspaceEvent> {
     return this.http.get<WorkspaceEvent>(`${environment.apiUrl}/public/events/${eventId}`);
+  }
+
+  getPublicEvents(
+    params: {
+      query?: string;
+      status?: 'upcoming' | 'ongoing' | 'completed';
+      sport?: string;
+      venue?: string;
+      limit?: number;
+      offset?: number;
+      sortBy?: 'startDate' | 'name' | 'status';
+      sortOrder?: 'ASC' | 'DESC';
+    } = {},
+  ): Observable<PublicEventsPage> {
+    const queryParams: Record<string, string> = {};
+    for (const [key, val] of Object.entries(params)) {
+      if (val !== undefined && val !== null && val !== '') {
+        queryParams[key] = String(val);
+      }
+    }
+    return this.http.get<PublicEventsPage>(`${environment.apiUrl}/public/events`, {
+      params: queryParams,
+    });
   }
 
   getPublicCompetitions(eventId: string): Observable<any[]> {

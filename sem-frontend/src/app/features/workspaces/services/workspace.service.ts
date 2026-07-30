@@ -124,11 +124,26 @@ export interface WorkspaceEvent {
   isPublic?: boolean;
   gallery?: string[] | null;
   announcements?: Array<{ id: string; title: string; content: string; createdAt: string }> | null;
+  sponsors?: Array<{
+    id: string;
+    name: string;
+    logoUrl?: string | null;
+    url?: string | null;
+    tier?: string | null;
+  }> | null;
   registrationStatus?: string;
   venue?: string | null;
   sport?: string | null;
   organizers?: string | null;
+  slug?: string | null;
   isArchived?: boolean;
+}
+
+export interface PublicEventsPage {
+  items: WorkspaceEvent[];
+  total: number;
+  limit: number;
+  offset: number;
 }
 
 export interface Sport {

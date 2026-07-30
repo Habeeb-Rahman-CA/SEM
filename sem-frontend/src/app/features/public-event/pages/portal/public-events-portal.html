@@ -1,0 +1,365 @@
+<div class="min-h-screen bg-slate-950 text-white font-sans overflow-x-hidden">
+  <!-- Backdrop glow -->
+  <div
+    class="pointer-events-none fixed inset-x-0 top-[-6rem] h-[36rem] -z-0"
+    style="
+      background: radial-gradient(60% 60% at 50% 40%, rgba(139, 92, 246, 0.18), transparent 70%);
+    "
+    aria-hidden="true"
+  ></div>
+
+  <!-- ─────────── Top Bar ─────────── -->
+  <header
+    class="fixed inset-x-0 top-0 z-40 safe-top bg-slate-950/70 backdrop-blur-md border-b border-white/5"
+  >
+    <div class="max-w-6xl mx-auto px-5 sm:px-8 h-14 flex items-center justify-between">
+      <a routerLink="/" class="flex items-center gap-2.5 text-sm font-black tracking-tight">
+        <span
+          class="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-violet-500/25"
+        >
+          <i class="fi fi-sr-trophy text-white text-xs"></i>
+        </span>
+        <span>SEM</span>
+      </a>
+      <nav class="hidden md:flex items-center gap-7 text-xs font-semibold text-slate-400">
+        <a routerLink="/" class="hover:text-white transition">Home</a>
+        <a routerLink="/events" class="text-white transition">Events</a>
+      </nav>
+      <div class="flex items-center gap-2.5">
+        <a
+          routerLink="/login"
+          class="text-xs font-bold text-slate-300 hover:text-white px-3 py-2 rounded-lg transition cursor-pointer"
+        >
+          Sign in
+        </a>
+        <a
+          routerLink="/register"
+          class="hidden sm:inline-flex text-xs font-bold text-white bg-violet-600 hover:bg-violet-500 px-4 py-2 rounded-lg transition cursor-pointer shadow-md shadow-violet-500/20"
+        >
+          Get started
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ─────────── Hero ─────────── -->
+  <section class="relative pt-28 sm:pt-36 pb-8 sm:pb-12 px-5 sm:px-8 max-w-6xl mx-auto">
+    <div class="text-center max-w-3xl mx-auto">
+      <span
+        class="inline-flex items-center gap-2 text-[11px] font-bold tracking-wider uppercase text-violet-300 bg-violet-500/10 border border-violet-500/20 rounded-full px-3 py-1.5"
+      >
+        <span class="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse"></span>
+        Public event portal
+      </span>
+      <h1 class="mt-5 text-3xl sm:text-5xl md:text-6xl font-black tracking-tight leading-[1.05]">
+        Follow every match.
+        <span
+          class="block bg-gradient-to-r from-violet-300 via-violet-400 to-indigo-400 bg-clip-text text-transparent"
+        >
+          No login required.
+        </span>
+      </h1>
+      <p class="mt-4 text-sm sm:text-base text-slate-400 leading-relaxed">
+        Browse tournaments, leagues and one-off events happening near you. Check schedules, venues,
+        organizers, live standings and results in real time.
+      </p>
+    </div>
+
+    <!-- Search bar -->
+    <div class="mt-8 max-w-2xl mx-auto">
+      <div class="relative">
+        <i
+          class="fi fi-rr-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm pointer-events-none"
+        ></i>
+        <input
+          type="search"
+          [ngModel]="searchQuery()"
+          (ngModelChange)="onSearchChange($event)"
+          placeholder="Search by event name, venue, or organizer"
+          class="w-full pl-11 pr-11 py-3.5 rounded-2xl bg-slate-900/60 border border-white/10 focus:border-violet-500/50 focus:bg-slate-900/80 focus:outline-none focus:ring-2 focus:ring-violet-500/20 text-sm text-white placeholder:text-slate-500 transition"
+        />
+        @if (searchQuery()) {
+          <button
+            type="button"
+            (click)="clearSearch()"
+            class="absolute right-3 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 flex items-center justify-center transition"
+            aria-label="Clear search"
+          >
+            <i class="fi fi-rr-cross-small text-base"></i>
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- Status tabs -->
+    <div class="mt-6 flex items-center justify-center gap-2 flex-wrap">
+      @for (tab of statusTabs; track tab.key) {
+        <button
+          type="button"
+          (click)="onStatusChange(tab.key)"
+          [class]="
+            'inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border border-white/10 transition-all cursor-pointer ' +
+            (activeStatus() === tab.key
+              ? 'bg-violet-600 text-white shadow-md shadow-violet-500/25'
+              : 'bg-white/5 text-slate-300 hover:bg-white/10')
+          "
+        >
+          <i [class]="'fi ' + tab.icon + ' text-xs'"></i>
+          {{ tab.label }}
+        </button>
+      }
+    </div>
+
+    <!-- Sport chips (only shown when we have results & multiple sports) -->
+    @if (availableSports().length > 1) {
+      <div class="mt-4 flex items-center justify-center gap-2 flex-wrap">
+        <button
+          type="button"
+          (click)="onSportChange('all')"
+          [class]="
+            'text-[11px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full border transition ' +
+            (sportFilter() === 'all'
+              ? 'border-violet-500/40 text-violet-200 bg-violet-500/10'
+              : 'border-white/10 text-slate-400 hover:text-white hover:border-white/20')
+          "
+        >
+          All sports
+        </button>
+        @for (sport of availableSports(); track sport) {
+          <button
+            type="button"
+            (click)="onSportChange(sport)"
+            [class]="
+              'inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full border transition ' +
+              (sportFilter() === sport
+                ? 'border-violet-500/40 text-violet-200 bg-violet-500/10'
+                : 'border-white/10 text-slate-400 hover:text-white hover:border-white/20')
+            "
+          >
+            <i [class]="getSportIconClass(sport) + ' text-[11px]'"></i>
+            {{ sport }}
+          </button>
+        }
+      </div>
+    }
+  </section>
+
+  <!-- ─────────── Results Grid ─────────── -->
+  <section class="relative pb-24 px-5 sm:px-8 max-w-6xl mx-auto">
+    @if (error()) {
+      <div
+        class="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-6 text-center text-sm text-rose-200"
+      >
+        <i class="fi fi-rr-triangle-warning text-2xl block mb-2"></i>
+        {{ error() }}
+      </div>
+    } @else if (isLoading()) {
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        @for (_ of [1, 2, 3, 4, 5, 6]; track _) {
+          <div class="rounded-2xl border border-white/5 bg-slate-900/40 overflow-hidden">
+            <div class="h-32 bg-slate-800/50 animate-pulse"></div>
+            <div class="p-5 space-y-3">
+              <div class="h-4 w-3/4 bg-slate-800/60 rounded animate-pulse"></div>
+              <div class="h-3 w-1/2 bg-slate-800/60 rounded animate-pulse"></div>
+              <div class="h-3 w-2/3 bg-slate-800/60 rounded animate-pulse"></div>
+            </div>
+          </div>
+        }
+      </div>
+    } @else if (visibleEvents().length === 0) {
+      <div class="mt-8 rounded-3xl border border-white/5 bg-slate-900/40 p-10 sm:p-14 text-center">
+        <div
+          class="w-14 h-14 rounded-2xl bg-violet-500/10 border border-violet-500/20 mx-auto flex items-center justify-center text-violet-300"
+        >
+          <i class="fi fi-rr-calendar-xmark text-xl"></i>
+        </div>
+        <h3 class="mt-5 text-lg font-black text-white">No events match your filters</h3>
+        <p class="mt-2 text-xs text-slate-400 max-w-md mx-auto">
+          Try clearing your search or switching to a different status. Organizers publish new events
+          every week.
+        </p>
+        @if (searchQuery() || activeStatus() !== 'all' || sportFilter() !== 'all') {
+          <button
+            type="button"
+            (click)="clearSearch(); onStatusChange('all'); onSportChange('all')"
+            class="mt-6 inline-flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs font-bold text-slate-200 cursor-pointer transition"
+          >
+            <i class="fi fi-rr-refresh text-xs"></i>
+            Reset filters
+          </button>
+        }
+      </div>
+    } @else {
+      <div
+        class="mb-5 flex items-center justify-between text-xs font-semibold text-slate-500 tracking-wide"
+      >
+        <div>
+          Showing <span class="text-white">{{ visibleEvents().length }}</span> of
+          <span class="text-white">{{ total() }}</span> events
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        @for (evt of visibleEvents(); track evt.id) {
+          <a
+            [routerLink]="['/public/events', evt.id]"
+            class="group flex flex-col rounded-2xl border border-white/5 bg-slate-900/40 hover:bg-slate-900/70 hover:border-violet-500/30 overflow-hidden transition-all hover:-translate-y-0.5"
+          >
+            <!-- Media/logo header -->
+            <div
+              class="relative h-32 bg-gradient-to-br from-violet-500/20 via-slate-900 to-indigo-500/10 overflow-hidden"
+            >
+              @if (evt.logoUrl) {
+                <img
+                  [src]="evt.logoUrl"
+                  [alt]="evt.name"
+                  class="absolute inset-0 w-full h-full object-cover opacity-70 group-hover:opacity-90 transition"
+                  loading="lazy"
+                />
+                <div
+                  class="absolute inset-0 bg-gradient-to-t from-slate-950/80 to-transparent"
+                  aria-hidden="true"
+                ></div>
+              } @else {
+                <div class="absolute inset-0 flex items-center justify-center">
+                  <i [class]="getSportIconClass(evt.sport ?? '') + ' text-5xl text-white/10'"></i>
+                </div>
+              }
+              <div class="absolute top-3 right-3 flex items-center gap-1.5">
+                @if (evt.status === 'ongoing') {
+                  <span
+                    class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase tracking-wider backdrop-blur-sm"
+                  >
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    Live
+                  </span>
+                } @else {
+                  <span
+                    [class]="
+                      'inline-flex text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider border backdrop-blur-sm ' +
+                      statusPillClass(evt.status)
+                    "
+                  >
+                    {{ statusLabel(evt.status) }}
+                  </span>
+                }
+              </div>
+              @if (evt.sport) {
+                <span
+                  [class]="
+                    'absolute top-3 left-3 inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider border backdrop-blur-sm ' +
+                    getSportBadgeClass(evt.sport)
+                  "
+                >
+                  <i [class]="getSportIconClass(evt.sport) + ' text-[10px]'"></i>
+                  {{ evt.sport }}
+                </span>
+              }
+            </div>
+
+            <!-- Body -->
+            <div class="p-5 flex flex-col gap-2 flex-1">
+              <h3
+                class="text-sm sm:text-base font-black text-white group-hover:text-violet-200 transition line-clamp-2"
+              >
+                {{ evt.name }}
+              </h3>
+              @if (evt.description) {
+                <p class="text-[11px] text-slate-400 leading-relaxed line-clamp-2">
+                  {{ evt.description }}
+                </p>
+              }
+
+              <div class="mt-2 space-y-1.5 text-[11px] text-slate-400">
+                <div class="flex items-center gap-2">
+                  <i class="fi fi-rr-calendar text-violet-400/80 text-[11px]"></i>
+                  <span>{{ formatDateRange(evt.startDate, evt.endDate) }}</span>
+                </div>
+                @if (evt.venue) {
+                  <div class="flex items-center gap-2">
+                    <i class="fi fi-rr-marker text-violet-400/80 text-[11px]"></i>
+                    <span class="truncate">{{ evt.venue }}</span>
+                  </div>
+                }
+                @if (evt.organizers) {
+                  <div class="flex items-center gap-2">
+                    <i class="fi fi-rr-user text-violet-400/80 text-[11px]"></i>
+                    <span class="truncate">{{ evt.organizers }}</span>
+                  </div>
+                }
+              </div>
+
+              <div
+                class="mt-auto pt-4 flex items-center justify-between text-[11px] text-slate-500"
+              >
+                <div class="flex items-center gap-3">
+                  @if (evt.competitions && evt.competitions.length) {
+                    <span class="inline-flex items-center gap-1">
+                      <i class="fi fi-rr-diagram-project text-[11px]"></i>
+                      {{ evt.competitions.length }} comp{{
+                        evt.competitions.length === 1 ? '' : 's'
+                      }}
+                    </span>
+                  }
+                  @if (evt.teams && evt.teams.length) {
+                    <span class="inline-flex items-center gap-1">
+                      <i class="fi fi-rr-users-alt text-[11px]"></i>
+                      {{ evt.teams.length }} team{{ evt.teams.length === 1 ? '' : 's' }}
+                    </span>
+                  }
+                </div>
+                <span
+                  class="inline-flex items-center gap-1 text-violet-300 font-bold group-hover:gap-2 transition-all"
+                >
+                  View
+                  <i class="fi fi-rr-arrow-small-right text-xs"></i>
+                </span>
+              </div>
+            </div>
+          </a>
+        }
+      </div>
+
+      @if (hasMore()) {
+        <div class="mt-10 flex justify-center">
+          <button
+            type="button"
+            (click)="loadMore()"
+            [disabled]="isLoadingMore()"
+            class="inline-flex items-center gap-2 px-5 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm font-bold text-slate-200 cursor-pointer transition disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            @if (isLoadingMore()) {
+              <i class="fi fi-rr-spinner animate-spin text-sm"></i>
+              Loading…
+            } @else {
+              <i class="fi fi-rr-plus text-sm"></i>
+              Load more events
+            }
+          </button>
+        </div>
+      }
+    }
+  </section>
+
+  <!-- Footer -->
+  <footer class="border-t border-white/5 py-10 px-5 sm:px-8">
+    <div
+      class="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-500"
+    >
+      <div class="flex items-center gap-2.5">
+        <span
+          class="w-6 h-6 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center"
+        >
+          <i class="fi fi-sr-trophy text-white text-[10px]"></i>
+        </span>
+        <span class="font-bold text-slate-300">SEM</span>
+        <span class="text-slate-600">· Sports Event Management</span>
+      </div>
+      <div class="flex items-center gap-5">
+        <a routerLink="/" class="hover:text-white transition">Home</a>
+        <a routerLink="/events" class="hover:text-white transition">Events</a>
+        <a routerLink="/login" class="hover:text-white transition">Sign in</a>
+      </div>
+    </div>
+  </footer>
+</div>

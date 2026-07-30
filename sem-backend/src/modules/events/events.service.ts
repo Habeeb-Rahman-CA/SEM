@@ -16,6 +16,7 @@ import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { DuplicateEventDto } from './dto/duplicate-event.dto';
 import { SearchEventDto } from './dto/search-event.dto';
+import { SearchPublicEventsDto } from './dto/search-public-events.dto';
 import { NotificationType } from '../workspaces/entities/notification.entity';
 import { CompetitionsService } from '../competitions/competitions.service';
 
@@ -81,6 +82,7 @@ export class EventsService {
       isPublic: dto.isPublic ?? false,
       gallery: dto.gallery ?? null,
       announcements: dto.announcements ?? null,
+      sponsors: dto.sponsors ?? null,
       registrationStatus: dto.registrationStatus ?? 'open',
       venue: dto.venue ?? null,
       sport: dto.sport ?? null,
@@ -165,6 +167,7 @@ export class EventsService {
       ...(dto.announcements !== undefined && {
         announcements: dto.announcements,
       }),
+      ...(dto.sponsors !== undefined && { sponsors: dto.sponsors }),
       ...(dto.registrationStatus !== undefined && {
         registrationStatus: dto.registrationStatus,
       }),
@@ -391,6 +394,53 @@ export class EventsService {
       .sort((a, b) => b.points - a.points);
   }
 
+  async searchPublicEvents(
+    dto: SearchPublicEventsDto,
+  ): Promise<{ items: Event[]; total: number; limit: number; offset: number }> {
+    const limit = dto.limit ?? 24;
+    const offset = dto.offset ?? 0;
+
+    const qb = this.eventRepo
+      .createQueryBuilder('event')
+      .leftJoinAndSelect('event.competitions', 'competition')
+      .leftJoinAndSelect('event.teams', 'team')
+      .where('event.isPublic = :isPublic', { isPublic: true })
+      .andWhere('event.deletedAt IS NULL');
+
+    if (dto.status) {
+      qb.andWhere('event.status = :status', { status: dto.status });
+    }
+
+    if (dto.query) {
+      qb.andWhere(
+        '(LOWER(event.name) LIKE LOWER(:query) OR LOWER(event.description) LIKE LOWER(:query) OR LOWER(event.venue) LIKE LOWER(:query) OR LOWER(event.organizers) LIKE LOWER(:query))',
+        { query: `%${dto.query}%` },
+      );
+    }
+
+    if (dto.sport) {
+      qb.andWhere('LOWER(event.sport) = LOWER(:sport)', { sport: dto.sport });
+    }
+
+    if (dto.venue) {
+      qb.andWhere('LOWER(event.venue) LIKE LOWER(:venue)', {
+        venue: `%${dto.venue}%`,
+      });
+    }
+
+    const allowedSortFields = ['startDate', 'name', 'status'];
+    const sortBy = allowedSortFields.includes(dto.sortBy ?? '')
+      ? (dto.sortBy as string)
+      : 'startDate';
+    const sortOrder: 'ASC' | 'DESC' = dto.sortOrder === 'DESC' ? 'DESC' : 'ASC';
+    qb.orderBy(`event.${sortBy}`, sortOrder, 'NULLS LAST');
+
+    qb.take(limit).skip(offset);
+
+    const [items, total] = await qb.getManyAndCount();
+    return { items, total, limit, offset };
+  }
+
   async getPublicEvent(eventIdOrSlug: string): Promise<Event> {
     const isUuid =
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
@@ -495,6 +545,7 @@ export class EventsService {
       isArchived: false,
       gallery: null,
       announcements: null,
+      sponsors: dto.duplicateSettings !== false ? sourceEvent.sponsors : null,
     });
 
     const savedEvent = await this.eventRepo.save(newEvent);

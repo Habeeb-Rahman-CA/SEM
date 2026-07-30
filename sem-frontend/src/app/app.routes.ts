@@ -62,6 +62,14 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
 
+  // Public events portal — list & browse without logging in
+  {
+    path: 'events',
+    loadComponent: () =>
+      import('./features/public-event/pages/portal/public-events-portal').then(
+        (m) => m.PublicEventsPortalComponent,
+      ),
+  },
   {
     path: 'public/events/:id',
     loadComponent: () =>
