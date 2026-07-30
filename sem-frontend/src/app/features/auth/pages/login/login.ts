@@ -1,8 +1,9 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { QuicklinkDirective } from 'ngx-quicklink';
 import { AuthService } from '../../services/auth.service';
+import { BrandingService } from '../../../branding/services/branding.service';
 
 @Component({
   selector: 'app-login',
@@ -15,6 +16,15 @@ export class LoginComponent {
   private authService = inject(AuthService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+  private brandingService = inject(BrandingService);
+
+  /** Branding resolved by App.ngOnInit — reactive via signal. */
+  branding = this.brandingService.activeBranding;
+
+  isBrandedLogin = computed(() => {
+    const b = this.branding();
+    return !!(b && b.isEnabled);
+  });
 
   username = signal<string>('');
   password = signal<string>('');

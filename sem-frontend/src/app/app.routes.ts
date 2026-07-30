@@ -79,6 +79,14 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
   {
+    path: 'workspaces/:id/branding',
+    loadComponent: () =>
+      import('./features/branding/pages/branding-settings/branding-settings').then(
+        (m) => m.BrandingSettingsComponent,
+      ),
+    canActivate: [authGuard],
+  },
+  {
     path: 'system-settings',
     loadComponent: () =>
       import('./features/system-settings/pages/system-settings').then(
