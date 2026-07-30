@@ -39,15 +39,33 @@ describe('BracketAdvancementService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BracketAdvancementService,
-        { provide: getRepositoryToken(Competition), useFactory: mockRepository },
-        { provide: getRepositoryToken(CompetitionStage), useFactory: mockRepository },
+        {
+          provide: getRepositoryToken(Competition),
+          useFactory: mockRepository,
+        },
+        {
+          provide: getRepositoryToken(CompetitionStage),
+          useFactory: mockRepository,
+        },
         { provide: getRepositoryToken(Match), useFactory: mockRepository },
-        { provide: getRepositoryToken(CompetitionTeam), useFactory: mockRepository },
+        {
+          provide: getRepositoryToken(CompetitionTeam),
+          useFactory: mockRepository,
+        },
         { provide: getRepositoryToken(Team), useFactory: mockRepository },
         { provide: WorkspacesService, useFactory: mockWorkspacesService },
-        { provide: CompetitionRankingsService, useFactory: mockCompetitionRankingsService },
-        { provide: MatchGenerationService, useFactory: mockMatchGenerationService },
-        { provide: CompetitionCompletionService, useFactory: mockCompetitionCompletionService },
+        {
+          provide: CompetitionRankingsService,
+          useFactory: mockCompetitionRankingsService,
+        },
+        {
+          provide: MatchGenerationService,
+          useFactory: mockMatchGenerationService,
+        },
+        {
+          provide: CompetitionCompletionService,
+          useFactory: mockCompetitionCompletionService,
+        },
       ],
     }).compile();
 
@@ -101,7 +119,9 @@ describe('BracketAdvancementService', () => {
       ] as any[];
 
       jest.spyOn(service['matchRepo'], 'find').mockResolvedValue(mockMatches);
-      jest.spyOn(service['competitionTeamRepo'], 'find').mockResolvedValue(mockCompTeams);
+      jest
+        .spyOn(service['competitionTeamRepo'], 'find')
+        .mockResolvedValue(mockCompTeams);
 
       const result = await service.getQualificationPreview(stage);
 
@@ -120,7 +140,9 @@ describe('BracketAdvancementService', () => {
       // Best runner-up should be team B or team D depending on tiebreakers
       // Team D has 0 pts, GD -2 (gf 1, ga 3), Team B has 0 pts, GD -2 (gf 0, ga 2).
       // Team B has better GD/GA orGF. Team D has more GF (1 vs 0), so Team D should be best runner-up.
-      expect(result.qualifiedTeams.some((t: any) => t.teamId === 'team-d')).toBe(true);
+      expect(
+        result.qualifiedTeams.some((t: any) => t.teamId === 'team-d'),
+      ).toBe(true);
     });
   });
 

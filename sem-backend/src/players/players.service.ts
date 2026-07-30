@@ -354,18 +354,24 @@ export class PlayersService {
           }
         }
       } else if (sport === 'volleyball') {
-        const ps = (liveData.playerStats || {})[player.id] ||
-                   (liveData.playerStats || {})[player.userId] || {};
+        const ps =
+          (liveData.playerStats || {})[player.id] ||
+          (liveData.playerStats || {})[player.userId] ||
+          {};
         allTimeKills += ps.kills ?? 0;
         allTimeBlocks += ps.blocks ?? 0;
       } else if (sport === 'basketball') {
-        const ps = (liveData.playerStats || {})[player.id] ||
-                   (liveData.playerStats || {})[player.userId] || {};
+        const ps =
+          (liveData.playerStats || {})[player.id] ||
+          (liveData.playerStats || {})[player.userId] ||
+          {};
         allTimePoints += ps.points ?? 0;
         allTimeRebounds += ps.rebounds ?? 0;
       } else if (sport === 'table_tennis') {
-        const ps = (liveData.playerStats || {})[player.id] ||
-                   (liveData.playerStats || {})[player.userId] || {};
+        const ps =
+          (liveData.playerStats || {})[player.id] ||
+          (liveData.playerStats || {})[player.userId] ||
+          {};
         allTimeTtSetsWon += ps.setsWon ?? 0;
         allTimeAces += ps.aces ?? 0;
       } else if (sport === 'chess') {
@@ -380,18 +386,24 @@ export class PlayersService {
           allTimeTotalMoves += liveData.totalMoves ?? 0;
         }
       } else if (sport === 'kabaddi') {
-        const ps = (liveData.playerStats || {})[player.id] ||
-                   (liveData.playerStats || {})[player.userId] || {};
+        const ps =
+          (liveData.playerStats || {})[player.id] ||
+          (liveData.playerStats || {})[player.userId] ||
+          {};
         allTimeRaidPoints += ps.raidPoints ?? 0;
         allTimeTacklePoints += ps.tacklePoints ?? 0;
       } else if (sport === 'throwball') {
-        const ps = (liveData.playerStats || {})[player.id] ||
-                   (liveData.playerStats || {})[player.userId] || {};
+        const ps =
+          (liveData.playerStats || {})[player.id] ||
+          (liveData.playerStats || {})[player.userId] ||
+          {};
         allTimeCatches += ps.catches ?? 0;
         allTimeDrops += ps.drops ?? 0;
       } else if (sport === 'athletics') {
-        const ps = (liveData.playerStats || {})[player.id] ||
-                   (liveData.playerStats || {})[player.userId] || {};
+        const ps =
+          (liveData.playerStats || {})[player.id] ||
+          (liveData.playerStats || {})[player.userId] ||
+          {};
         const pos = ps.position ?? null;
         if (pos !== null) {
           if (allTimeBestPosition === null || pos < allTimeBestPosition) {
@@ -504,18 +516,24 @@ export class PlayersService {
             }
           }
         } else if (comp.sport?.code === 'volleyball') {
-          const ps = (liveData.playerStats || {})[player.id] ||
-                     (liveData.playerStats || {})[player.userId] || {};
+          const ps =
+            (liveData.playerStats || {})[player.id] ||
+            (liveData.playerStats || {})[player.userId] ||
+            {};
           compKills += ps.kills ?? 0;
           compBlocks += ps.blocks ?? 0;
         } else if (comp.sport?.code === 'basketball') {
-          const ps = (liveData.playerStats || {})[player.id] ||
-                     (liveData.playerStats || {})[player.userId] || {};
+          const ps =
+            (liveData.playerStats || {})[player.id] ||
+            (liveData.playerStats || {})[player.userId] ||
+            {};
           compPoints += ps.points ?? 0;
           compRebounds += ps.rebounds ?? 0;
         } else if (comp.sport?.code === 'table_tennis') {
-          const ps = (liveData.playerStats || {})[player.id] ||
-                     (liveData.playerStats || {})[player.userId] || {};
+          const ps =
+            (liveData.playerStats || {})[player.id] ||
+            (liveData.playerStats || {})[player.userId] ||
+            {};
           compTtSetsWon += ps.setsWon ?? 0;
           compAces += ps.aces ?? 0;
         } else if (comp.sport?.code === 'chess') {
@@ -530,18 +548,24 @@ export class PlayersService {
             compTotalMoves += liveData.totalMoves ?? 0;
           }
         } else if (comp.sport?.code === 'kabaddi') {
-          const ps = (liveData.playerStats || {})[player.id] ||
-                     (liveData.playerStats || {})[player.userId] || {};
+          const ps =
+            (liveData.playerStats || {})[player.id] ||
+            (liveData.playerStats || {})[player.userId] ||
+            {};
           compRaidPoints += ps.raidPoints ?? 0;
           compTacklePoints += ps.tacklePoints ?? 0;
         } else if (comp.sport?.code === 'throwball') {
-          const ps = (liveData.playerStats || {})[player.id] ||
-                     (liveData.playerStats || {})[player.userId] || {};
+          const ps =
+            (liveData.playerStats || {})[player.id] ||
+            (liveData.playerStats || {})[player.userId] ||
+            {};
           compCatches += ps.catches ?? 0;
           compDrops += ps.drops ?? 0;
         } else if (comp.sport?.code === 'athletics') {
-          const ps = (liveData.playerStats || {})[player.id] ||
-                     (liveData.playerStats || {})[player.userId] || {};
+          const ps =
+            (liveData.playerStats || {})[player.id] ||
+            (liveData.playerStats || {})[player.userId] ||
+            {};
           const pos = ps.position ?? null;
           if (pos !== null) {
             if (compBestPosition === null || pos < compBestPosition) {

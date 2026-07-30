@@ -127,7 +127,11 @@ export class CompetitionRankingsService {
       const tieBreaks = lastStage.config?.tieBreaks || ['points', 'gd', 'gf'];
       const customOverrides = lastStage.config?.customOverrides || {};
 
-      const compareHeadToHeadLocal = (teamAId: string, teamBId: string, matchesList: Match[]): number => {
+      const compareHeadToHeadLocal = (
+        teamAId: string,
+        teamBId: string,
+        matchesList: Match[],
+      ): number => {
         const directMatches = matchesList.filter(
           (m) =>
             m.status === 'completed' &&
@@ -140,8 +144,8 @@ export class CompetitionRankingsService {
 
         for (const m of directMatches) {
           const isHomeA = m.homeTeamId === teamAId;
-          const scoreA = isHomeA ? m.homeScore ?? 0 : m.awayScore ?? 0;
-          const scoreB = isHomeA ? m.awayScore ?? 0 : m.homeScore ?? 0;
+          const scoreA = isHomeA ? (m.homeScore ?? 0) : (m.awayScore ?? 0);
+          const scoreB = isHomeA ? (m.awayScore ?? 0) : (m.homeScore ?? 0);
 
           if (scoreA > scoreB) {
             ptsA += 3;
@@ -170,7 +174,11 @@ export class CompetitionRankingsService {
               const winsB = b.wins ?? 0;
               if (winsB !== winsA) return winsB - winsA;
             } else if (rule === 'h2h' || rule === 'headToHead') {
-              const h2hDiff = compareHeadToHeadLocal(a.teamId, b.teamId, matches);
+              const h2hDiff = compareHeadToHeadLocal(
+                a.teamId,
+                b.teamId,
+                matches,
+              );
               if (h2hDiff !== 0) return h2hDiff;
             } else if (rule === 'custom') {
               const valA = customOverrides[a.teamId] ?? 0;
@@ -443,7 +451,11 @@ export class CompetitionRankingsService {
     }
 
     if (stage.type === 'swiss') {
-      const tieBreaks = stage.config?.tieBreaks || ['buchholz', 'sonneborn_berger', 'cumulative'];
+      const tieBreaks = stage.config?.tieBreaks || [
+        'buchholz',
+        'sonneborn_berger',
+        'cumulative',
+      ];
 
       const teamStats = new Map<
         string,
@@ -602,10 +614,7 @@ export class CompetitionRankingsService {
           }
         }
 
-        const cumulative = stats.roundPoints.reduce(
-          (sum, val) => sum + val,
-          0,
-        );
+        const cumulative = stats.roundPoints.reduce((sum, val) => sum + val, 0);
 
         tieBreakScores.set(tId, {
           buchholz,
@@ -689,7 +698,11 @@ export class CompetitionRankingsService {
     const tieBreaks = stage.config?.tieBreaks || ['points', 'gd', 'gf'];
     const customOverrides = stage.config?.customOverrides || {};
 
-    const compareHeadToHeadLocal = (teamAId: string, teamBId: string, matchesList: Match[]): number => {
+    const compareHeadToHeadLocal = (
+      teamAId: string,
+      teamBId: string,
+      matchesList: Match[],
+    ): number => {
       const directMatches = matchesList.filter(
         (m) =>
           m.status === 'completed' &&
@@ -702,8 +715,8 @@ export class CompetitionRankingsService {
 
       for (const m of directMatches) {
         const isHomeA = m.homeTeamId === teamAId;
-        const scoreA = isHomeA ? m.homeScore ?? 0 : m.awayScore ?? 0;
-        const scoreB = isHomeA ? m.awayScore ?? 0 : m.homeScore ?? 0;
+        const scoreA = isHomeA ? (m.homeScore ?? 0) : (m.awayScore ?? 0);
+        const scoreB = isHomeA ? (m.awayScore ?? 0) : (m.homeScore ?? 0);
 
         if (scoreA > scoreB) {
           ptsA += 3;
@@ -730,8 +743,22 @@ export class CompetitionRankingsService {
         } else if (rule === 'gf' || rule === 'goalsFor') {
           if (statsB.gf !== statsA.gf) return statsB.gf - statsA.gf;
         } else if (rule === 'wins') {
-          const winsA = matches.filter(m => m.status === 'completed' && ((m.homeTeamId === a && (m.homeScore ?? 0) > (m.awayScore ?? 0)) || (m.awayTeamId === a && (m.awayScore ?? 0) > (m.homeScore ?? 0)))).length;
-          const winsB = matches.filter(m => m.status === 'completed' && ((m.homeTeamId === b && (m.homeScore ?? 0) > (m.awayScore ?? 0)) || (m.awayTeamId === b && (m.awayScore ?? 0) > (m.homeScore ?? 0)))).length;
+          const winsA = matches.filter(
+            (m) =>
+              m.status === 'completed' &&
+              ((m.homeTeamId === a &&
+                (m.homeScore ?? 0) > (m.awayScore ?? 0)) ||
+                (m.awayTeamId === a &&
+                  (m.awayScore ?? 0) > (m.homeScore ?? 0))),
+          ).length;
+          const winsB = matches.filter(
+            (m) =>
+              m.status === 'completed' &&
+              ((m.homeTeamId === b &&
+                (m.homeScore ?? 0) > (m.awayScore ?? 0)) ||
+                (m.awayTeamId === b &&
+                  (m.awayScore ?? 0) > (m.homeScore ?? 0))),
+          ).length;
           if (winsB !== winsA) return winsB - winsA;
         } else if (rule === 'h2h' || rule === 'headToHead') {
           const h2hDiff = compareHeadToHeadLocal(a, b, matches);

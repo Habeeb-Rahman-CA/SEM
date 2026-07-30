@@ -383,7 +383,8 @@ export class TeamsService {
             : ev.teamSide === 'away';
           if (!isTeamEvent) continue;
           if (ev.type === 'raid_success') allTimeRaidPoints += ev.points ?? 1;
-          if (ev.type === 'tackle_success') allTimeTacklePoints += ev.points ?? 1;
+          if (ev.type === 'tackle_success')
+            allTimeTacklePoints += ev.points ?? 1;
         }
       } else if (sport === 'throwball') {
         const events = liveData.events || [];
@@ -594,7 +595,8 @@ export class TeamsService {
               : ev.teamSide === 'away';
             if (!isTeamEvent) continue;
             if (ev.type === 'raid_success') compRaidPoints += ev.points ?? 1;
-            if (ev.type === 'tackle_success') compTacklePoints += ev.points ?? 1;
+            if (ev.type === 'tackle_success')
+              compTacklePoints += ev.points ?? 1;
           }
         } else if (sportCode === 'throwball') {
           const events = liveData.events || [];

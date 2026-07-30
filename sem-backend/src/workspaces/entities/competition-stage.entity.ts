@@ -21,7 +21,13 @@ export class CompetitionStage extends AuditableEntity {
   name: string; // e.g. "Group Stage", "Main Tournament"
 
   @Column({ type: 'varchar', length: 30 })
-  type: 'league' | 'group' | 'knockout' | 'group_knockout' | 'double_elimination' | 'swiss';
+  type:
+    | 'league'
+    | 'group'
+    | 'knockout'
+    | 'group_knockout'
+    | 'double_elimination'
+    | 'swiss';
 
   @Column({ type: 'int', default: 1 })
   sequence: number; // Order of stage in the competition
@@ -53,7 +59,7 @@ export class CompetitionStage extends AuditableEntity {
 
     // Double Elimination config
     bracketReset?: boolean; // Grand Final reset match if LB champion wins (default: true)
-    seeded?: boolean;       // Seed teams by rank instead of random draw (default: false)
+    seeded?: boolean; // Seed teams by rank instead of random draw (default: false)
 
     // Swiss config
     roundsCount?: number;

@@ -45,7 +45,10 @@ export class BracketAdvancementService {
     );
   }
 
-  async advanceGroupStageWinners(stage: CompetitionStage, forcePublish?: boolean): Promise<void> {
+  async advanceGroupStageWinners(
+    stage: CompetitionStage,
+    forcePublish?: boolean,
+  ): Promise<void> {
     const hasCustomRules =
       stage.config?.runnersUpCount !== undefined ||
       stage.config?.tieBreaks !== undefined ||
@@ -65,7 +68,8 @@ export class BracketAdvancementService {
       const groupMatches = allMatches.filter((m) => {
         const r = (m.config as any)?.round || '';
         return (
-          r.toLowerCase().includes('group') || r.toLowerCase().includes('league')
+          r.toLowerCase().includes('group') ||
+          r.toLowerCase().includes('league')
         );
       });
 
@@ -172,10 +176,12 @@ export class BracketAdvancementService {
       const firstKoRoundMatches = knockoutMatches.filter(
         (m) =>
           (m.config as any)?.round === firstKoRoundName &&
-          ((m.config as any)?.leg === undefined || (m.config as any)?.leg === 1),
+          ((m.config as any)?.leg === undefined ||
+            (m.config as any)?.leg === 1),
       );
 
-      const isSingleGroup = stage.config?.groupKnockoutSubtype === 'single_group';
+      const isSingleGroup =
+        stage.config?.groupKnockoutSubtype === 'single_group';
       const advancingType = stage.config?.advancingType || 'winner';
       const groupsCount = stage.config?.groupsCount ?? 2;
       const twoLegged =
@@ -374,14 +380,18 @@ export class BracketAdvancementService {
 
     const preview = await this.getQualificationPreview(stage);
     if (forcePublish && !preview.isCompleted) {
-      throw new BadRequestException('Cannot publish qualification until all group matches are completed.');
+      throw new BadRequestException(
+        'Cannot publish qualification until all group matches are completed.',
+      );
     }
 
     const qualifiedTeamsList = preview.qualifiedTeams;
 
     const matchesCount = firstKoRoundMatches.length;
     const teamsCountNeeded = matchesCount * 2;
-    const advancingTeamIds = qualifiedTeamsList.slice(0, teamsCountNeeded).map((q: any) => q.teamId);
+    const advancingTeamIds = qualifiedTeamsList
+      .slice(0, teamsCountNeeded)
+      .map((q: any) => q.teamId);
 
     const promotedTeams: { home: string; away: string }[] = [];
 
@@ -463,7 +473,9 @@ export class BracketAdvancementService {
       );
     });
 
-    const isCompleted = groupMatches.length > 0 && groupMatches.every((m) => m.status === 'completed');
+    const isCompleted =
+      groupMatches.length > 0 &&
+      groupMatches.every((m) => m.status === 'completed');
 
     const compTeams = await this.competitionTeamRepo.find({
       where: { competitionId: stage.competitionId },
@@ -573,7 +585,11 @@ export class BracketAdvancementService {
           } else if (rule === 'wins') {
             if (b.wins !== a.wins) return b.wins - a.wins;
           } else if (rule === 'h2h' || rule === 'headToHead') {
-            const h2hDiff = this.compareHeadToHead(a.teamId, b.teamId, groupMatches);
+            const h2hDiff = this.compareHeadToHead(
+              a.teamId,
+              b.teamId,
+              groupMatches,
+            );
             if (h2hDiff !== 0) return h2hDiff;
           } else if (rule === 'custom') {
             const valA = customOverrides[a.teamId] ?? 0;
@@ -594,23 +610,41 @@ export class BracketAdvancementService {
       });
     }
 
-    const advancingCount = stage.config?.advancingCount ?? (stage.config?.advancingType === 'winner_and_runner' ? 2 : 1);
+    const advancingCount =
+      stage.config?.advancingCount ??
+      (stage.config?.advancingType === 'winner_and_runner' ? 2 : 1);
     const runnersUpCount = stage.config?.runnersUpCount ?? 0;
 
-    const qualifiedTeams: { teamId: string; teamName: string; source: string }[] = [];
-    const eliminatedTeams: { teamId: string; teamName: string; source: string }[] = [];
+    const qualifiedTeams: {
+      teamId: string;
+      teamName: string;
+      source: string;
+    }[] = [];
+    const eliminatedTeams: {
+      teamId: string;
+      teamName: string;
+      source: string;
+    }[] = [];
     const runnerUpCandidates: any[] = [];
 
     for (const [gName, teamList] of Object.entries(groups)) {
       teamList.forEach((team) => {
         if (team.rank <= advancingCount) {
           team.status = 'qualified';
-          qualifiedTeams.push({ teamId: team.teamId, teamName: team.teamName, source: `${gName} Rank ${team.rank}` });
+          qualifiedTeams.push({
+            teamId: team.teamId,
+            teamName: team.teamName,
+            source: `${gName} Rank ${team.rank}`,
+          });
         } else if (runnersUpCount > 0 && team.rank === advancingCount + 1) {
           runnerUpCandidates.push(team);
         } else {
           team.status = 'eliminated';
-          eliminatedTeams.push({ teamId: team.teamId, teamName: team.teamName, source: `${gName} Rank ${team.rank}` });
+          eliminatedTeams.push({
+            teamId: team.teamId,
+            teamName: team.teamName,
+            source: `${gName} Rank ${team.rank}`,
+          });
         }
       });
     }
@@ -692,7 +726,11 @@ export class BracketAdvancementService {
     };
   }
 
-  private compareHeadToHead(teamAId: string, teamBId: string, matches: Match[]): number {
+  private compareHeadToHead(
+    teamAId: string,
+    teamBId: string,
+    matches: Match[],
+  ): number {
     const directMatches = matches.filter(
       (m) =>
         m.status === 'completed' &&
@@ -705,8 +743,8 @@ export class BracketAdvancementService {
 
     for (const m of directMatches) {
       const isHomeA = m.homeTeamId === teamAId;
-      const scoreA = isHomeA ? m.homeScore ?? 0 : m.awayScore ?? 0;
-      const scoreB = isHomeA ? m.awayScore ?? 0 : m.homeScore ?? 0;
+      const scoreA = isHomeA ? (m.homeScore ?? 0) : (m.awayScore ?? 0);
+      const scoreB = isHomeA ? (m.awayScore ?? 0) : (m.homeScore ?? 0);
 
       if (scoreA > scoreB) {
         ptsA += 3;
@@ -733,7 +771,9 @@ export class BracketAdvancementService {
       if (comp) {
         const workspaceId = comp.event?.workspaceId || null;
         const qualifiedTeamIds = [
-          ...new Set(promotedTeams.flatMap((p) => [p.home, p.away]).filter(Boolean)),
+          ...new Set(
+            promotedTeams.flatMap((p) => [p.home, p.away]).filter(Boolean),
+          ),
         ];
 
         for (const tId of qualifiedTeamIds) {
@@ -1217,7 +1257,7 @@ export class BracketAdvancementService {
     // Resolve winner / loser
     const homeScore = completedMatch.homeScore ?? 0;
     const awayScore = completedMatch.awayScore ?? 0;
-    const live = (completedMatch.liveData ?? {}) as any;
+    const live = completedMatch.liveData ?? {};
     const shHome = live.shootoutHomeScore ?? 0;
     const shAway = live.shootoutAwayScore ?? 0;
 
@@ -1247,8 +1287,15 @@ export class BracketAdvancementService {
 
     const matchesByRound = (b: string, r: string) =>
       allMatches
-        .filter((m) => (m.config as any)?.bracket === b && (m.config as any)?.round === r)
-        .sort((a, b2) => ((a.config as any)?.matchSlot ?? 0) - ((b2.config as any)?.matchSlot ?? 0));
+        .filter(
+          (m) =>
+            (m.config as any)?.bracket === b && (m.config as any)?.round === r,
+        )
+        .sort(
+          (a, b2) =>
+            ((a.config as any)?.matchSlot ?? 0) -
+            ((b2.config as any)?.matchSlot ?? 0),
+        );
 
     const findSlot = (b: string, r: string, slot: number) =>
       allMatches.find(
@@ -1259,7 +1306,11 @@ export class BracketAdvancementService {
       ) ?? null;
 
     // Helper: place a team into a match slot
-    const place = async (match: Match | null, side: 'home' | 'away', teamId: string | null) => {
+    const place = async (
+      match: Match | null,
+      side: 'home' | 'away',
+      teamId: string | null,
+    ) => {
       if (!match || !teamId) return;
       if (side === 'home') match.homeTeamId = teamId;
       else match.awayTeamId = teamId;
@@ -1272,11 +1323,13 @@ export class BracketAdvancementService {
 
       if (!isWbFinal) {
         // Winner advances to next WB round
-        const wbRounds = [...new Set(
-          allMatches
-            .filter((m) => (m.config as any)?.bracket === 'winner')
-            .map((m) => (m.config as any)?.round as string),
-        )];
+        const wbRounds = [
+          ...new Set(
+            allMatches
+              .filter((m) => (m.config as any)?.bracket === 'winner')
+              .map((m) => (m.config as any)?.round as string),
+          ),
+        ];
         const currIdx = wbRounds.indexOf(roundName);
         const nextWbRound = wbRounds[currIdx + 1] ?? null;
 
@@ -1288,12 +1341,14 @@ export class BracketAdvancementService {
         }
 
         // Loser drops to LB
-        const lbDropRoundIdx = currIdx * 2; 
-        const lbRounds = [...new Set(
-          allMatches
-            .filter((m) => (m.config as any)?.bracket === 'loser')
-            .map((m) => (m.config as any)?.round as string),
-        )];
+        const lbDropRoundIdx = currIdx * 2;
+        const lbRounds = [
+          ...new Set(
+            allMatches
+              .filter((m) => (m.config as any)?.bracket === 'loser')
+              .map((m) => (m.config as any)?.round as string),
+          ),
+        ];
         const lbTargetRoundName = lbRounds[lbDropRoundIdx] ?? null;
         if (lbTargetRoundName && loserId) {
           const lbRoundMatches = matchesByRound('loser', lbTargetRoundName);
@@ -1312,9 +1367,12 @@ export class BracketAdvancementService {
         const gfMatch = findSlot('grand_final', 'Grand Final', 0);
         await place(gfMatch, 'home', winnerId);
 
-        const lbFinalMatch = allMatches.find(
-          (m) => (m.config as any)?.bracket === 'loser' && (m.config as any)?.round === 'LB Final',
-        ) ?? null;
+        const lbFinalMatch =
+          allMatches.find(
+            (m) =>
+              (m.config as any)?.bracket === 'loser' &&
+              (m.config as any)?.round === 'LB Final',
+          ) ?? null;
         await place(lbFinalMatch, 'away', loserId);
       }
     }
@@ -1325,18 +1383,24 @@ export class BracketAdvancementService {
 
       if (!isLbFinal) {
         // Winner advances to next LB round
-        const lbRounds = [...new Set(
-          allMatches
-            .filter((m) => (m.config as any)?.bracket === 'loser')
-            .map((m) => (m.config as any)?.round as string),
-        )];
+        const lbRounds = [
+          ...new Set(
+            allMatches
+              .filter((m) => (m.config as any)?.bracket === 'loser')
+              .map((m) => (m.config as any)?.round as string),
+          ),
+        ];
         const currIdx = lbRounds.indexOf(roundName);
         const nextLbRound = lbRounds[currIdx + 1] ?? null;
 
         if (nextLbRound) {
           const isEvenRound = (currIdx + 1) % 2 === 0;
           const nextSlot = isEvenRound ? matchSlot : Math.floor(matchSlot / 2);
-          const side = isEvenRound ? 'home' : (matchSlot % 2 === 0 ? 'home' : 'away');
+          const side = isEvenRound
+            ? 'home'
+            : matchSlot % 2 === 0
+              ? 'home'
+              : 'away';
           const nextMatch = findSlot('loser', nextLbRound, nextSlot);
           await place(nextMatch, side, winnerId);
         }
@@ -1366,9 +1430,10 @@ export class BracketAdvancementService {
         await this.notifyEliminated(loserId, stage, 'GF');
       } else {
         // LB champ won first Grand Final -> trigger bracket reset
-        const resetMatch = allMatches.find(
-          (m) => (m.config as any)?.bracket === 'grand_final_reset',
-        ) ?? null;
+        const resetMatch =
+          allMatches.find(
+            (m) => (m.config as any)?.bracket === 'grand_final_reset',
+          ) ?? null;
         if (resetMatch) {
           resetMatch.homeTeamId = wbChampionId;
           resetMatch.awayTeamId = lbChampionId;
@@ -1432,7 +1497,11 @@ export class BracketAdvancementService {
         NotificationType.TEAM_ADVANCED,
         `${team?.name ?? 'Your team'} advanced: ${roundLabel} in ${comp.name}!`,
         comp.event?.workspaceId ?? null,
-        { competitionId: comp.id, competitionName: comp.name, nextRound: roundLabel },
+        {
+          competitionId: comp.id,
+          competitionName: comp.name,
+          nextRound: roundLabel,
+        },
       );
     } catch {}
   }
@@ -1497,7 +1566,8 @@ export class BracketAdvancementService {
     const teamIds = Array.from(teamIdsSet);
 
     // Check if we have reached the maximum number of rounds
-    const maxRounds = stage.config?.roundsCount || Math.ceil(Math.log2(teamIds.length || 2));
+    const maxRounds =
+      stage.config?.roundsCount || Math.ceil(Math.log2(teamIds.length || 2));
     if (currentRound >= maxRounds) {
       return;
     }
@@ -1690,4 +1760,3 @@ export class BracketAdvancementService {
     await this.matchRepo.save(nextRoundMatches);
   }
 }
-

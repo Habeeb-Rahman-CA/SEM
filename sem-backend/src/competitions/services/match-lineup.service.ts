@@ -611,10 +611,7 @@ export class MatchLineupService {
             stage,
           );
         } else if (stage.type === 'swiss') {
-          await this.bracketAdvancementService.advanceSwissRound(
-            saved,
-            stage,
-          );
+          await this.bracketAdvancementService.advanceSwissRound(saved, stage);
         }
 
         await this.bracketAdvancementService.checkAndAutoCompleteCompetition(

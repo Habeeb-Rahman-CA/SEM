@@ -346,7 +346,9 @@ export class CompetitionsController {
     );
   }
 
-  @Get('events/:eventId/competitions/:competitionId/stages/:stageId/qualification-preview')
+  @Get(
+    'events/:eventId/competitions/:competitionId/stages/:stageId/qualification-preview',
+  )
   @ApiOperation({ summary: 'Get stage qualification preview' })
   @ApiParam(WS)
   @ApiParam(EV)
@@ -371,7 +373,9 @@ export class CompetitionsController {
     );
   }
 
-  @Post('events/:eventId/competitions/:competitionId/stages/:stageId/publish-qualification')
+  @Post(
+    'events/:eventId/competitions/:competitionId/stages/:stageId/publish-qualification',
+  )
   @ApiOperation({ summary: 'Publish stage qualification' })
   @ApiParam(WS)
   @ApiParam(EV)

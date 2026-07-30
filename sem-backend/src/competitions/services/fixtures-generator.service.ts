@@ -104,7 +104,9 @@ export class FixturesGeneratorService {
       if (stage.type === 'league' || stage.type === 'group') {
         const twoLegged = stage.config?.twoLegged || stage.config?.legs === 2;
         const restDays = stage.config?.restDays ?? 1;
-        const baseDate = event.startDate ? new Date(event.startDate) : new Date();
+        const baseDate = event.startDate
+          ? new Date(event.startDate)
+          : new Date();
         const baseLabel = stage.type === 'league' ? 'Round' : 'League Stage';
         const rrFixtures = this.generateRoundRobinSchedule(
           teamIds,
@@ -213,7 +215,9 @@ export class FixturesGeneratorService {
 
         if (isSingleGroup) {
           const restDays = stage.config?.restDays ?? 1;
-          const baseDate = event.startDate ? new Date(event.startDate) : new Date();
+          const baseDate = event.startDate
+            ? new Date(event.startDate)
+            : new Date();
           const rrFixtures = this.generateRoundRobinSchedule(
             teamIds,
             twoLeggedGroup,
@@ -233,7 +237,9 @@ export class FixturesGeneratorService {
           teamIds.forEach((id, idx) => groups[idx % groupsCount].push(id));
 
           const restDays = stage.config?.restDays ?? 1;
-          const baseDate = event.startDate ? new Date(event.startDate) : new Date();
+          const baseDate = event.startDate
+            ? new Date(event.startDate)
+            : new Date();
 
           for (let gIndex = 0; gIndex < groups.length; gIndex++) {
             const group = groups[gIndex];
@@ -336,7 +342,11 @@ export class FixturesGeneratorService {
             fixtures.push({
               homeTeamId: null,
               awayTeamId: null,
-              config: { bracket: 'winner', round: wbRoundNames[r], matchSlot: i },
+              config: {
+                bracket: 'winner',
+                round: wbRoundNames[r],
+                matchSlot: i,
+              },
             });
           }
         }
@@ -347,7 +357,11 @@ export class FixturesGeneratorService {
             fixtures.push({
               homeTeamId: null,
               awayTeamId: null,
-              config: { bracket: 'loser', round: lbRoundNames[r], matchSlot: i },
+              config: {
+                bracket: 'loser',
+                round: lbRoundNames[r],
+                matchSlot: i,
+              },
             });
           }
         }
@@ -356,7 +370,11 @@ export class FixturesGeneratorService {
         fixtures.push({
           homeTeamId: null,
           awayTeamId: null,
-          config: { bracket: 'grand_final', round: 'Grand Final', matchSlot: 0 },
+          config: {
+            bracket: 'grand_final',
+            round: 'Grand Final',
+            matchSlot: 0,
+          },
         });
 
         // Bracket Reset (optional)
@@ -373,7 +391,8 @@ export class FixturesGeneratorService {
           });
         }
       } else if (stage.type === 'swiss') {
-        const roundsCount = stage.config?.roundsCount || Math.ceil(Math.log2(teamIds.length));
+        const roundsCount =
+          stage.config?.roundsCount || Math.ceil(Math.log2(teamIds.length));
         stage.config = { ...stage.config, roundsCount };
         await this.stageRepo.save(stage);
 
@@ -412,8 +431,9 @@ export class FixturesGeneratorService {
           stageId: stage.id,
           homeTeamId: f.homeTeamId,
           awayTeamId: f.awayTeamId,
-          status: (f.config?.status as any) || 'scheduled',
-          homeScore: f.config?.status === 'completed' ? (f.config?.isBye ? 1 : 0) : 0,
+          status: f.config?.status || 'scheduled',
+          homeScore:
+            f.config?.status === 'completed' ? (f.config?.isBye ? 1 : 0) : 0,
           awayScore: 0,
           scheduledAt: f.scheduledAt || null,
           venueId: f.venueId || null,
@@ -582,7 +602,9 @@ export class FixturesGeneratorService {
 
         // Calculate schedule date based on restDays
         const daysToAdd = (roundNum - 1) * (restDays + 1);
-        const scheduledAt = new Date(baseDate.getTime() + daysToAdd * 24 * 60 * 60 * 1000);
+        const scheduledAt = new Date(
+          baseDate.getTime() + daysToAdd * 24 * 60 * 60 * 1000,
+        );
 
         for (const match of roundMatchesInRound) {
           const homeTeamId = leg === 1 ? match.home : match.away;

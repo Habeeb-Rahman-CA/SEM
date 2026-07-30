@@ -614,7 +614,9 @@ export class CompetitionsService {
       where: { id: stageId, competitionId },
     });
     if (!stage) {
-      throw new NotFoundException(`Stage "${stageId}" not found in competition`);
+      throw new NotFoundException(
+        `Stage "${stageId}" not found in competition`,
+      );
     }
     return this.bracketAdvancementService.getQualificationPreview(stage);
   }
@@ -635,7 +637,9 @@ export class CompetitionsService {
       where: { id: stageId, competitionId },
     });
     if (!stage) {
-      throw new NotFoundException(`Stage "${stageId}" not found in competition`);
+      throw new NotFoundException(
+        `Stage "${stageId}" not found in competition`,
+      );
     }
     await this.bracketAdvancementService.advanceGroupStageWinners(stage, true);
   }
@@ -1088,7 +1092,9 @@ export class CompetitionsService {
       stage.type === 'group' ||
       stage.type === 'group_knockout';
     const isKnockout =
-      stage.type === 'knockout' || stage.type === 'group_knockout' || stage.type === 'double_elimination';
+      stage.type === 'knockout' ||
+      stage.type === 'group_knockout' ||
+      stage.type === 'double_elimination';
 
     const winPts: number = (stage.config as any)?.winPoint ?? 3;
     const drawPts: number = (stage.config as any)?.drawPoint ?? 1;
