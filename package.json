@@ -11,6 +11,35 @@
     "start": "npx -y concurrently -n \"backend,frontend\" -c \"blue,green\" \"npm run start:backend\" \"npm run start:frontend\"",
     "start:all": "./run-app.sh",
     "infra:up": "docker-compose up -d",
-    "infra:down": "docker-compose down"
+    "infra:down": "docker-compose down",
+    "prepare": "husky",
+    "commit": "cz",
+    "release": "standard-version"
+  },
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-conventional-changelog"
+    }
+  },
+  "lint-staged": {
+    "sem-backend/**/*.ts": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "sem-frontend/**/*.ts": [
+      "prettier --write"
+    ],
+    "**/*.{json,md,html,css}": [
+      "prettier --write"
+    ]
+  },
+  "devDependencies": {
+    "commitizen": "^4.3.2",
+    "cz-conventional-changelog": "^3.3.0",
+    "eslint": "^10.8.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.2.0",
+    "prettier": "^3.9.6",
+    "standard-version": "^9.5.0"
   }
 }
