@@ -4,6 +4,7 @@ import { Observable, tap, catchError, throwError, from } from 'rxjs';
 import { Router } from '@angular/router';
 import { environment } from '../../../../environments/environment';
 import { StorageService } from '../../../core/services/storage.service';
+import { CapacitorService } from '../../../core/services/capacitor.service';
 
 // ─── Interfaces ───────────────────────────────────────────────────────────────
 
@@ -33,6 +34,7 @@ export class AuthService {
   private http = inject(HttpClient);
   private router = inject(Router);
   private storage = inject(StorageService);
+  private capacitorService = inject(CapacitorService);
   private apiUrl = `${environment.apiUrl}/auth`;
 
   // ── Reactive state signals ──────────────────────────────────────────────────
@@ -70,6 +72,12 @@ export class AuthService {
       } else {
         this.defaultWorkspaceId.set(await this.storage.getItem('default_ws'));
       }
+
+      // Register native push notifications
+      this.capacitorService.registerPushNotifications(
+        (token) => this.savePushToken(token).subscribe(),
+        (notification) => console.log('Push notification received:', notification),
+      );
 
       // Silently verify token; refresh if expired
       return new Promise<void>((resolve) => {
@@ -164,6 +172,12 @@ export class AuthService {
         this.defaultWorkspaceId.set(val);
       });
     }
+
+    // Register native push notifications
+    this.capacitorService.registerPushNotifications(
+      (token) => this.savePushToken(token).subscribe(),
+      (notification) => console.log('Push notification received:', notification),
+    );
   }
 
   private applyAccessToken(accessToken: string): void {
@@ -208,6 +222,10 @@ export class AuthService {
       oldPassword,
       newPassword,
     });
+  }
+
+  savePushToken(pushToken: string | null): Observable<any> {
+    return this.http.post(`${this.apiUrl}/push-token`, { pushToken });
   }
 
   fetchProfileDetails(): Observable<{

@@ -82,6 +82,16 @@ export class NotificationsService {
         err.stack,
       );
     });
+
+    // Asynchronously send native push notification
+    this.triggerPushNotification(userId, type, message, metadata).catch(
+      (err) => {
+        this.logger.error(
+          `Failed to trigger push notification: ${err.message}`,
+          err.stack,
+        );
+      },
+    );
   }
 
   /**
@@ -111,7 +121,7 @@ export class NotificationsService {
       this.eventsGateway.sendNotification(notification.userId, notification);
     }
 
-    // Asynchronously send email notifications to all recipients
+    // Asynchronously send email and push notifications to all recipients
     for (const uid of uniqueIds) {
       this.triggerEmailNotification(
         uid,
@@ -125,6 +135,15 @@ export class NotificationsService {
           err.stack,
         );
       });
+
+      this.triggerPushNotification(uid, type, message, metadata).catch(
+        (err) => {
+          this.logger.error(
+            `Failed to trigger push notification: ${err.message}`,
+            err.stack,
+          );
+        },
+      );
     }
   }
 
@@ -288,6 +307,54 @@ export class NotificationsService {
   }
 
   /**
+   * Helper to send native push notifications to mobile devices via mock push engine
+   */
+  private async triggerPushNotification(
+    userId: string,
+    type: NotificationType,
+    message: string,
+    metadata?: Record<string, any> | null,
+  ): Promise<void> {
+    try {
+      const user = await this.usersService.findOneById(userId);
+      if (!user || !user.pushToken) {
+        return;
+      }
+
+      const pushTitles: Record<NotificationType, string> = {
+        [NotificationType.WELCOME]: 'Welcome to SEM 🏆',
+        [NotificationType.MEMBER_INVITED]: 'Workspace Invitation 📩',
+        [NotificationType.INVITATION_ACCEPTED]: 'Invitation Accepted ✔',
+        [NotificationType.INVITATION_REJECTED]: 'Invitation Declined ❌',
+        [NotificationType.MEMBER_ROLE_CHANGED]: 'Role Updated 🔑',
+        [NotificationType.TEAM_ADDED_TO_COMPETITION]: 'Team Registered 📝',
+        [NotificationType.FIXTURES_GENERATED]: 'Fixtures Released 📅',
+        [NotificationType.MATCH_SCHEDULED]: 'Match Scheduled 🕒',
+        [NotificationType.EVENT_CANCELLED]: 'Event Cancelled ⚠️',
+        [NotificationType.EVENT_COMPLETED]: 'Event Completed 🎉',
+        [NotificationType.COMPETITION_COMPLETED]: 'Competition Completed 🏆',
+        [NotificationType.MATCH_STARTED]: 'Match Started ⚽',
+        [NotificationType.MATCH_COMPLETED]: 'Match Completed 🏁',
+        [NotificationType.MATCH_DELAYED]: 'Match Delayed ⏳',
+        [NotificationType.MATCH_VENUE_CHANGED]: 'Venue Changed 📍',
+        [NotificationType.PROFILE_UPDATED]: 'Profile Updated 👤',
+        [NotificationType.PASSWORD_CHANGED]: 'Password Changed 🔒',
+      } as any;
+
+      const title = pushTitles[type] || 'SEM Notification 🔔';
+
+      this.logger.log(
+        `[MOCK NATIVE PUSH SENT] to user: ${user.username} (Token: ${user.pushToken})\n` +
+          `Title: ${title}\n` +
+          `Body: ${message}\n` +
+          `Data: ${JSON.stringify(metadata || {})}`,
+      );
+    } catch (error) {
+      this.logger.error(`Error sending push notification: ${error.message}`);
+    }
+  }
+
+  /**
    * Cron Job: Send match reminders to players 24 hours prior to scheduled start
    */
   @Cron(CronExpression.EVERY_HOUR)
@@ -398,6 +465,18 @@ export class NotificationsService {
           metadata: { matchId: match.id, isReminder: true },
         });
         await this.notificationRepo.save(notification);
+
+        // Send native push notification reminder
+        await this.triggerPushNotification(
+          userId,
+          NotificationType.WELCOME,
+          `Match reminder: ${match.homeTeam?.name || 'Home'} vs ${match.awayTeam?.name || 'Away'} is scheduled for ${matchTimeStr}.`,
+          { matchId: match.id, isReminder: true },
+        ).catch((err) => {
+          this.logger.error(
+            `Failed to send match reminder push: ${err.message}`,
+          );
+        });
       }
     }
   }

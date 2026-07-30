@@ -21,4 +21,7 @@ export class User extends AuditableEntity {
 
   @Column({ name: 'needs_password_change', type: 'boolean', default: false })
   needsPasswordChange: boolean;
+
+  @Column({ name: 'push_token', type: 'varchar', length: 500, nullable: true })
+  pushToken: string | null;
 }
