@@ -10,6 +10,7 @@ import { CompetitionStage } from '../../workspaces/entities/competition-stage.en
 import { Match } from '../../workspaces/entities/match.entity';
 import { CompetitionTeam } from '../../workspaces/entities/competition-team.entity';
 import { Event } from '../../workspaces/entities/event.entity';
+import { Venue } from '../../workspaces/entities/venue.entity';
 import { WorkspacesService } from '../../workspaces/workspaces.service';
 import { NotificationType } from '../../workspaces/entities/notification.entity';
 
@@ -26,6 +27,8 @@ export class FixturesGeneratorService {
     private readonly competitionTeamRepo: Repository<CompetitionTeam>,
     @InjectRepository(Event)
     private readonly eventRepo: Repository<Event>,
+    @InjectRepository(Venue)
+    private readonly venueRepo: Repository<Venue>,
     private readonly workspacesService: WorkspacesService,
   ) {}
 
@@ -46,6 +49,10 @@ export class FixturesGeneratorService {
       relations: { teams: true },
     });
     if (!event) throw new NotFoundException(`Event not found`);
+
+    const venues = await this.venueRepo.find({
+      where: { workspaceId },
+    });
 
     const competition = await this.competitionRepo.findOne({
       where: { id: competitionId, eventId },
@@ -89,19 +96,25 @@ export class FixturesGeneratorService {
       const fixtures: Array<{
         homeTeamId: string | null;
         awayTeamId: string | null;
+        scheduledAt?: Date | null;
+        venueId?: string | null;
         config: any;
       }> = [];
 
       if (stage.type === 'league' || stage.type === 'group') {
         const twoLegged = stage.config?.twoLegged || stage.config?.legs === 2;
-        const roundRobin = this.generateRoundRobin(teamIds, twoLegged);
-        for (const pair of roundRobin) {
-          fixtures.push({
-            homeTeamId: pair[0],
-            awayTeamId: pair[1],
-            config: { round: 'League Stage' },
-          });
-        }
+        const restDays = stage.config?.restDays ?? 1;
+        const baseDate = event.startDate ? new Date(event.startDate) : new Date();
+        const baseLabel = stage.type === 'league' ? 'Round' : 'League Stage';
+        const rrFixtures = this.generateRoundRobinSchedule(
+          teamIds,
+          twoLegged,
+          restDays,
+          baseDate,
+          venues,
+          baseLabel,
+        );
+        fixtures.push(...rrFixtures);
       } else if (stage.type === 'knockout') {
         const twoLegged = stage.config?.twoLegged || stage.config?.legs === 2;
         const isFirstStage = stage.id === stages[0].id;
@@ -199,14 +212,17 @@ export class FixturesGeneratorService {
         let totalAdvancing = 2;
 
         if (isSingleGroup) {
-          const roundRobin = this.generateRoundRobin(teamIds, twoLeggedGroup);
-          for (const pair of roundRobin) {
-            fixtures.push({
-              homeTeamId: pair[0],
-              awayTeamId: pair[1],
-              config: { round: 'Group Stage' },
-            });
-          }
+          const restDays = stage.config?.restDays ?? 1;
+          const baseDate = event.startDate ? new Date(event.startDate) : new Date();
+          const rrFixtures = this.generateRoundRobinSchedule(
+            teamIds,
+            twoLeggedGroup,
+            restDays,
+            baseDate,
+            venues,
+            'Group Stage',
+          );
+          fixtures.push(...rrFixtures);
           totalAdvancing = Number(stage.config?.singleGroupAdvancing ?? 2);
         } else {
           const groupsCount = stage.config?.groupsCount ?? 2;
@@ -216,18 +232,22 @@ export class FixturesGeneratorService {
           );
           teamIds.forEach((id, idx) => groups[idx % groupsCount].push(id));
 
+          const restDays = stage.config?.restDays ?? 1;
+          const baseDate = event.startDate ? new Date(event.startDate) : new Date();
+
           for (let gIndex = 0; gIndex < groups.length; gIndex++) {
             const group = groups[gIndex];
             const groupChar = String.fromCharCode(65 + gIndex);
             if (group.length < 2) continue;
-            const roundRobin = this.generateRoundRobin(group, twoLeggedGroup);
-            for (const pair of roundRobin) {
-              fixtures.push({
-                homeTeamId: pair[0],
-                awayTeamId: pair[1],
-                config: { round: `Group ${groupChar}` },
-              });
-            }
+            const rrFixtures = this.generateRoundRobinSchedule(
+              group,
+              twoLeggedGroup,
+              restDays,
+              baseDate,
+              venues,
+              `Group ${groupChar}`,
+            );
+            fixtures.push(...rrFixtures);
           }
 
           const isWinnerAndRunner =
@@ -395,6 +415,8 @@ export class FixturesGeneratorService {
           status: (f.config?.status as any) || 'scheduled',
           homeScore: f.config?.status === 'completed' ? (f.config?.isBye ? 1 : 0) : 0,
           awayScore: 0,
+          scheduledAt: f.scheduledAt || null,
+          venueId: f.venueId || null,
           config: f.config,
           liveData: {},
         });
@@ -473,18 +495,120 @@ export class FixturesGeneratorService {
     }
   }
 
-  private generateRoundRobin(
+  private generateRoundRobinSchedule(
     teams: string[],
     twoLegged: boolean,
-  ): [string, string][] {
-    const matches: [string, string][] = [];
-    for (let i = 0; i < teams.length; i++) {
-      for (let j = i + 1; j < teams.length; j++) {
-        matches.push([teams[i], teams[j]]);
-        if (twoLegged) matches.push([teams[j], teams[i]]);
+    restDays: number,
+    baseDate: Date,
+    venues: Venue[],
+    baseLabel: string,
+  ): Array<{
+    homeTeamId: string | null;
+    awayTeamId: string | null;
+    scheduledAt: Date | null;
+    venueId: string | null;
+    config: {
+      round: string;
+      leg?: number;
+    };
+  }> {
+    const list = [...teams];
+    const isOdd = list.length % 2 !== 0;
+    if (isOdd) {
+      list.push('BYE'); // Placeholder for bye
+    }
+
+    const n = list.length;
+    const roundsCount = n - 1;
+    const roundMatches: Array<Array<{ home: string; away: string }>> = [];
+
+    // Circle method to generate rounds
+    for (let r = 0; r < roundsCount; r++) {
+      const matches: Array<{ home: string; away: string }> = [];
+      for (let i = 0; i < n / 2; i++) {
+        const homeIdx = i;
+        const awayIdx = n - 1 - i;
+
+        let home = list[homeIdx];
+        let away = list[awayIdx];
+
+        // Alternate home/away for the fixed element (index 0) to balance
+        if (i === 0 && r % 2 === 0) {
+          [home, away] = [away, home];
+        }
+
+        if (home !== 'BYE' && away !== 'BYE') {
+          matches.push({ home, away });
+        }
+      }
+      roundMatches.push(matches);
+
+      // Rotate list clockwise (index 0 stays fixed)
+      const last = list.pop()!;
+      list.splice(1, 0, last);
+    }
+
+    const totalLegs = twoLegged ? 2 : 1;
+    const allFixtures: Array<{
+      homeTeamId: string | null;
+      awayTeamId: string | null;
+      scheduledAt: Date | null;
+      venueId: string | null;
+      config: {
+        round: string;
+        leg?: number;
+      };
+    }> = [];
+
+    let venueIndex = 0;
+
+    for (let leg = 1; leg <= totalLegs; leg++) {
+      for (let r = 0; r < roundsCount; r++) {
+        const roundNum = (leg - 1) * roundsCount + (r + 1);
+        const totalRounds = roundsCount * totalLegs;
+
+        let roundLabel = '';
+        if (baseLabel === 'Round') {
+          roundLabel = `Round ${roundNum}`;
+        } else {
+          if (totalRounds === 1) {
+            roundLabel = baseLabel;
+          } else {
+            roundLabel = `${baseLabel} - Round ${roundNum}`;
+          }
+        }
+
+        const roundMatchesInRound = roundMatches[r];
+
+        // Calculate schedule date based on restDays
+        const daysToAdd = (roundNum - 1) * (restDays + 1);
+        const scheduledAt = new Date(baseDate.getTime() + daysToAdd * 24 * 60 * 60 * 1000);
+
+        for (const match of roundMatchesInRound) {
+          const homeTeamId = leg === 1 ? match.home : match.away;
+          const awayTeamId = leg === 1 ? match.away : match.home;
+
+          let venueId: string | null = null;
+          if (venues.length > 0) {
+            venueId = venues[venueIndex % venues.length].id;
+            venueIndex++;
+          }
+
+          allFixtures.push({
+            homeTeamId,
+            awayTeamId,
+            scheduledAt,
+            venueId,
+            config: {
+              round: roundLabel,
+              ...(twoLegged ? { leg } : {}),
+            },
+          });
+        }
       }
     }
-    return matches;
+
+    return allFixtures;
   }
 
   /** WB round labels from R1 to WB Final (bracketSize must be power of 2, >= 4) */

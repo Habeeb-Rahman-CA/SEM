@@ -182,6 +182,7 @@ export interface CompetitionStage {
     seeded?: boolean;
     roundsCount?: number;
     tieBreaks?: string[];
+    restDays?: number;
   };
   createdAt: string;
   updatedAt: string;

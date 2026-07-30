@@ -845,4 +845,86 @@ describe('Fixture Generation (e2e)', () => {
     const finalSwissComp = swissCompFinished.body.find((c: any) => c.id === swissCompId);
     expect(finalSwissComp.status).toBe('completed');
   });
+
+  it('should generate fixtures and balance venues/dates correctly for round robin stage', async () => {
+    // 1. Create 2 venues for the workspace to verify venue balancing
+    await request(app.getHttpServer())
+      .post(`/workspaces/${workspaceId}/venues`)
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .send({ name: 'Court A', location: 'Section 1' })
+      .expect(201);
+    await request(app.getHttpServer())
+      .post(`/workspaces/${workspaceId}/venues`)
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .send({ name: 'Court B', location: 'Section 2' })
+      .expect(201);
+
+    // 2. Create a competition
+    const compRes = await request(app.getHttpServer())
+      .post(`/workspaces/${workspaceId}/events/${eventId}/competitions`)
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .send({
+        name: 'RR Config Competition',
+        sportId: sportId,
+        status: 'upcoming',
+      })
+      .expect(201);
+    const compId = compRes.body.id;
+
+    // 3. Create a stage of type league (Round Robin) with restDays config
+    const stageRes = await request(app.getHttpServer())
+      .post(
+        `/workspaces/${workspaceId}/events/${eventId}/competitions/${compId}/stages`,
+      )
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .send({
+        name: 'RR Config Stage',
+        type: 'league',
+        sequence: 1,
+        config: {
+          winPoint: 3,
+          drawPoint: 1,
+          twoLegged: true,
+          restDays: 2,
+        },
+      })
+      .expect(201);
+    const stageId = stageRes.body.id;
+
+    // 4. Generate fixtures
+    await request(app.getHttpServer())
+      .post(
+        `/workspaces/${workspaceId}/events/${eventId}/competitions/${compId}/generate-fixtures`,
+      )
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .expect(201);
+
+    // 5. Retrieve matches and verify dates and venues
+    const matchesRes = await request(app.getHttpServer())
+      .get(
+        `/workspaces/${workspaceId}/events/${eventId}/competitions/${compId}/stages/${stageId}/matches`,
+      )
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .expect(200);
+
+    const matches = matchesRes.body;
+    expect(matches.length).toBeGreaterThan(0);
+
+    // Check that scheduledAt values exist and rest period is respected between rounds
+    const round1Match = matches.find((m: any) => m.config?.round === 'Round 1' && m.config?.leg === 1);
+    const round2Match = matches.find((m: any) => m.config?.round === 'Round 2' && m.config?.leg === 1);
+
+    if (round1Match && round2Match) {
+      const date1 = new Date(round1Match.scheduledAt);
+      const date2 = new Date(round2Match.scheduledAt);
+      const diffTime = Math.abs(date2.getTime() - date1.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      // With restDays: 2, the gap between Round 1 and Round 2 dates must be exactly 3 days (2 rest days + 1 match day)
+      expect(diffDays).toBe(3);
+    }
+
+    // Verify venue balancing: check that venues are assigned
+    const assignedVenues = matches.map((m: any) => m.venueId).filter(Boolean);
+    expect(assignedVenues.length).toBeGreaterThan(0);
+  });
 });

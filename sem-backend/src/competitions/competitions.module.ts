@@ -11,6 +11,7 @@ import { Team } from '../workspaces/entities/team.entity';
 import { Player } from '../workspaces/entities/player.entity';
 import { Workspace } from '../workspaces/entities/workspace.entity';
 import { WorkspaceMember } from '../workspaces/entities/workspace-member.entity';
+import { Venue } from '../workspaces/entities/venue.entity';
 import { CompetitionsService } from './competitions.service';
 import { CompetitionsController } from './competitions.controller';
 import { WorkspacesModule } from '../workspaces/workspaces.module';
@@ -38,6 +39,7 @@ import { MatchLockService } from './services/match-lock.service';
       Player,
       Workspace,
       WorkspaceMember,
+      Venue,
     ]),
     WorkspacesModule,
   ],

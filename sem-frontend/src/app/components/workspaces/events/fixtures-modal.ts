@@ -90,6 +90,14 @@ import { AvatarComponent } from '../../../shared/components/avatar/avatar';
                   </select>
                 </div>
               </div>
+              <div class="grid grid-cols-2 gap-4 mt-4">
+                <div class="flex flex-col gap-1.5">
+                  <label for="f-restdays" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Rest Period (Days)</label>
+                  <input id="f-restdays" type="number" min="0" max="30"
+                    class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white outline-none text-center"
+                    [ngModel]="restDays()" (ngModelChange)="restDays.set($event)" name="restDays" />
+                </div>
+              </div>
               }
 
               @if (stageType() === 'group') {
@@ -197,6 +205,12 @@ import { AvatarComponent } from '../../../shared/components/avatar/avatar';
                     <option value="false">Single Legged</option>
                     <option value="true">Two Legged (Aggregate Scores)</option>
                   </select>
+                </div>
+                <div class="flex flex-col gap-1.5">
+                  <label for="f-gk-restdays" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Group Rest Period (Days)</label>
+                  <input id="f-gk-restdays" type="number" min="0" max="30"
+                    class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white outline-none text-center"
+                    [ngModel]="restDays()" (ngModelChange)="restDays.set($event)" name="gkRestDays" />
                 </div>
               </div>
               }
@@ -349,6 +363,7 @@ export class FixturesModalComponent {
   drawPoint = signal(1);
   twoLegged = signal(false);
   legs = signal(1);
+  restDays = signal(1);
   gamesPerTeam = signal(3);
   venueId = signal('');
   groupKnockoutSubtype = signal<'multiple_groups' | 'single_group'>('multiple_groups');
@@ -383,6 +398,7 @@ export class FixturesModalComponent {
           this.groupsCount.set(stage.config?.groupsCount ?? 2);
           this.advancingCount.set(stage.config?.advancingCount ?? 2);
           this.gamesPerTeam.set(stage.config?.gamesPerTeam ?? 3);
+          this.restDays.set(stage.config?.restDays ?? 1);
           this.legs.set(stage.config?.legs ?? (stage.config?.twoLegged ? 2 : 1));
           this.groupKnockoutSubtype.set(stage.config?.groupKnockoutSubtype ?? 'multiple_groups');
           this.advancingType.set(stage.config?.advancingType ?? 'winner_and_runner');
@@ -400,6 +416,7 @@ export class FixturesModalComponent {
           this.twoLegged.set(false);
           this.legs.set(1);
           this.gamesPerTeam.set(3);
+          this.restDays.set(1);
           this.venueId.set('');
           this.groupKnockoutSubtype.set('multiple_groups');
           this.groupsCount.set(2);
@@ -472,10 +489,12 @@ export class FixturesModalComponent {
 
       if (this.stageType() === 'league') {
         config.gamesPerTeam = this.gamesPerTeam();
+        config.restDays = Number(this.restDays());
       } else if (this.stageType() === 'group') {
         config.groupsCount = Number(this.groupsCount());
         config.advancingCount = Number(this.advancingCount());
       } else if (this.stageType() === 'group_knockout') {
+        config.restDays = Number(this.restDays());
         config.groupKnockoutSubtype = this.groupKnockoutSubtype();
         config.groupsCount = this.groupKnockoutSubtype() === 'multiple_groups' ? Number(this.groupsCount()) : 1;
         config.advancingType = this.advancingType();

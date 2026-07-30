@@ -58,5 +58,6 @@ export class CompetitionStage extends AuditableEntity {
     // Swiss config
     roundsCount?: number;
     tieBreaks?: string[];
+    restDays?: number;
   };
 }
