@@ -18,6 +18,26 @@ export class PublicEventsController {
     private readonly competitionsService: CompetitionsService,
   ) {}
 
+  @Get('live-matches')
+  @ApiOperation({
+    summary: 'List all currently live matches across published events',
+    description:
+      'Returns every match with status="live" that belongs to a public event. Supports optional filtering by sport code or a specific event.',
+  })
+  @ApiQuery({
+    name: 'sport',
+    required: false,
+    description: 'Sport code, e.g. football',
+  })
+  @ApiQuery({ name: 'eventId', required: false })
+  @ApiResponse({ status: 200, description: 'Array of live match summaries' })
+  async getLiveMatches(
+    @Query('sport') sport?: string,
+    @Query('eventId') eventId?: string,
+  ) {
+    return this.competitionsService.getPublicLiveMatches({ sport, eventId });
+  }
+
   @Get()
   @ApiOperation({
     summary: 'Browse published events (public portal)',

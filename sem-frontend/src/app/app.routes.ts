@@ -70,6 +70,14 @@ export const routes: Routes = [
         (m) => m.PublicEventsPortalComponent,
       ),
   },
+  // Live score hub — real-time scores across all public events
+  {
+    path: 'live',
+    loadComponent: () =>
+      import('./features/public-event/pages/live/live-score-hub').then(
+        (m) => m.LiveScoreHubComponent,
+      ),
+  },
   {
     path: 'public/events/:id',
     loadComponent: () =>

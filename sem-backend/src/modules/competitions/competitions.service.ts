@@ -951,6 +951,91 @@ export class CompetitionsService {
     });
   }
 
+  async getPublicLiveMatches(
+    filters: {
+      sport?: string;
+      eventId?: string;
+    } = {},
+  ): Promise<any[]> {
+    const qb = this.matchRepo
+      .createQueryBuilder('match')
+      .innerJoinAndSelect('match.stage', 'stage')
+      .innerJoinAndSelect('stage.competition', 'competition')
+      .innerJoinAndSelect('competition.sport', 'sport')
+      .innerJoinAndSelect('competition.event', 'event')
+      .leftJoinAndSelect('match.homeTeam', 'homeTeam')
+      .leftJoinAndSelect('match.awayTeam', 'awayTeam')
+      .leftJoinAndSelect('match.venue', 'venue')
+      .where('match.status = :live', { live: 'live' })
+      .andWhere('event.isPublic = :isPublic', { isPublic: true })
+      .andWhere('event.deletedAt IS NULL');
+
+    if (filters.sport) {
+      qb.andWhere('LOWER(sport.code) = LOWER(:sportCode)', {
+        sportCode: filters.sport,
+      });
+    }
+
+    if (filters.eventId) {
+      qb.andWhere('event.id = :eventId', { eventId: filters.eventId });
+    }
+
+    qb.orderBy('match.scheduledAt', 'ASC', 'NULLS LAST').addOrderBy(
+      'match.createdAt',
+      'ASC',
+    );
+
+    const matches = await qb.getMany();
+
+    return matches.map((m) => ({
+      id: m.id,
+      status: m.status,
+      homeScore: m.homeScore,
+      awayScore: m.awayScore,
+      scheduledAt: m.scheduledAt,
+      config: m.config,
+      liveData: m.liveData,
+      homeTeam: m.homeTeam
+        ? {
+            id: m.homeTeam.id,
+            name: m.homeTeam.name,
+            logoUrl: m.homeTeam.logoUrl,
+          }
+        : null,
+      awayTeam: m.awayTeam
+        ? {
+            id: m.awayTeam.id,
+            name: m.awayTeam.name,
+            logoUrl: m.awayTeam.logoUrl,
+          }
+        : null,
+      venue: m.venue ? { id: m.venue.id, name: m.venue.name } : null,
+      stage: {
+        id: m.stage.id,
+        name: m.stage.name,
+        type: m.stage.type,
+      },
+      competition: {
+        id: m.stage.competition.id,
+        name: m.stage.competition.name,
+        sport: m.stage.competition.sport
+          ? {
+              id: m.stage.competition.sport.id,
+              code: m.stage.competition.sport.code,
+              name: m.stage.competition.sport.name,
+            }
+          : null,
+      },
+      event: {
+        id: m.stage.competition.event.id,
+        name: m.stage.competition.event.name,
+        slug: m.stage.competition.event.slug,
+        logoUrl: m.stage.competition.event.logoUrl,
+        workspaceId: m.stage.competition.event.workspaceId,
+      },
+    }));
+  }
+
   async getPublicMatches(
     eventId: string,
     competitionId: string,

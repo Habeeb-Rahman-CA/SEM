@@ -211,6 +211,15 @@ export class EventService {
     return this.http.get<any[]>(`${environment.apiUrl}/public/events/${eventId}/competitions`);
   }
 
+  getPublicLiveMatches(filters: { sport?: string; eventId?: string } = {}): Observable<any[]> {
+    const params: Record<string, string> = {};
+    if (filters.sport) params['sport'] = filters.sport;
+    if (filters.eventId) params['eventId'] = filters.eventId;
+    return this.http.get<any[]>(`${environment.apiUrl}/public/events/live-matches`, {
+      params,
+    });
+  }
+
   getPublicStages(eventId: string, competitionId: string): Observable<any[]> {
     return this.http.get<any[]>(
       `${environment.apiUrl}/public/events/${eventId}/competitions/${competitionId}/stages`,
