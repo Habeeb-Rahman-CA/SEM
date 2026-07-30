@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { AppModule } from './../src/app.module';
+import { AppModule } from '../src/app.module';
 
 describe('Fixture Generation (e2e)', () => {
   let app: INestApplication<App>;
@@ -513,23 +513,30 @@ describe('Fixture Generation (e2e)', () => {
     const matches = matchesRes.body;
 
     const sf1 = matches.find(
-      (m: any) => m.config?.bracket === 'winner' && m.config?.round === 'WB Semi-Final' && m.config?.matchSlot === 0,
+      (m: any) =>
+        m.config?.bracket === 'winner' &&
+        m.config?.round === 'WB Semi-Final' &&
+        m.config?.matchSlot === 0,
     );
     const sf2 = matches.find(
-      (m: any) => m.config?.bracket === 'winner' && m.config?.round === 'WB Semi-Final' && m.config?.matchSlot === 1,
+      (m: any) =>
+        m.config?.bracket === 'winner' &&
+        m.config?.round === 'WB Semi-Final' &&
+        m.config?.matchSlot === 1,
     );
     const wbFinal = matches.find(
-      (m: any) => m.config?.bracket === 'winner' && m.config?.round === 'WB Final',
+      (m: any) =>
+        m.config?.bracket === 'winner' && m.config?.round === 'WB Final',
     );
     const lbSemiFinal = matches.find(
-      (m: any) => m.config?.bracket === 'loser' && m.config?.round === 'LB Semi-Final',
+      (m: any) =>
+        m.config?.bracket === 'loser' && m.config?.round === 'LB Semi-Final',
     );
     const lbFinal = matches.find(
-      (m: any) => m.config?.bracket === 'loser' && m.config?.round === 'LB Final',
+      (m: any) =>
+        m.config?.bracket === 'loser' && m.config?.round === 'LB Final',
     );
-    const gf = matches.find(
-      (m: any) => m.config?.bracket === 'grand_final',
-    );
+    const gf = matches.find((m: any) => m.config?.bracket === 'grand_final');
     const reset = matches.find(
       (m: any) => m.config?.bracket === 'grand_final_reset',
     );
@@ -577,8 +584,12 @@ describe('Fixture Generation (e2e)', () => {
       .set('Authorization', `Bearer ${jwtToken}`)
       .expect(200);
 
-    const updatedWbFinal = matchesAfterSFs.body.find((m: any) => m.id === wbFinal.id);
-    const updatedLbSemiFinal = matchesAfterSFs.body.find((m: any) => m.id === lbSemiFinal.id);
+    const updatedWbFinal = matchesAfterSFs.body.find(
+      (m: any) => m.id === wbFinal.id,
+    );
+    const updatedLbSemiFinal = matchesAfterSFs.body.find(
+      (m: any) => m.id === lbSemiFinal.id,
+    );
 
     expect(updatedWbFinal.homeTeamId).toBe(sf1.homeTeamId); // Winner SF1 (Team 1)
     expect(updatedWbFinal.awayTeamId).toBe(sf2.homeTeamId); // Winner SF2 (Team 3)
@@ -619,7 +630,9 @@ describe('Fixture Generation (e2e)', () => {
       .set('Authorization', `Bearer ${jwtToken}`)
       .expect(200);
 
-    const updatedLbFinal = matchesAfterWbFinal.body.find((m: any) => m.id === lbFinal.id);
+    const updatedLbFinal = matchesAfterWbFinal.body.find(
+      (m: any) => m.id === lbFinal.id,
+    );
     const updatedGf = matchesAfterWbFinal.body.find((m: any) => m.id === gf.id);
 
     expect(updatedLbFinal.homeTeamId).toBe(updatedLbSemiFinal.homeTeamId); // Winner LB Semi-Final (Team 2)
@@ -647,7 +660,9 @@ describe('Fixture Generation (e2e)', () => {
       .set('Authorization', `Bearer ${jwtToken}`)
       .expect(200);
 
-    const updatedGf2 = matchesAfterLbFinal.body.find((m: any) => m.id === gf.id);
+    const updatedGf2 = matchesAfterLbFinal.body.find(
+      (m: any) => m.id === gf.id,
+    );
     expect(updatedGf2.awayTeamId).toBe(updatedLbFinal.homeTeamId); // Winner LB Final (Team 2)
 
     // Complete Grand Final (Team 1 vs Team 2 -> Team 2 wins, triggering reset)
@@ -671,7 +686,9 @@ describe('Fixture Generation (e2e)', () => {
       .set('Authorization', `Bearer ${jwtToken}`)
       .expect(200);
 
-    const updatedReset = matchesAfterGf.body.find((m: any) => m.id === reset.id);
+    const updatedReset = matchesAfterGf.body.find(
+      (m: any) => m.id === reset.id,
+    );
     expect(updatedReset.status).toBe('scheduled');
     expect(updatedReset.homeTeamId).toBe(updatedGf2.homeTeamId); // Team 1
     expect(updatedReset.awayTeamId).toBe(updatedGf2.awayTeamId); // Team 2
@@ -793,7 +810,9 @@ describe('Fixture Generation (e2e)', () => {
     // Should have 2 matches of round 1 + 2 matches of round 2 = 4 matches total
     expect(allMatches.length).toBe(4);
 
-    const round2Matches = allMatches.filter((m: any) => m.config?.swissRound === 2);
+    const round2Matches = allMatches.filter(
+      (m: any) => m.config?.swissRound === 2,
+    );
     expect(round2Matches.length).toBe(2);
 
     // Verify pairings in Round 2:
@@ -803,10 +822,12 @@ describe('Fixture Generation (e2e)', () => {
     const losers = [m1.awayTeamId, m2.awayTeamId];
 
     const matchWinners = round2Matches.find(
-      (m: any) => winners.includes(m.homeTeamId) && winners.includes(m.awayTeamId)
+      (m: any) =>
+        winners.includes(m.homeTeamId) && winners.includes(m.awayTeamId),
     );
     const matchLosers = round2Matches.find(
-      (m: any) => losers.includes(m.homeTeamId) && losers.includes(m.awayTeamId)
+      (m: any) =>
+        losers.includes(m.homeTeamId) && losers.includes(m.awayTeamId),
     );
 
     expect(matchWinners).toBeDefined();
@@ -842,7 +863,9 @@ describe('Fixture Generation (e2e)', () => {
       .get(`/workspaces/${workspaceId}/events/${eventId}/competitions`)
       .set('Authorization', `Bearer ${jwtToken}`)
       .expect(200);
-    const finalSwissComp = swissCompFinished.body.find((c: any) => c.id === swissCompId);
+    const finalSwissComp = swissCompFinished.body.find(
+      (c: any) => c.id === swissCompId,
+    );
     expect(finalSwissComp.status).toBe('completed');
   });
 
@@ -911,8 +934,12 @@ describe('Fixture Generation (e2e)', () => {
     expect(matches.length).toBeGreaterThan(0);
 
     // Check that scheduledAt values exist and rest period is respected between rounds
-    const round1Match = matches.find((m: any) => m.config?.round === 'Round 1' && m.config?.leg === 1);
-    const round2Match = matches.find((m: any) => m.config?.round === 'Round 2' && m.config?.leg === 1);
+    const round1Match = matches.find(
+      (m: any) => m.config?.round === 'Round 1' && m.config?.leg === 1,
+    );
+    const round2Match = matches.find(
+      (m: any) => m.config?.round === 'Round 2' && m.config?.leg === 1,
+    );
 
     if (round1Match && round2Match) {
       const date1 = new Date(round1Match.scheduledAt);

@@ -2,20 +2,25 @@ import { Module } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ScheduleModule } from '@nestjs/schedule';
+import { TerminusModule } from '@nestjs/terminus';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { UsersModule } from './users/users.module';
-import { AuthModule } from './auth/auth.module';
-import { WorkspacesModule } from './workspaces/workspaces.module';
-import { UploadModule } from './upload/upload.module';
-import { VenuesModule } from './venues/venues.module';
-import { TeamsModule } from './teams/teams.module';
-import { PlayersModule } from './players/players.module';
-import { EventsModule } from './events/events.module';
-import { CompetitionsModule } from './competitions/competitions.module';
-import { ReliabilityModule } from './reliability/reliability.module';
-import { SearchModule } from './search/search.module';
-import { AllExceptionsFilter } from './common/all-exceptions.filter';
+import { UsersModule } from './modules/users/users.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { WorkspacesModule } from './modules/workspaces/workspaces.module';
+import { UploadModule } from './modules/upload/upload.module';
+import { VenuesModule } from './modules/venues/venues.module';
+import { TeamsModule } from './modules/teams/teams.module';
+import { PlayersModule } from './modules/players/players.module';
+import { EventsModule } from './modules/events/events.module';
+import { CompetitionsModule } from './modules/competitions/competitions.module';
+import { SearchModule } from './modules/search/search.module';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import { LoggingModule } from './shared/logger/logging.module';
+import { MonitoringModule } from './shared/monitoring/monitoring.module';
+import { BackupModule } from './jobs/cron/backup/backup.module';
+import { RecoveryModule } from './common/recovery/recovery.module';
 
 @Module({
   imports: [
@@ -37,6 +42,8 @@ import { AllExceptionsFilter } from './common/all-exceptions.filter';
         synchronize: configService.get<boolean>('DB_SYNCHRONIZE', true),
       }),
     }),
+    ScheduleModule.forRoot(),
+    TerminusModule,
     UsersModule,
     AuthModule,
     WorkspacesModule,
@@ -46,8 +53,11 @@ import { AllExceptionsFilter } from './common/all-exceptions.filter';
     PlayersModule,
     EventsModule,
     CompetitionsModule,
-    ReliabilityModule,
     SearchModule,
+    LoggingModule,
+    MonitoringModule,
+    BackupModule,
+    RecoveryModule,
   ],
   controllers: [AppController],
   providers: [

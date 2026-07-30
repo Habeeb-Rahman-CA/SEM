@@ -1,6 +1,6 @@
 {
   "name": "sports-event-management-frontend",
-  "version": "1.2.0",
+  "version": "2.0.0",
   "description": "Angular Front-End application for the Sports Event Management (SEM) Platform, featuring live scoreboard widgets, real-time sync with websockets, and organizers/referees scoring console.",
   "author": "Sports Event Management Team",
   "license": "MIT",
