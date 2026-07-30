@@ -1,0 +1,2329 @@
+@if (workspace(); as ws) {
+  @if (selectedEvent(); as event) {
+    <!-- Event Detail & Competitions View -->
+    <div class="flex flex-col gap-6 text-left">
+      @if (!selectedCompetition()) {
+        <div class="flex items-center justify-between border-b border-white/5 pb-4">
+          <div class="flex items-center gap-4">
+            <button
+              (click)="onDeselectEvent()"
+              class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white hover:text-slate-950 text-xs font-bold rounded-xl cursor-pointer transition-all border border-white/5"
+            >
+              ← Back to Events
+            </button>
+            <div>
+              <h2 class="text-lg font-bold text-white">{{ event.name }} - Competitions</h2>
+              <p class="text-xs text-slate-500 mt-1">
+                Manage competitions, categories, and sports for this event
+              </p>
+            </div>
+          </div>
+          @if (hasPermission('competition.manage')) {
+            <button
+              (click)="onAddCompetition()"
+              class="flex items-center gap-1.5 px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-violet-900/20 transition-all cursor-pointer"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              Add Competition
+            </button>
+          }
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          <!-- Left Columns (3/4 width): Competitions -->
+          <div class="lg:col-span-3 flex flex-col gap-6">
+            @if (isLoadingCompetitions()) {
+              <div class="flex items-center justify-center p-12">
+                <svg class="animate-spin w-8 h-8 text-violet-500" fill="none" viewBox="0 0 24 24">
+                  <circle
+                    class="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="4"
+                  ></circle>
+                  <path
+                    class="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                  ></path>
+                </svg>
+              </div>
+            } @else if (competitions().length === 0) {
+              <div
+                class="rounded-2xl border border-dashed border-white/10 p-12 text-center flex flex-col items-center justify-center gap-3"
+              >
+                <span class="text-3xl"><i class="fi fi-rr-medal"></i></span>
+                <div>
+                  <h3 class="text-sm font-semibold text-white">
+                    No competitions created for this event
+                  </h3>
+                  <p class="text-xs text-slate-500 mt-1">
+                    Add competitions/categories (e.g. Under-19 Football, Open Badminton) to get
+                    started.
+                  </p>
+                </div>
+              </div>
+            } @else {
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                @for (comp of competitions(); track comp.id) {
+                  <div
+                    class="bg-slate-900 border border-white/10 hover:border-violet-500/30 rounded-2xl p-5 flex flex-col justify-between gap-4 group transition-all duration-300"
+                  >
+                    <div class="flex flex-col gap-2">
+                      <div class="flex items-center justify-between gap-2">
+                        <!-- Sport Badge -->
+                        <span
+                          class="text-[10px] font-bold px-2 py-0.5 bg-violet-500/10 text-violet-300 rounded-md border border-violet-500/20 uppercase tracking-wider"
+                        >
+                          {{ comp.sport?.name || 'Sport' }}
+                        </span>
+                        <!-- Status Badge -->
+                        @if (comp.status === 'ongoing') {
+                          <span
+                            class="text-[10px] font-bold px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded-md border border-emerald-500/20"
+                          >
+                            Ongoing
+                          </span>
+                        } @else if (comp.status === 'completed') {
+                          <span
+                            class="text-[10px] font-bold px-2 py-0.5 bg-blue-500/10 text-blue-400 rounded-md border border-blue-500/20"
+                          >
+                            Completed
+                          </span>
+                        } @else if (comp.status === 'cancelled') {
+                          <span
+                            class="text-[10px] font-bold px-2 py-0.5 bg-rose-500/10 text-rose-400 rounded-md border border-rose-500/20"
+                          >
+                            Cancelled
+                          </span>
+                        } @else {
+                          <span
+                            class="text-[10px] font-bold px-2 py-0.5 bg-slate-500/10 text-slate-400 rounded-md border border-slate-500/20"
+                          >
+                            Upcoming
+                          </span>
+                        }
+                      </div>
+
+                      <h4
+                        class="text-base font-extrabold text-white group-hover:text-violet-400 transition-colors mt-1"
+                      >
+                        {{ comp.name }}
+                      </h4>
+
+                      @if (getCompetitionWinnerAndRunnerUp(comp); as result) {
+                        <div
+                          class="mt-2 bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-transparent border border-amber-500/30 rounded-xl p-2.5 flex items-center justify-between shadow-lg shadow-amber-500/5"
+                        >
+                          <div class="flex items-center gap-2">
+                            <i class="fi fi-rr-trophy text-amber-400 text-base"></i>
+                            <div class="text-left">
+                              <div
+                                class="text-[9px] uppercase font-black tracking-widest text-amber-400"
+                              >
+                                CHAMPIONS
+                              </div>
+                              <div class="text-xs font-black text-white">{{ result.winner }}</div>
+                            </div>
+                          </div>
+                          @if (result.runnerUp) {
+                            <div class="text-right border-l border-white/10 pl-3">
+                              <div
+                                class="text-[9px] uppercase font-bold tracking-widest text-slate-400"
+                              >
+                                RUNNER-UP
+                              </div>
+                              <div class="text-[11px] font-bold text-white/90">
+                                {{ result.runnerUp }}
+                              </div>
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      <!-- Points Config Preview -->
+                      @if (comp.pointsConfig && comp.pointsConfig.length > 0) {
+                        <div class="flex flex-wrap gap-1.5 mt-2">
+                          @for (pt of comp.pointsConfig.slice(0, 4); track pt.position) {
+                            <div
+                              class="flex items-center gap-1 text-[10px] bg-amber-500/10 border border-amber-500/20 text-amber-300 rounded-md px-2 py-0.5 font-bold"
+                            >
+                              <span class="text-amber-500">#{{ pt.position }}</span>
+                              <span>{{ pt.label }}</span>
+                              <span class="text-slate-400">·</span>
+                              <span>{{ pt.points }}pts</span>
+                            </div>
+                          }
+                          @if (comp.pointsConfig.length > 4) {
+                            <span class="text-[10px] text-slate-500 px-1.5 py-0.5 self-center"
+                              >+{{ comp.pointsConfig.length - 4 }} more</span
+                            >
+                          }
+                        </div>
+                      }
+
+                      <button
+                        (click)="onSelectCompetition(comp)"
+                        class="w-full py-2 bg-violet-600/10 hover:bg-violet-600 text-violet-300 hover:text-white border border-violet-500/20 hover:border-transparent text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 mt-2"
+                      >
+                        Manage Stages & Matches →
+                      </button>
+                    </div>
+
+                    <!-- Actions -->
+                    @if (hasPermission('competition.manage')) {
+                      <div
+                        class="flex items-center justify-end gap-2 pt-3 border-t border-white/5 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity"
+                      >
+                        <button
+                          (click)="onEditCompetition(comp)"
+                          class="px-2.5 py-1.5 text-[11px] font-bold text-violet-400 hover:text-white hover:bg-violet-600/20 border border-violet-500/10 hover:border-violet-500/30 rounded-lg transition-all cursor-pointer"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          (click)="onDeleteCompetition(comp)"
+                          class="px-2.5 py-1.5 text-[11px] font-bold text-rose-400 hover:text-white hover:bg-rose-600/20 border border-rose-500/10 hover:border-rose-500/30 rounded-lg transition-all cursor-pointer"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </div>
+
+          <!-- Right Column (1/4 width): Overall Event Standings Points Table -->
+          <div class="lg:col-span-1">
+            <div
+              class="bg-slate-900 border border-white/10 rounded-2xl p-6 shadow-xl flex flex-col gap-4"
+            >
+              <div class="flex items-center justify-between border-b border-white/5 pb-3">
+                <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                  <i class="fi fi-rr-trophy text-amber-400 text-lg"></i>
+                  Overall Leaderboard
+                </h3>
+                <span
+                  class="text-[9px] bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-full px-2 py-0.5 font-bold uppercase tracking-wider"
+                >
+                  Standings
+                </span>
+              </div>
+
+              @if (eventStandings().length === 0) {
+                <div class="text-xs text-slate-500 text-center py-8">
+                  No teams mapped to this event yet.
+                </div>
+              } @else {
+                <!-- Top Champion Banner -->
+                @let leader = eventStandings()[0];
+                <div
+                  class="bg-gradient-to-r from-amber-500/20 via-yellow-500/10 to-transparent border border-amber-500/30 rounded-2xl p-4 flex items-center justify-between shadow-lg shadow-amber-500/5 mb-1"
+                >
+                  <div class="flex items-center gap-3 text-left min-w-0">
+                    <i class="fi fi-rr-crown text-2xl text-amber-400 flex-shrink-0"></i>
+                    <div class="min-w-0">
+                      <div class="text-[9px] uppercase font-black tracking-widest text-amber-400">
+                        Current Leader
+                      </div>
+                      <div class="text-sm font-black text-white mt-0.5 truncate">
+                        {{ leader.teamName }}
+                      </div>
+                      <div class="text-[10px] text-slate-400 mt-0.5">
+                        <span class="text-amber-400 font-bold">{{ leader.points }} points</span>
+                      </div>
+                    </div>
+                  </div>
+                  <app-avatar
+                    [name]="leader.teamName"
+                    [logoUrl]="leader.teamLogoUrl"
+                    customClass="w-10 h-10 rounded-lg flex-shrink-0 border border-amber-500/20"
+                    textClass="text-xs font-extrabold text-white"
+                  />
+                </div>
+
+                <!-- Standings Table -->
+                <div class="overflow-x-auto">
+                  <table class="w-full border-collapse text-left">
+                    <thead>
+                      <tr
+                        class="border-b border-white/5 text-[9px] uppercase font-bold text-slate-400 tracking-wider"
+                      >
+                        <th class="py-2.5 px-2 w-8 text-center">#</th>
+                        <th class="py-2.5 px-2">Team</th>
+                        <th class="py-2.5 px-2 text-right pr-3">Pts</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-white/5 text-xs text-slate-300">
+                      @for (row of eventStandings(); track row.teamId; let idx = $index) {
+                        <tr class="hover:bg-white/5 transition-all">
+                          <td class="py-3 px-2 text-center font-bold">
+                            @if (idx === 0) {
+                              <span
+                                class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-500 text-slate-950 font-extrabold text-[10px]"
+                                >1</span
+                              >
+                            } @else if (idx === 1) {
+                              <span
+                                class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-slate-300 text-slate-950 font-extrabold text-[10px]"
+                                >2</span
+                              >
+                            } @else if (idx === 2) {
+                              <span
+                                class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-700 text-slate-950 font-extrabold text-[10px]"
+                                >3</span
+                              >
+                            } @else {
+                              <span class="text-slate-500">{{ idx + 1 }}</span>
+                            }
+                          </td>
+                          <td class="py-3 px-2 min-w-0">
+                            <div class="flex items-center gap-2.5 min-w-0">
+                              <app-avatar
+                                [name]="row.teamName"
+                                [logoUrl]="row.teamLogoUrl"
+                                customClass="w-6 h-6 rounded-md flex-shrink-0"
+                                textClass="text-[8px] font-black text-white"
+                              />
+                              <div class="flex flex-col min-w-0 text-left">
+                                <span class="font-bold text-white text-xs truncate">{{
+                                  row.teamName
+                                }}</span>
+                                @if (row.points > 0) {
+                                  <div class="flex flex-wrap gap-1 mt-0.5">
+                                    @for (b of row.breakdown; track b.competitionId) {
+                                      @if (b.points > 0) {
+                                        <span
+                                          class="inline-flex items-center text-[8px] bg-violet-500/10 border border-violet-500/20 text-violet-300 rounded px-1 py-0.2"
+                                          [title]="b.competitionName + ' - Rank #' + b.position"
+                                        >
+                                          {{ b.competitionName | initials }}: {{ b.points }}p
+                                        </span>
+                                      }
+                                    }
+                                  </div>
+                                } @else {
+                                  <span class="text-[9px] text-slate-500 italic mt-0.5"
+                                    >No points earned</span
+                                  >
+                                }
+                              </div>
+                            </div>
+                          </td>
+                          <td class="py-3 px-2 text-right font-extrabold text-white text-sm pr-3">
+                            {{ row.points }}
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      } @else {
+        <!-- Stages and Matches Management Interface -->
+        <div class="flex flex-col gap-6 text-left">
+          <!-- Breadcrumbs & Navigation -->
+          <div class="flex items-center justify-between border-b border-white/5 pb-4">
+            <div class="flex items-center gap-3">
+              @if (selectedMatch()) {
+                <button
+                  (click)="onSelectMatch(null)"
+                  class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white hover:text-slate-950 text-xs font-bold rounded-xl cursor-pointer transition-all border border-white/5"
+                >
+                  ← Back to Matches
+                </button>
+              } @else {
+                <button
+                  (click)="onDeselectCompetition()"
+                  class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white hover:text-slate-950 text-xs font-bold rounded-xl cursor-pointer transition-all border border-white/5"
+                >
+                  ← Back to Competitions
+                </button>
+              }
+              <div class="flex items-center gap-1.5 text-xs text-slate-400">
+                <span class="text-white font-semibold text-sm">{{
+                  selectedCompetition()?.name
+                }}</span>
+                @if (selectedStage()) {
+                  <span class="text-slate-600">/</span>
+                  <span class="text-slate-300 font-medium">{{ selectedStage()?.name }}</span>
+                }
+                @if (selectedMatch()) {
+                  <span class="text-slate-600">/</span>
+                  <span class="text-slate-300">Live Console</span>
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab Bar (Only when not in live scoring console) -->
+          @if (!selectedMatch() && stages().length > 0) {
+            <div class="flex items-center gap-3 border-b border-white/5 pb-2">
+              <button
+                (click)="setCompetitionTab('matches')"
+                [class]="
+                  activeCompetitionTab() === 'matches'
+                    ? 'px-4 py-2 bg-violet-600/10 border border-violet-500/20 text-violet-400 text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-md shadow-violet-900/10'
+                    : 'px-4 py-2 text-slate-400 hover:text-white border border-transparent hover:bg-white/5 text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5'
+                "
+              >
+                <i class="fi fi-rr-calendar-lines text-sm"></i> Matches & Standings
+              </button>
+              <button
+                (click)="setCompetitionTab('stats')"
+                [class]="
+                  activeCompetitionTab() === 'stats'
+                    ? 'px-4 py-2 bg-violet-600/10 border border-violet-500/20 text-violet-400 text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-md shadow-violet-900/10'
+                    : 'px-4 py-2 text-slate-400 hover:text-white border border-transparent hover:bg-white/5 text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5'
+                "
+              >
+                <i class="fi fi-rr-chart-histogram text-sm"></i> Leaderboards & Stats
+              </button>
+            </div>
+          }
+        </div>
+
+        <!-- ═══════════════ STAGES & FIXTURES INITIAL SETUP ═══════════════ -->
+        @if (stages().length === 0) {
+          @if (isLoadingStages()) {
+            <div
+              class="flex items-center justify-center p-12 bg-slate-900 border border-white/10 rounded-2xl"
+            >
+              <svg class="animate-spin w-8 h-8 text-violet-500" fill="none" viewBox="0 0 24 24">
+                <circle
+                  class="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  stroke-width="4"
+                ></circle>
+                <path
+                  class="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                ></path>
+              </svg>
+            </div>
+          } @else {
+            <div
+              class="rounded-2xl border border-dashed border-white/10 p-12 text-center flex flex-col items-center justify-center gap-4 bg-slate-900/50"
+            >
+              <div
+                class="w-16 h-16 rounded-full bg-violet-600/10 flex items-center justify-center text-violet-400"
+              >
+                <i class="fi fi-rr-settings text-3xl animate-pulse"></i>
+              </div>
+              <div>
+                <h3 class="text-base font-bold text-white">No fixtures generated yet</h3>
+                <p class="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+                  Configure the stage structure, enroll participating teams, and automatically
+                  generate the match schedule for this competition.
+                </p>
+              </div>
+              @if (hasPermission('competition.manage')) {
+                <button
+                  (click)="openGenerateFixturesModal()"
+                  class="px-5 py-3 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-2 shadow-lg shadow-violet-900/30"
+                >
+                  <i class="fi fi-rr-bolt"></i> Setup Stage & Generate Fixtures
+                </button>
+              }
+            </div>
+          }
+        } @else if (!selectedMatch()) {
+          <div class="flex flex-col gap-6 text-left">
+            @if (activeCompetitionTab() === 'stats') {
+              <!-- Display Competition Statistics Dashboard -->
+              @if (isLoadingStats()) {
+                <div class="py-24 flex flex-col items-center justify-center gap-3">
+                  <svg class="animate-spin w-8 h-8 text-violet-500" fill="none" viewBox="0 0 24 24">
+                    <circle
+                      class="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      stroke-width="4"
+                    ></circle>
+                    <path
+                      class="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                    ></path>
+                  </svg>
+                  <span class="text-xs text-slate-400">Loading leaderboards...</span>
+                </div>
+              } @else if (!competitionStats() || competitionStats()?.topRated?.length === 0) {
+                <div
+                  class="rounded-2xl border border-dashed border-white/10 p-12 text-center flex flex-col items-center justify-center gap-3 bg-slate-900/50"
+                >
+                  <div
+                    class="w-16 h-16 rounded-full bg-violet-600/10 flex items-center justify-center text-violet-400"
+                  >
+                    <i class="fi fi-rr-chart-user text-3xl"></i>
+                  </div>
+                  <div>
+                    <h3 class="text-sm font-semibold text-white">No stats recorded yet</h3>
+                    <p class="text-xs text-slate-500 mt-1">
+                      Complete matches and register stats to see leaderboards here.
+                    </p>
+                  </div>
+                </div>
+              } @else {
+                @let stats = competitionStats()!;
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  <!-- Common: Top Rated Players (For all sports) -->
+                  <div
+                    class="bg-slate-900 border border-white/10 rounded-2xl p-5 shadow-xl flex flex-col gap-4"
+                  >
+                    <h3
+                      class="text-sm font-bold text-white flex items-center gap-2 border-b border-white/5 pb-3"
+                    >
+                      <i class="fi fi-rr-star text-amber-400"></i> Top Rated Players (Average Match
+                      Rating)
+                    </h3>
+                    <div class="overflow-x-auto">
+                      <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                          <tr class="text-slate-400 border-b border-white/5">
+                            <th
+                              class="py-2 font-bold uppercase tracking-wider text-[9px] w-12 text-center"
+                            >
+                              Rank
+                            </th>
+                            <th class="py-2 font-bold uppercase tracking-wider text-[9px] pl-2">
+                              Player
+                            </th>
+                            <th class="py-2 font-bold uppercase tracking-wider text-[9px]">Team</th>
+                            <th
+                              class="py-2 font-bold uppercase tracking-wider text-[9px] text-center w-16"
+                            >
+                              Matches
+                            </th>
+                            <th
+                              class="py-2 font-bold uppercase tracking-wider text-[9px] text-right pr-2 w-20"
+                            >
+                              Rating
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @for (p of stats.topRated; track p.playerId; let idx = $index) {
+                            <tr class="border-b border-white/5 hover:bg-white/5 transition-colors">
+                              <td class="py-2.5 text-center font-bold text-slate-400">
+                                @if (idx === 0) {
+                                  <i class="fi fi-sr-medal text-yellow-400 text-sm"></i>
+                                } @else if (idx === 1) {
+                                  <i class="fi fi-sr-medal text-slate-300 text-sm"></i>
+                                } @else if (idx === 2) {
+                                  <i class="fi fi-sr-medal text-amber-600 text-sm"></i>
+                                } @else {
+                                  #{{ idx + 1 }}
+                                }
+                              </td>
+                              <td class="py-2.5 font-bold text-white pl-2">{{ p.playerName }}</td>
+                              <td class="py-2.5 text-slate-300">{{ p.teamName }}</td>
+                              <td class="py-2.5 text-center text-slate-400 font-semibold">
+                                {{ p.appearances }}
+                              </td>
+                              <td class="py-2.5 text-right pr-2 font-extrabold text-violet-400">
+                                {{ p.avgRating.toFixed(2) }}
+                              </td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <!-- Common: Most MVPs (For all sports) -->
+                  <div
+                    class="bg-slate-900 border border-white/10 rounded-2xl p-5 shadow-xl flex flex-col gap-4"
+                  >
+                    <h3
+                      class="text-sm font-bold text-white flex items-center gap-2 border-b border-white/5 pb-3"
+                    >
+                      <i class="fi fi-rr-trophy text-yellow-500"></i> Most MVPs
+                    </h3>
+                    <div class="overflow-x-auto">
+                      <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                          <tr class="text-slate-400 border-b border-white/5">
+                            <th
+                              class="py-2 font-bold uppercase tracking-wider text-[9px] w-12 text-center"
+                            >
+                              Rank
+                            </th>
+                            <th class="py-2 font-bold uppercase tracking-wider text-[9px] pl-2">
+                              Player
+                            </th>
+                            <th class="py-2 font-bold uppercase tracking-wider text-[9px]">Team</th>
+                            <th
+                              class="py-2 font-bold uppercase tracking-wider text-[9px] text-right pr-2 w-20"
+                            >
+                              MVPs
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @for (p of stats.mostMvps; track p.playerId; let idx = $index) {
+                            <tr class="border-b border-white/5 hover:bg-white/5 transition-colors">
+                              <td class="py-2.5 text-center font-bold text-slate-400">
+                                @if (idx === 0) {
+                                  <i class="fi fi-sr-medal text-yellow-400 text-sm"></i>
+                                } @else if (idx === 1) {
+                                  <i class="fi fi-sr-medal text-slate-300 text-sm"></i>
+                                } @else if (idx === 2) {
+                                  <i class="fi fi-sr-medal text-amber-600 text-sm"></i>
+                                } @else {
+                                  #{{ idx + 1 }}
+                                }
+                              </td>
+                              <td class="py-2.5 font-bold text-white pl-2">{{ p.playerName }}</td>
+                              <td class="py-2.5 text-slate-300">{{ p.teamName }}</td>
+                              <td class="py-2.5 text-right pr-2 font-extrabold text-violet-400">
+                                {{ p.mvps }}
+                              </td>
+                            </tr>
+                          } @empty {
+                            <tr>
+                              <td colspan="4" class="text-center py-4 text-slate-500 text-[11px]">
+                                No MVPs awarded yet
+                              </td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <!-- Football Specific Leaderboards -->
+                  @if (stats.sportCode === 'football') {
+                    <!-- Top Scorers -->
+                    <div
+                      class="bg-slate-900 border border-white/10 rounded-2xl p-5 shadow-xl flex flex-col gap-4"
+                    >
+                      <h3
+                        class="text-sm font-bold text-white flex items-center gap-2 border-b border-white/5 pb-3"
+                      >
+                        <i class="fi fi-rr-football text-violet-400"></i> Top Scorers
+                      </h3>
+                      <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs border-collapse">
+                          <thead>
+                            <tr class="text-slate-400 border-b border-white/5">
+                              <th
+                                class="py-2 font-bold uppercase tracking-wider text-[9px] w-12 text-center"
+                              >
+                                Rank
+                              </th>
+                              <th class="py-2 font-bold uppercase tracking-wider text-[9px] pl-2">
+                                Player
+                              </th>
+                              <th class="py-2 font-bold uppercase tracking-wider text-[9px]">
+                                Team
+                              </th>
+                              <th
+                                class="py-2 font-bold uppercase tracking-wider text-[9px] text-right pr-2 w-20"
+                              >
+                                Goals
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @for (p of stats.topScorers; track p.playerId; let idx = $index) {
+                              <tr
+                                class="border-b border-white/5 hover:bg-white/5 transition-colors"
+                              >
+                                <td class="py-2.5 text-center font-bold text-slate-400">
+                                  #{{ idx + 1 }}
+                                </td>
+                                <td class="py-2.5 font-bold text-white pl-2">{{ p.playerName }}</td>
+                                <td class="py-2.5 text-slate-300">{{ p.teamName }}</td>
+                                <td class="py-2.5 text-right pr-2 font-extrabold text-emerald-400">
+                                  {{ p.goals }}
+                                </td>
+                              </tr>
+                            }
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    <!-- Top Assists -->
+                    <div
+                      class="bg-slate-900 border border-white/10 rounded-2xl p-5 shadow-xl flex flex-col gap-4"
+                    >
+                      <h3
+                        class="text-sm font-bold text-white flex items-center gap-2 border-b border-white/5 pb-3"
+                      >
+                        <i class="fi fi-rr-running text-violet-400"></i> Top Assists
+                      </h3>
+                      <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs border-collapse">
+                          <thead>
+                            <tr class="text-slate-400 border-b border-white/5">
+                              <th
+                                class="py-2 font-bold uppercase tracking-wider text-[9px] w-12 text-center"
+                              >
+                                Rank
+                              </th>
+                              <th class="py-2 font-bold uppercase tracking-wider text-[9px] pl-2">
+                                Player
+                              </th>
+                              <th class="py-2 font-bold uppercase tracking-wider text-[9px]">
+                                Team
+                              </th>
+                              <th
+                                class="py-2 font-bold uppercase tracking-wider text-[9px] text-right pr-2 w-20"
+                              >
+                                Assists
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @for (p of stats.topAssists; track p.playerId; let idx = $index) {
+                              <tr
+                                class="border-b border-white/5 hover:bg-white/5 transition-colors"
+                              >
+                                <td class="py-2.5 text-center font-bold text-slate-400">
+                                  #{{ idx + 1 }}
+                                </td>
+                                <td class="py-2.5 font-bold text-white pl-2">{{ p.playerName }}</td>
+                                <td class="py-2.5 text-slate-300">{{ p.teamName }}</td>
+                                <td class="py-2.5 text-right pr-2 font-extrabold text-blue-400">
+                                  {{ p.assists }}
+                                </td>
+                              </tr>
+                            }
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    <!-- Discipline (Cards) -->
+                    <div
+                      class="bg-slate-900 border border-white/10 rounded-2xl p-5 shadow-xl flex flex-col gap-4"
+                    >
+                      <h3
+                        class="text-sm font-bold text-white flex items-center gap-2 border-b border-white/5 pb-3"
+                      >
+                        <i class="fi fi-rr-shield-exclamation text-amber-500"></i> Discipline &
+                        Cards
+                      </h3>
+                      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- Yellow Cards -->
+                        <div class="flex flex-col gap-2">
+                          <h4
+                            class="text-xs font-bold text-yellow-400 flex items-center gap-1.5 mb-1"
+                          >
+                            <span class="w-2.5 h-3.5 bg-yellow-400 rounded-sm"></span> Most Yellow
+                            Cards
+                          </h4>
+                          <div
+                            class="flex flex-col gap-1.5 bg-slate-950/40 p-2.5 border border-white/5 rounded-xl"
+                          >
+                            @for (p of stats.mostYellowCards; track p.playerId) {
+                              <div
+                                class="flex items-center justify-between text-xs py-1 border-b border-white/5 last:border-0"
+                              >
+                                <div class="min-w-0">
+                                  <p class="font-bold text-white truncate">{{ p.playerName }}</p>
+                                  <p class="text-[9px] text-slate-500 truncate">{{ p.teamName }}</p>
+                                </div>
+                                <span class="font-bold text-yellow-400 pr-1">{{ p.cards }}</span>
+                              </div>
+                            } @empty {
+                              <p class="text-[10px] text-slate-500 text-center py-2">
+                                No yellow cards recorded
+                              </p>
+                            }
+                          </div>
+                        </div>
+
+                        <!-- Red Cards -->
+                        <div class="flex flex-col gap-2">
+                          <h4
+                            class="text-xs font-bold text-rose-500 flex items-center gap-1.5 mb-1"
+                          >
+                            <span class="w-2.5 h-3.5 bg-rose-500 rounded-sm"></span> Most Red Cards
+                          </h4>
+                          <div
+                            class="flex flex-col gap-1.5 bg-slate-950/40 p-2.5 border border-white/5 rounded-xl"
+                          >
+                            @for (p of stats.mostRedCards; track p.playerId) {
+                              <div
+                                class="flex items-center justify-between text-xs py-1 border-b border-white/5 last:border-0"
+                              >
+                                <div class="min-w-0">
+                                  <p class="font-bold text-white truncate">{{ p.playerName }}</p>
+                                  <p class="text-[9px] text-slate-500 truncate">{{ p.teamName }}</p>
+                                </div>
+                                <span class="font-bold text-rose-500 pr-1">{{ p.cards }}</span>
+                              </div>
+                            } @empty {
+                              <p class="text-[10px] text-slate-500 text-center py-2">
+                                No red cards recorded
+                              </p>
+                            }
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  }
+
+                  <!-- Cricket Specific Leaderboards -->
+                  @if (stats.sportCode === 'cricket') {
+                    <!-- Top Run Scorers -->
+                    <div
+                      class="bg-slate-900 border border-white/10 rounded-2xl p-5 shadow-xl flex flex-col gap-4"
+                    >
+                      <h3
+                        class="text-sm font-bold text-white flex items-center gap-2 border-b border-white/5 pb-3"
+                      >
+                        <i class="fi fi-rr-cricket text-violet-400"></i> Most Runs (Batting
+                        Leaderboard)
+                      </h3>
+                      <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs border-collapse">
+                          <thead>
+                            <tr class="text-slate-400 border-b border-white/5">
+                              <th
+                                class="py-2 font-bold uppercase tracking-wider text-[9px] w-12 text-center"
+                              >
+                                Rank
+                              </th>
+                              <th class="py-2 font-bold uppercase tracking-wider text-[9px] pl-2">
+                                Player
+                              </th>
+                              <th class="py-2 font-bold uppercase tracking-wider text-[9px]">
+                                Team
+                              </th>
+                              <th
+                                class="py-2 font-bold uppercase tracking-wider text-[9px] text-center w-16"
+                              >
+                                Inns
+                              </th>
+                              <th
+                                class="py-2 font-bold uppercase tracking-wider text-[9px] text-right pr-2 w-20"
+                              >
+                                Runs
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @for (p of stats.topRuns; track p.playerId; let idx = $index) {
+                              <tr
+                                class="border-b border-white/5 hover:bg-white/5 transition-colors"
+                              >
+                                <td class="py-2.5 text-center font-bold text-slate-400">
+                                  #{{ idx + 1 }}
+                                </td>
+                                <td class="py-2.5 font-bold text-white pl-2">{{ p.playerName }}</td>
+                                <td class="py-2.5 text-slate-300">{{ p.teamName }}</td>
+                                <td class="py-2.5 text-center text-slate-400 font-semibold">
+                                  {{ p.innings }}
+                                </td>
+                                <td class="py-2.5 text-right pr-2 font-extrabold text-emerald-400">
+                                  {{ p.runs }}
+                                </td>
+                              </tr>
+                            }
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    <!-- Top Wicket Takers -->
+                    <div
+                      class="bg-slate-900 border border-white/10 rounded-2xl p-5 shadow-xl flex flex-col gap-4"
+                    >
+                      <h3
+                        class="text-sm font-bold text-white flex items-center gap-2 border-b border-white/5 pb-3"
+                      >
+                        <i class="fi fi-rr-bowling text-violet-400"></i> Most Wickets (Bowling
+                        Leaderboard)
+                      </h3>
+                      <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs border-collapse">
+                          <thead>
+                            <tr class="text-slate-400 border-b border-white/5">
+                              <th
+                                class="py-2 font-bold uppercase tracking-wider text-[9px] w-12 text-center"
+                              >
+                                Rank
+                              </th>
+                              <th class="py-2 font-bold uppercase tracking-wider text-[9px] pl-2">
+                                Player
+                              </th>
+                              <th class="py-2 font-bold uppercase tracking-wider text-[9px]">
+                                Team
+                              </th>
+                              <th
+                                class="py-2 font-bold uppercase tracking-wider text-[9px] text-center w-16"
+                              >
+                                Inns
+                              </th>
+                              <th
+                                class="py-2 font-bold uppercase tracking-wider text-[9px] text-right pr-2 w-20"
+                              >
+                                Wickets
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @for (p of stats.topWickets; track p.playerId; let idx = $index) {
+                              <tr
+                                class="border-b border-white/5 hover:bg-white/5 transition-colors"
+                              >
+                                <td class="py-2.5 text-center font-bold text-slate-400">
+                                  #{{ idx + 1 }}
+                                </td>
+                                <td class="py-2.5 font-bold text-white pl-2">{{ p.playerName }}</td>
+                                <td class="py-2.5 text-slate-300">{{ p.teamName }}</td>
+                                <td class="py-2.5 text-center text-slate-400 font-semibold">
+                                  {{ p.innings }}
+                                </td>
+                                <td class="py-2.5 text-right pr-2 font-extrabold text-emerald-400">
+                                  {{ p.wickets }}
+                                </td>
+                              </tr>
+                            }
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  }
+
+                  <!-- Badminton Specific Leaderboards -->
+                  @if (stats.sportCode === 'badminton') {
+                    <!-- Top Rallies Won -->
+                    <div
+                      class="bg-slate-900 border border-white/10 rounded-2xl p-5 shadow-xl flex flex-col gap-4"
+                    >
+                      <h3
+                        class="text-sm font-bold text-white flex items-center gap-2 border-b border-white/5 pb-3"
+                      >
+                        <i class="fi fi-rr-play text-violet-400"></i> Most Rallies Won
+                      </h3>
+                      <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs border-collapse">
+                          <thead>
+                            <tr class="text-slate-400 border-b border-white/5">
+                              <th
+                                class="py-2 font-bold uppercase tracking-wider text-[9px] w-12 text-center"
+                              >
+                                Rank
+                              </th>
+                              <th class="py-2 font-bold uppercase tracking-wider text-[9px] pl-2">
+                                Player
+                              </th>
+                              <th class="py-2 font-bold uppercase tracking-wider text-[9px]">
+                                Team
+                              </th>
+                              <th
+                                class="py-2 font-bold uppercase tracking-wider text-[9px] text-right pr-2 w-24"
+                              >
+                                Rallies Won
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @for (p of stats.topRalliesWon; track p.playerId; let idx = $index) {
+                              <tr
+                                class="border-b border-white/5 hover:bg-white/5 transition-colors"
+                              >
+                                <td class="py-2.5 text-center font-bold text-slate-400">
+                                  #{{ idx + 1 }}
+                                </td>
+                                <td class="py-2.5 font-bold text-white pl-2">{{ p.playerName }}</td>
+                                <td class="py-2.5 text-slate-300">{{ p.teamName }}</td>
+                                <td class="py-2.5 text-right pr-2 font-extrabold text-emerald-400">
+                                  {{ p.ralliesWon }}
+                                </td>
+                              </tr>
+                            }
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            } @else {
+              <!-- ─── 2. Matches List & Schedule ─── -->
+              <div class="flex flex-col gap-6">
+                <!-- Full Width Header -->
+                <div class="flex items-center justify-between border-b border-white/5 pb-4">
+                  <h3 class="text-sm font-bold text-white uppercase tracking-wider">
+                    Scheduled Matches
+                  </h3>
+
+                  @if (hasPermission('competition.manage') && stages().length > 0) {
+                    <button
+                      (click)="onResetStagesAndFixtures()"
+                      [disabled]="isResettingStages()"
+                      class="px-4 py-2.5 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-500/20 hover:border-rose-500/40 text-rose-400 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      @if (isResettingStages()) {
+                        <svg
+                          class="animate-spin w-3.5 h-3.5 text-rose-400"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            class="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            stroke-width="4"
+                          ></circle>
+                          <path
+                            class="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                          ></path>
+                        </svg>
+                        Resetting...
+                      } @else {
+                        <i class="fi fi-rr-trash text-xs"></i> Reset Stages & Fixtures
+                      }
+                    </button>
+                  }
+                </div>
+
+                <!-- Split Grid layout below header -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  <!-- Left: Matches List -->
+                  <div class="lg:col-span-2 flex flex-col gap-6">
+                    @if (matches().length === 0) {
+                      <div
+                        class="rounded-2xl border border-dashed border-white/10 p-12 text-center flex flex-col items-center justify-center gap-3"
+                      >
+                        <span class="text-3xl"><i class="fi fi-rr-football"></i></span>
+                        <div>
+                          <h3 class="text-sm font-semibold text-white">
+                            No matches scheduled for this stage
+                          </h3>
+                        </div>
+                      </div>
+                    } @else {
+                      <div class="grid grid-cols-1 gap-4">
+                        @for (match of matches(); track match.id) {
+                          <div
+                            class="bg-slate-900 border border-white/10 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-6 group transition-all duration-300"
+                          >
+                            <!-- Scoreboard visual & Venue info -->
+                            <div class="flex-1 flex flex-col items-center">
+                              <div class="flex items-center justify-center gap-6 w-full">
+                                <!-- Home Team -->
+                                <div class="flex-1 text-right flex items-center justify-end gap-3">
+                                  <span class="text-sm font-bold text-white">{{
+                                    match.homeTeam?.name || 'Home'
+                                  }}</span>
+                                  <app-avatar
+                                    [name]="match.homeTeam?.name || 'HM'"
+                                    [logoUrl]="match.homeTeam?.logoUrl"
+                                    customClass="w-6 h-6 rounded-md flex-shrink-0"
+                                    textClass="text-[9px] font-bold text-white"
+                                  />
+                                </div>
+
+                                <!-- Score details -->
+                                <div
+                                  class="px-5 py-2 bg-slate-950 border border-white/10 rounded-2xl flex items-center justify-center gap-4 min-w-[100px] relative"
+                                >
+                                  @if (match.status === 'live') {
+                                    <span class="absolute -top-1 -right-1 flex h-3.5 w-3.5">
+                                      <span
+                                        class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"
+                                      ></span>
+                                      <span
+                                        class="relative inline-flex rounded-full h-3.5 w-3.5 bg-rose-500 border border-slate-950"
+                                      ></span>
+                                    </span>
+                                  }
+                                  <span class="text-xl font-extrabold text-white">{{
+                                    match.homeScore
+                                  }}</span>
+                                  <span class="text-xs text-slate-600 font-bold">VS</span>
+                                  <span class="text-xl font-extrabold text-white">{{
+                                    match.awayScore
+                                  }}</span>
+                                </div>
+
+                                <!-- Away Team -->
+                                <div class="flex-1 text-left flex items-center justify-start gap-3">
+                                  <app-avatar
+                                    [name]="match.awayTeam?.name || 'AW'"
+                                    [logoUrl]="match.awayTeam?.logoUrl"
+                                    customClass="w-6 h-6 rounded-md flex-shrink-0"
+                                    textClass="text-[9px] font-bold text-white"
+                                  />
+                                  <span class="text-sm font-bold text-white">{{
+                                    match.awayTeam?.name || 'Away'
+                                  }}</span>
+                                </div>
+                              </div>
+                              <div
+                                class="flex flex-wrap items-center justify-center gap-3 mt-2.5 text-[10px] text-slate-400"
+                              >
+                                @if (match.scheduledAt) {
+                                  <div class="flex items-center gap-1">
+                                    <i class="fi fi-rr-calendar text-violet-400"></i>
+                                    <span>{{ match.scheduledAt | date: 'medium' }}</span>
+                                  </div>
+                                }
+                                @if (match.venue) {
+                                  <div class="flex items-center gap-1">
+                                    <i class="fi fi-rr-marker text-violet-400"></i>
+                                    <span>{{ match.venue.name }}</span>
+                                    @if (match.venue.location) {
+                                      <span class="text-slate-500"
+                                        >({{ match.venue.location }})</span
+                                      >
+                                    }
+                                  </div>
+                                }
+                              </div>
+                              @if (match.mvp) {
+                                <div
+                                  class="text-[10px] text-amber-400 flex items-center gap-1 mt-2"
+                                >
+                                  <i class="fi fi-rr-trophy text-amber-500"></i>
+                                  <span
+                                    >MVP: <strong>{{ match.mvp.playerName }}</strong> ({{
+                                      match.mvp.rating.toFixed(2)
+                                    }})</span
+                                  >
+                                </div>
+                              }
+                            </div>
+
+                            <!-- Status Badges & Controls -->
+                            <div class="flex items-center justify-end gap-3 font-semibold">
+                              @if (match.config.round) {
+                                <span
+                                  class="text-[9px] font-extrabold px-2 py-1 bg-violet-600/10 text-violet-400 rounded-lg border border-violet-500/20 uppercase tracking-wider"
+                                >
+                                  {{ match.config.round }}
+                                  @if (match.config.leg) {
+                                    - Leg {{ match.config.leg }}
+                                  }
+                                </span>
+                              }
+                              @if (match.status === 'scheduled') {
+                                <span
+                                  class="text-[10px] font-bold px-2.5 py-1 bg-slate-800 text-slate-400 rounded-lg border border-white/5 uppercase tracking-wider"
+                                >
+                                  Scheduled
+                                </span>
+                              } @else if (match.status === 'live') {
+                                <span
+                                  class="text-[10px] font-bold px-2.5 py-1 bg-rose-500/10 text-rose-400 rounded-lg border border-rose-500/20 uppercase tracking-wider animate-pulse"
+                                >
+                                  LIVE
+                                </span>
+                              } @else {
+                                <span
+                                  class="text-[10px] font-bold px-2.5 py-1 bg-blue-500/10 text-blue-400 rounded-lg border border-blue-500/20 uppercase tracking-wider"
+                                >
+                                  Completed
+                                </span>
+                              }
+
+                              @if (
+                                match.status !== 'completed' && hasPermission('competition.manage')
+                              ) {
+                                <button
+                                  (click)="onOpenScheduleModal(match)"
+                                  class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 hover:text-white border border-white/5 hover:border-white/10 text-slate-300 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1"
+                                >
+                                  <i class="fi fi-rr-calendar"></i> Schedule
+                                </button>
+                              }
+
+                              <button
+                                (click)="onSelectMatch(match)"
+                                class="px-3 py-1.5 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-lg transition-all cursor-pointer"
+                              >
+                                {{ match.status === 'completed' ? 'View Details' : 'Live Console' }}
+                              </button>
+                            </div>
+                          </div>
+                        }
+                      </div>
+                    }
+                  </div>
+
+                  <!-- Right Column: Points Table and Coming Soon Card -->
+                  <div class="flex flex-col gap-6">
+                    <!-- Points Table (Only for League / Group stages) -->
+                    @if (selectedStage()?.type !== 'knockout') {
+                      @if (
+                        (selectedStage()?.type === 'league' ||
+                          selectedStage()?.type === 'group' ||
+                          selectedStage()?.type === 'swiss') &&
+                        isStageCompleted() &&
+                        leagueTable().length > 0
+                      ) {
+                        <div
+                          class="bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-transparent border border-amber-500/30 rounded-2xl p-5 flex items-center justify-between shadow-lg shadow-amber-500/5 animate-pulse"
+                        >
+                          <div class="flex items-center gap-3">
+                            <div
+                              class="h-11 w-11 rounded-xl bg-amber-500/25 border border-amber-500/30 flex items-center justify-center text-xl shadow-inner text-amber-400"
+                            >
+                              <i class="fi fi-rr-trophy"></i>
+                            </div>
+                            <div class="text-left">
+                              <div
+                                class="text-[9px] uppercase font-black tracking-widest text-amber-400"
+                              >
+                                CHAMPIONS
+                              </div>
+                              <h4 class="text-base font-black text-white leading-tight mt-0.5">
+                                {{ leagueTable()[0].teamName }}
+                              </h4>
+                            </div>
+                          </div>
+                          @if (leagueTable().length > 1) {
+                            <div class="text-right border-l border-white/10 pl-5">
+                              <div
+                                class="text-[9px] uppercase font-bold tracking-widest text-slate-400"
+                              >
+                                RUNNER-UP
+                              </div>
+                              <div
+                                class="text-xs font-black text-white/90 leading-tight mt-0.5 flex items-center justify-end gap-1"
+                              >
+                                <i class="fi fi-rr-medal text-slate-400"></i>
+                                {{ leagueTable()[1].teamName }}
+                              </div>
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      <div
+                        class="bg-slate-900 border border-white/10 rounded-2xl p-6 shadow-xl flex flex-col gap-4"
+                      >
+                        <div class="flex items-center justify-between border-b border-white/5 pb-3">
+                          <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                            <i class="fi fi-rr-list-check text-violet-400"></i> Points Table
+                          </h3>
+                          @if (
+                            (selectedStage()?.type === 'group' ||
+                              selectedStage()?.type === 'group_knockout') &&
+                            hasPermission('competition.manage')
+                          ) {
+                            <button
+                              (click)="isQualificationPreviewModalOpen.set(true)"
+                              class="px-2.5 py-1 bg-violet-600/10 hover:bg-violet-600 text-violet-400 hover:text-white border border-violet-500/20 hover:border-transparent text-[10px] font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1"
+                            >
+                              <i class="fi fi-rr-search-alt"></i> Qualification Preview
+                            </button>
+                          }
+                        </div>
+
+                        @if (
+                          (selectedStage()?.type === 'group' ||
+                            selectedStage()?.type === 'group_knockout') &&
+                          selectedStage()?.config?.manualQualification &&
+                          !selectedStage()?.config?.publishedQualification &&
+                          isStageCompleted() &&
+                          hasPermission('competition.manage')
+                        ) {
+                          <div
+                            class="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 flex items-start gap-2.5 text-xs text-amber-300"
+                          >
+                            <i class="fi fi-rr-info text-sm mt-0.5"></i>
+                            <div class="flex-1 text-left">
+                              <span class="font-bold block">Qualification Pending Approval</span>
+                              <span class="text-[11px] text-slate-400 mt-0.5 block"
+                                >Group matches are completed, but advancements are held for manual
+                                approval.</span
+                              >
+                              <button
+                                (click)="isQualificationPreviewModalOpen.set(true)"
+                                class="mt-2 px-3 py-1 bg-amber-500 text-slate-950 text-[10px] font-bold rounded-lg hover:bg-amber-400 transition-all cursor-pointer"
+                              >
+                                Approve & Publish Standings
+                              </button>
+                            </div>
+                          </div>
+                        }
+
+                        @if (availableGroups().length > 0) {
+                          <div
+                            class="flex items-center gap-1.5 p-1 bg-slate-950/60 border border-white/5 rounded-xl w-full"
+                          >
+                            @for (group of availableGroups(); track group) {
+                              <button
+                                (click)="selectedPointsTableGroup.set(group)"
+                                class="flex-1 text-center text-[10px] font-bold py-1.5 px-3 rounded-lg transition-all cursor-pointer"
+                                [class]="
+                                  selectedPointsTableGroup() === group
+                                    ? 'bg-violet-600 text-white shadow-md shadow-violet-600/20'
+                                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                                "
+                              >
+                                {{ group }}
+                              </button>
+                            }
+                          </div>
+                        }
+
+                        <div class="overflow-x-auto">
+                          <table class="w-full text-left text-xs border-collapse">
+                            <thead>
+                              <tr class="text-slate-400 border-b border-white/5">
+                                <th class="py-2.5 font-bold uppercase tracking-wider text-[10px]">
+                                  #
+                                </th>
+                                <th
+                                  class="py-2.5 font-bold uppercase tracking-wider text-[10px] pl-2"
+                                >
+                                  Team
+                                </th>
+                                <th
+                                  class="py-2.5 font-bold uppercase tracking-wider text-[10px] text-center"
+                                >
+                                  P
+                                </th>
+                                <th
+                                  class="py-2.5 font-bold uppercase tracking-wider text-[10px] text-center"
+                                >
+                                  W
+                                </th>
+                                <th
+                                  class="py-2.5 font-bold uppercase tracking-wider text-[10px] text-center"
+                                >
+                                  D
+                                </th>
+                                <th
+                                  class="py-2.5 font-bold uppercase tracking-wider text-[10px] text-center"
+                                >
+                                  L
+                                </th>
+                                <th
+                                  class="py-2.5 font-bold uppercase tracking-wider text-[10px] text-center"
+                                >
+                                  GD
+                                </th>
+                                <th
+                                  class="py-2.5 font-bold uppercase tracking-wider text-[10px] text-right pr-2"
+                                >
+                                  Pts
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              @for (row of leagueTable(); track row.teamId; let idx = $index) {
+                                <tr
+                                  [class]="
+                                    (selectedStage()?.type === 'league' ||
+                                      selectedStage()?.type === 'group' ||
+                                      selectedStage()?.type === 'swiss') &&
+                                    isStageCompleted() &&
+                                    idx === 0
+                                      ? 'border-b border-white/5 bg-emerald-500/10 hover:bg-emerald-500/15 border-l-4 border-l-emerald-500 transition-colors'
+                                      : (selectedStage()?.type === 'league' ||
+                                            selectedStage()?.type === 'group' ||
+                                            selectedStage()?.type === 'swiss') &&
+                                          isStageCompleted() &&
+                                          idx === 1
+                                        ? 'border-b border-white/5 bg-amber-500/10 hover:bg-amber-500/15 border-l-4 border-l-amber-500 transition-colors'
+                                        : 'border-b border-white/5 hover:bg-white/5 transition-colors'
+                                  "
+                                >
+                                  <td class="py-3 px-2 font-semibold text-slate-400">
+                                    {{ idx + 1 }}
+                                  </td>
+                                  <td class="py-3 font-medium text-white pl-2">
+                                    <div class="flex items-center gap-2">
+                                      <app-avatar
+                                        [name]="row.teamName"
+                                        [logoUrl]="row.teamLogoUrl"
+                                        customClass="w-5 h-5 rounded flex-shrink-0"
+                                        textClass="text-[8px] font-bold text-white"
+                                      />
+                                      <span class="truncate max-w-[100px]" [title]="row.teamName">{{
+                                        row.teamName
+                                      }}</span>
+                                      @if (
+                                        (selectedStage()?.type === 'league' ||
+                                          selectedStage()?.type === 'group' ||
+                                          selectedStage()?.type === 'swiss') &&
+                                        isStageCompleted() &&
+                                        idx === 0
+                                      ) {
+                                        <span
+                                          class="text-[9px] px-1.5 py-0.5 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded font-black tracking-wider uppercase flex-shrink-0 ml-1.5"
+                                          >CHAMPION</span
+                                        >
+                                      } @else if (
+                                        (selectedStage()?.type === 'league' ||
+                                          selectedStage()?.type === 'group' ||
+                                          selectedStage()?.type === 'swiss') &&
+                                        isStageCompleted() &&
+                                        idx === 1
+                                      ) {
+                                        <span
+                                          class="text-[9px] px-1.5 py-0.5 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded font-black tracking-wider uppercase flex-shrink-0 ml-1.5"
+                                          >RUNNER-UP</span
+                                        >
+                                      }
+                                    </div>
+                                  </td>
+                                  <td class="py-3 text-center text-slate-300 font-semibold">
+                                    {{ row.played }}
+                                  </td>
+                                  <td class="py-3 text-center text-emerald-400 font-medium">
+                                    {{ row.won }}
+                                  </td>
+                                  <td class="py-3 text-center text-slate-400 font-medium">
+                                    {{ row.drawn }}
+                                  </td>
+                                  <td class="py-3 text-center text-rose-400 font-medium">
+                                    {{ row.lost }}
+                                  </td>
+                                  <td
+                                    class="py-3 text-center text-slate-300 font-semibold"
+                                    [class.text-emerald-400]="row.gd > 0"
+                                    [class.text-rose-400]="row.gd < 0"
+                                  >
+                                    {{ row.gd > 0 ? '+' : '' }}{{ row.gd }}
+                                  </td>
+                                  <td class="py-3 text-right pr-2 font-extrabold text-violet-400">
+                                    {{ row.pts }}
+                                  </td>
+                                </tr>
+                              } @empty {
+                                <tr>
+                                  <td colspan="8" class="py-6 text-center text-slate-500">
+                                    No team data available
+                                  </td>
+                                </tr>
+                              }
+                            </tbody>
+                          </table>
+                        </div>
+
+                        <!-- Small Points Structure footer -->
+                        <div
+                          class="flex items-center justify-between text-[10px] text-slate-400 border-t border-white/5 pt-3 mt-1"
+                        >
+                          <span>Points System</span>
+                          <div class="flex items-center gap-3">
+                            <span
+                              class="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded border border-emerald-500/20 font-semibold"
+                              >Win: {{ selectedStage()?.config?.winPoint ?? 3 }} pts</span
+                            >
+                            <span
+                              class="px-2 py-0.5 bg-slate-800 text-slate-300 rounded border border-white/5 font-semibold"
+                              >Draw: {{ selectedStage()?.config?.drawPoint ?? 1 }} pt</span
+                            >
+                          </div>
+                        </div>
+                      </div>
+                    }
+
+                    <!-- Bracket visual (Only for Knockout or Group Knockout stages) -->
+                    @if (
+                      selectedStage()?.type === 'knockout' ||
+                      selectedStage()?.type === 'group_knockout'
+                    ) {
+                      @if (getStageWinnerAndRunnerUp(); as result) {
+                        <div
+                          class="bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-transparent border border-amber-500/30 rounded-2xl p-5 flex items-center justify-between shadow-lg shadow-amber-500/5 mb-6 animate-pulse"
+                        >
+                          <div class="flex items-center gap-3">
+                            <div
+                              class="h-11 w-11 rounded-xl bg-amber-500/25 border border-amber-500/30 flex items-center justify-center text-xl shadow-inner text-amber-400"
+                            >
+                              <i class="fi fi-rr-trophy"></i>
+                            </div>
+                            <div class="text-left">
+                              <div
+                                class="text-[9px] uppercase font-black tracking-widest text-amber-400"
+                              >
+                                CHAMPIONS
+                              </div>
+                              <h4 class="text-base font-black text-white leading-tight mt-0.5">
+                                {{ result.winner }}
+                              </h4>
+                            </div>
+                          </div>
+                          @if (result.runnerUp) {
+                            <div class="text-right border-l border-white/10 pl-5">
+                              <div
+                                class="text-[9px] uppercase font-bold tracking-widest text-slate-400"
+                              >
+                                RUNNER-UP
+                              </div>
+                              <div
+                                class="text-xs font-black text-white/90 leading-tight mt-0.5 flex items-center justify-end gap-1"
+                              >
+                                <i class="fi fi-rr-medal text-slate-400"></i> {{ result.runnerUp }}
+                              </div>
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      <div
+                        class="bg-slate-900 border border-white/10 rounded-2xl p-6 shadow-xl flex flex-col gap-4"
+                      >
+                        <h3
+                          class="text-sm font-bold text-white flex items-center gap-2 border-b border-white/5 pb-3"
+                        >
+                          <i class="fi fi-rr-diagram-project text-violet-400"></i> Tournament
+                          Bracket
+                        </h3>
+
+                        <div class="flex flex-col gap-5">
+                          @for (roundName of getKnockoutRounds(); track roundName) {
+                            <div class="flex flex-col gap-2">
+                              <div
+                                class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2"
+                              >
+                                <span class="w-1.5 h-1.5 rounded-full bg-violet-500"></span>
+                                {{ roundName }}
+                              </div>
+                              <div
+                                class="flex flex-col gap-2 bg-slate-950/40 p-2.5 border border-white/5 rounded-xl"
+                              >
+                                @for (m of getMatchesForRound(roundName); track m.id) {
+                                  <div
+                                    class="flex flex-col gap-1 w-full text-xs py-2 border-b border-white/5 last:border-b-0"
+                                  >
+                                    <!-- Home Team -->
+                                    <div class="flex items-center justify-between">
+                                      <div class="flex items-center gap-1.5">
+                                        <app-avatar
+                                          [name]="m.homeTeam?.name || 'TBD'"
+                                          [logoUrl]="m.homeTeam?.logoUrl"
+                                          customClass="w-4 h-4 rounded flex-shrink-0"
+                                          textClass="text-[7px] font-bold text-white"
+                                        />
+                                        <span
+                                          class="font-medium truncate max-w-[120px]"
+                                          [class.text-slate-500]="!m.homeTeam"
+                                          [class.text-white]="m.homeTeam"
+                                        >
+                                          {{ m.homeTeam?.name || 'TBD' }}
+                                        </span>
+                                      </div>
+                                      @if (m.status === 'completed') {
+                                        <span class="font-bold text-white pr-1">{{
+                                          m.homeScore
+                                        }}</span>
+                                      }
+                                    </div>
+                                    <!-- Away Team -->
+                                    <div class="flex items-center justify-between">
+                                      <div class="flex items-center gap-1.5">
+                                        <app-avatar
+                                          [name]="m.awayTeam?.name || 'TBD'"
+                                          [logoUrl]="m.awayTeam?.logoUrl"
+                                          customClass="w-4 h-4 rounded flex-shrink-0"
+                                          textClass="text-[7px] font-bold text-white"
+                                        />
+                                        <span
+                                          class="font-medium truncate max-w-[120px]"
+                                          [class.text-slate-500]="!m.awayTeam"
+                                          [class.text-white]="m.awayTeam"
+                                        >
+                                          {{ m.awayTeam?.name || 'TBD' }}
+                                        </span>
+                                      </div>
+                                      @if (m.status === 'completed') {
+                                        <span class="font-bold text-white pr-1">{{
+                                          m.awayScore
+                                        }}</span>
+                                      }
+                                    </div>
+                                  </div>
+                                }
+                              </div>
+                            </div>
+                          } @empty {
+                            <div class="text-center text-xs text-slate-500 py-6">
+                              No knockout matches generated yet.
+                            </div>
+                          }
+                        </div>
+                      </div>
+                    }
+
+                    @if (selectedStage()?.type === 'double_elimination') {
+                      <div
+                        class="bg-slate-900 border border-white/10 rounded-2xl p-6 shadow-xl flex flex-col gap-4"
+                      >
+                        <app-double-elimination-bracket
+                          [matches]="matches()"
+                          [canScore]="hasPermission('match.score')"
+                          (matchSelected)="onSelectMatch($event)"
+                        >
+                        </app-double-elimination-bracket>
+                      </div>
+                    }
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        } @else {
+          <!-- ─── 3. Live Scoring Console ─── -->
+          @let match = selectedMatch()!;
+          @let sport = selectedCompetition()?.sport?.code;
+          @let canScoreValue = hasPermission('match.score');
+
+          @if (sport === 'football') {
+            <app-football-console
+              [workspaceId]="workspace()!.id"
+              [eventId]="selectedEvent()!.id"
+              [competitionId]="selectedCompetition()!.id"
+              [stageId]="selectedStage()!.id"
+              [stage]="selectedStage()"
+              [match]="match"
+              [players]="players()"
+              [teams]="teams()"
+              [matchLineup]="matchLineup()"
+              [canScore]="canScoreValue"
+              (matchCompleted)="onMatchCompleted()"
+              (matchUpdated)="onMatchUpdated($event)"
+              (openLineupModal)="openLineupModal()"
+            >
+            </app-football-console>
+          } @else if (sport === 'cricket') {
+            <app-cricket-console
+              [workspaceId]="workspace()!.id"
+              [eventId]="selectedEvent()!.id"
+              [competitionId]="selectedCompetition()!.id"
+              [stageId]="selectedStage()!.id"
+              [stage]="selectedStage()"
+              [match]="match"
+              [players]="players()"
+              [teams]="teams()"
+              [matchLineup]="matchLineup()"
+              [canScore]="canScoreValue"
+              (matchCompleted)="onMatchCompleted()"
+              (matchUpdated)="onMatchUpdated($event)"
+              (openLineupModal)="openLineupModal()"
+            >
+            </app-cricket-console>
+          } @else if (sport === 'badminton') {
+            <app-badminton-console
+              [workspaceId]="workspace()!.id"
+              [eventId]="selectedEvent()!.id"
+              [competitionId]="selectedCompetition()!.id"
+              [stageId]="selectedStage()!.id"
+              [stage]="selectedStage()"
+              [match]="match"
+              [players]="players()"
+              [teams]="teams()"
+              [matchLineup]="matchLineup()"
+              [canScore]="canScoreValue"
+              (matchCompleted)="onMatchCompleted()"
+              (matchUpdated)="onMatchUpdated($event)"
+              (openLineupModal)="openLineupModal()"
+            >
+            </app-badminton-console>
+          } @else {
+            <app-generic-console
+              [workspaceId]="workspace()!.id"
+              [eventId]="selectedEvent()!.id"
+              [competitionId]="selectedCompetition()!.id"
+              [stageId]="selectedStage()!.id"
+              [stage]="selectedStage()"
+              [match]="match"
+              [players]="players()"
+              [teams]="teams()"
+              [matchLineup]="matchLineup()"
+              [canScore]="canScoreValue"
+              [sport]="selectedCompetition()?.sport"
+              (matchCompleted)="onMatchCompleted()"
+              (matchUpdated)="onMatchUpdated($event)"
+              (openLineupModal)="openLineupModal()"
+            >
+            </app-generic-console>
+          }
+        }
+      }
+    </div>
+  } @else {
+    <div class="flex flex-col gap-6">
+      <!-- Header: Events -->
+      <div class="flex items-center justify-between border-b border-white/5 pb-4">
+        <div>
+          <h2 class="text-lg font-bold text-white">Events</h2>
+          <p class="text-xs text-slate-500 mt-1">Manage competitions, schedules, and matches</p>
+        </div>
+        @if (hasPermission('event.manage')) {
+          <div class="flex items-center gap-2">
+            <button
+              (click)="openTemplatesModal()"
+              id="events-templates-btn"
+              class="flex items-center gap-1.5 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold rounded-xl border border-white/10 hover:border-white/20 transition-all cursor-pointer"
+            >
+              <i class="fi fi-rr-template"></i>
+              Templates
+            </button>
+            <button
+              (click)="onAddEvent()"
+              id="events-add-event-btn"
+              class="flex items-center gap-1.5 px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-violet-900/20 transition-all cursor-pointer"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              Add Event
+            </button>
+          </div>
+        }
+      </div>
+
+      <!-- Archive & Active Toggle -->
+      <div class="flex items-center gap-2 border-b border-white/5 pb-3">
+        <button
+          (click)="activeEventView.set('active')"
+          [class]="
+            activeEventView() === 'active'
+              ? 'px-4 py-2 bg-violet-600/10 border border-violet-500/20 text-violet-400 text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-md shadow-violet-900/10'
+              : 'px-4 py-2 text-slate-400 hover:text-white border border-transparent hover:bg-white/5 text-xs font-bold rounded-xl transition flex items-center gap-1.5'
+          "
+        >
+          <i class="fi fi-rr-play text-sm"></i> Active Events ({{ events().length }})
+        </button>
+        <button
+          (click)="activeEventView.set('archived')"
+          [class]="
+            activeEventView() === 'archived'
+              ? 'px-4 py-2 bg-violet-600/10 border border-violet-500/20 text-violet-400 text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-md shadow-violet-900/10'
+              : 'px-4 py-2 text-slate-400 hover:text-white border border-transparent hover:bg-white/5 text-xs font-bold rounded-xl transition flex items-center gap-1.5'
+          "
+        >
+          <i class="fi fi-rr-archive text-sm"></i> Archive ({{ archivedEvents().length }})
+        </button>
+      </div>
+
+      @if (activeEventView() === 'active' && events().length === 0) {
+        <div
+          class="rounded-2xl border border-dashed border-white/10 p-12 text-center flex flex-col items-center justify-center gap-3"
+        >
+          <span class="text-3xl"><i class="fi fi-rr-trophy"></i></span>
+          <div>
+            <h3 class="text-sm font-semibold text-white">No events registered yet</h3>
+            <p class="text-xs text-slate-500 mt-1">
+              Create your first sports festival or competition to get started.
+            </p>
+          </div>
+        </div>
+      } @else if (activeEventView() === 'archived' && archivedEvents().length === 0) {
+        <div
+          class="rounded-2xl border border-dashed border-white/10 p-12 text-center flex flex-col items-center justify-center gap-3 w-full bg-slate-900/10"
+        >
+          <span class="text-3xl text-slate-500"><i class="fi fi-rr-archive"></i></span>
+          <div>
+            <h3 class="text-sm font-semibold text-white">Event Archive is empty</h3>
+            <p class="text-xs text-slate-500 mt-1">
+              Completed events will be automatically archived here.
+            </p>
+          </div>
+        </div>
+      } @else {
+        <!-- Search and Filter Bar -->
+        <div
+          class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/20 border border-white/5 p-4 rounded-2xl mb-4"
+        >
+          <div class="text-xs text-slate-400 font-medium">
+            @if (searchActive()) {
+              Found {{ searchResults().length }} event{{ searchResults().length !== 1 ? 's' : '' }}
+              matching filters
+            } @else if (activeEventView() === 'active') {
+              @if (eventSearchQuery()) {
+                Showing {{ filteredEvents().length }} of {{ events().length }} events
+              } @else {
+                {{ events().length }} event{{ events().length !== 1 ? 's' : '' }} registered
+              }
+            } @else {
+              @if (eventSearchQuery()) {
+                Showing {{ filteredArchivedEvents().length }} of
+                {{ archivedEvents().length }} archived events
+              } @else {
+                {{ archivedEvents().length }} archived event{{
+                  archivedEvents().length !== 1 ? 's' : ''
+                }}
+              }
+            }
+          </div>
+          <div class="flex items-center gap-2 w-full sm:w-auto">
+            <div class="relative w-full sm:w-72">
+              <span
+                class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500"
+              >
+                <i class="fi fi-rr-search text-xs"></i>
+              </span>
+              <input
+                type="text"
+                [ngModel]="eventSearchQuery()"
+                (ngModelChange)="eventSearchQuery.set($event)"
+                placeholder="Search events by name, status, or desc..."
+                class="w-full bg-slate-950/40 border border-white/10 focus:border-violet-500/50 rounded-xl pl-9 pr-8 py-2 text-xs text-slate-200 placeholder-slate-500 outline-none transition-all"
+              />
+              @if (eventSearchQuery()) {
+                <button
+                  (click)="eventSearchQuery.set('')"
+                  class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-slate-300 cursor-pointer bg-transparent border-0"
+                >
+                  <i class="fi fi-rr-cross text-[10px]"></i>
+                </button>
+              }
+            </div>
+            <button
+              (click)="isAdvancedSearchOpen.set(!isAdvancedSearchOpen())"
+              class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer border border-white/5"
+            >
+              <i class="fi fi-rr-filter"></i>
+              <span>Filters</span>
+              @if (searchActive()) {
+                <span class="w-1.5 h-1.5 rounded-full bg-violet-500"></span>
+              }
+            </button>
+          </div>
+        </div>
+
+        @if (isAdvancedSearchOpen()) {
+          <div
+            class="bg-slate-900/40 border border-white/5 p-5 rounded-2xl mb-4 text-left flex flex-col gap-4 transition-all duration-300"
+          >
+            <h4
+              class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"
+            >
+              <i class="fi fi-rr-settings-sliders text-violet-400"></i>
+              <span>Advanced Event Filters</span>
+            </h4>
+
+            <!-- Filters grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+              <!-- Sport filter -->
+              <div class="flex flex-col gap-1.5">
+                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+                  >Sport</label
+                >
+                <input
+                  type="text"
+                  placeholder="e.g. Football"
+                  class="bg-slate-950 border border-white/10 focus:border-violet-500/50 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 outline-none transition-all"
+                  [ngModel]="searchSport()"
+                  (ngModelChange)="searchSport.set($event)"
+                />
+              </div>
+
+              <!-- Organizer filter -->
+              <div class="flex flex-col gap-1.5">
+                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+                  >Organizer</label
+                >
+                <input
+                  type="text"
+                  placeholder="e.g. City League"
+                  class="bg-slate-950 border border-white/10 focus:border-violet-500/50 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 outline-none transition-all"
+                  [ngModel]="searchOrganizer()"
+                  (ngModelChange)="searchOrganizer.set($event)"
+                />
+              </div>
+
+              <!-- Status filter -->
+              <div class="flex flex-col gap-1.5">
+                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+                  >Status</label
+                >
+                <select
+                  class="bg-slate-950 border border-white/10 focus:border-violet-500/50 rounded-xl px-3 py-2 text-xs text-white outline-none transition-all cursor-pointer"
+                  [ngModel]="searchStatus()"
+                  (ngModelChange)="searchStatus.set($event)"
+                >
+                  <option value="">All Statuses</option>
+                  <option value="upcoming">Upcoming</option>
+                  <option value="ongoing">Ongoing</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </div>
+
+              <!-- Venue filter -->
+              <div class="flex flex-col gap-1.5">
+                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+                  >Venue</label
+                >
+                <input
+                  type="text"
+                  placeholder="e.g. Main Stadium"
+                  class="bg-slate-950 border border-white/10 focus:border-violet-500/50 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 outline-none transition-all"
+                  [ngModel]="searchVenue()"
+                  (ngModelChange)="searchVenue.set($event)"
+                />
+              </div>
+
+              <!-- Start Date -->
+              <div class="flex flex-col gap-1.5">
+                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+                  >Date From</label
+                >
+                <input
+                  type="date"
+                  class="bg-slate-950 border border-white/10 focus:border-violet-500/50 rounded-xl px-3 py-2 text-xs text-white outline-none transition-all"
+                  [ngModel]="searchStartDate()"
+                  (ngModelChange)="searchStartDate.set($event)"
+                />
+              </div>
+
+              <!-- End Date -->
+              <div class="flex flex-col gap-1.5">
+                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+                  >Date To</label
+                >
+                <input
+                  type="date"
+                  class="bg-slate-950 border border-white/10 focus:border-violet-500/50 rounded-xl px-3 py-2 text-xs text-white outline-none transition-all"
+                  [ngModel]="searchEndDate()"
+                  (ngModelChange)="searchEndDate.set($event)"
+                />
+              </div>
+
+              <!-- Competition Name -->
+              <div class="flex flex-col gap-1.5">
+                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+                  >Competition</label
+                >
+                <input
+                  type="text"
+                  placeholder="e.g. Premier Cup"
+                  class="bg-slate-950 border border-white/10 focus:border-violet-500/50 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 outline-none transition-all"
+                  [ngModel]="searchCompetitionName()"
+                  (ngModelChange)="searchCompetitionName.set($event)"
+                />
+              </div>
+
+              <!-- Workspace Selection -->
+              <div class="flex flex-col gap-1.5">
+                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+                  >Workspace scope</label
+                >
+                <select
+                  class="bg-slate-950 border border-white/10 focus:border-violet-500/50 rounded-xl px-3 py-2 text-xs text-white outline-none transition-all cursor-pointer"
+                  [ngModel]="searchWorkspaceId()"
+                  (ngModelChange)="searchWorkspaceId.set($event)"
+                >
+                  <option value="">Current Workspace Only</option>
+                  <option value="all">All My Workspaces</option>
+                  @for (ws of userWorkspaces(); track ws.id) {
+                    @if (ws.id !== workspace()?.id) {
+                      <option [value]="ws.id">{{ ws.name }}</option>
+                    }
+                  }
+                </select>
+              </div>
+
+              <!-- Sort By -->
+              <div class="flex flex-col gap-1.5">
+                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+                  >Sort By</label
+                >
+                <select
+                  class="bg-slate-950 border border-white/10 focus:border-violet-500/50 rounded-xl px-3 py-2 text-xs text-white outline-none transition-all cursor-pointer"
+                  [ngModel]="searchSortBy()"
+                  (ngModelChange)="searchSortBy.set($event)"
+                >
+                  <option value="name">Event Name</option>
+                  <option value="startDate">Start Date</option>
+                  <option value="endDate">End Date</option>
+                  <option value="status">Status</option>
+                  <option value="sport">Sport</option>
+                  <option value="venue">Venue</option>
+                </select>
+              </div>
+
+              <!-- Sort Order -->
+              <div class="flex flex-col gap-1.5">
+                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+                  >Sort Order</label
+                >
+                <select
+                  class="bg-slate-950 border border-white/10 focus:border-violet-500/50 rounded-xl px-3 py-2 text-xs text-white outline-none transition-all cursor-pointer"
+                  [ngModel]="searchSortOrder()"
+                  (ngModelChange)="searchSortOrder.set($event)"
+                >
+                  <option value="ASC">Ascending</option>
+                  <option value="DESC">Descending</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Saved Filters Section -->
+            <div
+              class="border-t border-white/5 pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+            >
+              <!-- Load Saved Filter -->
+              <div class="flex flex-wrap items-center gap-2">
+                <span
+                  class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1"
+                >
+                  <i class="fi fi-rr-bookmark text-violet-400"></i>
+                  <span>Saved Filters:</span>
+                </span>
+                @if (savedFilters().length === 0) {
+                  <span class="text-[11px] text-slate-650">No saved filters yet</span>
+                } @else {
+                  @for (sf of savedFilters(); track sf.name) {
+                    <span
+                      class="inline-flex items-center gap-1.5 bg-slate-950 border border-white/5 rounded-full px-2.5 py-0.5 text-[11px] text-slate-350"
+                    >
+                      <button
+                        (click)="applySavedFilter(sf.filters)"
+                        class="hover:text-violet-400 cursor-pointer font-medium bg-transparent border-0"
+                      >
+                        {{ sf.name }}
+                      </button>
+                      <button
+                        (click)="deleteSavedFilter(sf.name)"
+                        class="text-slate-500 hover:text-rose-450 cursor-pointer bg-transparent border-0"
+                      >
+                        <i class="fi fi-rr-cross-small text-[10px]"></i>
+                      </button>
+                    </span>
+                  }
+                }
+              </div>
+
+              <!-- Save Current Filter Form -->
+              <div class="flex items-center gap-2">
+                <input
+                  type="text"
+                  placeholder="Filter Name..."
+                  class="bg-slate-950 border border-white/10 focus:border-violet-500/50 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-650 outline-none transition-all w-36"
+                  [ngModel]="newFilterName()"
+                  (ngModelChange)="newFilterName.set($event)"
+                />
+                <button
+                  (click)="saveCurrentFilter()"
+                  [disabled]="!newFilterName().trim()"
+                  class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-xs font-semibold transition cursor-pointer"
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+
+            <!-- Filter Action Buttons -->
+            <div class="flex justify-end gap-3 border-t border-white/5 pt-4">
+              <button
+                (click)="resetAdvancedSearch()"
+                class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white hover:text-slate-950 rounded-xl text-xs font-semibold transition cursor-pointer"
+              >
+                Reset Filters
+              </button>
+              <button
+                (click)="triggerAdvancedSearch()"
+                class="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-xl text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer"
+              >
+                <i class="fi fi-rr-search"></i>
+                <span>Apply Filters</span>
+              </button>
+            </div>
+          </div>
+        }
+
+        @let targetEvents =
+          searchActive()
+            ? searchResults()
+            : activeEventView() === 'active'
+              ? filteredEvents()
+              : filteredArchivedEvents();
+        @if (targetEvents.length === 0) {
+          <div
+            class="rounded-2xl border border-dashed border-white/10 p-12 text-center flex flex-col items-center justify-center gap-3 w-full"
+          >
+            <span class="text-3xl text-slate-600"><i class="fi fi-rr-search"></i></span>
+            <div>
+              <h3 class="text-sm font-semibold text-white">No matching events</h3>
+              <p class="text-xs text-slate-500 mt-1">
+                No events match your search query "{{ eventSearchQuery() }}".
+              </p>
+            </div>
+          </div>
+        } @else {
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            @for (event of targetEvents; track event.id) {
+              <div
+                class="bg-slate-900 border border-white/10 hover:border-violet-500/30 rounded-2xl p-5 flex flex-col justify-between gap-4 group transition-all duration-300 text-left"
+              >
+                <div class="flex flex-col gap-2">
+                  <div class="flex items-center justify-between gap-2">
+                    <!-- Event Logo or Default Trophy -->
+                    <div class="flex items-center gap-3">
+                      <div
+                        class="w-10 h-10 rounded-xl bg-slate-800 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0"
+                      >
+                        @if (event.logoUrl) {
+                          <img
+                            [src]="event.logoUrl"
+                            alt="Event Logo"
+                            class="w-full h-full object-cover"
+                          />
+                        } @else {
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            class="w-5 h-5 text-violet-400"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                          >
+                            <path
+                              d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94A5.006 5.006 0 0 0 11 15.9V19H9v2h6v-2h-2v-3.1a5.006 5.006 0 0 0 3.61-2.96C19.08 10.63 21 8.55 21 8V7c0-1.1-.9-2-2-2zM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8zm14 0c0 1.3-.84 2.4-2 2.82V7h2v1z"
+                            />
+                          </svg>
+                        }
+                      </div>
+                    </div>
+                    <!-- Status Badges -->
+                    <div class="flex items-center gap-1.5">
+                      @if (event.isPublic) {
+                        <span
+                          class="text-[10px] font-extrabold px-2 py-0.5 bg-violet-600/10 text-violet-400 rounded-md border border-violet-500/20 flex items-center gap-1"
+                        >
+                          <i class="fi fi-sr-eye text-[9px]"></i> Public
+                        </span>
+                      }
+                      @if (event.status === 'ongoing') {
+                        <span
+                          class="text-[10px] font-bold px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded-md border border-emerald-500/20"
+                        >
+                          Ongoing
+                        </span>
+                      } @else if (event.status === 'completed') {
+                        <span
+                          class="text-[10px] font-bold px-2 py-0.5 bg-blue-500/10 text-blue-400 rounded-md border border-blue-500/20"
+                        >
+                          Completed
+                        </span>
+                      } @else if (event.status === 'cancelled') {
+                        <span
+                          class="text-[10px] font-bold px-2 py-0.5 bg-rose-500/10 text-rose-400 rounded-md border border-rose-500/20"
+                        >
+                          Cancelled
+                        </span>
+                      } @else {
+                        <span
+                          class="text-[10px] font-bold px-2 py-0.5 bg-violet-500/10 text-violet-400 rounded-md border border-violet-500/20"
+                        >
+                          Upcoming
+                        </span>
+                      }
+                    </div>
+                  </div>
+
+                  <h4
+                    class="text-base font-extrabold text-white group-hover:text-violet-400 transition-colors mt-1"
+                  >
+                    {{ event.name }}
+                  </h4>
+
+                  @if (event.description) {
+                    <p class="text-xs text-slate-400 line-clamp-2 mt-1">{{ event.description }}</p>
+                  } @else {
+                    <p class="text-xs text-slate-600 italic mt-1">No description provided</p>
+                  }
+                </div>
+
+                <div
+                  class="flex flex-col gap-2 pt-3 border-t border-white/5 text-xs text-slate-400"
+                >
+                  @if (event.startDate) {
+                    <div class="flex justify-between items-center">
+                      <span class="text-slate-500">Starts:</span>
+                      <span class="text-white font-medium">{{
+                        event.startDate | date: 'MMM d, y, h:mm a'
+                      }}</span>
+                    </div>
+                  }
+                  @if (event.endDate) {
+                    <div class="flex justify-between items-center">
+                      <span class="text-slate-500">Ends:</span>
+                      <span class="text-white font-medium">{{
+                        event.endDate | date: 'MMM d, y, h:mm a'
+                      }}</span>
+                    </div>
+                  }
+                </div>
+
+                <!-- Actions -->
+                <div class="flex items-center justify-between gap-2 pt-3 border-t border-white/5">
+                  <div class="flex items-center gap-2">
+                    <button
+                      (click)="onSelectEvent(event)"
+                      class="px-2.5 py-1.5 text-[11px] font-bold text-violet-400 hover:text-white hover:bg-violet-600/20 border border-violet-500/10 hover:border-violet-500/30 rounded-lg transition-all cursor-pointer"
+                    >
+                      View Competitions
+                    </button>
+                    @if (event.isPublic) {
+                      <button
+                        (click)="openPublicPage(event); $event.stopPropagation()"
+                        title="Open Public Event Page"
+                        class="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 border border-white/10 rounded-lg transition-all cursor-pointer flex items-center justify-center"
+                      >
+                        <i class="fi fi-rr-share text-xs"></i>
+                      </button>
+                    }
+                  </div>
+                  @if (hasPermission('event.manage')) {
+                    <div
+                      class="flex items-center gap-2 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity"
+                    >
+                      @if (activeEventView() === 'active') {
+                        <button
+                          (click)="onArchiveEvent(event)"
+                          class="px-2 py-1 text-[10px] font-bold text-amber-400 hover:text-white hover:bg-amber-600/20 border border-amber-500/10 hover:border-amber-500/30 rounded-md transition-all cursor-pointer"
+                        >
+                          Archive
+                        </button>
+                        <button
+                          (click)="openDuplicateEventModal(event)"
+                          class="px-2 py-1 text-[10px] font-bold text-violet-400 hover:text-white hover:bg-violet-600/20 border border-violet-500/10 hover:border-violet-500/30 rounded-md transition-all cursor-pointer"
+                        >
+                          Duplicate
+                        </button>
+                        <button
+                          (click)="onEditEvent(event)"
+                          class="px-2 py-1 text-[10px] font-bold text-slate-400 hover:text-white hover:bg-slate-800 border border-white/10 rounded-md transition-all cursor-pointer"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          (click)="onDeleteEvent(event)"
+                          class="px-2 py-1 text-[10px] font-bold text-rose-400 hover:text-white hover:bg-rose-600/20 border border-rose-500/10 hover:border-rose-500/30 rounded-md transition-all cursor-pointer"
+                        >
+                          Delete
+                        </button>
+                      } @else {
+                        <button
+                          (click)="onRestoreEvent(event)"
+                          class="px-2 py-1 text-[10px] font-bold text-emerald-400 hover:text-white hover:bg-emerald-600/20 border border-emerald-500/10 hover:border-emerald-500/30 rounded-md transition-all cursor-pointer"
+                        >
+                          Restore
+                        </button>
+                        <button
+                          (click)="onDeleteEvent(event)"
+                          class="px-2 py-1 text-[10px] font-bold text-rose-400 hover:text-white hover:bg-rose-600/20 border border-rose-500/10 hover:border-rose-500/30 rounded-md transition-all cursor-pointer"
+                        >
+                          Delete
+                        </button>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+      }
+    </div>
+  }
+  <app-event-modal
+    [(isOpen)]="isEventModalOpen"
+    [workspace]="workspace()"
+    [teams]="teams()"
+    [editingEvent]="editingEvent()"
+    (eventSaved)="onEventSaved($event)"
+  />
+  <app-duplicate-event-modal
+    [(isOpen)]="isDuplicateEventModalOpen"
+    [workspace]="workspace()"
+    [targetEvent]="duplicatingEvent()"
+    (eventDuplicated)="onEventDuplicated($event)"
+  />
+  <app-competition-modal
+    [(isOpen)]="isCompetitionModalOpen"
+    [workspace]="workspace()"
+    [selectedEvent]="selectedEvent()"
+    [editingCompetition]="editingCompetition()"
+    [sports]="sports()"
+    (competitionSaved)="onCompetitionSaved($event)"
+  />
+  <app-fixtures-modal
+    [(isOpen)]="isGenerateFixturesModalOpen"
+    [workspace]="workspace()"
+    [selectedEvent]="selectedEvent()"
+    [selectedCompetition]="selectedCompetition()"
+    [teams]="teams()"
+    [venues]="venues()"
+    [stages]="stages()"
+    (fixturesGenerated)="onFixturesGenerated()"
+  />
+  <app-lineup-modal
+    [(isOpen)]="isLineupModalOpen"
+    [workspace]="workspace()"
+    [selectedEvent]="selectedEvent()"
+    [selectedCompetition]="selectedCompetition()"
+    [selectedStage]="selectedStage()"
+    [selectedMatch]="selectedMatch()"
+    [players]="players()"
+    [matchLineup]="matchLineup()"
+    (lineupSaved)="onLineupSaved($event)"
+  />
+  <app-schedule-match-modal
+    [(isOpen)]="isScheduleMatchModalOpen"
+    [workspace]="workspace()"
+    [selectedEvent]="selectedEvent()"
+    [selectedCompetition]="selectedCompetition()"
+    [selectedStage]="selectedStage()"
+    [match]="selectedMatchToSchedule()"
+    [venues]="venues()"
+    (matchScheduled)="onMatchScheduled($event)"
+  />
+  <app-qualification-preview-modal
+    [(isOpen)]="isQualificationPreviewModalOpen"
+    [workspace]="workspace()"
+    [selectedEvent]="selectedEvent()"
+    [selectedCompetition]="selectedCompetition()"
+    [selectedStage]="selectedStage()"
+    (qualificationPublished)="onQualificationPublished()"
+  />
+  @if (isTemplatesModalOpen()) {
+    <app-event-templates-modal
+      id="event-templates-modal"
+      [workspace]="workspace()"
+      [sports]="sports()"
+      [events]="events()"
+      (eventCreated)="onTemplateEventCreated($event)"
+      (closed)="closeTemplatesModal()"
+    />
+  }
+}

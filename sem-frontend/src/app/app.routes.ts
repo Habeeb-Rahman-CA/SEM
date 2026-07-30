@@ -1,53 +1,61 @@
 import { Routes } from '@angular/router';
-import { authGuard, noAuthGuard } from './guards/auth.guard';
+import { authGuard, noAuthGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
   // Auth routes (redirect to /workspaces if already logged in)
   {
     path: 'login',
-    loadComponent: () => import('./components/login/login').then(m => m.LoginComponent),
+    loadComponent: () => import('./features/auth/pages/login/login').then((m) => m.LoginComponent),
     canActivate: [noAuthGuard],
   },
   {
     path: 'register',
-    loadComponent: () => import('./components/register/register').then(m => m.RegisterComponent),
+    loadComponent: () =>
+      import('./features/auth/pages/register/register').then((m) => m.RegisterComponent),
     canActivate: [noAuthGuard],
   },
-
 
   // Workspace routes
   {
     path: 'workspaces',
-    loadComponent: () => import('./components/workspaces/workspaces').then(m => m.WorkspacesComponent),
+    loadComponent: () =>
+      import('./features/workspaces/pages/workspaces').then((m) => m.WorkspacesComponent),
     canActivate: [authGuard],
   },
   {
     path: 'workspaces/join',
-    loadComponent: () => import('./components/workspaces/join-workspace').then(m => m.JoinWorkspaceComponent),
+    loadComponent: () =>
+      import('./features/workspaces/pages/join-workspace').then((m) => m.JoinWorkspaceComponent),
   },
   {
     path: 'workspaces/:id',
-    loadComponent: () => import('./components/workspaces/workspace-detail').then(m => m.WorkspaceDetailComponent),
+    loadComponent: () =>
+      import('./features/workspaces/pages/workspace-detail').then(
+        (m) => m.WorkspaceDetailComponent,
+      ),
     canActivate: [authGuard],
   },
   {
     path: 'system-settings',
-    loadComponent: () => import('./components/system-settings/system-settings').then(m => m.SystemSettingsComponent),
+    loadComponent: () =>
+      import('./features/system-settings/pages/system-settings').then(
+        (m) => m.SystemSettingsComponent,
+      ),
     canActivate: [authGuard],
   },
   {
     path: 'profile',
-    loadComponent: () => import('./components/profile/profile').then(m => m.ProfileComponent),
+    loadComponent: () => import('./features/profile/pages/profile').then((m) => m.ProfileComponent),
     canActivate: [authGuard],
   },
 
   {
     path: 'public/events/:id',
-    loadComponent: () => import('./components/public-event/public-event').then(m => m.PublicEventComponent),
+    loadComponent: () =>
+      import('./features/public-event/pages/public-event').then((m) => m.PublicEventComponent),
   },
 
   // Default redirect
   { path: '', redirectTo: '/workspaces', pathMatch: 'full' },
   { path: '**', redirectTo: '/workspaces' },
 ];
-

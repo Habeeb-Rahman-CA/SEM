@@ -1,0 +1,135 @@
+<div class="relative">
+  <button
+    (click)="isNotificationOpen.set(!isNotificationOpen())"
+    aria-haspopup="true"
+    [attr.aria-expanded]="isNotificationOpen()"
+    aria-label="Notifications"
+    class="w-10 h-10 rounded-xl bg-slate-900 hover:bg-slate-800/80 border border-white/5 flex items-center justify-center text-slate-400 hover:text-white transition-all cursor-pointer relative outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500"
+  >
+    <i class="fi fi-rr-bell text-base"></i>
+    @if (pendingInvitations().length + unreadCount() > 0) {
+      <span
+        class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-rose-500 text-white rounded-full text-[10px] font-extrabold flex items-center justify-center animate-pulse border-2 border-slate-950"
+      >
+        {{ pendingInvitations().length + unreadCount() }}
+      </span>
+    }
+  </button>
+
+  <!-- Dropdown Panel -->
+  @if (isNotificationOpen()) {
+    <!-- Backdrop to close -->
+    <div
+      class="fixed inset-0 z-30 bg-black/0 cursor-default"
+      (click)="isNotificationOpen.set(false)"
+    ></div>
+
+    <div
+      class="absolute right-0 mt-2 w-80 bg-slate-900 border border-white/10 rounded-2xl shadow-2xl py-3 px-4 z-40 animate-fadeIn shrink-0 flex flex-col gap-3"
+    >
+      <div class="border-b border-white/5 pb-2 flex items-center justify-between">
+        <h4 class="text-xs font-bold text-white uppercase tracking-wider">Notifications</h4>
+        @if (unreadCount() > 0) {
+          <button
+            (click)="markNotificationsRead.emit(); $event.stopPropagation()"
+            class="text-[10px] text-indigo-400 hover:text-indigo-300 font-bold transition cursor-pointer outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500"
+          >
+            Mark all as read
+          </button>
+        }
+      </div>
+
+      <!-- Invitations Section -->
+      <div class="flex flex-col gap-2">
+        <div class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">
+          Invitations ({{ pendingInvitations().length }})
+        </div>
+        <div class="max-h-40 overflow-y-auto flex flex-col gap-2">
+          @if (pendingInvitations().length === 0) {
+            <div class="py-2 text-center text-[10px] text-slate-600 italic">
+              No pending invitations
+            </div>
+          } @else {
+            @for (invite of pendingInvitations(); track invite.id) {
+              <div
+                class="bg-slate-950/40 border border-white/5 rounded-xl p-2.5 flex flex-col gap-2"
+              >
+                <div class="flex items-start gap-2.5">
+                  <app-avatar
+                    [name]="invite.workspace?.name || 'W'"
+                    [logoUrl]="invite.workspace?.logoUrl"
+                    customClass="w-7 h-7 rounded-lg shrink-0"
+                    textClass="text-[10px] font-bold text-white"
+                  />
+                  <div class="min-w-0">
+                    <p class="text-xs font-bold text-white truncate">
+                      {{ invite.workspace?.name }}
+                    </p>
+                    <p class="text-[9px] text-slate-400 mt-0.5 capitalize">
+                      Role: {{ invite.role.name || 'Viewer' }}
+                    </p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button
+                    (click)="
+                      acceptInvitation.emit({
+                        workspaceId: invite.workspaceId,
+                        name: invite.workspace?.name || 'Workspace',
+                      })
+                    "
+                    [disabled]="isProcessingInvitation()"
+                    class="flex-1 py-1 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-[10px] font-bold rounded-lg transition-all cursor-pointer text-center outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500"
+                  >
+                    Accept
+                  </button>
+                  <button
+                    (click)="
+                      rejectInvitation.emit({
+                        workspaceId: invite.workspaceId,
+                        name: invite.workspace?.name || 'Workspace',
+                      })
+                    "
+                    [disabled]="isProcessingInvitation()"
+                    class="flex-1 py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-rose-400 text-[10px] font-bold rounded-lg transition-all cursor-pointer text-center outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500"
+                  >
+                    Reject
+                  </button>
+                </div>
+              </div>
+            }
+          }
+        </div>
+      </div>
+
+      <!-- General Notifications Section -->
+      <div class="flex flex-col gap-2 pt-2 border-t border-white/5">
+        <div class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">
+          Recent Activity ({{ notifications().length }})
+        </div>
+        <div class="max-h-44 overflow-y-auto flex flex-col gap-2">
+          @if (notifications().length === 0) {
+            <div class="py-2 text-center text-[10px] text-slate-600 italic">No notifications</div>
+          } @else {
+            @for (notification of notifications(); track notification.id) {
+              <div
+                [class.bg-indigo-950/20]="!notification.isRead"
+                class="bg-slate-950/40 border border-white/5 hover:border-white/10 rounded-xl p-2.5 flex items-start gap-2.5 transition-all"
+              >
+                @if (notification.icon) {
+                  <span class="text-xs mt-0.5 shrink-0 select-none">{{ notification.icon }}</span>
+                }
+                <div class="flex-1 min-w-0 flex flex-col gap-1">
+                  <p class="text-[10px] text-white leading-relaxed">{{ notification.message }}</p>
+                  <span class="text-[8px] text-slate-500 text-right">{{
+                    notification.createdAt | date: 'shortTime'
+                  }}</span>
+                </div>
+              </div>
+            }
+          }
+        </div>
+      </div>
+    </div>
+  }
+</div>

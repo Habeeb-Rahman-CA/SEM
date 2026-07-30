@@ -1,0 +1,223 @@
+@if (isOpen()) {
+  <div
+    class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+    (click)="closeModal()"
+  >
+    <div
+      class="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col shadow-2xl relative overflow-hidden"
+      (click)="$event.stopPropagation()"
+    >
+      <!-- Gradient top line -->
+      <div
+        class="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-violet-500 to-indigo-500"
+      ></div>
+
+      <!-- Header -->
+      <div class="px-6 py-5 border-b border-white/5 flex items-center justify-between">
+        <div>
+          <h3 class="text-base font-bold text-white flex items-center gap-2">
+            @if (player()) {
+              <span>Edit Player:</span>
+              <span class="text-violet-400">{{ player()?.user?.username }}</span>
+            } @else {
+              <span>Register New Player</span>
+            }
+          </h3>
+          <p class="text-xs text-slate-400 mt-1">
+            @if (player()) {
+              Update the player details and configuration.
+            } @else {
+              Add a new player to this workspace.
+            }
+          </p>
+        </div>
+        <button
+          (click)="closeModal()"
+          class="text-slate-400 hover:text-white transition cursor-pointer"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="w-5 h-5"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+          >
+            <path
+              d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
+            />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Form Content -->
+      <div class="p-6 overflow-y-auto flex-1">
+        @if (teams().length === 0) {
+          <div
+            class="bg-amber-500/10 border border-amber-500/30 p-4 rounded-xl text-amber-300 text-xs flex flex-col gap-2"
+          >
+            <p>You must register at least one Team before you can add players.</p>
+            <button
+              type="button"
+              (click)="closeModal()"
+              class="w-full py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-center transition-all cursor-pointer text-xs"
+            >
+              Go back
+            </button>
+          </div>
+        } @else {
+          @if (player()) {
+            <div
+              class="mb-4 text-xs text-slate-400 bg-slate-950/40 p-3 rounded-xl border border-white/5 flex flex-col gap-1.5 text-left"
+            >
+              <div>
+                <span class="text-slate-500">Player:</span>
+                <span class="text-white font-bold ml-1.5">{{ player()?.user?.username }}</span>
+              </div>
+            </div>
+          }
+
+          @if (saveSuccess()) {
+            <div
+              class="mb-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-3 text-emerald-300 text-xs flex items-center gap-2"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="w-4 h-4 flex-shrink-0"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path
+                  d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+                />
+              </svg>
+              {{ saveSuccess() }}
+            </div>
+          }
+          @if (saveError()) {
+            <div
+              class="mb-4 rounded-xl bg-rose-500/10 border border-rose-500/30 p-3 text-rose-300 text-xs flex items-center gap-2"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="w-4 h-4 flex-shrink-0"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path
+                  d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"
+                />
+              </svg>
+              {{ saveError() }}
+            </div>
+          }
+
+          <form
+            (submit)="onSubmit(); $event.preventDefault()"
+            class="flex flex-col gap-4 text-left"
+          >
+            @if (!player()) {
+              <div class="flex flex-col gap-1.5">
+                <label
+                  for="modal-p-user"
+                  class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+                  >Member / User <span class="text-rose-400">*</span></label
+                >
+                <select
+                  id="modal-p-user"
+                  class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-all w-full"
+                  [ngModel]="userId()"
+                  (ngModelChange)="userId.set($event)"
+                  name="pUserId"
+                  required
+                >
+                  <option value="" disabled selected>Select workspace member...</option>
+                  @for (m of members(); track m.id) {
+                    <option [value]="m.userId">{{ m.user.username }}</option>
+                  }
+                </select>
+              </div>
+            }
+
+            <div class="flex flex-col gap-1.5">
+              <label
+                for="modal-p-team"
+                class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+                >Team <span class="text-rose-400">*</span></label
+              >
+              <select
+                id="modal-p-team"
+                class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-all w-full"
+                [ngModel]="teamId()"
+                (ngModelChange)="teamId.set($event)"
+                name="pTeamId"
+                required
+              >
+                <option value="" disabled selected>Select a team...</option>
+                @for (team of teams(); track team.id) {
+                  <option [value]="team.id">{{ team.name }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+              <label
+                for="modal-p-jersey"
+                class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+                >Jersey #
+                <span class="text-slate-600 font-normal normal-case">(optional)</span></label
+              >
+              <input
+                id="modal-p-jersey"
+                type="text"
+                placeholder="e.g. 10"
+                autocomplete="off"
+                class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition-all w-full"
+                [ngModel]="jerseyNumber()"
+                (ngModelChange)="jerseyNumber.set($event)"
+                name="pJersey"
+              />
+            </div>
+
+            <!-- Footer Buttons -->
+            <div class="flex justify-end gap-3 pt-4 border-t border-white/5">
+              <button
+                type="button"
+                (click)="closeModal()"
+                class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white hover:text-slate-950 text-xs font-bold rounded-xl transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                [disabled]="
+                  player() ? isSaving() || !teamId() : isSaving() || !userId() || !teamId()
+                "
+                class="px-5 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-2"
+              >
+                @if (isSaving()) {
+                  <svg class="animate-spin w-4 h-4 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle
+                      class="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      stroke-width="4"
+                    ></circle>
+                    <path
+                      class="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                    ></path>
+                  </svg>
+                  Saving...
+                } @else {
+                  {{ player() ? 'Save Changes' : 'Register Player' }}
+                }
+              </button>
+            </div>
+          </form>
+        }
+      </div>
+    </div>
+  </div>
+}

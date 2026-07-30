@@ -1,0 +1,299 @@
+<div class="hidden md:flex items-center w-80 relative" id="globalSearchContainer" role="search">
+  <span class="absolute left-4 text-slate-500 text-sm pointer-events-none">
+    <i class="fi fi-rr-search"></i>
+  </span>
+  <input
+    type="text"
+    id="globalSearchInput"
+    placeholder="Search teams, players, events, venues..."
+    [ngModel]="globalSearchQuery()"
+    (ngModelChange)="globalSearchQuery.set($event); showGlobalSearchResults.set(true)"
+    (focus)="showGlobalSearchResults.set(true)"
+    aria-label="Global search"
+    aria-haspopup="listbox"
+    [attr.aria-expanded]="showGlobalSearchResults()"
+    [attr.aria-controls]="showGlobalSearchResults() ? 'global-search-results' : null"
+    class="w-full bg-slate-900 border border-white/5 focus:border-violet-500/50 rounded-xl pl-11 pr-10 py-2.5 text-xs text-slate-200 placeholder-slate-500 outline-none transition-all focus:ring-2 focus:ring-violet-500/40"
+  />
+  @if (globalSearchQuery()) {
+    <button
+      (click)="clearGlobalSearch()"
+      aria-label="Clear search"
+      class="absolute right-12 text-slate-500 hover:text-slate-300 cursor-pointer bg-transparent border-0 flex items-center rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500"
+    >
+      <i class="fi fi-rr-cross text-[10px]"></i>
+    </button>
+  }
+  <span
+    class="absolute right-4 px-1.5 py-0.5 text-[9px] font-bold bg-slate-800 text-slate-500 rounded border border-white/5 font-mono select-none pointer-events-none"
+    >⌘K</span
+  >
+
+  <!-- Search Results Dropdown Panel -->
+  @if (globalSearchQuery().trim() && showGlobalSearchResults()) {
+    <!-- Backdrop to close -->
+    <div
+      class="fixed inset-0 z-30 bg-transparent cursor-default"
+      (click)="showGlobalSearchResults.set(false)"
+    ></div>
+
+    <div
+      id="global-search-results"
+      role="listbox"
+      aria-label="Search results"
+      class="absolute left-0 top-full mt-2 w-[420px] max-h-[480px] overflow-y-auto bg-slate-900 border border-white/10 rounded-2xl shadow-2xl py-3 px-4 z-40 animate-fadeIn shrink-0 flex flex-col gap-3 scrollbar-thin"
+    >
+      <div class="border-b border-white/5 pb-2">
+        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Search Results</h4>
+      </div>
+
+      @if (results().totalCount === 0) {
+        <div class="text-center py-6 text-slate-500 text-xs">
+          No matching results found for "{{ globalSearchQuery() }}"
+        </div>
+      } @else {
+        <div class="flex flex-col gap-3">
+          <!-- Teams Results -->
+          @if (results().teams.length > 0) {
+            <div>
+              <div
+                class="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5"
+              >
+                <i class="fi fi-rr-users text-slate-400"></i>
+                <span>Teams ({{ results().teams.length }})</span>
+              </div>
+              <div class="flex flex-col gap-1">
+                @for (team of results().teams; track team.id) {
+                  <button
+                    role="option"
+                    (click)="selectTeam.emit(team)"
+                    class="w-full flex items-center gap-2.5 p-2 hover:bg-white/[0.03] rounded-xl text-left transition-colors cursor-pointer border-0 bg-transparent outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-violet-500"
+                  >
+                    <app-avatar
+                      [name]="team.name"
+                      [logoUrl]="team.logoUrl"
+                      customClass="w-6 h-6 rounded-md"
+                      textClass="text-[10px] font-extrabold text-white"
+                    />
+                    <div class="min-w-0 flex-1">
+                      <p class="text-xs font-semibold text-white truncate">{{ team.name }}</p>
+                      <p class="text-[9px] text-slate-400 truncate">
+                        {{ team.code || 'No code' }} • {{ team.description || 'No description' }}
+                      </p>
+                    </div>
+                  </button>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- Players Results -->
+          @if (results().players.length > 0) {
+            <div>
+              <div
+                class="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5"
+              >
+                <i class="fi fi-rr-running text-slate-400"></i>
+                <span>Players ({{ results().players.length }})</span>
+              </div>
+              <div class="flex flex-col gap-1">
+                @for (player of results().players; track player.id) {
+                  <button
+                    role="option"
+                    (click)="selectPlayer.emit(player)"
+                    class="w-full flex items-center gap-2.5 p-2 hover:bg-white/[0.03] rounded-xl text-left transition-colors cursor-pointer border-0 bg-transparent outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-violet-500"
+                  >
+                    <app-avatar
+                      [name]="player.user.username || 'P'"
+                      [logoUrl]="player.user.avatarUrl"
+                      customClass="w-6 h-6 rounded-full"
+                      textClass="text-[10px] font-extrabold text-white"
+                    />
+                    <div class="min-w-0 flex-1">
+                      <p class="text-xs font-semibold text-white truncate">
+                        {{ player.user.username }}
+                      </p>
+                      <p class="text-[9px] text-slate-400 truncate">
+                        Team: {{ player.team.name }} • Jersey: #{{ player.jerseyNumber || 'N/A' }}
+                      </p>
+                    </div>
+                  </button>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- Events Results -->
+          @if (results().events.length > 0) {
+            <div>
+              <div
+                class="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5"
+              >
+                <i class="fi fi-rr-trophy text-slate-400"></i>
+                <span>Events ({{ results().events.length }})</span>
+              </div>
+              <div class="flex flex-col gap-1">
+                @for (event of results().events; track event.id) {
+                  <button
+                    role="option"
+                    (click)="selectEvent.emit(event)"
+                    class="w-full flex items-center gap-2.5 p-2 hover:bg-white/[0.03] rounded-xl text-left transition-colors cursor-pointer border-0 bg-transparent outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-violet-500"
+                  >
+                    <div
+                      class="w-6 h-6 rounded-md bg-slate-800 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0 text-[10px] text-violet-400"
+                    >
+                      @if (event.logoUrl) {
+                        <img [src]="event.logoUrl" class="w-full h-full object-cover" />
+                      } @else {
+                        <i class="fi fi-rr-trophy"></i>
+                      }
+                    </div>
+                    <div class="min-w-0 flex-1">
+                      <p class="text-xs font-semibold text-white truncate">{{ event.name }}</p>
+                      <p class="text-[9px] text-slate-400 truncate">
+                        Status: {{ event.status }} • {{ event.description || 'No description' }}
+                      </p>
+                    </div>
+                  </button>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- Competitions Results -->
+          @if (results().competitions.length > 0) {
+            <div>
+              <div
+                class="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5"
+              >
+                <i class="fi fi-rr-layers text-slate-400"></i>
+                <span>Competitions ({{ results().competitions.length }})</span>
+              </div>
+              <div class="flex flex-col gap-1">
+                @for (comp of results().competitions; track comp.id) {
+                  <button
+                    role="option"
+                    (click)="selectCompetition.emit(comp)"
+                    class="w-full flex items-center gap-2.5 p-2 hover:bg-white/[0.03] rounded-xl text-left transition-colors cursor-pointer border-0 bg-transparent outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-violet-500"
+                  >
+                    <div
+                      class="w-6 h-6 rounded-md bg-slate-800 border border-white/10 flex items-center justify-center text-[10px] text-indigo-400"
+                    >
+                      <i class="fi fi-rr-bolt"></i>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                      <p class="text-xs font-semibold text-white truncate">{{ comp.name }}</p>
+                      <p class="text-[9px] text-slate-400 truncate">
+                        Sport: {{ comp.sport?.name || 'N/A' }} • Status: {{ comp.status }}
+                      </p>
+                    </div>
+                  </button>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- Venues Results -->
+          @if (results().venues.length > 0) {
+            <div>
+              <div
+                class="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5"
+              >
+                <i class="fi fi-rr-marker text-slate-400"></i>
+                <span>Venues ({{ results().venues.length }})</span>
+              </div>
+              <div class="flex flex-col gap-1">
+                @for (venue of results().venues; track venue.id) {
+                  <button
+                    role="option"
+                    (click)="selectVenue.emit(venue)"
+                    class="w-full flex items-center gap-2.5 p-2 hover:bg-white/[0.03] rounded-xl text-left transition-colors cursor-pointer border-0 bg-transparent outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-violet-500"
+                  >
+                    <div
+                      class="w-6 h-6 rounded-md bg-slate-800 border border-white/10 flex items-center justify-center text-[10px] text-emerald-400"
+                    >
+                      <i class="fi fi-rr-marker"></i>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                      <p class="text-xs font-semibold text-white truncate">{{ venue.name }}</p>
+                      <p class="text-[9px] text-slate-400 truncate">
+                        Location: {{ venue.location || 'No location' }}
+                      </p>
+                    </div>
+                  </button>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- Members Results -->
+          @if (results().members.length > 0) {
+            <div>
+              <div
+                class="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5"
+              >
+                <i class="fi fi-rr-users-alt text-slate-400"></i>
+                <span>Members ({{ results().members.length }})</span>
+              </div>
+              <div class="flex flex-col gap-1">
+                @for (member of results().members; track member.id) {
+                  <button
+                    role="option"
+                    (click)="selectMember.emit(member)"
+                    class="w-full flex items-center gap-2.5 p-2 hover:bg-white/[0.03] rounded-xl text-left transition-colors cursor-pointer border-0 bg-transparent outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-violet-500"
+                  >
+                    <app-avatar
+                      [name]="member.user.username"
+                      [logoUrl]="member.user.avatarUrl"
+                      customClass="w-6 h-6 rounded-full"
+                      textClass="text-[10px] font-extrabold text-white"
+                    />
+                    <div class="min-w-0 flex-1">
+                      <p class="text-xs font-semibold text-white truncate">
+                        {{ member.user.username }}
+                      </p>
+                      <p class="text-[9px] text-slate-400 truncate">Role: {{ member.role.name }}</p>
+                    </div>
+                  </button>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- Files Results -->
+          @if (results().files && results().files!.length > 0) {
+            <div>
+              <div
+                class="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5"
+              >
+                <i class="fi fi-rr-document text-slate-400"></i>
+                <span>Files ({{ results().files!.length }})</span>
+              </div>
+              <div class="flex flex-col gap-1">
+                @for (file of results().files; track file.id) {
+                  <button
+                    role="option"
+                    (click)="selectFile.emit(file)"
+                    class="w-full flex items-center gap-2.5 p-2 hover:bg-white/[0.03] rounded-xl text-left transition-colors cursor-pointer border-0 bg-transparent outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-violet-500"
+                  >
+                    <div
+                      class="w-6 h-6 rounded-md bg-slate-800 border border-white/10 flex items-center justify-center text-[10px] text-amber-400"
+                    >
+                      <i class="fi fi-rr-document"></i>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                      <p class="text-xs font-semibold text-white truncate">{{ file.name }}</p>
+                      <p class="text-[9px] text-slate-400 truncate">
+                        Type: {{ file.mimeType }} • Status: {{ file.virusScanStatus }}
+                      </p>
+                    </div>
+                  </button>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>

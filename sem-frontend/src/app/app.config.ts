@@ -4,9 +4,9 @@ import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/
 import { QuicklinkStrategy, quicklinkProviders } from 'ngx-quicklink';
 
 import { routes } from './app.routes';
-import { cacheInterceptor } from './interceptors/cache.interceptor';
-import { authInterceptor } from './interceptors/auth.interceptor';
-import { retryInterceptor } from './interceptors/retry.interceptor';
+import { cacheInterceptor } from './core/interceptors/cache.interceptor';
+import { authInterceptor } from './core/interceptors/auth.interceptor';
+import { retryInterceptor } from './core/interceptors/retry.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
