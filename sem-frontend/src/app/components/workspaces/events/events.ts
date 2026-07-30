@@ -24,6 +24,7 @@ import { LineupModalComponent } from './lineup-modal';
 import { ScheduleMatchModalComponent } from './schedule-match-modal';
 import { DuplicateEventModalComponent } from './duplicate-event-modal';
 import { DoubleEliminationBracketComponent } from './double-elimination-bracket';
+import { QualificationPreviewModalComponent } from './qualification-preview-modal';
 
 @Component({
   selector: 'app-workspace-events',
@@ -43,7 +44,8 @@ import { DoubleEliminationBracketComponent } from './double-elimination-bracket'
     LineupModalComponent,
     ScheduleMatchModalComponent,
     DuplicateEventModalComponent,
-    DoubleEliminationBracketComponent
+    DoubleEliminationBracketComponent,
+    QualificationPreviewModalComponent
   ],
   templateUrl: './events.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -128,6 +130,7 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
   isLineupModalOpen = signal(false);
   isScheduleMatchModalOpen = signal(false);
   selectedMatchToSchedule = signal<Match | null>(null);
+  isQualificationPreviewModalOpen = signal(false);
 
   // Standings Group
   selectedPointsTableGroup = signal('Group A');
@@ -1084,6 +1087,17 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
     const comp = this.selectedCompetition();
     if (comp) {
       this.loadStages(comp.id);
+    }
+  }
+
+  onQualificationPublished() {
+    const comp = this.selectedCompetition();
+    const stage = this.selectedStage();
+    if (comp) {
+      this.loadStages(comp.id);
+      if (stage) {
+        this.onSelectStage(stage);
+      }
     }
   }
 

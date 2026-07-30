@@ -78,6 +78,13 @@ export class CompetitionRankingsService {
         const home = teamStats.get(m.homeTeamId)!;
         const away = teamStats.get(m.awayTeamId)!;
 
+        if ((home as any).wins === undefined) {
+          Object.assign(home, { wins: 0, losses: 0, draws: 0, played: 0 });
+        }
+        if ((away as any).wins === undefined) {
+          Object.assign(away, { wins: 0, losses: 0, draws: 0, played: 0 });
+        }
+
         if (m.status === 'completed') {
           const hScore = m.homeScore ?? 0;
           const aScore = m.awayScore ?? 0;
@@ -86,14 +93,22 @@ export class CompetitionRankingsService {
           home.ga += aScore;
           away.gf += aScore;
           away.ga += hScore;
+          (home as any).played += 1;
+          (away as any).played += 1;
 
           if (hScore > aScore) {
             home.pts += winPoint;
+            (home as any).wins += 1;
+            (away as any).losses += 1;
           } else if (aScore > hScore) {
             away.pts += winPoint;
+            (away as any).wins += 1;
+            (home as any).losses += 1;
           } else {
             home.pts += drawPoint;
             away.pts += drawPoint;
+            (home as any).draws += 1;
+            (away as any).draws += 1;
           }
         }
       }
@@ -109,12 +124,68 @@ export class CompetitionRankingsService {
         groups.get(g)!.push(stats);
       }
 
-      for (const [groupName, statsList] of groups.entries()) {
-        statsList.sort((a, b) => {
+      const tieBreaks = lastStage.config?.tieBreaks || ['points', 'gd', 'gf'];
+      const customOverrides = lastStage.config?.customOverrides || {};
+
+      const compareHeadToHeadLocal = (teamAId: string, teamBId: string, matchesList: Match[]): number => {
+        const directMatches = matchesList.filter(
+          (m) =>
+            m.status === 'completed' &&
+            ((m.homeTeamId === teamAId && m.awayTeamId === teamBId) ||
+              (m.homeTeamId === teamBId && m.awayTeamId === teamAId)),
+        );
+
+        let ptsA = 0;
+        let ptsB = 0;
+
+        for (const m of directMatches) {
+          const isHomeA = m.homeTeamId === teamAId;
+          const scoreA = isHomeA ? m.homeScore ?? 0 : m.awayScore ?? 0;
+          const scoreB = isHomeA ? m.awayScore ?? 0 : m.homeScore ?? 0;
+
+          if (scoreA > scoreB) {
+            ptsA += 3;
+          } else if (scoreB > scoreA) {
+            ptsB += 3;
+          } else {
+            ptsA += 1;
+            ptsB += 1;
+          }
+        }
+
+        return ptsB - ptsA;
+      };
+
+      const sortTeamsLocal = (teamList: any[]) => {
+        return teamList.sort((a, b) => {
+          for (const rule of tieBreaks) {
+            if (rule === 'points' || rule === 'pts') {
+              if (b.pts !== a.pts) return b.pts - a.pts;
+            } else if (rule === 'gd' || rule === 'goalDifference') {
+              if (b.gd !== a.gd) return b.gd - a.gd;
+            } else if (rule === 'gf' || rule === 'goalsFor') {
+              if (b.gf !== a.gf) return b.gf - a.gf;
+            } else if (rule === 'wins') {
+              const winsA = a.wins ?? 0;
+              const winsB = b.wins ?? 0;
+              if (winsB !== winsA) return winsB - winsA;
+            } else if (rule === 'h2h' || rule === 'headToHead') {
+              const h2hDiff = compareHeadToHeadLocal(a.teamId, b.teamId, matches);
+              if (h2hDiff !== 0) return h2hDiff;
+            } else if (rule === 'custom') {
+              const valA = customOverrides[a.teamId] ?? 0;
+              const valB = customOverrides[b.teamId] ?? 0;
+              if (valB !== valA) return valB - valA;
+            }
+          }
           if (b.pts !== a.pts) return b.pts - a.pts;
           if (b.gd !== a.gd) return b.gd - a.gd;
           return b.gf - a.gf;
         });
+      };
+
+      for (const [groupName, statsList] of groups.entries()) {
+        sortTeamsLocal(statsList);
       }
 
       let rank = 1;
@@ -615,9 +686,63 @@ export class CompetitionRankingsService {
       }
     }
 
+    const tieBreaks = stage.config?.tieBreaks || ['points', 'gd', 'gf'];
+    const customOverrides = stage.config?.customOverrides || {};
+
+    const compareHeadToHeadLocal = (teamAId: string, teamBId: string, matchesList: Match[]): number => {
+      const directMatches = matchesList.filter(
+        (m) =>
+          m.status === 'completed' &&
+          ((m.homeTeamId === teamAId && m.awayTeamId === teamBId) ||
+            (m.homeTeamId === teamBId && m.awayTeamId === teamAId)),
+      );
+
+      let ptsA = 0;
+      let ptsB = 0;
+
+      for (const m of directMatches) {
+        const isHomeA = m.homeTeamId === teamAId;
+        const scoreA = isHomeA ? m.homeScore ?? 0 : m.awayScore ?? 0;
+        const scoreB = isHomeA ? m.awayScore ?? 0 : m.homeScore ?? 0;
+
+        if (scoreA > scoreB) {
+          ptsA += 3;
+        } else if (scoreB > scoreA) {
+          ptsB += 3;
+        } else {
+          ptsA += 1;
+          ptsB += 1;
+        }
+      }
+
+      return ptsB - ptsA;
+    };
+
     return Array.from(teamIds).sort((a, b) => {
       const statsA = standings.get(a)!;
       const statsB = standings.get(b)!;
+
+      for (const rule of tieBreaks) {
+        if (rule === 'points' || rule === 'pts') {
+          if (statsB.pts !== statsA.pts) return statsB.pts - statsA.pts;
+        } else if (rule === 'gd' || rule === 'goalDifference') {
+          if (statsB.gd !== statsA.gd) return statsB.gd - statsA.gd;
+        } else if (rule === 'gf' || rule === 'goalsFor') {
+          if (statsB.gf !== statsA.gf) return statsB.gf - statsA.gf;
+        } else if (rule === 'wins') {
+          const winsA = matches.filter(m => m.status === 'completed' && ((m.homeTeamId === a && (m.homeScore ?? 0) > (m.awayScore ?? 0)) || (m.awayTeamId === a && (m.awayScore ?? 0) > (m.homeScore ?? 0)))).length;
+          const winsB = matches.filter(m => m.status === 'completed' && ((m.homeTeamId === b && (m.homeScore ?? 0) > (m.awayScore ?? 0)) || (m.awayTeamId === b && (m.awayScore ?? 0) > (m.homeScore ?? 0)))).length;
+          if (winsB !== winsA) return winsB - winsA;
+        } else if (rule === 'h2h' || rule === 'headToHead') {
+          const h2hDiff = compareHeadToHeadLocal(a, b, matches);
+          if (h2hDiff !== 0) return h2hDiff;
+        } else if (rule === 'custom') {
+          const valA = customOverrides[a] ?? 0;
+          const valB = customOverrides[b] ?? 0;
+          if (valB !== valA) return valB - valA;
+        }
+      }
+
       if (statsB.pts !== statsA.pts) return statsB.pts - statsA.pts;
       if (statsB.gd !== statsA.gd) return statsB.gd - statsA.gd;
       return statsB.gf - statsA.gf;

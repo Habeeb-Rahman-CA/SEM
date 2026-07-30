@@ -823,9 +823,35 @@
             }
 
             <div class="bg-slate-900 border border-white/10 rounded-2xl p-6 shadow-xl flex flex-col gap-4">
-              <h3 class="text-sm font-bold text-white flex items-center gap-2 border-b border-white/5 pb-3">
-                <i class="fi fi-rr-list-check text-violet-400"></i> Points Table
-              </h3>
+              <div class="flex items-center justify-between border-b border-white/5 pb-3">
+                <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                  <i class="fi fi-rr-list-check text-violet-400"></i> Points Table
+                </h3>
+                @if ((selectedStage()?.type === 'group' || selectedStage()?.type === 'group_knockout') && hasPermission('competition.manage')) {
+                <button (click)="isQualificationPreviewModalOpen.set(true)"
+                  class="px-2.5 py-1 bg-violet-600/10 hover:bg-violet-600 text-violet-400 hover:text-white border border-violet-500/20 hover:border-transparent text-[10px] font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1">
+                  <i class="fi fi-rr-search-alt"></i> Qualification Preview
+                </button>
+                }
+              </div>
+
+              @if ((selectedStage()?.type === 'group' || selectedStage()?.type === 'group_knockout') &&
+                   selectedStage()?.config?.manualQualification &&
+                   !selectedStage()?.config?.publishedQualification &&
+                   isStageCompleted() &&
+                   hasPermission('competition.manage')) {
+              <div class="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 flex items-start gap-2.5 text-xs text-amber-300">
+                <i class="fi fi-rr-info text-sm mt-0.5"></i>
+                <div class="flex-1 text-left">
+                  <span class="font-bold block">Qualification Pending Approval</span>
+                  <span class="text-[11px] text-slate-400 mt-0.5 block">Group matches are completed, but advancements are held for manual approval.</span>
+                  <button (click)="isQualificationPreviewModalOpen.set(true)"
+                    class="mt-2 px-3 py-1 bg-amber-500 text-slate-950 text-[10px] font-bold rounded-lg hover:bg-amber-400 transition-all cursor-pointer">
+                    Approve & Publish Standings
+                  </button>
+                </div>
+              </div>
+              }
 
               @if (availableGroups().length > 0) {
               <div class="flex items-center gap-1.5 p-1 bg-slate-950/60 border border-white/5 rounded-xl w-full">
@@ -1500,4 +1526,5 @@
   <app-fixtures-modal [(isOpen)]="isGenerateFixturesModalOpen" [workspace]="workspace()" [selectedEvent]="selectedEvent()" [selectedCompetition]="selectedCompetition()" [teams]="teams()" [venues]="venues()" [stages]="stages()" (fixturesGenerated)="onFixturesGenerated()" />
   <app-lineup-modal [(isOpen)]="isLineupModalOpen" [workspace]="workspace()" [selectedEvent]="selectedEvent()" [selectedCompetition]="selectedCompetition()" [selectedStage]="selectedStage()" [selectedMatch]="selectedMatch()" [players]="players()" [matchLineup]="matchLineup()" (lineupSaved)="onLineupSaved($event)" />
   <app-schedule-match-modal [(isOpen)]="isScheduleMatchModalOpen" [workspace]="workspace()" [selectedEvent]="selectedEvent()" [selectedCompetition]="selectedCompetition()" [selectedStage]="selectedStage()" [match]="selectedMatchToSchedule()" [venues]="venues()" (matchScheduled)="onMatchScheduled($event)" />
+  <app-qualification-preview-modal [(isOpen)]="isQualificationPreviewModalOpen" [workspace]="workspace()" [selectedEvent]="selectedEvent()" [selectedCompetition]="selectedCompetition()" [selectedStage]="selectedStage()" (qualificationPublished)="onQualificationPublished()" />
 }

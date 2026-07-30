@@ -183,6 +183,11 @@ export interface CompetitionStage {
     roundsCount?: number;
     tieBreaks?: string[];
     restDays?: number;
+    // Custom qualification fields
+    runnersUpCount?: number;
+    manualQualification?: boolean;
+    publishedQualification?: boolean;
+    customOverrides?: Record<string, number>;
   };
   createdAt: string;
   updatedAt: string;

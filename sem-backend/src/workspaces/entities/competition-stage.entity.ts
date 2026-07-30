@@ -59,5 +59,11 @@ export class CompetitionStage extends AuditableEntity {
     roundsCount?: number;
     tieBreaks?: string[];
     restDays?: number;
+
+    // Custom Qualification config
+    runnersUpCount?: number;
+    customOverrides?: Record<string, number>;
+    manualQualification?: boolean;
+    publishedQualification?: boolean;
   };
 }

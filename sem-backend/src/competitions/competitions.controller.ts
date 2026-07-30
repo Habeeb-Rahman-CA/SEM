@@ -346,6 +346,56 @@ export class CompetitionsController {
     );
   }
 
+  @Get('events/:eventId/competitions/:competitionId/stages/:stageId/qualification-preview')
+  @ApiOperation({ summary: 'Get stage qualification preview' })
+  @ApiParam(WS)
+  @ApiParam(EV)
+  @ApiParam(COMP)
+  @ApiParam(STG)
+  @ApiResponse(R200('Stage qualification preview'))
+  @ApiResponse(R403)
+  @ApiResponse(R404)
+  getQualificationPreview(
+    @Param('workspaceId') workspaceId: string,
+    @Param('eventId') eventId: string,
+    @Param('competitionId') competitionId: string,
+    @Param('stageId') stageId: string,
+    @Request() req: any,
+  ) {
+    return this.competitionsService.getQualificationPreview(
+      workspaceId,
+      eventId,
+      competitionId,
+      stageId,
+      req.user.id,
+    );
+  }
+
+  @Post('events/:eventId/competitions/:competitionId/stages/:stageId/publish-qualification')
+  @ApiOperation({ summary: 'Publish stage qualification' })
+  @ApiParam(WS)
+  @ApiParam(EV)
+  @ApiParam(COMP)
+  @ApiParam(STG)
+  @ApiResponse(R200('Stage qualification published'))
+  @ApiResponse(R403)
+  @ApiResponse(R404)
+  publishQualification(
+    @Param('workspaceId') workspaceId: string,
+    @Param('eventId') eventId: string,
+    @Param('competitionId') competitionId: string,
+    @Param('stageId') stageId: string,
+    @Request() req: any,
+  ) {
+    return this.competitionsService.publishQualification(
+      workspaceId,
+      eventId,
+      competitionId,
+      stageId,
+      req.user.id,
+    );
+  }
+
   @Delete('events/:eventId/competitions/:competitionId/stages/:stageId')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete a stage' })

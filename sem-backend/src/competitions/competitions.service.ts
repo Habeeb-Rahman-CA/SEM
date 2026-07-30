@@ -602,6 +602,44 @@ export class CompetitionsService {
     await this.stageRepo.save(stage);
   }
 
+  async getQualificationPreview(
+    workspaceId: string,
+    eventId: string,
+    competitionId: string,
+    stageId: string,
+    userId: string,
+  ): Promise<any> {
+    await this.workspacesService.ensureMember(workspaceId, userId);
+    const stage = await this.stageRepo.findOne({
+      where: { id: stageId, competitionId },
+    });
+    if (!stage) {
+      throw new NotFoundException(`Stage "${stageId}" not found in competition`);
+    }
+    return this.bracketAdvancementService.getQualificationPreview(stage);
+  }
+
+  async publishQualification(
+    workspaceId: string,
+    eventId: string,
+    competitionId: string,
+    stageId: string,
+    userId: string,
+  ): Promise<void> {
+    await this.workspacesService.ensurePermission(
+      workspaceId,
+      userId,
+      'competition.manage',
+    );
+    const stage = await this.stageRepo.findOne({
+      where: { id: stageId, competitionId },
+    });
+    if (!stage) {
+      throw new NotFoundException(`Stage "${stageId}" not found in competition`);
+    }
+    await this.bracketAdvancementService.advanceGroupStageWinners(stage, true);
+  }
+
   async resetStagesAndFixtures(
     workspaceId: string,
     eventId: string,

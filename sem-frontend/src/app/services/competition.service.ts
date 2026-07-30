@@ -164,6 +164,31 @@ export class CompetitionService {
     );
   }
 
+  getQualificationPreview(
+    workspaceId: string,
+    eventId: string,
+    competitionId: string,
+    stageId: string
+  ): Observable<any> {
+    return this.http.get<any>(
+      `${this.apiUrl}/${workspaceId}/events/${eventId}/competitions/${competitionId}/stages/${stageId}/qualification-preview`,
+      { headers: this.headers }
+    );
+  }
+
+  publishQualification(
+    workspaceId: string,
+    eventId: string,
+    competitionId: string,
+    stageId: string
+  ): Observable<void> {
+    return this.http.post<void>(
+      `${this.apiUrl}/${workspaceId}/events/${eventId}/competitions/${competitionId}/stages/${stageId}/publish-qualification`,
+      {},
+      { headers: this.headers }
+    );
+  }
+
   // ─── Matches ──────────────────────────────────────────────────────────────
 
   getMatches(

@@ -214,6 +214,79 @@ import { AvatarComponent } from '../../../shared/components/avatar/avatar';
                 </div>
               </div>
               }
+
+              @if (stageType() === 'group' || stageType() === 'group_knockout') {
+              <div class="flex flex-col gap-4 border border-white/5 bg-slate-950/20 rounded-2xl p-4 mt-2 col-span-2">
+                <h4 class="text-xs font-bold text-violet-400">Custom Qualification & Tie-Breaks</h4>
+                
+                <div class="flex items-center gap-2">
+                  <input id="q-manual" type="checkbox" [checked]="manualQualification()"
+                    (change)="manualQualification.set(!manualQualification())"
+                    class="rounded border-white/10 bg-slate-950 text-violet-600 focus:ring-violet-500" />
+                  <label for="q-manual" class="text-xs text-slate-300">Require Manual Approval before advancing</label>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                  <div class="flex flex-col gap-1.5">
+                    <label for="q-runners-up" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Best Runners-up Count</label>
+                    <input id="q-runners-up" type="number" min="0" max="8"
+                      class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white outline-none text-center"
+                      [ngModel]="runnersUpCount()" (ngModelChange)="runnersUpCount.set($event)" name="runnersUpCount" />
+                  </div>
+                </div>
+
+                <div class="flex flex-col gap-1.5">
+                  <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Standings Tie-Breakers Order</label>
+                  <div class="grid grid-cols-2 gap-2 mt-1">
+                    <div class="flex items-center gap-2">
+                      <input id="tb-pts" type="checkbox" [checked]="tieBreaks().includes('points')"
+                        (change)="toggleTieBreak('points')" class="rounded border-white/10 bg-slate-950 text-violet-600 focus:ring-violet-500" />
+                      <label for="tb-pts" class="text-xs text-slate-300">Points</label>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <input id="tb-gd" type="checkbox" [checked]="tieBreaks().includes('gd')"
+                        (change)="toggleTieBreak('gd')" class="rounded border-white/10 bg-slate-950 text-violet-600 focus:ring-violet-500" />
+                      <label for="tb-gd" class="text-xs text-slate-300">Goal Difference</label>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <input id="tb-gf" type="checkbox" [checked]="tieBreaks().includes('gf')"
+                        (change)="toggleTieBreak('gf')" class="rounded border-white/10 bg-slate-950 text-violet-600 focus:ring-violet-500" />
+                      <label for="tb-gf" class="text-xs text-slate-300">Goals For</label>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <input id="tb-wins" type="checkbox" [checked]="tieBreaks().includes('wins')"
+                        (change)="toggleTieBreak('wins')" class="rounded border-white/10 bg-slate-950 text-violet-600 focus:ring-violet-500" />
+                      <label for="tb-wins" class="text-xs text-slate-300">Wins</label>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <input id="tb-h2h" type="checkbox" [checked]="tieBreaks().includes('h2h')"
+                        (change)="toggleTieBreak('h2h')" class="rounded border-white/10 bg-slate-950 text-violet-600 focus:ring-violet-500" />
+                      <label for="tb-h2h" class="text-xs text-slate-300">Head-to-Head</label>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <input id="tb-custom" type="checkbox" [checked]="tieBreaks().includes('custom')"
+                        (change)="toggleTieBreak('custom')" class="rounded border-white/10 bg-slate-950 text-violet-600 focus:ring-violet-500" />
+                      <label for="tb-custom" class="text-xs text-slate-300">Custom Overrides</label>
+                    </div>
+                  </div>
+                </div>
+
+                @if (tieBreaks().includes('custom')) {
+                <div class="flex flex-col gap-1.5 border-t border-white/5 pt-2">
+                  <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Custom Override Values</label>
+                  <div class="grid grid-cols-2 gap-2 max-h-[150px] overflow-y-auto custom-scrollbar">
+                    @for (teamId of selectedFixtureTeamIds(); track teamId) {
+                    <div class="flex items-center justify-between bg-slate-950/60 p-2 rounded-xl border border-white/5">
+                      <span class="text-[11px] text-white truncate max-w-[120px]">{{ getTeamName(teamId) }}</span>
+                      <input type="number" class="w-12 bg-slate-900 text-white text-xs text-center border border-white/10 rounded px-1"
+                        [ngModel]="customOverrides()[teamId] || 0" (ngModelChange)="setCustomOverride(teamId, $event)" name="override-{{teamId}}" />
+                    </div>
+                    }
+                  </div>
+                </div>
+                }
+              </div>
+              }
  
               @if (stageType() === 'swiss') {
               <div class="flex flex-col gap-4 border border-white/5 bg-slate-950/20 rounded-2xl p-4">
@@ -375,6 +448,12 @@ export class FixturesModalComponent {
   seeded = signal(false);
   selectedFixtureTeamIds = signal<string[]>([]);
 
+  // Custom Qualification Signals
+  runnersUpCount = signal(0);
+  manualQualification = signal(false);
+  tieBreaks = signal<string[]>(['points', 'gd', 'gf']);
+  customOverrides = signal<Record<string, number>>({});
+
   isGenerating = signal(false);
   error = signal('');
 
@@ -408,6 +487,11 @@ export class FixturesModalComponent {
           this.venueId.set(stage.config?.venueId ?? '');
           this.swissRounds.set(stage.config?.roundsCount ?? null);
           this.swissTieBreaks.set(stage.config?.tieBreaks ?? ['buchholz', 'sonneborn_berger', 'cumulative']);
+
+          this.runnersUpCount.set(stage.config?.runnersUpCount ?? 0);
+          this.manualQualification.set(stage.config?.manualQualification ?? false);
+          this.tieBreaks.set(stage.config?.tieBreaks ?? ['points', 'gd', 'gf']);
+          this.customOverrides.set(stage.config?.customOverrides ?? {});
         } else {
           this.stageName.set('Main Stage');
           this.stageType.set('league');
@@ -427,6 +511,11 @@ export class FixturesModalComponent {
           this.seeded.set(false);
           this.swissRounds.set(null);
           this.swissTieBreaks.set(['buchholz', 'sonneborn_berger', 'cumulative']);
+
+          this.runnersUpCount.set(0);
+          this.manualQualification.set(false);
+          this.tieBreaks.set(['points', 'gd', 'gf']);
+          this.customOverrides.set({});
         }
       }
     }, { allowSignalWrites: true });
@@ -442,6 +531,24 @@ export class FixturesModalComponent {
     this.swissTieBreaks.update(prev =>
       prev.includes(rule) ? prev.filter(r => r !== rule) : [...prev, rule]
     );
+  }
+
+  toggleTieBreak(rule: string) {
+    this.tieBreaks.update(prev =>
+      prev.includes(rule) ? prev.filter(r => r !== rule) : [...prev, rule]
+    );
+  }
+
+  setCustomOverride(teamId: string, value: number) {
+    this.customOverrides.update(prev => ({
+      ...prev,
+      [teamId]: Number(value)
+    }));
+  }
+
+  getTeamName(teamId: string): string {
+    const t = this.teams().find(x => x.id === teamId);
+    return t ? t.name : 'Unknown';
   }
 
   async onSubmit() {
@@ -493,6 +600,10 @@ export class FixturesModalComponent {
       } else if (this.stageType() === 'group') {
         config.groupsCount = Number(this.groupsCount());
         config.advancingCount = Number(this.advancingCount());
+        config.runnersUpCount = Number(this.runnersUpCount());
+        config.manualQualification = this.manualQualification();
+        config.tieBreaks = this.tieBreaks();
+        config.customOverrides = this.customOverrides();
       } else if (this.stageType() === 'group_knockout') {
         config.restDays = Number(this.restDays());
         config.groupKnockoutSubtype = this.groupKnockoutSubtype();
@@ -502,6 +613,10 @@ export class FixturesModalComponent {
         config.advancingCount = this.groupKnockoutSubtype() === 'multiple_groups'
           ? (this.advancingType() === 'winner_and_runner' ? 2 : 1)
           : Number(this.singleGroupAdvancing());
+        config.runnersUpCount = Number(this.runnersUpCount());
+        config.manualQualification = this.manualQualification();
+        config.tieBreaks = this.tieBreaks();
+        config.customOverrides = this.customOverrides();
       } else if (this.stageType() === 'double_elimination') {
         config.bracketReset = this.bracketReset();
         config.seeded = this.seeded();
