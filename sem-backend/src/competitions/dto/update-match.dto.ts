@@ -24,7 +24,7 @@ export class UpdateMatchDto {
 
   @IsOptional()
   @IsString()
-  status?: 'scheduled' | 'live' | 'completed';
+  status?: 'scheduled' | 'live' | 'completed' | 'inactive';
 
   @IsOptional()
   @IsObject()

@@ -996,6 +996,7 @@ export class CompetitionsService {
       live: 1,
       scheduled: 2,
       completed: 3,
+      inactive: 4,
     };
 
     return matches.sort((a, b) => {
@@ -1049,7 +1050,7 @@ export class CompetitionsService {
       stage.type === 'group' ||
       stage.type === 'group_knockout';
     const isKnockout =
-      stage.type === 'knockout' || stage.type === 'group_knockout';
+      stage.type === 'knockout' || stage.type === 'group_knockout' || stage.type === 'double_elimination';
 
     const winPts: number = (stage.config as any)?.winPoint ?? 3;
     const drawPts: number = (stage.config as any)?.drawPoint ?? 1;
@@ -1181,6 +1182,24 @@ export class CompetitionsService {
     let bracket: any[] = [];
     if (isKnockout) {
       const roundOrder = [
+        'wb round 1',
+        'wb round 2',
+        'wb round 3',
+        'wb round 4',
+        'wb quarter-final',
+        'wb semi-final',
+        'wb final',
+        'lb round 1',
+        'lb round 2',
+        'lb round 3',
+        'lb round 4',
+        'lb round 5',
+        'lb round 6',
+        'lb quarter-final',
+        'lb semi-final',
+        'lb final',
+        'grand final',
+        'grand final reset',
         'round of 32',
         'round of 16',
         'round of 8',

@@ -97,7 +97,7 @@ export class Match extends AuditableEntity {
   awayScore: number;
 
   @Column({ type: 'varchar', length: 30, default: 'scheduled' })
-  status: 'scheduled' | 'live' | 'completed';
+  status: 'scheduled' | 'live' | 'completed' | 'inactive';
 
   @Column({
     name: 'scheduled_at',

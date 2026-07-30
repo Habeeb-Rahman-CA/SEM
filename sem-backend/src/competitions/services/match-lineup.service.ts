@@ -471,6 +471,7 @@ export class MatchLineupService {
       live: 1,
       scheduled: 2,
       completed: 3,
+      inactive: 4,
     };
 
     return matches.sort((a, b) => {
@@ -604,6 +605,11 @@ export class MatchLineupService {
           );
         } else if (stage.type === 'group_knockout') {
           await this.bracketAdvancementService.advanceGroupStageWinners(stage);
+        } else if (stage.type === 'double_elimination') {
+          await this.bracketAdvancementService.advanceDoubleEliminationOnComplete(
+            saved,
+            stage,
+          );
         }
 
         await this.bracketAdvancementService.checkAndAutoCompleteCompetition(

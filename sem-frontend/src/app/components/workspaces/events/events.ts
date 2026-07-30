@@ -17,13 +17,13 @@ import { AvatarComponent } from '../../../shared/components/avatar/avatar';
 import { InitialsPipe } from '../../../shared/pipes/initials.pipe';
 import { getSportBadgeClass, getSportIconClass, formatMatchStatusDetail } from '../../../shared';
 
-// Standalone Modal Components
 import { EventModalComponent } from './event-modal';
 import { CompetitionModalComponent } from './competition-modal';
 import { FixturesModalComponent } from './fixtures-modal';
 import { LineupModalComponent } from './lineup-modal';
 import { ScheduleMatchModalComponent } from './schedule-match-modal';
 import { DuplicateEventModalComponent } from './duplicate-event-modal';
+import { DoubleEliminationBracketComponent } from './double-elimination-bracket';
 
 @Component({
   selector: 'app-workspace-events',
@@ -42,7 +42,8 @@ import { DuplicateEventModalComponent } from './duplicate-event-modal';
     FixturesModalComponent,
     LineupModalComponent,
     ScheduleMatchModalComponent,
-    DuplicateEventModalComponent
+    DuplicateEventModalComponent,
+    DoubleEliminationBracketComponent
   ],
   templateUrl: './events.html',
   changeDetection: ChangeDetectionStrategy.OnPush,

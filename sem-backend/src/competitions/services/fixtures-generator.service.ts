@@ -189,6 +189,7 @@ export class FixturesGeneratorService {
           }
         }
       } else if (stage.type === 'group_knockout') {
+        // ... (existing group_knockout code) ...
         const isSingleGroup =
           stage.config?.groupKnockoutSubtype === 'single_group';
         const twoLeggedGroup =
@@ -285,6 +286,72 @@ export class FixturesGeneratorService {
           }
           remainingTeams = remainingTeams / 2;
         }
+      } else if (stage.type === 'double_elimination') {
+        const bracketReset = stage.config?.bracketReset !== false; // default true
+        const n = teamIds.length;
+        const bracketSize = Math.pow(2, Math.ceil(Math.log2(Math.max(n, 4))));
+        const padded: (string | null)[] = [
+          ...teamIds,
+          ...Array(bracketSize - n).fill(null),
+        ];
+
+        const wbRoundNames = this.getDeWbRoundNames(bracketSize);
+        const lbRoundNames = this.getDeLbRoundNames(bracketSize);
+        const lbMatchCounts = this.getDeLbMatchCounts(bracketSize);
+
+        // WB Round 1: seeded teams
+        const wbR1Count = bracketSize / 2;
+        for (let i = 0; i < wbR1Count; i++) {
+          fixtures.push({
+            homeTeamId: padded[i * 2] ?? null,
+            awayTeamId: padded[i * 2 + 1] ?? null,
+            config: { bracket: 'winner', round: wbRoundNames[0], matchSlot: i },
+          });
+        }
+
+        // Remaining WB rounds (null slots)
+        for (let r = 1; r < wbRoundNames.length; r++) {
+          const matchCount = Math.pow(2, wbRoundNames.length - 1 - r);
+          for (let i = 0; i < matchCount; i++) {
+            fixtures.push({
+              homeTeamId: null,
+              awayTeamId: null,
+              config: { bracket: 'winner', round: wbRoundNames[r], matchSlot: i },
+            });
+          }
+        }
+
+        // LB rounds (all null slots)
+        for (let r = 0; r < lbRoundNames.length; r++) {
+          for (let i = 0; i < lbMatchCounts[r]; i++) {
+            fixtures.push({
+              homeTeamId: null,
+              awayTeamId: null,
+              config: { bracket: 'loser', round: lbRoundNames[r], matchSlot: i },
+            });
+          }
+        }
+
+        // Grand Final
+        fixtures.push({
+          homeTeamId: null,
+          awayTeamId: null,
+          config: { bracket: 'grand_final', round: 'Grand Final', matchSlot: 0 },
+        });
+
+        // Bracket Reset (optional)
+        if (bracketReset) {
+          fixtures.push({
+            homeTeamId: null,
+            awayTeamId: null,
+            config: {
+              bracket: 'grand_final_reset',
+              round: 'Grand Final Reset',
+              matchSlot: 0,
+              status: 'inactive', // only activated if needed
+            },
+          });
+        }
       }
 
       for (const f of fixtures) {
@@ -292,7 +359,7 @@ export class FixturesGeneratorService {
           stageId: stage.id,
           homeTeamId: f.homeTeamId,
           awayTeamId: f.awayTeamId,
-          status: 'scheduled',
+          status: (f.config?.status as any) || 'scheduled',
           config: f.config,
           liveData: {},
         });
@@ -383,5 +450,45 @@ export class FixturesGeneratorService {
       }
     }
     return matches;
+  }
+
+  /** WB round labels from R1 to WB Final (bracketSize must be power of 2, >= 4) */
+  getDeWbRoundNames(bracketSize: number): string[] {
+    const numRounds = Math.log2(bracketSize);
+    const names: string[] = [];
+    for (let r = 0; r < numRounds; r++) {
+      const matchCount = bracketSize / Math.pow(2, r + 1);
+      if (matchCount === 1) names.push('WB Final');
+      else if (matchCount === 2) names.push('WB Semi-Final');
+      else if (matchCount === 4) names.push('WB Quarter-Final');
+      else names.push(`WB Round ${r + 1}`);
+    }
+    return names;
+  }
+
+  /** LB round labels from R1 to LB Final */
+  getDeLbRoundNames(bracketSize: number): string[] {
+    const numWbRounds = Math.log2(bracketSize);
+    const numLbRounds = 2 * (numWbRounds - 1);
+    const names: string[] = [];
+    for (let r = 1; r <= numLbRounds; r++) {
+      if (r === numLbRounds) names.push('LB Final');
+      else if (r === numLbRounds - 1) names.push('LB Semi-Final');
+      else names.push(`LB Round ${r}`);
+    }
+    return names;
+  }
+
+  /** Number of matches per LB round */
+  getDeLbMatchCounts(bracketSize: number): number[] {
+    const numWbRounds = Math.log2(bracketSize);
+    const numLbRounds = 2 * (numWbRounds - 1);
+    const counts: number[] = [];
+    let size = bracketSize / 4;
+    for (let i = 1; i <= numLbRounds; i++) {
+      counts.push(size);
+      if (i % 2 === 0 && size > 1) size = Math.floor(size / 2);
+    }
+    return counts;
   }
 }

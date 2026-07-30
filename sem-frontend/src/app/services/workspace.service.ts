@@ -163,7 +163,7 @@ export interface Competition {
 export interface CompetitionStage {
   id: string;
   name: string;
-  type: 'league' | 'group' | 'knockout' | 'group_knockout';
+  type: 'league' | 'group' | 'knockout' | 'group_knockout' | 'double_elimination';
   sequence: number;
   competitionId: string;
   config: {
@@ -178,6 +178,8 @@ export interface CompetitionStage {
     advancingType?: 'winner' | 'winner_and_runner';
     singleGroupAdvancing?: number;
     venueId?: string;
+    bracketReset?: boolean;
+    seeded?: boolean;
   };
   createdAt: string;
   updatedAt: string;

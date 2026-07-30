@@ -998,6 +998,16 @@
               </div>
             </div>
             }
+
+            @if (selectedStage()?.type === 'double_elimination') {
+            <div class="bg-slate-900 border border-white/10 rounded-2xl p-6 shadow-xl flex flex-col gap-4">
+              <app-double-elimination-bracket
+                [matches]="matches()"
+                [canScore]="hasPermission('match.score')"
+                (matchSelected)="onSelectMatch($event)">
+              </app-double-elimination-bracket>
+            </div>
+            }
           </div>
         </div>
       </div>

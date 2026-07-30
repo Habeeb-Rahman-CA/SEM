@@ -66,6 +66,7 @@ import { AvatarComponent } from '../../../shared/components/avatar/avatar';
                   <option value="group">Group Standings Only</option>
                   <option value="knockout">Single Elimination (Knockout)</option>
                   <option value="group_knockout">Groups + Knockouts Bracket</option>
+                  <option value="double_elimination">Double Elimination Bracket</option>
                 </select>
               </div>
 
@@ -116,6 +117,29 @@ import { AvatarComponent } from '../../../shared/components/avatar/avatar';
                   <option value="false">Single Match (Decided on day)</option>
                   <option value="true">Two Legged (Aggregate Scores)</option>
                 </select>
+              </div>
+              }
+
+              @if (stageType() === 'double_elimination') {
+              <div class="grid grid-cols-2 gap-4">
+                <div class="flex flex-col gap-1.5">
+                  <label for="f-de-reset" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Grand Final Reset</label>
+                  <select id="f-de-reset"
+                    class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white outline-none"
+                    [ngModel]="bracketReset() ? 'true' : 'false'" (ngModelChange)="bracketReset.set($event === 'true')" name="deReset">
+                    <option value="true">Reset Match Enabled</option>
+                    <option value="false">No Reset Match</option>
+                  </select>
+                </div>
+                <div class="flex flex-col gap-1.5">
+                  <label for="f-de-seeded" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Draw Type</label>
+                  <select id="f-de-seeded"
+                    class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white outline-none"
+                    [ngModel]="seeded() ? 'true' : 'false'" (ngModelChange)="seeded.set($event === 'true')" name="deSeeded">
+                    <option value="false">Random Draw</option>
+                    <option value="true">Seeded Draw</option>
+                  </select>
+                </div>
               </div>
               }
 
@@ -280,7 +304,7 @@ export class FixturesModalComponent {
 
   // Local Form Signals
   stageName = signal('Main Stage');
-  stageType = signal<'league' | 'group' | 'knockout' | 'group_knockout'>('league');
+  stageType = signal<'league' | 'group' | 'knockout' | 'group_knockout' | 'double_elimination'>('league');
   winPoint = signal(3);
   drawPoint = signal(1);
   twoLegged = signal(false);
@@ -292,6 +316,8 @@ export class FixturesModalComponent {
   advancingType = signal<'winner_and_runner' | 'winner'>('winner_and_runner');
   singleGroupAdvancing = signal(2);
   advancingCount = signal(2);
+  bracketReset = signal(true);
+  seeded = signal(false);
   selectedFixtureTeamIds = signal<string[]>([]);
 
   isGenerating = signal(false);
@@ -321,6 +347,8 @@ export class FixturesModalComponent {
           this.groupKnockoutSubtype.set(stage.config?.groupKnockoutSubtype ?? 'multiple_groups');
           this.advancingType.set(stage.config?.advancingType ?? 'winner_and_runner');
           this.singleGroupAdvancing.set(stage.config?.singleGroupAdvancing ?? 2);
+          this.bracketReset.set(stage.config?.bracketReset ?? true);
+          this.seeded.set(stage.config?.seeded ?? false);
           this.venueId.set(stage.config?.venueId ?? '');
         } else {
           this.stageName.set('Main Stage');
@@ -336,6 +364,8 @@ export class FixturesModalComponent {
           this.advancingType.set('winner_and_runner');
           this.singleGroupAdvancing.set(2);
           this.advancingCount.set(2);
+          this.bracketReset.set(true);
+          this.seeded.set(false);
         }
       }
     }, { allowSignalWrites: true });
@@ -403,6 +433,9 @@ export class FixturesModalComponent {
         config.advancingCount = this.groupKnockoutSubtype() === 'multiple_groups'
           ? (this.advancingType() === 'winner_and_runner' ? 2 : 1)
           : Number(this.singleGroupAdvancing());
+      } else if (this.stageType() === 'double_elimination') {
+        config.bracketReset = this.bracketReset();
+        config.seeded = this.seeded();
       }
 
       if (this.venueId()) {

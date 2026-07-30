@@ -788,4 +788,268 @@ export class BracketAdvancementService {
       // ignore
     }
   }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // DOUBLE ELIMINATION ADVANCEMENT
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  async advanceDoubleEliminationOnComplete(
+    completedMatch: Match,
+    stage: CompetitionStage,
+  ): Promise<void> {
+    const cfg = completedMatch.config as any;
+    const bracket: string = cfg?.bracket ?? '';
+    const roundName: string = cfg?.round ?? '';
+    const matchSlot: number = cfg?.matchSlot ?? 0;
+
+    // Resolve winner / loser
+    const homeScore = completedMatch.homeScore ?? 0;
+    const awayScore = completedMatch.awayScore ?? 0;
+    const live = (completedMatch.liveData ?? {}) as any;
+    const shHome = live.shootoutHomeScore ?? 0;
+    const shAway = live.shootoutAwayScore ?? 0;
+
+    let winnerId: string | null = null;
+    let loserId: string | null = null;
+
+    if (homeScore > awayScore) {
+      winnerId = completedMatch.homeTeamId;
+      loserId = completedMatch.awayTeamId;
+    } else if (awayScore > homeScore) {
+      winnerId = completedMatch.awayTeamId;
+      loserId = completedMatch.homeTeamId;
+    } else if (shHome > shAway) {
+      winnerId = completedMatch.homeTeamId;
+      loserId = completedMatch.awayTeamId;
+    } else {
+      winnerId = completedMatch.homeTeamId;
+      loserId = completedMatch.awayTeamId;
+    }
+
+    if (!winnerId) return;
+
+    const allMatches = await this.matchRepo.find({
+      where: { stageId: stage.id },
+      order: { createdAt: 'ASC' },
+    });
+
+    const matchesByRound = (b: string, r: string) =>
+      allMatches
+        .filter((m) => (m.config as any)?.bracket === b && (m.config as any)?.round === r)
+        .sort((a, b2) => ((a.config as any)?.matchSlot ?? 0) - ((b2.config as any)?.matchSlot ?? 0));
+
+    const findSlot = (b: string, r: string, slot: number) =>
+      allMatches.find(
+        (m) =>
+          (m.config as any)?.bracket === b &&
+          (m.config as any)?.round === r &&
+          (m.config as any)?.matchSlot === slot,
+      ) ?? null;
+
+    // Helper: place a team into a match slot
+    const place = async (match: Match | null, side: 'home' | 'away', teamId: string | null) => {
+      if (!match || !teamId) return;
+      if (side === 'home') match.homeTeamId = teamId;
+      else match.awayTeamId = teamId;
+      await this.matchRepo.save(match);
+    };
+
+    // ── WINNER BRACKET ────────────────────────────────────────────────────────
+    if (bracket === 'winner') {
+      const isWbFinal = roundName === 'WB Final';
+
+      if (!isWbFinal) {
+        // Winner advances to next WB round
+        const wbRounds = [...new Set(
+          allMatches
+            .filter((m) => (m.config as any)?.bracket === 'winner')
+            .map((m) => (m.config as any)?.round as string),
+        )];
+        const currIdx = wbRounds.indexOf(roundName);
+        const nextWbRound = wbRounds[currIdx + 1] ?? null;
+
+        if (nextWbRound) {
+          const nextSlot = Math.floor(matchSlot / 2);
+          const side = matchSlot % 2 === 0 ? 'home' : 'away';
+          const nextMatch = findSlot('winner', nextWbRound, nextSlot);
+          await place(nextMatch, side, winnerId);
+        }
+
+        // Loser drops to LB
+        const lbDropRoundIdx = currIdx * 2; 
+        const lbRounds = [...new Set(
+          allMatches
+            .filter((m) => (m.config as any)?.bracket === 'loser')
+            .map((m) => (m.config as any)?.round as string),
+        )];
+        const lbTargetRoundName = lbRounds[lbDropRoundIdx] ?? null;
+        if (lbTargetRoundName && loserId) {
+          const lbRoundMatches = matchesByRound('loser', lbTargetRoundName);
+          if (currIdx === 0) {
+            const lbSlot = Math.floor(matchSlot / 2);
+            const lbSide = matchSlot % 2 === 0 ? 'home' : 'away';
+            const lbMatch = findSlot('loser', lbTargetRoundName, lbSlot);
+            await place(lbMatch, lbSide, loserId);
+          } else {
+            const lbMatch = lbRoundMatches[matchSlot] ?? null;
+            await place(lbMatch, 'away', loserId);
+          }
+        }
+      } else {
+        // WB Final: winner -> Grand Final home; loser -> LB Final home/away
+        const gfMatch = findSlot('grand_final', 'Grand Final', 0);
+        await place(gfMatch, 'home', winnerId);
+
+        const lbFinalMatch = allMatches.find(
+          (m) => (m.config as any)?.bracket === 'loser' && (m.config as any)?.round === 'LB Final',
+        ) ?? null;
+        await place(lbFinalMatch, 'away', loserId);
+      }
+    }
+
+    // ── LOSER BRACKET ─────────────────────────────────────────────────────────
+    else if (bracket === 'loser') {
+      const isLbFinal = roundName === 'LB Final';
+
+      if (!isLbFinal) {
+        // Winner advances to next LB round
+        const lbRounds = [...new Set(
+          allMatches
+            .filter((m) => (m.config as any)?.bracket === 'loser')
+            .map((m) => (m.config as any)?.round as string),
+        )];
+        const currIdx = lbRounds.indexOf(roundName);
+        const nextLbRound = lbRounds[currIdx + 1] ?? null;
+
+        if (nextLbRound) {
+          const isEvenRound = (currIdx + 1) % 2 === 0;
+          const nextSlot = isEvenRound ? matchSlot : Math.floor(matchSlot / 2);
+          const side = isEvenRound ? 'home' : (matchSlot % 2 === 0 ? 'home' : 'away');
+          const nextMatch = findSlot('loser', nextLbRound, nextSlot);
+          await place(nextMatch, side, winnerId);
+        }
+
+        // LB loser is eliminated
+        await this.notifyEliminated(loserId, stage, 'LB');
+      } else {
+        // LB Final: winner -> Grand Final away
+        const gfMatch = findSlot('grand_final', 'Grand Final', 0);
+        await place(gfMatch, 'away', winnerId);
+        // Loser eliminated
+        await this.notifyEliminated(loserId, stage, 'LB');
+      }
+    }
+
+    // ── GRAND FINAL ───────────────────────────────────────────────────────────
+    else if (bracket === 'grand_final') {
+      const bracketReset = stage.config?.bracketReset !== false;
+      const wbChampionId = completedMatch.homeTeamId;
+      const lbChampionId = completedMatch.awayTeamId;
+      const wbChampionWon = winnerId === wbChampionId;
+
+      if (wbChampionWon || !bracketReset) {
+        // WB champ wins, OR no bracket reset configured -> competition over
+        await this.checkAndAutoCompleteCompetition(stage.competitionId);
+        await this.notifyAdvanced(winnerId, 'Champion', stage);
+        await this.notifyEliminated(loserId, stage, 'GF');
+      } else {
+        // LB champ won first Grand Final -> trigger bracket reset
+        const resetMatch = allMatches.find(
+          (m) => (m.config as any)?.bracket === 'grand_final_reset',
+        ) ?? null;
+        if (resetMatch) {
+          resetMatch.homeTeamId = wbChampionId;
+          resetMatch.awayTeamId = lbChampionId;
+          resetMatch.status = 'scheduled';
+          await this.matchRepo.save(resetMatch);
+          await this.notifyBracketReset(stage);
+        } else {
+          await this.checkAndAutoCompleteCompetition(stage.competitionId);
+        }
+      }
+    }
+
+    // ── GRAND FINAL RESET ─────────────────────────────────────────────────────
+    else if (bracket === 'grand_final_reset') {
+      await this.checkAndAutoCompleteCompetition(stage.competitionId);
+      await this.notifyAdvanced(winnerId, 'Champion (Reset)', stage);
+      await this.notifyEliminated(loserId, stage, 'GF Reset');
+    }
+  }
+
+  private async notifyEliminated(
+    teamId: string | null,
+    stage: CompetitionStage,
+    context: string,
+  ): Promise<void> {
+    if (!teamId) return;
+    try {
+      const comp = await this.competitionRepo.findOne({
+        where: { id: stage.competitionId },
+        relations: { event: true },
+      });
+      if (!comp) return;
+      const team = await this.teamRepo.findOne({ where: { id: teamId } });
+      const players = await this.workspacesService.getTeamPlayerUserIds(teamId);
+      await this.workspacesService.sendNotificationToMany(
+        players,
+        NotificationType.TEAM_ELIMINATED,
+        `${team?.name ?? 'Your team'} has been eliminated from ${comp.name} (${context}).`,
+        comp.event?.workspaceId ?? null,
+        { competitionId: comp.id, competitionName: comp.name },
+      );
+    } catch {}
+  }
+
+  private async notifyAdvanced(
+    teamId: string | null,
+    roundLabel: string,
+    stage: CompetitionStage,
+  ): Promise<void> {
+    if (!teamId) return;
+    try {
+      const comp = await this.competitionRepo.findOne({
+        where: { id: stage.competitionId },
+        relations: { event: true },
+      });
+      if (!comp) return;
+      const team = await this.teamRepo.findOne({ where: { id: teamId } });
+      const players = await this.workspacesService.getTeamPlayerUserIds(teamId);
+      await this.workspacesService.sendNotificationToMany(
+        players,
+        NotificationType.TEAM_ADVANCED,
+        `${team?.name ?? 'Your team'} advanced: ${roundLabel} in ${comp.name}!`,
+        comp.event?.workspaceId ?? null,
+        { competitionId: comp.id, competitionName: comp.name, nextRound: roundLabel },
+      );
+    } catch {}
+  }
+
+  private async notifyBracketReset(stage: CompetitionStage): Promise<void> {
+    try {
+      const comp = await this.competitionRepo.findOne({
+        where: { id: stage.competitionId },
+        relations: { event: true },
+      });
+      if (!comp) return;
+      const allCompTeams = await this.competitionTeamRepo.find({
+        where: { competitionId: stage.competitionId },
+      });
+      const allPlayerIds = (
+        await Promise.all(
+          allCompTeams.map((ct) =>
+            this.workspacesService.getTeamPlayerUserIds(ct.teamId),
+          ),
+        )
+      ).flat();
+      await this.workspacesService.sendNotificationToMany(
+        allPlayerIds,
+        NotificationType.TEAM_ADVANCED,
+        `Bracket Reset! The Grand Final will be replayed in ${comp.name}.`,
+        comp.event?.workspaceId ?? null,
+        { competitionId: comp.id, competitionName: comp.name },
+      );
+    } catch {}
+  }
 }
+
