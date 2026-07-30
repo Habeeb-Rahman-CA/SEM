@@ -1,0 +1,50 @@
+.landing-root {
+  position: relative;
+  min-height: 100vh;
+}
+
+/* Ambient violet glow behind the hero. Positioned so it fades out well before
+   the fold; keeps the below-the-fold sections crisp. */
+.landing-glow {
+  position: absolute;
+  top: -20%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 900px;
+  height: 700px;
+  pointer-events: none;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.25), transparent 60%);
+  filter: blur(80px);
+  z-index: 0;
+}
+
+/* Subtle noise-free grid backdrop across the whole page, only visible against
+   the dark canvas so it reads as texture rather than a pattern. */
+.landing-root::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse at 50% 0%, black 40%, transparent 80%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.landing-root > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Reduced-motion users: kill the pulse dot and the CSS bounce anims. */
+@media (prefers-reduced-motion: reduce) {
+  .landing-root *,
+  .landing-root *::before,
+  .landing-root *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

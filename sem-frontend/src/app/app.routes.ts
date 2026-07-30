@@ -2,6 +2,13 @@ import { Routes } from '@angular/router';
 import { authGuard, noAuthGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
+  // Public marketing landing — signed-in users are auto-forwarded to /workspaces
+  {
+    path: '',
+    pathMatch: 'full',
+    loadComponent: () => import('./features/landing/pages/landing').then((m) => m.LandingComponent),
+  },
+
   // Auth routes (redirect to /workspaces if already logged in)
   {
     path: 'login',
@@ -61,7 +68,6 @@ export const routes: Routes = [
       import('./features/public-event/pages/public-event').then((m) => m.PublicEventComponent),
   },
 
-  // Default redirect
-  { path: '', redirectTo: '/workspaces', pathMatch: 'full' },
-  { path: '**', redirectTo: '/workspaces' },
+  // Catch-all → back to the landing page
+  { path: '**', redirectTo: '' },
 ];
