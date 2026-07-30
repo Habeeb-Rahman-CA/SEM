@@ -1454,6 +1454,19 @@
   />
 </div>
 
+<!-- ─── MATCH HIGHLIGHTS (summary + videos) ─── -->
+<div class="mt-6">
+  <app-match-highlights-panel
+    [workspaceId]="workspaceId()"
+    [eventId]="eventId()"
+    [competitionId]="competitionId()"
+    [stageId]="stageId()"
+    [match]="match()"
+    [canScore]="canScore()"
+    (matchUpdated)="matchUpdated.emit($event)"
+  />
+</div>
+
 <!-- ─── EDIT EVENT MODAL ─── -->
 @if (editingEvent()) {
   <div class="fixed inset-0 z-[60] flex items-center justify-center p-4">

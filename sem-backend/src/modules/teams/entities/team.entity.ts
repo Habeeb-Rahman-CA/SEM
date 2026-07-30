@@ -45,6 +45,24 @@ export class Team extends AuditableEntity {
   })
   secondaryColor: string | null;
 
+  @Column({ name: 'coaches', type: 'jsonb', nullable: true })
+  coaches: Array<{
+    id: string;
+    name: string;
+    role?: string | null;
+    avatarUrl?: string | null;
+    bio?: string | null;
+  }> | null;
+
+  @Column({ name: 'achievements', type: 'jsonb', nullable: true })
+  achievements: Array<{
+    id: string;
+    title: string;
+    year?: number | null;
+    competitionName?: string | null;
+    description?: string | null;
+  }> | null;
+
   @Column({ name: 'workspace_id', type: 'uuid' })
   workspaceId: string;
 

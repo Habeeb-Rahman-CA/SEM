@@ -4,6 +4,7 @@ import {
   IsString,
   MaxLength,
   IsUUID,
+  IsArray,
 } from 'class-validator';
 
 export class CreatePlayerDto {
@@ -19,4 +20,23 @@ export class CreatePlayerDto {
   @IsNotEmpty()
   @IsUUID()
   teamId: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  bio?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  position?: string;
+
+  @IsOptional()
+  @IsArray()
+  achievements?: Array<{
+    id: string;
+    title: string;
+    description?: string | null;
+    year?: number | null;
+  }>;
 }

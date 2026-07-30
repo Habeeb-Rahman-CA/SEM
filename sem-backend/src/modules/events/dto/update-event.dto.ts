@@ -64,6 +64,16 @@ export class UpdateEventDto {
   }>;
 
   @IsOptional()
+  @IsArray()
+  sponsors?: Array<{
+    id: string;
+    name: string;
+    logoUrl?: string | null;
+    url?: string | null;
+    tier?: string | null;
+  }>;
+
+  @IsOptional()
   @IsString()
   @IsIn(['open', 'closed', 'not_started'])
   registrationStatus?: string;

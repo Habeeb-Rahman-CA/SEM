@@ -85,6 +85,8 @@ export class TeamsService {
       logoUrl: dto.logoUrl ?? null,
       primaryColor: dto.primaryColor ?? null,
       secondaryColor: dto.secondaryColor ?? null,
+      coaches: dto.coaches ?? null,
+      achievements: dto.achievements ?? null,
       workspaceId,
     });
     const saved = await this.teamRepo.save(team);
@@ -143,6 +145,8 @@ export class TeamsService {
       ...(dto.secondaryColor !== undefined && {
         secondaryColor: dto.secondaryColor,
       }),
+      ...(dto.coaches !== undefined && { coaches: dto.coaches }),
+      ...(dto.achievements !== undefined && { achievements: dto.achievements }),
     });
 
     const saved = await this.teamRepo.save(team);
@@ -182,6 +186,18 @@ export class TeamsService {
     await this.searchService.deleteTeam(teamId);
   }
 
+  /**
+   * Public team profile — same shape as getTeamStats but no workspace-member
+   * check. Used by the public /public/teams/:id spectator page.
+   */
+  async getPublicTeamProfile(teamId: string) {
+    const team = await this.teamRepo.findOne({ where: { id: teamId } });
+    if (!team) {
+      throw new NotFoundException('Team not found');
+    }
+    return this.buildTeamProfile(team);
+  }
+
   async getTeamStats(workspaceId: string, teamId: string, userId: string) {
     await this.workspacesService.ensureMember(workspaceId, userId);
 
@@ -191,6 +207,11 @@ export class TeamsService {
     if (!team) {
       throw new NotFoundException('Team not found');
     }
+    return this.buildTeamProfile(team);
+  }
+
+  private async buildTeamProfile(team: Team) {
+    const teamId = team.id;
 
     // 1. Find all competitions this team is registered in
     const compTeams = await this.memberRepo.manager.find(CompetitionTeam, {
@@ -704,9 +725,12 @@ export class TeamsService {
         id: team.id,
         name: team.name,
         code: team.code,
+        description: team.description,
         logoUrl: team.logoUrl,
         primaryColor: team.primaryColor,
         secondaryColor: team.secondaryColor,
+        coaches: team.coaches,
+        achievements: team.achievements,
         createdAt: team.createdAt,
       },
       allTime: {
@@ -746,12 +770,51 @@ export class TeamsService {
       squad: squad.map((p) => ({
         id: p.id,
         jerseyNumber: p.jerseyNumber,
+        position: p.position,
         user: {
           id: p.user?.id,
           username: p.user?.username,
           avatarUrl: p.user?.avatarUrl,
         },
       })),
+      recentMatches: [...matches]
+        .sort((a, b) => {
+          const at = a.scheduledAt
+            ? new Date(a.scheduledAt).getTime()
+            : new Date(a.createdAt).getTime();
+          const bt = b.scheduledAt
+            ? new Date(b.scheduledAt).getTime()
+            : new Date(b.createdAt).getTime();
+          return bt - at;
+        })
+        .slice(0, 10)
+        .map((m) => ({
+          id: m.id,
+          scheduledAt: m.scheduledAt,
+          homeScore: m.homeScore,
+          awayScore: m.awayScore,
+          status: m.status,
+          homeTeam: m.homeTeam
+            ? {
+                id: m.homeTeam.id,
+                name: m.homeTeam.name,
+                logoUrl: m.homeTeam.logoUrl,
+              }
+            : null,
+          awayTeam: m.awayTeam
+            ? {
+                id: m.awayTeam.id,
+                name: m.awayTeam.name,
+                logoUrl: m.awayTeam.logoUrl,
+              }
+            : null,
+          competition: {
+            id: m.stage?.competition?.id,
+            name: m.stage?.competition?.name,
+            sportCode: m.stage?.competition?.sport?.code ?? null,
+            eventId: (m.stage?.competition as any)?.eventId ?? null,
+          },
+        })),
     };
   }
 }

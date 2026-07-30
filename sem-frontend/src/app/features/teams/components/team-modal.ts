@@ -28,6 +28,33 @@ export class TeamModalComponent {
   logoUrl = signal('');
   primaryColor = signal('#7c3aed');
   secondaryColor = signal('#4f46e5');
+  coaches = signal<
+    Array<{
+      id: string;
+      name: string;
+      role?: string | null;
+      avatarUrl?: string | null;
+      bio?: string | null;
+    }>
+  >([]);
+  achievements = signal<
+    Array<{
+      id: string;
+      title: string;
+      year?: number | null;
+      competitionName?: string | null;
+      description?: string | null;
+    }>
+  >([]);
+
+  newCoachName = signal('');
+  newCoachRole = signal('');
+  newCoachAvatar = signal('');
+  newAchTitle = signal('');
+  newAchYear = signal('');
+  newAchComp = signal('');
+
+  activeTab = signal<'basic' | 'coaches' | 'achievements'>('basic');
 
   isSaving = signal(false);
   saveSuccess = signal('');
@@ -37,6 +64,7 @@ export class TeamModalComponent {
     effect(() => {
       if (this.isOpen()) {
         const t = this.team();
+        this.activeTab.set('basic');
         if (t) {
           this.name.set(t.name);
           this.code.set(t.code ?? '');
@@ -44,6 +72,8 @@ export class TeamModalComponent {
           this.logoUrl.set(t.logoUrl ?? '');
           this.primaryColor.set(t.primaryColor ?? '#7c3aed');
           this.secondaryColor.set(t.secondaryColor ?? '#4f46e5');
+          this.coaches.set(t.coaches ?? []);
+          this.achievements.set(t.achievements ?? []);
         } else {
           this.name.set('');
           this.code.set('');
@@ -51,11 +81,63 @@ export class TeamModalComponent {
           this.logoUrl.set('');
           this.primaryColor.set('#7c3aed');
           this.secondaryColor.set('#4f46e5');
+          this.coaches.set([]);
+          this.achievements.set([]);
         }
+        this.newCoachName.set('');
+        this.newCoachRole.set('');
+        this.newCoachAvatar.set('');
+        this.newAchTitle.set('');
+        this.newAchYear.set('');
+        this.newAchComp.set('');
         this.saveSuccess.set('');
         this.saveError.set('');
       }
     });
+  }
+
+  addCoach() {
+    const name = this.newCoachName().trim();
+    if (!name) return;
+    this.coaches.update((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        name,
+        role: this.newCoachRole().trim() || null,
+        avatarUrl: this.newCoachAvatar().trim() || null,
+      },
+    ]);
+    this.newCoachName.set('');
+    this.newCoachRole.set('');
+    this.newCoachAvatar.set('');
+  }
+
+  removeCoach(id: string) {
+    this.coaches.update((prev) => prev.filter((c) => c.id !== id));
+  }
+
+  addAchievement() {
+    const title = this.newAchTitle().trim();
+    if (!title) return;
+    const yearRaw = this.newAchYear().trim();
+    const year = yearRaw ? Number(yearRaw) : null;
+    this.achievements.update((prev) => [
+      {
+        id: crypto.randomUUID(),
+        title,
+        year: Number.isFinite(year as number) ? year : null,
+        competitionName: this.newAchComp().trim() || null,
+      },
+      ...prev,
+    ]);
+    this.newAchTitle.set('');
+    this.newAchYear.set('');
+    this.newAchComp.set('');
+  }
+
+  removeAchievement(id: string) {
+    this.achievements.update((prev) => prev.filter((a) => a.id !== id));
   }
 
   closeModal() {
@@ -89,6 +171,8 @@ export class TeamModalComponent {
       logoUrl: logoVal || null,
       primaryColor: primaryColorVal || null,
       secondaryColor: secondaryColorVal || null,
+      coaches: this.coaches(),
+      achievements: this.achievements(),
     };
 
     const t = this.team();

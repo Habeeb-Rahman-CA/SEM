@@ -62,10 +62,50 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
 
+  // Public events portal — list & browse without logging in
+  {
+    path: 'events',
+    loadComponent: () =>
+      import('./features/public-event/pages/portal/public-events-portal').then(
+        (m) => m.PublicEventsPortalComponent,
+      ),
+  },
+  // Live score hub — real-time scores across all public events
+  {
+    path: 'live',
+    loadComponent: () =>
+      import('./features/public-event/pages/live/live-score-hub').then(
+        (m) => m.LiveScoreHubComponent,
+      ),
+  },
   {
     path: 'public/events/:id',
     loadComponent: () =>
       import('./features/public-event/pages/public-event').then((m) => m.PublicEventComponent),
+  },
+  // Public player profile
+  {
+    path: 'public/players/:id',
+    loadComponent: () =>
+      import('./features/public-event/pages/player/public-player-profile').then(
+        (m) => m.PublicPlayerProfileComponent,
+      ),
+  },
+  // Public team profile
+  {
+    path: 'public/teams/:id',
+    loadComponent: () =>
+      import('./features/public-event/pages/team/public-team-profile').then(
+        (m) => m.PublicTeamProfileComponent,
+      ),
+  },
+  // Public match highlights page
+  {
+    path: 'public/matches/:id',
+    loadComponent: () =>
+      import('./features/public-event/pages/match/public-match').then(
+        (m) => m.PublicMatchComponent,
+      ),
   },
 
   // Catch-all → back to the landing page

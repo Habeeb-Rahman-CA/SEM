@@ -1,1 +1,3 @@
-/* Login component styles */
+/* Split-panel auth shell — shared with the register page. Kept in a partial
+   so both pages stay pixel-perfect without duplicated CSS. */
+@import '../../styles/auth-shell.css';

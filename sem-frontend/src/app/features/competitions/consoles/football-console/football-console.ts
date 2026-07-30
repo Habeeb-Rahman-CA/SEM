@@ -21,11 +21,18 @@ import { UiService } from '../../../../core/services/ui.service';
 import { AvatarComponent } from '../../../../shared/components/avatar/avatar';
 import { DatePipe } from '@angular/common';
 import { MatchEvidencePanelComponent } from '../../components/match-evidence/match-evidence-panel';
+import { MatchHighlightsPanelComponent } from '../../components/match-highlights/match-highlights-panel';
 
 @Component({
   selector: 'app-football-console',
   standalone: true,
-  imports: [FormsModule, AvatarComponent, DatePipe, MatchEvidencePanelComponent],
+  imports: [
+    FormsModule,
+    AvatarComponent,
+    DatePipe,
+    MatchEvidencePanelComponent,
+    MatchHighlightsPanelComponent,
+  ],
   templateUrl: './football-console.html',
 })
 export class FootballConsoleComponent implements OnDestroy {
