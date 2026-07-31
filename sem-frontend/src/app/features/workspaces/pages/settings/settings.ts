@@ -1,15 +1,26 @@
-import { Component, input, model, effect, signal, inject } from '@angular/core';
+import { Component, input, model, effect, signal, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { Workspace, WorkspaceService } from '../../services/workspace.service';
 import { UiService } from '../../../../core/services/ui.service';
 import { AuthService } from '../../../auth/services/auth.service';
+import { FeatureCode, LicensingService } from '../../../subscriptions/services/licensing.service';
+
+interface ExtensionTile {
+  key: 'billing' | 'branding' | 'sponsors' | 'ads';
+  title: string;
+  description: string;
+  icon: string;
+  route: (workspaceId: string) => (string | undefined)[];
+  featureCode: FeatureCode | null;
+  upgradeHint: string;
+}
 
 @Component({
   selector: 'app-workspace-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './settings.html',
 })
 export class WorkspaceSettingsComponent {
@@ -17,6 +28,7 @@ export class WorkspaceSettingsComponent {
   private uiService = inject(UiService);
   private authService = inject(AuthService);
   private router = inject(Router);
+  private licensing = inject(LicensingService);
 
   workspace = model.required<Workspace | null>();
   activeTab = model<
@@ -40,6 +52,52 @@ export class WorkspaceSettingsComponent {
   settingsError = signal('');
   settingsSuccess = signal('');
 
+  readonly extensions: ExtensionTile[] = [
+    {
+      key: 'billing',
+      title: 'Billing',
+      description: 'Invoices, payment methods, tax settings.',
+      icon: 'fi-rr-receipt',
+      route: (id) => ['/workspaces', id, 'billing'],
+      featureCode: null,
+      upgradeHint: '',
+    },
+    {
+      key: 'branding',
+      title: 'White-label branding',
+      description: 'Custom logo, colours, login page, PDF header.',
+      icon: 'fi-rr-palette',
+      route: (id) => ['/workspaces', id, 'branding'],
+      featureCode: 'customBranding',
+      upgradeHint: 'Upgrade to Professional or Enterprise to unlock branding.',
+    },
+    {
+      key: 'sponsors',
+      title: 'Sponsors',
+      description: 'Manage sponsor catalog and event attachments.',
+      icon: 'fi-rr-handshake',
+      route: (id) => ['/workspaces', id, 'sponsors'],
+      featureCode: 'sponsorsEnabled',
+      upgradeHint: 'Sponsor management is currently disabled for your workspace.',
+    },
+    {
+      key: 'ads',
+      title: 'Advertisements',
+      description: 'Ad creatives, placements, campaign reporting.',
+      icon: 'fi-rr-megaphone',
+      route: (id) => ['/workspaces', id, 'ads'],
+      featureCode: 'adsEnabled',
+      upgradeHint: 'Advertisements are currently disabled for your workspace.',
+    },
+  ];
+
+  isExtensionEntitled = (code: FeatureCode | null): boolean => {
+    if (!code) return true;
+    const ws = this.workspace();
+    if (!ws) return true;
+    return this.licensing.isEntitled(ws.id, code);
+  };
+
   constructor() {
     effect(
       () => {
@@ -49,6 +107,9 @@ export class WorkspaceSettingsComponent {
           this.editName.set(ws.name);
           this.editDescription.set(ws.description ?? '');
           this.editLogoUrl.set(ws.logoUrl ?? '');
+          // Prime the entitlements cache so the extension tiles render
+          // the correct locked/unlocked state on first paint.
+          this.licensing.load(ws.id).subscribe({ error: () => {} });
         }
       },
       { allowSignalWrites: true },

@@ -15,13 +15,14 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { EventService } from '../../../events/services/event.service';
 import { WorkspaceEvent } from '../../../workspaces/services/workspace.service';
 import { getSportBadgeClass, getSportIconClass } from '../../../../shared';
+import { AdBannerComponent } from '../../../ads/components/ad-banner/ad-banner';
 
 type StatusFilter = 'all' | 'upcoming' | 'ongoing' | 'completed';
 
 @Component({
   selector: 'app-public-events-portal',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, AdBannerComponent],
   templateUrl: './public-events-portal.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

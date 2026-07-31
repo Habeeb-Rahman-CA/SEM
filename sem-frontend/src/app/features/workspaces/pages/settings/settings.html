@@ -213,6 +213,52 @@
     </form>
   </div>
 
+  <!-- Extensions / Commerce -->
+  <div
+    class="bg-slate-900 border border-white/10 rounded-2xl p-6 shadow-xl relative overflow-hidden"
+  >
+    <div
+      class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-emerald-500 to-teal-500"
+    ></div>
+    <h2 class="text-base font-bold text-white mb-1">Extensions</h2>
+    <p class="text-xs text-slate-400 mb-5">
+      Commerce &amp; monetisation modules. Locked tiles need a plan upgrade or a workspace-level
+      override.
+    </p>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      @for (ext of extensions; track ext.key) {
+        @let entitled = isExtensionEntitled(ext.featureCode);
+        <a
+          [routerLink]="ext.route(workspace()?.id)"
+          [attr.aria-disabled]="!entitled"
+          [attr.tabindex]="entitled ? null : -1"
+          [class.opacity-50]="!entitled"
+          [class.pointer-events-none]="!entitled"
+          class="group relative flex flex-col gap-2 rounded-xl border border-white/10 bg-slate-850 hover:border-violet-500/40 hover:bg-slate-800 transition-all p-4 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500"
+        >
+          @if (!entitled) {
+            <span
+              class="absolute top-3 right-3 inline-flex items-center gap-1 rounded-md bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-bold px-2 py-0.5"
+              [title]="ext.upgradeHint"
+            >
+              <i class="fi fi-rr-lock text-[10px]"></i>
+              Locked
+            </span>
+          }
+          <div class="flex items-center gap-2">
+            <i class="fi text-base text-violet-400 shrink-0" [class]="ext.icon"></i>
+            <h3 class="text-sm font-bold text-white">{{ ext.title }}</h3>
+          </div>
+          <p class="text-xs text-slate-400 leading-relaxed">{{ ext.description }}</p>
+          @if (!entitled) {
+            <p class="text-[11px] text-amber-300/80 mt-1">{{ ext.upgradeHint }}</p>
+          }
+        </a>
+      }
+    </div>
+  </div>
+
   <!-- Danger Zone Card (Owner only) -->
   @if (isOwner()) {
     <div

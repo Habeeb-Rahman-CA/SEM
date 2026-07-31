@@ -79,6 +79,31 @@ export interface SystemConfigMap {
   [key: string]: string;
 }
 
+export interface CommerceConfigView {
+  id: string;
+  subscriptionsEnabled: boolean;
+  freeUntilDate: string | null;
+  effectiveEnforcement: boolean;
+  paymentProvider: 'mock' | 'stripe';
+  stripePublishableKey: string | null;
+  hasStripeSecretKey: boolean;
+  hasStripeWebhookSecret: boolean;
+  defaultCurrency: string;
+  updatedAt: string;
+  updatedBy: string | null;
+}
+
+export interface UpdateCommerceConfigPayload {
+  subscriptionsEnabled?: boolean;
+  freeUntilDate?: string | null;
+  paymentProvider?: 'mock' | 'stripe';
+  stripePublishableKey?: string | null;
+  /** Omit to keep the stored value; empty string to clear; string to replace. */
+  stripeSecretKey?: string | null;
+  stripeWebhookSecret?: string | null;
+  defaultCurrency?: string;
+}
+
 export interface Team {
   id: string;
   name: string;
@@ -662,6 +687,20 @@ export class WorkspaceService {
     return this.http.patch<SystemConfigMap>(
       `${environment.apiUrl}/system-settings/config`,
       { key, value },
+      { headers: this.headers },
+    );
+  }
+
+  getCommerceConfig(): Observable<CommerceConfigView> {
+    return this.http.get<CommerceConfigView>(`${environment.apiUrl}/system-settings/commerce`, {
+      headers: this.headers,
+    });
+  }
+
+  updateCommerceConfig(payload: UpdateCommerceConfigPayload): Observable<CommerceConfigView> {
+    return this.http.patch<CommerceConfigView>(
+      `${environment.apiUrl}/system-settings/commerce`,
+      payload,
       { headers: this.headers },
     );
   }

@@ -9,6 +9,11 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     // Structured logging — keep NestJS logger active; Winston supplements it
     logger: ['error', 'warn', 'log', 'debug', 'verbose'],
+    // Preserve the raw request body for webhook signature verification.
+    // Without this, Express's json parser would consume the stream and
+    // the Stripe signature check would run against a re-serialized body,
+    // which fails.
+    rawBody: true,
   });
 
   // ── Graceful Shutdown ─────────────────────────────────────────────────────
@@ -35,11 +40,14 @@ async function bootstrap() {
   }
 
   // ── Global prefix ─────────────────────────────────────────────────────────
-  // Exclude SEO endpoints so search engines can find them at the URL root.
+  // Exclude SEO + webhook endpoints from the /api prefix so search engines
+  // (robots/sitemap) and payment gateways (webhooks) can hit them at the
+  // URL root without any /api gymnastics on the sender side.
   app.setGlobalPrefix('api', {
     exclude: [
       { path: 'robots.txt', method: RequestMethod.GET },
       { path: 'sitemap.xml', method: RequestMethod.GET },
+      { path: 'webhooks/(.*)', method: RequestMethod.POST },
     ],
   });
 

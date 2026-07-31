@@ -15,6 +15,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { EventService } from '../../../events/services/event.service';
 import { SocketService } from '../../../../core/services/socket.service';
 import { formatMatchStatusDetail, getSportBadgeClass, getSportIconClass } from '../../../../shared';
+import { AdBannerComponent } from '../../../ads/components/ad-banner/ad-banner';
 
 interface LiveMatch {
   id: string;
@@ -47,7 +48,7 @@ const FOLLOWED_STORAGE_KEY = 'sem.liveHub.followed';
 @Component({
   selector: 'app-live-score-hub',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, AdBannerComponent],
   templateUrl: './live-score-hub.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
