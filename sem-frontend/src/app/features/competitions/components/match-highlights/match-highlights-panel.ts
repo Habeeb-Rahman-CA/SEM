@@ -49,26 +49,82 @@ interface HighlightVideo {
       </div>
 
       <!-- Summary -->
-      <div class="flex flex-col gap-1.5">
-        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-          Summary
-        </label>
+      <div class="flex flex-col gap-2">
+        <div class="flex items-center justify-between gap-2">
+          <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+            AI Summary Draft
+          </label>
+          <span
+            [class]="
+              'text-[9px] font-bold px-2 py-0.5 rounded flex items-center gap-1 ' +
+              (match().isSummaryPublished
+                ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25'
+                : 'bg-amber-500/15 text-amber-400 border border-amber-500/25')
+            "
+          >
+            <i
+              [class]="
+                match().isSummaryPublished
+                  ? 'fi fi-rr-shield-check text-[9px]'
+                  : 'fi fi-rr-time-past text-[9px]'
+              "
+            ></i>
+            {{ match().isSummaryPublished ? 'Published' : 'Draft (Unpublished)' }}
+          </span>
+        </div>
         <textarea
-          rows="3"
+          rows="4"
           placeholder="Two-line recap of the match — result, key moments, MOTM…"
           class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition-all w-full resize-none"
-          [ngModel]="summaryDraft()"
-          (ngModelChange)="summaryDraft.set($event)"
+          [ngModel]="summaryDraftText()"
+          (ngModelChange)="summaryDraftText.set($event)"
           [disabled]="!canScore() || isSaving()"
         ></textarea>
-        <button
-          type="button"
-          (click)="saveSummary()"
-          [disabled]="!canScore() || isSaving() || summaryDraft() === (match().summary ?? '')"
-          class="self-end px-3 py-1.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-[11px] font-bold rounded-lg transition cursor-pointer"
-        >
-          Save summary
-        </button>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-wrap justify-between items-center gap-2 mt-1">
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              (click)="generateAiSummary()"
+              [disabled]="!canScore() || isSaving()"
+              class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-violet-300 text-[11px] font-bold rounded-lg transition cursor-pointer flex items-center gap-1.5"
+            >
+              <i class="fi fi-rr-sparkles"></i>
+              Generate with AI
+            </button>
+            <button
+              type="button"
+              (click)="saveDraft()"
+              [disabled]="
+                !canScore() || isSaving() || summaryDraftText() === (match().summaryDraft ?? '')
+              "
+              class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-300 text-[11px] font-bold rounded-lg transition cursor-pointer flex items-center gap-1.5"
+            >
+              <i class="fi fi-rr-disk"></i>
+              Save Draft
+            </button>
+          </div>
+
+          <button
+            type="button"
+            (click)="publishSummary()"
+            [disabled]="!canScore() || isSaving() || !summaryDraftText().trim()"
+            class="px-3 py-1.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-[11px] font-bold rounded-lg transition cursor-pointer flex items-center gap-1.5"
+          >
+            <i class="fi fi-rr-paper-plane"></i>
+            Publish to Public Page
+          </button>
+        </div>
+
+        @if (match().summary) {
+          <div class="mt-2.5 p-3 bg-slate-950/60 border border-white/5 rounded-xl">
+            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+              Currently Published Summary:
+            </span>
+            <p class="text-xs text-slate-300 italic">"{{ match().summary }}"</p>
+          </div>
+        }
       </div>
 
       <!-- Add video -->
@@ -186,7 +242,7 @@ export class MatchHighlightsPanelComponent {
 
   videos = computed<HighlightVideo[]>(() => (this.match() as any)?.highlightVideos ?? []);
 
-  summaryDraft = signal('');
+  summaryDraftText = signal('');
 
   newPlatform = signal<'youtube' | 'vimeo' | 'other'>('youtube');
   newUrl = signal('');
@@ -200,13 +256,106 @@ export class MatchHighlightsPanelComponent {
       const m = this.match();
       if (m && m.id !== lastMatchId) {
         lastMatchId = m.id;
-        this.summaryDraft.set((m as any).summary ?? '');
+        this.summaryDraftText.set(m.summaryDraft || m.summary || '');
       }
     }, 500);
   }
 
-  saveSummary() {
-    this.persist({ summary: this.summaryDraft() }, 'Summary saved.');
+  saveDraft() {
+    const match = this.match();
+    if (!match) return;
+    this.isSaving.set(true);
+    this.competitionService
+      .updateMatchSummaryDraft(
+        this.workspaceId(),
+        this.eventId(),
+        this.competitionId(),
+        this.stageId(),
+        match.id,
+        this.summaryDraftText(),
+      )
+      .subscribe({
+        next: (updated) => {
+          this.isSaving.set(false);
+          this.matchUpdated.emit(updated);
+          this.ui.success('Draft summary saved successfully.');
+        },
+        error: (err) => {
+          this.isSaving.set(false);
+          this.ui.error(err?.error?.message ?? 'Failed to save draft.');
+        },
+      });
+  }
+
+  publishSummary() {
+    const match = this.match();
+    if (!match) return;
+    this.isSaving.set(true);
+
+    // Save current text to draft first to ensure alignment
+    this.competitionService
+      .updateMatchSummaryDraft(
+        this.workspaceId(),
+        this.eventId(),
+        this.competitionId(),
+        this.stageId(),
+        match.id,
+        this.summaryDraftText(),
+      )
+      .subscribe({
+        next: () => {
+          // Then publish
+          this.competitionService
+            .publishMatchSummary(
+              this.workspaceId(),
+              this.eventId(),
+              this.competitionId(),
+              this.stageId(),
+              match.id,
+            )
+            .subscribe({
+              next: (updated) => {
+                this.isSaving.set(false);
+                this.matchUpdated.emit(updated);
+                this.ui.success('Match summary published successfully!');
+              },
+              error: (err) => {
+                this.isSaving.set(false);
+                this.ui.error(err?.error?.message ?? 'Failed to publish summary.');
+              },
+            });
+        },
+        error: (err) => {
+          this.isSaving.set(false);
+          this.ui.error(err?.error?.message ?? 'Failed to save draft before publishing.');
+        },
+      });
+  }
+
+  generateAiSummary() {
+    const match = this.match();
+    if (!match) return;
+    this.isSaving.set(true);
+    this.competitionService
+      .generateMatchSummary(
+        this.workspaceId(),
+        this.eventId(),
+        this.competitionId(),
+        this.stageId(),
+        match.id,
+      )
+      .subscribe({
+        next: (updated) => {
+          this.isSaving.set(false);
+          this.summaryDraftText.set(updated.summaryDraft ?? '');
+          this.matchUpdated.emit(updated);
+          this.ui.success('AI Match Summary draft generated! Review and publish when ready.');
+        },
+        error: (err) => {
+          this.isSaving.set(false);
+          this.ui.error(err?.error?.message ?? 'AI Generation failed.');
+        },
+      });
   }
 
   addVideo() {

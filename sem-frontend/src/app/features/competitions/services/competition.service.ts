@@ -346,6 +346,49 @@ export class CompetitionService {
     );
   }
 
+  generateMatchSummary(
+    workspaceId: string,
+    eventId: string,
+    competitionId: string,
+    stageId: string,
+    matchId: string,
+  ): Observable<Match> {
+    return this.http.post<Match>(
+      `${this.apiUrl}/${workspaceId}/events/${eventId}/competitions/${competitionId}/stages/${stageId}/matches/${matchId}/generate-summary`,
+      {},
+      { headers: this.headers },
+    );
+  }
+
+  publishMatchSummary(
+    workspaceId: string,
+    eventId: string,
+    competitionId: string,
+    stageId: string,
+    matchId: string,
+  ): Observable<Match> {
+    return this.http.post<Match>(
+      `${this.apiUrl}/${workspaceId}/events/${eventId}/competitions/${competitionId}/stages/${stageId}/matches/${matchId}/publish-summary`,
+      {},
+      { headers: this.headers },
+    );
+  }
+
+  updateMatchSummaryDraft(
+    workspaceId: string,
+    eventId: string,
+    competitionId: string,
+    stageId: string,
+    matchId: string,
+    summaryDraft: string,
+  ): Observable<Match> {
+    return this.http.patch<Match>(
+      `${this.apiUrl}/${workspaceId}/events/${eventId}/competitions/${competitionId}/stages/${stageId}/matches/${matchId}/summary-draft`,
+      { summaryDraft },
+      { headers: this.headers },
+    );
+  }
+
   // ─── Lineups ──────────────────────────────────────────────────────────────
 
   getMatchLineup(
@@ -398,6 +441,19 @@ export class CompetitionService {
     return this.http.get<CompetitionStats>(
       `${this.apiUrl}/${workspaceId}/events/${eventId}/competitions/${competitionId}/stats`,
       { headers: this.headers },
+    );
+  }
+
+  getPredictions(workspaceId: string, eventId: string, competitionId: string): Observable<any> {
+    return this.http.get<any>(
+      `${this.apiUrl}/${workspaceId}/events/${eventId}/competitions/${competitionId}/predictions`,
+      { headers: this.headers },
+    );
+  }
+
+  getPublicPredictions(eventId: string, competitionId: string): Observable<any> {
+    return this.http.get<any>(
+      `${environment.apiUrl}/public/events/${eventId}/competitions/${competitionId}/predictions`,
     );
   }
 }

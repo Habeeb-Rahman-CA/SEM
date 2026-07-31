@@ -279,6 +279,8 @@ export interface Match {
   };
   liveData: any;
   summary?: string | null;
+  summaryDraft?: string | null;
+  isSummaryPublished?: boolean;
   highlightVideos?: Array<{
     id: string;
     platform: 'youtube' | 'vimeo' | 'other';

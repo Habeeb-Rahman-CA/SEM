@@ -230,7 +230,7 @@
       @for (ext of extensions; track ext.key) {
         @let entitled = isExtensionEntitled(ext.featureCode);
         <a
-          [routerLink]="ext.route(workspace()?.id)"
+          [routerLink]="workspace()?.id ? ext.route(workspace()!.id) : []"
           [attr.aria-disabled]="!entitled"
           [attr.tabindex]="entitled ? null : -1"
           [class.opacity-50]="!entitled"

@@ -270,6 +270,133 @@
         }
       </div>
     </div>
+
+    <!-- AI Performance Insights -->
+    <div class="flex flex-col gap-4 mt-4">
+      <h3 class="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+        <i class="fi fi-rr-sparkles text-violet-400"></i> AI Performance Insights
+      </h3>
+
+      @if (isLoadingPlayerInsights()) {
+        <div
+          class="bg-slate-900 border border-white/10 rounded-2xl p-6 flex flex-col items-center justify-center gap-3 text-slate-400 text-xs"
+        >
+          <i class="fi fi-rr-settings-sliders animate-spin text-lg text-violet-400"></i>
+          <span>Analyzing stats and generating performance insights...</span>
+        </div>
+      } @else if (selectedPlayerInsights(); as insights) {
+        <div
+          class="bg-gradient-to-br from-slate-900 via-slate-900 to-violet-950/20 border border-violet-500/20 rounded-2xl p-6 flex flex-col gap-6 text-left animate-fadeIn"
+        >
+          <!-- Summary Statement -->
+          <div
+            class="flex items-start gap-3 bg-violet-500/10 border border-violet-500/20 p-4 rounded-xl"
+          >
+            <i class="fi fi-rr-info text-violet-400 text-lg mt-0.5"></i>
+            <div>
+              <h4 class="text-xs font-bold text-violet-300 uppercase tracking-wider">
+                Executive Analysis
+              </h4>
+              <p class="text-xs text-slate-300 mt-1 leading-relaxed">
+                {{ insights.aiAnalysisText }}
+              </p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Strengths & Weaknesses -->
+            <div class="flex flex-col gap-4">
+              <div>
+                <h4
+                  class="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-2 mb-2"
+                >
+                  <i class="fi fi-rr-add"></i> Key Strengths
+                </h4>
+                <ul class="flex flex-col gap-2">
+                  @for (s of insights.strengths; track s) {
+                    <li
+                      class="text-xs text-slate-300 flex items-start gap-2 bg-slate-950/40 p-2.5 rounded-lg border border-white/5"
+                    >
+                      <i class="fi fi-rr-check-circle text-emerald-400 mt-0.5"></i>
+                      <span>{{ s }}</span>
+                    </li>
+                  }
+                </ul>
+              </div>
+
+              <div>
+                <h4
+                  class="text-xs font-bold text-rose-400 uppercase tracking-wider flex items-center gap-2 mb-2"
+                >
+                  <i class="fi fi-rr-minus"></i> Areas of Improvement
+                </h4>
+                <ul class="flex flex-col gap-2">
+                  @for (w of insights.weaknesses; track w) {
+                    <li
+                      class="text-xs text-slate-300 flex items-start gap-2 bg-slate-950/40 p-2.5 rounded-lg border border-white/5"
+                    >
+                      <i class="fi fi-rr-exclamation text-rose-400 mt-0.5"></i>
+                      <span>{{ w }}</span>
+                    </li>
+                  }
+                </ul>
+              </div>
+            </div>
+
+            <!-- Trends & Form -->
+            <div class="flex flex-col gap-4">
+              <div class="bg-slate-950/40 p-4 rounded-xl border border-white/5">
+                <h4
+                  class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2 mb-2"
+                >
+                  <i class="fi fi-rr-chart-histogram text-violet-400"></i> Consistency & Form
+                </h4>
+                <p class="text-xs text-slate-300 leading-relaxed mb-3">
+                  {{ insights.consistency }}
+                </p>
+                <p class="text-xs text-slate-300 leading-relaxed">{{ insights.recentForm }}</p>
+              </div>
+
+              <div class="bg-slate-950/40 p-4 rounded-xl border border-white/5">
+                <h4
+                  class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2 mb-2"
+                >
+                  <i class="fi fi-rr-chart-line-up text-violet-400"></i> Competition Trends
+                </h4>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                  {{ insights.comparisonTrendText }}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recommendations -->
+          <div class="border-t border-white/5 pt-4">
+            <h4
+              class="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-2 mb-3"
+            >
+              <i class="fi fi-rr-target text-amber-400"></i> Actionable Recommendations
+            </h4>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              @for (rec of insights.recommendations; track rec) {
+                <div
+                  class="bg-slate-950/40 p-3 rounded-xl border border-white/5 flex items-start gap-2"
+                >
+                  <i class="fi fi-rr-star text-amber-400 mt-0.5"></i>
+                  <span class="text-xs text-slate-300 leading-relaxed">{{ rec }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      } @else {
+        <div
+          class="bg-slate-900 border border-white/10 rounded-2xl p-6 text-center text-slate-500 text-xs"
+        >
+          No insights could be generated at this time.
+        </div>
+      }
+    </div>
   </div>
 } @else {
   <div class="h-full flex flex-col overflow-hidden text-left">

@@ -22,6 +22,7 @@ import { BracketAdvancementService } from './bracket-advancement.service';
 import { SportEngineRegistry } from '../sports/sport-engine.registry';
 import { EventsGateway } from '../../workspaces/events.gateway';
 import { MatchLockService } from './match-lock.service';
+import { AiSummaryService } from './ai-summary.service';
 
 @Injectable()
 export class MatchLineupService {
@@ -42,6 +43,7 @@ export class MatchLineupService {
     private readonly sportEngineRegistry: SportEngineRegistry,
     private readonly eventsGateway: EventsGateway,
     private readonly matchLockService: MatchLockService,
+    private readonly aiSummaryService: AiSummaryService,
   ) {}
 
   async createMatch(
@@ -603,6 +605,16 @@ export class MatchLineupService {
         );
 
         await this.statisticsRatingsService.autoRateMatchPlayers(saved);
+        try {
+          const updatedMatch =
+            await this.aiSummaryService.generateAndSaveSummary(saved.id);
+          Object.assign(populated, updatedMatch);
+        } catch (summaryErr) {
+          console.error(
+            'Failed to generate automatic match summary:',
+            summaryErr,
+          );
+        }
 
         if (stage.type === 'knockout') {
           await this.bracketAdvancementService.advanceKnockoutWinner(

@@ -181,4 +181,21 @@ export class PublicEventsController {
   ) {
     return this.competitionsService.getPublicResults(eventId, competitionId);
   }
+
+  @Get(':eventId/competitions/:competitionId/predictions')
+  @ApiOperation({
+    summary: 'Get public predictions and likely winners for a competition',
+  })
+  @ApiParam({ name: 'eventId', description: 'Event UUID' })
+  @ApiParam({ name: 'competitionId', description: 'Competition UUID' })
+  @ApiResponse({ status: 200, description: 'Competition predictions' })
+  async getPublicPredictions(
+    @Param('eventId') eventId: string,
+    @Param('competitionId') competitionId: string,
+  ) {
+    return this.competitionsService.getPublicCompetitionPredictions(
+      eventId,
+      competitionId,
+    );
+  }
 }

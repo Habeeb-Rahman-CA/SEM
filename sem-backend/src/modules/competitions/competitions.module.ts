@@ -15,6 +15,7 @@ import { Venue } from '../venues/entities/venue.entity';
 import { CompetitionsService } from './competitions.service';
 import { CompetitionsController } from './competitions.controller';
 import { WorkspacesModule } from '../workspaces/workspaces.module';
+import { AiModule } from '../ai/ai.module';
 import { FixturesGeneratorService } from './services/fixtures-generator.service';
 import { MatchLineupService } from './services/match-lineup.service';
 import { StatisticsRatingsService } from './services/statistics-ratings.service';
@@ -26,6 +27,8 @@ import { SportEngineRegistry } from './sports/sport-engine.registry';
 import { MatchLockService } from './services/match-lock.service';
 import { CompetitionTemplatesService } from './services/competition-templates.service';
 import { FixtureTemplatesService } from './services/fixture-templates.service';
+import { AiSummaryService } from './services/ai-summary.service';
+import { CompetitionPredictionsService } from './services/competition-predictions.service';
 import {
   CompetitionTemplatesController,
   FixtureTemplatesController,
@@ -52,6 +55,7 @@ import { FixtureTemplate } from './entities/fixture-template.entity';
       FixtureTemplate,
     ]),
     WorkspacesModule,
+    AiModule,
   ],
   controllers: [
     CompetitionsController,
@@ -71,6 +75,8 @@ import { FixtureTemplate } from './entities/fixture-template.entity';
     MatchLockService,
     CompetitionTemplatesService,
     FixtureTemplatesService,
+    AiSummaryService,
+    CompetitionPredictionsService,
   ],
   exports: [
     CompetitionsService,
@@ -85,6 +91,8 @@ import { FixtureTemplate } from './entities/fixture-template.entity';
     MatchLockService,
     CompetitionTemplatesService,
     FixtureTemplatesService,
+    AiSummaryService,
+    CompetitionPredictionsService,
   ],
 })
 export class CompetitionsModule {}

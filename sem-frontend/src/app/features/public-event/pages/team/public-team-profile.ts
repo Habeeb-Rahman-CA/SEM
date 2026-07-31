@@ -10,6 +10,7 @@ import { CommonModule, DatePipe } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { TeamService } from '../../../teams/services/team.service';
 import { AvatarComponent } from '../../../../shared/components/avatar/avatar';
+import { LoadingSpinnerComponent } from '../../../../shared/components/loading-spinner/loading-spinner';
 import { getSportBadgeClass, getSportIconClass } from '../../../../shared';
 import { ShareService } from '../../../share/services/share.service';
 import { ShareButtonComponent } from '../../../share/components/share-button';
@@ -140,7 +141,14 @@ interface PublicTeamProfile {
 @Component({
   selector: 'app-public-team-profile',
   standalone: true,
-  imports: [CommonModule, RouterLink, DatePipe, AvatarComponent, ShareButtonComponent],
+  imports: [
+    CommonModule,
+    RouterLink,
+    DatePipe,
+    AvatarComponent,
+    LoadingSpinnerComponent,
+    ShareButtonComponent,
+  ],
   templateUrl: './public-team-profile.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -150,7 +158,9 @@ export class PublicTeamProfileComponent implements OnInit {
   private shareService = inject(ShareService);
 
   profile = signal<PublicTeamProfile | null>(null);
+  analytics = signal<any | null>(null);
   isLoading = signal<boolean>(true);
+  isLoadingAnalytics = signal<boolean>(false);
   error = signal<string | null>(null);
 
   getSportBadgeClass = getSportBadgeClass;
@@ -178,10 +188,12 @@ export class PublicTeamProfileComponent implements OnInit {
   private load(id: string) {
     this.isLoading.set(true);
     this.error.set(null);
+    this.analytics.set(null);
     this.teamService.getPublicTeam(id).subscribe({
       next: (data) => {
         this.profile.set(data);
         this.isLoading.set(false);
+        this.loadAnalytics(id);
         const t = data?.team;
         if (t) {
           this.shareService.setPageMeta({
@@ -199,6 +211,20 @@ export class PublicTeamProfileComponent implements OnInit {
       error: (err) => {
         this.error.set(err?.error?.message ?? 'Team profile not found');
         this.isLoading.set(false);
+      },
+    });
+  }
+
+  private loadAnalytics(id: string) {
+    this.isLoadingAnalytics.set(true);
+    this.teamService.getPublicTeamAnalytics(id).subscribe({
+      next: (data) => {
+        this.analytics.set(data);
+        this.isLoadingAnalytics.set(false);
+      },
+      error: (err) => {
+        console.error('Failed to load team public analytics', err);
+        this.isLoadingAnalytics.set(false);
       },
     });
   }

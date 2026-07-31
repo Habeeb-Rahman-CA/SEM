@@ -32,6 +32,7 @@ import { LoggingModule } from './shared/logger/logging.module';
 import { MonitoringModule } from './shared/monitoring/monitoring.module';
 import { BackupModule } from './jobs/cron/backup/backup.module';
 import { RecoveryModule } from './common/recovery/recovery.module';
+import { AiModule } from './modules/ai/ai.module';
 
 @Module({
   imports: [
@@ -80,6 +81,7 @@ import { RecoveryModule } from './common/recovery/recovery.module';
     MonitoringModule,
     BackupModule,
     RecoveryModule,
+    AiModule,
   ],
   controllers: [AppController],
   providers: [

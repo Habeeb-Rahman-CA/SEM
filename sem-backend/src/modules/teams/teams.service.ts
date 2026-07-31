@@ -16,6 +16,7 @@ import { WorkspacesService } from '../workspaces/workspaces.service';
 import { CreateTeamDto } from './dto/create-team.dto';
 import { UpdateTeamDto } from './dto/update-team.dto';
 import { SearchService } from '../search/search.service';
+import { TeamInsightsService } from './services/team-insights.service';
 
 @Injectable()
 export class TeamsService {
@@ -32,6 +33,7 @@ export class TeamsService {
     private readonly memberRepo: Repository<WorkspaceMember>,
     private readonly workspacesService: WorkspacesService,
     private readonly searchService: SearchService,
+    private readonly teamInsightsService: TeamInsightsService,
   ) {}
 
   async getTeams(workspaceId: string, userId: string): Promise<Team[]> {
@@ -208,6 +210,56 @@ export class TeamsService {
       throw new NotFoundException('Team not found');
     }
     return this.buildTeamProfile(team);
+  }
+
+  async getTeamAnalytics(workspaceId: string, teamId: string, userId: string) {
+    await this.workspacesService.ensureMember(workspaceId, userId);
+
+    const team = await this.teamRepo.findOne({
+      where: { id: teamId, workspaceId },
+    });
+    if (!team) {
+      throw new NotFoundException('Team not found');
+    }
+
+    const matches = await this.matchRepo.find({
+      where: [{ homeTeamId: teamId }, { awayTeamId: teamId }],
+      relations: {
+        stage: {
+          competition: {
+            sport: true,
+            event: true,
+          },
+        },
+        homeTeam: true,
+        awayTeam: true,
+      },
+    });
+
+    return this.teamInsightsService.getTeamAnalytics(team, matches);
+  }
+
+  async getPublicTeamAnalytics(teamId: string) {
+    const team = await this.teamRepo.findOne({ where: { id: teamId } });
+    if (!team) {
+      throw new NotFoundException('Team not found');
+    }
+
+    const matches = await this.matchRepo.find({
+      where: [{ homeTeamId: teamId }, { awayTeamId: teamId }],
+      relations: {
+        stage: {
+          competition: {
+            sport: true,
+            event: true,
+          },
+        },
+        homeTeam: true,
+        awayTeam: true,
+      },
+    });
+
+    return this.teamInsightsService.getTeamAnalytics(team, matches);
   }
 
   private async buildTeamProfile(team: Team) {

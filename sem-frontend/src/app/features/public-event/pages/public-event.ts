@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { interval, Subscription } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 import { EventService } from '../../events/services/event.service';
+import { CompetitionService } from '../../competitions/services/competition.service';
 import { WorkspaceEvent } from '../../workspaces/services/workspace.service';
 import { SocketService } from '../../../core/services/socket.service';
 import { AvatarComponent } from '../../../shared/components/avatar/avatar';
@@ -23,6 +24,7 @@ import { AdBannerComponent } from '../../ads/components/ad-banner/ad-banner';
 export class PublicEventComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private eventService = inject(EventService);
+  private competitionService = inject(CompetitionService);
   private socketService = inject(SocketService);
   private galleryService = inject(GalleryService);
   private shareService = inject(ShareService);
@@ -43,7 +45,14 @@ export class PublicEventComponent implements OnInit, OnDestroy {
 
   // Tabs navigation
   activeTab = signal<
-    'overview' | 'competitions' | 'standings' | 'results' | 'stats' | 'gallery' | 'announcements'
+    | 'overview'
+    | 'competitions'
+    | 'standings'
+    | 'results'
+    | 'stats'
+    | 'predictions'
+    | 'gallery'
+    | 'announcements'
   >('overview');
 
   /** Call this instead of activeTab.set() when navigating to standings so we auto-init */
@@ -64,6 +73,15 @@ export class PublicEventComponent implements OnInit, OnDestroy {
     }
   }
 
+  /** Call this instead of activeTab.set() when navigating to predictions so we auto-init */
+  goToPredictions() {
+    this.activeTab.set('predictions');
+    if (!this.predictionsComp()) {
+      const comps = this.event()?.competitions;
+      if (comps && comps.length > 0) this.selectPredictionsCompetition(comps[0]);
+    }
+  }
+
   // Results State
   resultsComp = signal<any | null>(null);
   resultsData = signal<any | null>(null);
@@ -72,9 +90,15 @@ export class PublicEventComponent implements OnInit, OnDestroy {
   resultsSearchQuery = signal<string>('');
   resultsSortOrder = signal<'desc' | 'asc'>('desc');
 
+  // Predictions State
+  predictionsComp = signal<any | null>(null);
+  predictionsData = signal<any | null>(null);
+  isLoadingPredictions = signal<boolean>(false);
+  predictionsError = signal<string | null>(null);
+
   // Sharing State
   isShareModalOpen = signal<boolean>(false);
-  shareTab = signal<'general' | 'fixtures' | 'standings' | 'results'>('general');
+  shareTab = signal<'general' | 'fixtures' | 'standings' | 'results' | 'predictions'>('general');
   copySuccess = signal<boolean>(false);
 
   shareUrl = computed(() => {
@@ -99,6 +123,10 @@ export class PublicEventComponent implements OnInit, OnDestroy {
       const compId = this.resultsComp()?.id;
       return compId ? `${base}?tab=results&comp=${compId}` : `${base}?tab=results`;
     }
+    if (tab === 'predictions') {
+      const compId = this.predictionsComp()?.id;
+      return compId ? `${base}?tab=predictions&comp=${compId}` : `${base}?tab=predictions`;
+    }
     return base; // general
   });
 
@@ -108,6 +136,7 @@ export class PublicEventComponent implements OnInit, OnDestroy {
     if (tab === 'fixtures') return `Fixtures & Brackets for ${eventName}`;
     if (tab === 'standings') return `Live Standings for ${eventName}`;
     if (tab === 'results') return `Match Results for ${eventName}`;
+    if (tab === 'predictions') return `AI Predictions for ${eventName}`;
     return eventName;
   });
 
@@ -464,6 +493,8 @@ export class PublicEventComponent implements OnInit, OnDestroy {
             if (targetComp) this.selectStandingsCompetition(targetComp, stageId);
           } else if (tab === 'results') {
             if (targetComp) this.selectResultsCompetition(targetComp);
+          } else if (tab === 'predictions') {
+            if (targetComp) this.selectPredictionsCompetition(targetComp);
           } else if (tab === 'gallery') {
             this.loadGalleryPhotos();
             if (targetComp) this.selectCompetition(targetComp, stageId);
@@ -818,7 +849,9 @@ export class PublicEventComponent implements OnInit, OnDestroy {
     this.openShareModal('general');
   }
 
-  openShareModal(tabType: 'general' | 'fixtures' | 'standings' | 'results' = 'general') {
+  openShareModal(
+    tabType: 'general' | 'fixtures' | 'standings' | 'results' | 'predictions' = 'general',
+  ) {
     this.shareTab.set(tabType);
     this.isShareModalOpen.set(true);
   }
@@ -1063,6 +1096,33 @@ export class PublicEventComponent implements OnInit, OnDestroy {
       error: (err) => {
         this.resultsError.set(err.error?.message ?? 'Failed to load results');
         this.isLoadingResults.set(false);
+      },
+    });
+  }
+
+  // ─── Predictions Tab Logic ──────────────────────────────────────────────────
+
+  selectPredictionsCompetition(comp: any) {
+    this.predictionsComp.set(comp);
+    this.predictionsData.set(null);
+    this.predictionsError.set(null);
+    this.loadPredictions();
+  }
+
+  loadPredictions() {
+    const eventId = this.eventId();
+    const comp = this.predictionsComp();
+    if (!eventId || !comp) return;
+
+    this.isLoadingPredictions.set(true);
+    this.competitionService.getPublicPredictions(eventId, comp.id).subscribe({
+      next: (data) => {
+        this.predictionsData.set(data);
+        this.isLoadingPredictions.set(false);
+      },
+      error: (err) => {
+        this.predictionsError.set(err.error?.message ?? 'Failed to load predictions');
+        this.isLoadingPredictions.set(false);
       },
     });
   }

@@ -17,6 +17,7 @@ import { UsersService } from '../users/users.service';
 import { CreatePlayerDto } from './dto/create-player.dto';
 import { UpdatePlayerDto } from './dto/update-player.dto';
 import { SearchService } from '../search/search.service';
+import { PlayerInsightsService } from './services/player-insights.service';
 
 @Injectable()
 export class PlayersService {
@@ -34,6 +35,7 @@ export class PlayersService {
     private readonly workspacesService: WorkspacesService,
     private readonly usersService: UsersService,
     private readonly searchService: SearchService,
+    private readonly playerInsightsService: PlayerInsightsService,
   ) {}
 
   async getPlayers(workspaceId: string, userId: string): Promise<Player[]> {
@@ -230,6 +232,86 @@ export class PlayersService {
       throw new NotFoundException('Player not found');
     }
     return this.buildPlayerProfile(player);
+  }
+
+  async getPlayerInsights(
+    workspaceId: string,
+    playerId: string,
+    userId: string,
+  ): Promise<any> {
+    await this.workspacesService.ensureMember(workspaceId, userId);
+
+    const player = await this.playerRepo.findOne({
+      where: { id: playerId, workspaceId },
+      relations: { user: true, team: true },
+    });
+    if (!player) {
+      throw new NotFoundException('Player not found');
+    }
+
+    const stats = await this.buildPlayerProfile(player);
+    const recentFormMatches = await this.getRecentMatchesForInsights(player.id);
+
+    return this.playerInsightsService.getPlayerInsights(
+      player,
+      stats,
+      recentFormMatches,
+    );
+  }
+
+  async getPublicPlayerInsights(playerId: string): Promise<any> {
+    const player = await this.playerRepo.findOne({
+      where: { id: playerId },
+      relations: { user: true, team: true },
+    });
+    if (!player) {
+      throw new NotFoundException('Player not found');
+    }
+
+    const stats = await this.buildPlayerProfile(player);
+    const recentFormMatches = await this.getRecentMatchesForInsights(player.id);
+
+    return this.playerInsightsService.getPlayerInsights(
+      player,
+      stats,
+      recentFormMatches,
+    );
+  }
+
+  private async getRecentMatchesForInsights(playerId: string): Promise<any[]> {
+    const recentMatchPlayers = await this.matchPlayerRepo.find({
+      where: {
+        playerId,
+        isPlaying: true,
+        match: { status: 'completed' },
+      },
+      relations: {
+        match: {
+          stage: {
+            competition: {
+              sport: true,
+            },
+          },
+        },
+      },
+      order: {
+        match: {
+          scheduledAt: 'DESC',
+        },
+      },
+      take: 5,
+    });
+
+    return recentMatchPlayers.map((mp) => {
+      const m = mp.match;
+      return {
+        matchId: mp.matchId,
+        scheduledAt: m?.scheduledAt,
+        rating: mp.rating !== null ? Number(mp.rating) : null,
+        sportCode: m?.stage?.competition?.sport?.code || 'football',
+        liveData: m?.liveData || {},
+      };
+    });
   }
 
   private async buildPlayerProfile(player: Player) {

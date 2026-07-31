@@ -24,16 +24,20 @@ import { WorkspaceFileVersion } from './entities/workspace-file-version.entity';
 import { EventTemplate } from '../events/entities/event-template.entity';
 import { CompetitionTemplate } from '../competitions/entities/competition-template.entity';
 import { FixtureTemplate } from '../competitions/entities/fixture-template.entity';
+import { WorkspaceAnalyticsSnapshot } from './entities/workspace-analytics-snapshot.entity';
 import { WorkspacesService } from './workspaces.service';
 import { WorkspacesController } from './workspaces.controller';
 import { SystemSettingsController } from './system-settings.controller';
 import { FilesController } from './files/files.controller';
 import { FilesService } from './files/files.service';
+import { AnalyticsController } from './analytics.controller';
+import { AnalyticsService } from './analytics.service';
 import { UsersModule } from '../users/users.module';
 import { UploadModule } from '../upload/upload.module';
 import { EventsGateway } from './events.gateway';
 import { SearchModule } from '../search/search.module';
 import { CommerceConfigModule } from '../commerce-config/commerce-config.module';
+import { AiModule } from '../ai/ai.module';
 
 // Extracted Domain Services
 import { NotificationsService } from './notifications/notifications.service';
@@ -68,11 +72,13 @@ import { WorkspaceMembersService } from './members/members.service';
       EventTemplate,
       CompetitionTemplate,
       FixtureTemplate,
+      WorkspaceAnalyticsSnapshot,
     ]),
     UsersModule,
     UploadModule,
     forwardRef(() => SearchModule),
     CommerceConfigModule,
+    AiModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -91,6 +97,7 @@ import { WorkspaceMembersService } from './members/members.service';
     WorkspacesController,
     SystemSettingsController,
     FilesController,
+    AnalyticsController,
   ],
   providers: [
     WorkspacesService,
@@ -102,6 +109,7 @@ import { WorkspaceMembersService } from './members/members.service';
     RolesPermissionsService,
     WorkspaceMembersService,
     FilesService,
+    AnalyticsService,
   ],
   exports: [
     WorkspacesService,

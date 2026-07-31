@@ -253,4 +253,13 @@ export class EventService {
       `${environment.apiUrl}/public/events/${eventId}/competitions/${competitionId}/results`,
     );
   }
+
+  getAttendanceForecast(workspaceId: string, eventId: string): Observable<any> {
+    return this.http.get<any>(
+      `${this.apiUrl}/${workspaceId}/events/${eventId}/attendance-forecast`,
+      {
+        headers: this.headers,
+      },
+    );
+  }
 }

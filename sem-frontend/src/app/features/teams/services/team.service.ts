@@ -95,7 +95,17 @@ export class TeamService {
     });
   }
 
+  getTeamAnalytics(workspaceId: string, teamId: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/${workspaceId}/teams/${teamId}/analytics`, {
+      headers: this.headers,
+    });
+  }
+
   getPublicTeam(teamId: string): Observable<any> {
     return this.http.get<any>(`${environment.apiUrl}/public/teams/${teamId}`);
+  }
+
+  getPublicTeamAnalytics(teamId: string): Observable<any> {
+    return this.http.get<any>(`${environment.apiUrl}/public/teams/${teamId}/analytics`);
   }
 }

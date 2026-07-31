@@ -25,4 +25,32 @@ export class PublicPlayersController {
   async getPublicPlayer(@Param('playerId') playerId: string) {
     return this.playersService.getPublicPlayerProfile(playerId);
   }
+
+  @Get(':playerId/insights')
+  @ApiOperation({
+    summary: 'Get public player insights',
+    description:
+      'Returns the public AI-powered or rule-based analytical insights of a player: strengths, weaknesses, consistency, recent form, and recommendations.',
+  })
+  @ApiParam({ name: 'playerId', description: 'Player UUID' })
+  @ApiResponse({ status: 200, description: 'Player insights object' })
+  @ApiResponse({ status: 404, description: 'Player not found' })
+  async getPublicPlayerInsights(@Param('playerId') playerId: string) {
+    return this.playersService.getPublicPlayerInsights(playerId);
+  }
+
+  @Get('/players/:playerId/performance-insights')
+  @ApiOperation({
+    summary: 'Get public player performance insights',
+    description:
+      'Returns the public AI-powered or rule-based analytical insights of a player: strengths, weaknesses, consistency, recent form, and recommendations.',
+  })
+  @ApiParam({ name: 'playerId', description: 'Player UUID' })
+  @ApiResponse({ status: 200, description: 'Player insights object' })
+  @ApiResponse({ status: 404, description: 'Player not found' })
+  async getPublicPlayerPerformanceInsights(
+    @Param('playerId') playerId: string,
+  ) {
+    return this.playersService.getPublicPlayerInsights(playerId);
+  }
 }
