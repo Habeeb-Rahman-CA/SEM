@@ -473,6 +473,14 @@
                 [workspaceId]="workspace()?.id || ''"
               ></app-accreditation>
             }
+
+            <!-- ═══════════════ STREAMING TAB ═══════════════ -->
+            @if (activeTab() === 'streaming') {
+              <app-streaming
+                class="h-full block min-h-0"
+                [workspaceId]="workspace()?.id || ''"
+              ></app-streaming>
+            }
           </div>
         </main>
       </div>

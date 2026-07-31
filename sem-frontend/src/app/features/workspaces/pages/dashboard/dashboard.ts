@@ -25,6 +25,7 @@ export class WorkspaceDashboardComponent {
     | 'equipment'
     | 'medical'
     | 'accreditation'
+    | 'streaming'
   >();
 
   liveMatches = input<any[]>([]);

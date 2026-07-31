@@ -37,6 +37,7 @@ import { VolunteersModule } from './modules/volunteers/volunteers.module';
 import { EquipmentModule } from './modules/equipment/equipment.module';
 import { MedicalModule } from './modules/medical/medical.module';
 import { AccreditationModule } from './modules/accreditation/accreditation.module';
+import { StreamingModule } from './modules/streaming/streaming.module';
 
 @Module({
   imports: [
@@ -90,6 +91,7 @@ import { AccreditationModule } from './modules/accreditation/accreditation.modul
     EquipmentModule,
     MedicalModule,
     AccreditationModule,
+    StreamingModule,
   ],
   controllers: [AppController],
   providers: [
