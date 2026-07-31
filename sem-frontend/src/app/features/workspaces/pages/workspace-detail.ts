@@ -64,6 +64,7 @@ import { AutomationComponent } from '../../automation/pages/automation';
 import { AuctionsComponent } from '../../auctions/pages/auctions';
 import { TransfersComponent } from '../../transfers/pages/transfers';
 import { RostersComponent } from '../../rosters/pages/rosters';
+import { FinanceComponent } from '../../finance/pages/finance';
 import { RefereeDashboardComponent } from '../components/referee-dashboard/referee-dashboard';
 import { FootballConsoleComponent } from '../../competitions/consoles/football-console/football-console';
 import { CricketConsoleComponent } from '../../competitions/consoles/cricket-console/cricket-console';
@@ -116,6 +117,7 @@ declare const L: any;
     AuctionsComponent,
     TransfersComponent,
     RostersComponent,
+    FinanceComponent,
   ],
   templateUrl: './workspace-detail.html',
   styleUrl: './workspace-detail.css',
@@ -230,6 +232,7 @@ export class WorkspaceDetailComponent implements OnInit {
     | 'auctions'
     | 'transfers'
     | 'rosters'
+    | 'finance'
   >('overview');
   isSidebarOpen = signal(true);
 

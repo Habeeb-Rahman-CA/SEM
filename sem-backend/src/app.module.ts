@@ -42,6 +42,7 @@ import { AutomationModule } from './modules/automation/automation.module';
 import { AuctionsModule } from './modules/auctions/auctions.module';
 import { TransfersModule } from './modules/transfers/transfers.module';
 import { RostersModule } from './modules/rosters/rosters.module';
+import { FinanceModule } from './modules/finance/finance.module';
 
 @Module({
   imports: [
@@ -100,6 +101,7 @@ import { RostersModule } from './modules/rosters/rosters.module';
     AuctionsModule,
     TransfersModule,
     RostersModule,
+    FinanceModule,
   ],
   controllers: [AppController],
   providers: [

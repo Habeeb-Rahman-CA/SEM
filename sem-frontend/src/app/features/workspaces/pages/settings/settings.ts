@@ -50,6 +50,7 @@ export class WorkspaceSettingsComponent {
     | 'auctions'
     | 'transfers'
     | 'rosters'
+    | 'finance'
   >();
 
   // Settings form states

@@ -513,6 +513,14 @@
                 [workspaceId]="workspace()?.id || ''"
               ></app-rosters>
             }
+
+            <!-- ═══════════════ FINANCE TAB ═══════════════ -->
+            @if (activeTab() === 'finance') {
+              <app-finance
+                class="h-full block min-h-0"
+                [workspaceId]="workspace()?.id || ''"
+              ></app-finance>
+            }
           </div>
         </main>
       </div>
