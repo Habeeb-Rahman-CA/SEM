@@ -57,6 +57,10 @@ import { WorkspaceReportsComponent } from '../../reports/pages/reports';
 import { WorkspaceFilesComponent } from './files/files';
 import { VolunteersComponent } from '../../volunteers/pages/volunteers';
 import { EquipmentComponent } from '../../equipment/pages/equipment';
+import { MedicalComponent } from '../../medical/pages/medical';
+import { AccreditationComponent } from '../../accreditation/pages/accreditation';
+import { StreamingComponent } from '../../streaming/pages/streaming';
+import { AutomationComponent } from '../../automation/pages/automation';
 import { RefereeDashboardComponent } from '../components/referee-dashboard/referee-dashboard';
 import { FootballConsoleComponent } from '../../competitions/consoles/football-console/football-console';
 import { CricketConsoleComponent } from '../../competitions/consoles/cricket-console/cricket-console';
@@ -102,6 +106,10 @@ declare const L: any;
     BottomNavComponent,
     VolunteersComponent,
     EquipmentComponent,
+    MedicalComponent,
+    AccreditationComponent,
+    StreamingComponent,
+    AutomationComponent,
   ],
   templateUrl: './workspace-detail.html',
   styleUrl: './workspace-detail.css',
@@ -209,6 +217,10 @@ export class WorkspaceDetailComponent implements OnInit {
     | 'files'
     | 'volunteers'
     | 'equipment'
+    | 'medical'
+    | 'accreditation'
+    | 'streaming'
+    | 'automation'
   >('overview');
   isSidebarOpen = signal(true);
 

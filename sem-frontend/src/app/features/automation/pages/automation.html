@@ -1,0 +1,534 @@
+<div class="h-full flex flex-col overflow-hidden w-full text-left animate-fadeIn">
+  <!-- Header -->
+  <div class="flex items-center justify-between border-b border-white/5 pb-4 flex-shrink-0">
+    <div>
+      <h2 class="text-xl font-bold text-white">Enterprise Automation</h2>
+      <p class="text-xs text-slate-400 mt-1">
+        Rules engine for scheduling, fixtures, referee allocation, notifications, equipment,
+        certificates, reports & archiving.
+      </p>
+    </div>
+    <button
+      (click)="openRuleModal()"
+      class="flex items-center gap-1.5 px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-violet-900/20 transition-all cursor-pointer border-0 outline-none"
+    >
+      <i class="fi fi-rr-bolt text-xs"></i>
+      New Rule
+    </button>
+  </div>
+
+  <!-- KPI cards -->
+  @if (summary(); as s) {
+    <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 my-4 flex-shrink-0">
+      <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+        <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">
+          Active Rules
+        </div>
+        <div class="text-xl font-black text-emerald-400 mt-1">{{ s.activeRules }}</div>
+        <div class="text-[8px] text-slate-400 mt-0.5">{{ s.totalRules }} total</div>
+      </div>
+      <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+        <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">Scheduled</div>
+        <div class="text-xl font-black text-sky-400 mt-1">{{ s.scheduledRules }}</div>
+        <div class="text-[8px] text-slate-400 mt-0.5">Cron triggered</div>
+      </div>
+      <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+        <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">Paused</div>
+        <div class="text-xl font-black text-slate-300 mt-1">{{ s.pausedRules }}</div>
+        <div class="text-[8px] text-slate-400 mt-0.5">Not firing</div>
+      </div>
+      <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+        <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">Total Runs</div>
+        <div class="text-xl font-black text-white mt-1">{{ s.totalRuns }}</div>
+        <div class="text-[8px] text-slate-400 mt-0.5">Historical</div>
+      </div>
+      <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+        <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">
+          Failed Today
+        </div>
+        <div class="text-xl font-black text-red-400 mt-1">{{ s.failedRunsToday }}</div>
+        <div class="text-[8px] text-slate-400 mt-0.5">Needs attention</div>
+      </div>
+    </div>
+  }
+
+  <!-- Tabs -->
+  <div class="flex border-b border-white/5 mb-4 flex-shrink-0 overflow-x-auto">
+    <button
+      (click)="currentTab.set('rules')"
+      [class]="
+        currentTab() === 'rules'
+          ? 'border-b-2 border-violet-500 text-violet-400'
+          : 'text-slate-400 hover:text-white'
+      "
+      class="px-4 py-2.5 text-xs font-bold bg-transparent border-0 cursor-pointer transition outline-none whitespace-nowrap"
+    >
+      <i class="fi fi-rr-bolt text-xs mr-1.5"></i>Rules
+    </button>
+    <button
+      (click)="currentTab.set('runs')"
+      [class]="
+        currentTab() === 'runs'
+          ? 'border-b-2 border-violet-500 text-violet-400'
+          : 'text-slate-400 hover:text-white'
+      "
+      class="px-4 py-2.5 text-xs font-bold bg-transparent border-0 cursor-pointer transition outline-none whitespace-nowrap"
+    >
+      <i class="fi fi-rr-clipboard-list text-xs mr-1.5"></i>Run History
+    </button>
+    <button
+      (click)="currentTab.set('library')"
+      [class]="
+        currentTab() === 'library'
+          ? 'border-b-2 border-violet-500 text-violet-400'
+          : 'text-slate-400 hover:text-white'
+      "
+      class="px-4 py-2.5 text-xs font-bold bg-transparent border-0 cursor-pointer transition outline-none whitespace-nowrap"
+    >
+      <i class="fi fi-rr-book text-xs mr-1.5"></i>Action Library
+    </button>
+  </div>
+
+  @if (isLoading()) {
+    <div class="flex-1 flex items-center justify-center text-slate-400 text-xs">Loading…</div>
+  } @else if (error()) {
+    <div class="p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-xs">
+      {{ error() }}
+    </div>
+  } @else {
+    <div class="flex-1 overflow-y-auto pr-1">
+      <!-- ═════ RULES ═════ -->
+      @if (currentTab() === 'rules') {
+        <div class="flex flex-col lg:flex-row gap-4">
+          <!-- List -->
+          <div class="w-full lg:w-1/2 space-y-3">
+            @if (rules().length === 0) {
+              <div class="p-6 text-center text-[11px] text-slate-500 italic">
+                No automation rules yet. Create one to get started.
+              </div>
+            }
+            @for (rule of rules(); track rule.id) {
+              <div
+                (click)="selectRule(rule.id)"
+                [class.border-violet-500]="selectedRuleId() === rule.id"
+                [class.bg-slate-900]="selectedRuleId() === rule.id"
+                class="p-3 border border-white/5 rounded-xl bg-slate-950/40 hover:bg-slate-900 cursor-pointer transition"
+              >
+                <div class="flex items-start justify-between">
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2">
+                      <i class="fi fi-rr-bolt text-violet-400"></i>
+                      <div class="text-xs font-bold text-white truncate">
+                        {{ rule.name }}
+                      </div>
+                    </div>
+                    <div class="text-[10px] text-slate-400 mt-0.5">
+                      Trigger: {{ triggerLabel(rule.triggerType) }}
+                      @if (rule.triggerType === 'schedule' && rule.triggerConfig?.['cron']) {
+                        · <span class="font-mono">{{ rule.triggerConfig?.['cron'] }}</span>
+                      }
+                    </div>
+                    <div class="text-[10px] text-slate-500 mt-0.5">
+                      {{ rule.actions.length }} action(s) · {{ rule.runCount }} run(s)
+                      @if (rule.lastRunAt) {
+                        · last {{ rule.lastRunAt | date: 'short' }}
+                      }
+                    </div>
+                  </div>
+                  <div class="flex flex-col items-end gap-1">
+                    <span
+                      class="px-1.5 py-0.5 text-[9px] font-bold rounded border uppercase"
+                      [class]="statusBadgeClass(rule.status)"
+                    >
+                      {{ rule.status }}
+                    </span>
+                    @if (rule.lastRunStatus) {
+                      <span
+                        class="px-1.5 py-0.5 text-[9px] font-bold rounded border uppercase"
+                        [class]="statusBadgeClass(rule.lastRunStatus)"
+                      >
+                        {{ rule.lastRunStatus }}
+                      </span>
+                    }
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+
+          <!-- Detail -->
+          <div class="flex-1 bg-slate-900/40 border border-white/5 rounded-xl p-4">
+            @if (selectedRule(); as rule) {
+              <div class="flex items-start justify-between mb-4">
+                <div>
+                  <div class="text-lg font-black text-white">{{ rule.name }}</div>
+                  @if (rule.description) {
+                    <div class="text-[11px] text-slate-400 mt-1">{{ rule.description }}</div>
+                  }
+                </div>
+                <div class="flex flex-wrap gap-2 justify-end">
+                  <button
+                    (click)="runRule(rule)"
+                    class="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold rounded border-0 cursor-pointer flex items-center gap-1"
+                  >
+                    <i class="fi fi-rr-play text-[10px]"></i>
+                    Run now
+                  </button>
+                  <button
+                    (click)="pauseRule(rule)"
+                    class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-bold rounded border-0 cursor-pointer"
+                  >
+                    {{ rule.status === 'active' ? 'Pause' : 'Resume' }}
+                  </button>
+                  <button
+                    (click)="openRuleModal(rule)"
+                    class="px-2.5 py-1.5 bg-violet-600/20 hover:bg-violet-600 text-violet-400 hover:text-white text-[10px] font-bold rounded border-0 cursor-pointer"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    (click)="deleteRule(rule)"
+                    class="px-2.5 py-1.5 bg-slate-800 hover:bg-red-600 text-slate-400 hover:text-white text-[10px] font-bold rounded border-0 cursor-pointer"
+                  >
+                    <i class="fi fi-rr-trash"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                <div class="p-3 bg-slate-950/40 rounded-lg border border-white/5">
+                  <div class="text-[9px] text-slate-500 uppercase font-black">Trigger</div>
+                  <div class="text-xs text-white font-bold mt-1">
+                    {{ triggerLabel(rule.triggerType) }}
+                  </div>
+                  @if (rule.triggerType === 'schedule' && rule.triggerConfig?.['cron']) {
+                    <div class="text-[10px] text-slate-400 mt-1 font-mono">
+                      {{ rule.triggerConfig?.['cron'] }}
+                    </div>
+                  }
+                </div>
+                <div class="p-3 bg-slate-950/40 rounded-lg border border-white/5">
+                  <div class="text-[9px] text-slate-500 uppercase font-black">Stats</div>
+                  <div class="text-xs text-white mt-1">
+                    {{ rule.runCount }} runs
+                    @if (rule.lastRunAt) {
+                      · last {{ rule.lastRunAt | date: 'short' }}
+                    }
+                  </div>
+                </div>
+              </div>
+
+              <!-- Actions chain -->
+              <div class="p-3 bg-slate-950/40 rounded-lg border border-white/5 mb-3">
+                <div class="text-[9px] text-slate-500 uppercase font-black mb-2">
+                  Actions ({{ rule.actions.length }})
+                </div>
+                <div class="space-y-2">
+                  @for (a of rule.actions; track $index) {
+                    <div
+                      class="flex items-start gap-3 p-2 bg-slate-950/60 rounded border border-white/5"
+                    >
+                      <div class="text-[10px] font-bold text-violet-400 min-w-6">
+                        {{ $index + 1 }}.
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <div class="text-xs font-bold text-white">
+                          {{ actionTypeLabel(a.type) }}
+                        </div>
+                        <pre
+                          class="text-[10px] font-mono text-slate-400 overflow-x-auto mt-1 whitespace-pre-wrap"
+                          >{{ a.config | json }}</pre>
+                      </div>
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <!-- Recent runs for this rule -->
+              <div class="p-3 bg-slate-950/40 rounded-lg border border-white/5">
+                <div class="text-[9px] text-slate-500 uppercase font-black mb-2">Recent Runs</div>
+                @if (!rule.runs || rule.runs.length === 0) {
+                  <div class="text-[10px] text-slate-500 italic">
+                    No runs yet. Click "Run now" to test.
+                  </div>
+                }
+                <div class="space-y-2">
+                  @for (run of (rule.runs || []).slice(0, 5); track run.id) {
+                    <div class="p-2 bg-slate-950/60 rounded border border-white/5">
+                      <div class="flex items-center justify-between">
+                        <div class="text-[11px] text-slate-300">
+                          {{ run.startedAt | date: 'short' }}
+                          · {{ triggerLabel(run.triggerType) }}
+                        </div>
+                        <span
+                          class="px-1.5 py-0.5 text-[9px] font-bold rounded border uppercase"
+                          [class]="statusBadgeClass(run.status)"
+                        >
+                          {{ run.status }}
+                        </span>
+                      </div>
+                      @if (run.actionResults) {
+                        <div class="space-y-1 mt-2">
+                          @for (r of run.actionResults; track $index) {
+                            <div class="flex items-start gap-2 text-[10px]">
+                              <span
+                                class="px-1.5 py-0.5 text-[8px] font-bold rounded border uppercase"
+                                [class]="statusBadgeClass(r.status)"
+                              >
+                                {{ r.status }}
+                              </span>
+                              <span class="text-slate-400 flex-1">
+                                {{ actionTypeLabel(r.actionType) }}: {{ r.message }}
+                              </span>
+                            </div>
+                          }
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+            } @else {
+              <div class="h-full flex items-center justify-center text-slate-500 text-xs">
+                Select a rule to view details, actions & run history.
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- ═════ RUN HISTORY ═════ -->
+      @if (currentTab() === 'runs') {
+        <div class="mb-3 flex items-center gap-2">
+          <select
+            [ngModel]="runsFilterRuleId()"
+            (ngModelChange)="runsFilterRuleId.set($event)"
+            class="bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-violet-500"
+          >
+            <option value="">All rules</option>
+            @for (r of rules(); track r.id) {
+              <option [value]="r.id">{{ r.name }}</option>
+            }
+          </select>
+        </div>
+        <div class="bg-slate-900/40 border border-white/5 rounded-xl overflow-hidden">
+          <table class="w-full text-xs">
+            <thead class="bg-slate-950/60 text-[10px] uppercase tracking-wider text-slate-500">
+              <tr>
+                <th class="text-left px-4 py-2 font-black">When</th>
+                <th class="text-left px-4 py-2 font-black">Rule</th>
+                <th class="text-left px-4 py-2 font-black">Trigger</th>
+                <th class="text-left px-4 py-2 font-black">Status</th>
+                <th class="text-left px-4 py-2 font-black">Actions</th>
+                <th class="text-left px-4 py-2 font-black">By</th>
+              </tr>
+            </thead>
+            <tbody>
+              @if (filteredRuns().length === 0) {
+                <tr>
+                  <td colspan="6" class="text-center text-[11px] text-slate-500 italic py-8">
+                    No runs recorded yet.
+                  </td>
+                </tr>
+              }
+              @for (run of filteredRuns(); track run.id) {
+                <tr class="border-t border-white/5 hover:bg-slate-950/40 align-top">
+                  <td class="px-4 py-2 text-slate-300 whitespace-nowrap">
+                    {{ run.startedAt | date: 'short' }}
+                  </td>
+                  <td class="px-4 py-2 text-white">{{ run.rule?.name || '—' }}</td>
+                  <td class="px-4 py-2 text-slate-400">
+                    {{ triggerLabel(run.triggerType) }}
+                  </td>
+                  <td class="px-4 py-2">
+                    <span
+                      class="px-1.5 py-0.5 text-[9px] font-bold rounded border uppercase"
+                      [class]="statusBadgeClass(run.status)"
+                    >
+                      {{ run.status }}
+                    </span>
+                  </td>
+                  <td class="px-4 py-2">
+                    <div class="space-y-1 max-w-md">
+                      @for (r of run.actionResults || []; track $index) {
+                        <div class="flex items-start gap-1.5">
+                          <span
+                            class="px-1 py-0.5 text-[9px] font-bold rounded border uppercase"
+                            [class]="statusBadgeClass(r.status)"
+                          >
+                            {{ r.status.charAt(0) }}
+                          </span>
+                          <span class="text-[10px] text-slate-400">
+                            <span class="text-slate-300 font-bold">
+                              {{ actionTypeLabel(r.actionType) }}:
+                            </span>
+                            {{ r.message }}
+                          </span>
+                        </div>
+                      }
+                    </div>
+                  </td>
+                  <td class="px-4 py-2 text-slate-400 whitespace-nowrap">
+                    {{ run.triggeredBy?.username || 'system' }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+      <!-- ═════ ACTION LIBRARY ═════ -->
+      @if (currentTab() === 'library') {
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+          @for (a of actionCatalog; track a.type) {
+            <div class="p-4 bg-slate-900/40 border border-white/5 rounded-xl">
+              <div class="flex items-center gap-2">
+                <i class="fi fi-rr-bolt text-violet-400"></i>
+                <div class="text-sm font-bold text-white">{{ a.label }}</div>
+              </div>
+              <div class="text-[11px] text-slate-400 mt-1">{{ a.description }}</div>
+              <div class="mt-3">
+                <div class="text-[9px] text-slate-500 uppercase font-black mb-1">
+                  Config example
+                </div>
+                <pre
+                  class="text-[10px] font-mono text-slate-300 bg-slate-950/60 p-2 rounded overflow-x-auto"
+                  >{{ a.template | json }}</pre>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>
+
+<!-- ═════ RULE MODAL ═════ -->
+@if (isRuleModalOpen()) {
+  <div
+    class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-start justify-center overflow-y-auto p-4"
+    (click)="closeRuleModal()"
+  >
+    <div
+      class="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-3xl p-6 my-8"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold text-white">
+          {{ editingRuleId() ? 'Update' : 'New' }} Automation Rule
+        </h3>
+        <button
+          (click)="closeRuleModal()"
+          class="text-slate-400 hover:text-white bg-transparent border-0 cursor-pointer"
+        >
+          <i class="fi fi-rr-cross text-sm"></i>
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div class="md:col-span-2">
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Name</label>
+          <input
+            type="text"
+            [ngModel]="ruleForm().name"
+            (ngModelChange)="ruleForm.set({ ...ruleForm(), name: $event })"
+            placeholder="e.g. Daily fixture generation"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        @if (!editingRuleId()) {
+          <div>
+            <label class="text-[10px] text-slate-400 uppercase font-bold">Trigger</label>
+            <select
+              [ngModel]="ruleForm().triggerType"
+              (ngModelChange)="ruleForm.set({ ...ruleForm(), triggerType: $event })"
+              class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+            >
+              @for (t of allTriggers; track t) {
+                <option [value]="t">{{ triggerLabel(t) }}</option>
+              }
+            </select>
+          </div>
+        }
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Status</label>
+          <select
+            [ngModel]="ruleForm().status"
+            (ngModelChange)="ruleForm.set({ ...ruleForm(), status: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          >
+            <option value="active">Active</option>
+            <option value="paused">Paused</option>
+          </select>
+        </div>
+        @if (ruleForm().triggerType === 'schedule') {
+          <div class="md:col-span-2">
+            <label class="text-[10px] text-slate-400 uppercase font-bold">
+              Cron expression (standard 5-field format)
+            </label>
+            <input
+              type="text"
+              [ngModel]="ruleForm().cron"
+              (ngModelChange)="ruleForm.set({ ...ruleForm(), cron: $event })"
+              placeholder="0 9 * * *  (every day at 09:00)"
+              class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs font-mono text-white outline-none focus:border-violet-500 mt-1"
+            />
+          </div>
+        }
+        <div class="md:col-span-2">
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Description</label>
+          <textarea
+            rows="2"
+            [ngModel]="ruleForm().description"
+            (ngModelChange)="ruleForm.set({ ...ruleForm(), description: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1 resize-none"
+          ></textarea>
+        </div>
+        <div class="md:col-span-2">
+          <label class="text-[10px] text-slate-400 uppercase font-bold">
+            Actions (JSON array)
+          </label>
+          <div class="flex flex-wrap gap-1 mt-1 mb-2">
+            @for (a of actionCatalog; track a.type) {
+              <button
+                type="button"
+                (click)="appendActionTemplate(a)"
+                class="px-2 py-1 text-[10px] bg-slate-800 hover:bg-violet-600 hover:text-white text-slate-300 rounded border-0 cursor-pointer"
+              >
+                + {{ a.label }}
+              </button>
+            }
+          </div>
+          <textarea
+            rows="10"
+            [ngModel]="ruleForm().actionsJson"
+            (ngModelChange)="ruleForm.set({ ...ruleForm(), actionsJson: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-[11px] font-mono text-white outline-none focus:border-violet-500 resize-none"
+          ></textarea>
+          <div class="text-[10px] text-slate-500 mt-1">
+            Each action: <code>{{ '{ "type": ...,  "config": { ... } }' }}</code
+            >. Add <code>"continueOnError": true</code> to keep running after failures.
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 mt-5">
+        <button
+          (click)="closeRuleModal()"
+          class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg border-0 cursor-pointer"
+        >
+          Cancel
+        </button>
+        <button
+          (click)="saveRule()"
+          [disabled]="!ruleForm().name"
+          [class.opacity-50]="!ruleForm().name"
+          class="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-lg border-0 cursor-pointer"
+        >
+          {{ editingRuleId() ? 'Update' : 'Create' }} Rule
+        </button>
+      </div>
+    </div>
+  </div>
+}

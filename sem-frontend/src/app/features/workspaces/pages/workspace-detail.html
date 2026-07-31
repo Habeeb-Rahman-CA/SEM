@@ -457,6 +457,38 @@
                 [events]="events()"
               ></app-equipment>
             }
+
+            <!-- ═══════════════ MEDICAL TAB ═══════════════ -->
+            @if (activeTab() === 'medical') {
+              <app-medical
+                class="h-full block min-h-0"
+                [workspaceId]="workspace()?.id || ''"
+              ></app-medical>
+            }
+
+            <!-- ═══════════════ ACCREDITATION TAB ═══════════════ -->
+            @if (activeTab() === 'accreditation') {
+              <app-accreditation
+                class="h-full block min-h-0"
+                [workspaceId]="workspace()?.id || ''"
+              ></app-accreditation>
+            }
+
+            <!-- ═══════════════ STREAMING TAB ═══════════════ -->
+            @if (activeTab() === 'streaming') {
+              <app-streaming
+                class="h-full block min-h-0"
+                [workspaceId]="workspace()?.id || ''"
+              ></app-streaming>
+            }
+
+            <!-- ═══════════════ AUTOMATION TAB ═══════════════ -->
+            @if (activeTab() === 'automation') {
+              <app-automation
+                class="h-full block min-h-0"
+                [workspaceId]="workspace()?.id || ''"
+              ></app-automation>
+            }
           </div>
         </main>
       </div>
