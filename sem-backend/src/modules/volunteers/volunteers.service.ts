@@ -123,10 +123,14 @@ export class VolunteersService {
     });
 
     const saved = await this.volunteerRepo.save(volunteer);
-    return this.volunteerRepo.findOne({
+    const result = await this.volunteerRepo.findOne({
       where: { id: saved.id },
       relations: { user: true },
     });
+    if (!result) {
+      throw new NotFoundException('Volunteer not found after creation');
+    }
+    return result;
   }
 
   async getVolunteerProfile(

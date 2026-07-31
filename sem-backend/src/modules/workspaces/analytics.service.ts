@@ -925,7 +925,7 @@ Provide the response STRICTLY in the following JSON format:
           stats.played > 0
             ? parseFloat(((stats.won / stats.played) * 100).toFixed(1))
             : 0;
-        return { id, name: stats.name, ...stats, winRate };
+        return { id, ...stats, winRate };
       })
       .sort((a, b) => b.winRate - a.winRate || b.played - a.played)
       .slice(0, 5);
@@ -1035,9 +1035,10 @@ Provide the response STRICTLY in the following JSON format:
 
     const attendanceBreakdown = events.map((e) => {
       let venueCapacity = 1000;
-      if (e.venue) {
+      const venueName = e.venue;
+      if (venueName) {
         const ven = venueList.find(
-          (v) => v.name.toLowerCase() === e.venue.toLowerCase(),
+          (v) => v.name.toLowerCase() === venueName.toLowerCase(),
         );
         if (ven && ven.capacity) {
           venueCapacity = ven.capacity;

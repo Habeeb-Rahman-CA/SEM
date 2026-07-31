@@ -34,6 +34,7 @@ import { BackupModule } from './jobs/cron/backup/backup.module';
 import { RecoveryModule } from './common/recovery/recovery.module';
 import { AiModule } from './modules/ai/ai.module';
 import { VolunteersModule } from './modules/volunteers/volunteers.module';
+import { EquipmentModule } from './modules/equipment/equipment.module';
 
 @Module({
   imports: [
@@ -84,6 +85,7 @@ import { VolunteersModule } from './modules/volunteers/volunteers.module';
     RecoveryModule,
     AiModule,
     VolunteersModule,
+    EquipmentModule,
   ],
   controllers: [AppController],
   providers: [
