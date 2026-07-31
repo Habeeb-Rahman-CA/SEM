@@ -1,7 +1,7 @@
 # Browsers this frontend must support.
 # Consumed by @angular/build (esbuild + tsconfig target), Autoprefixer,
 # and Lighthouse's `preset=mobile`. Keep aligned with the compatibility
-# claims in RELEASE_CHECKLIST.md.
+# claims in docs/RELEASE_CHECKLIST.md.
 last 2 Chrome versions
 last 2 Firefox versions
 last 2 Edge major versions
