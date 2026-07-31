@@ -1,9 +1,11 @@
 import { NestFactory } from '@nestjs/core';
-import { RequestMethod, ValidationPipe } from '@nestjs/common';
+import { RequestMethod, ValidationPipe, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { RequestContextInterceptor } from './common/interceptors/request-context.interceptor';
 import { PublicCacheInterceptor } from './common/interceptors/public-cache.interceptor';
+import { EtagInterceptor } from './common/interceptors/etag.interceptor';
+import { FieldSelectInterceptor } from './common/interceptors/field-select.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -15,6 +17,46 @@ async function bootstrap() {
     // which fails.
     rawBody: true,
   });
+
+  const perfLogger = new Logger('Perf');
+
+  // ── Response compression ──────────────────────────────────────────────────
+  // Gzip via the `compression` middleware. Cuts JSON payloads by ~70-85% at
+  // very low CPU cost. Loaded lazily so the app still boots on a minimal
+  // deploy that hasn't installed the package.
+  try {
+    const compression = require('compression');
+    app.use(
+      compression({
+        threshold: 1024,
+        filter: (req: any, res: any) => {
+          if (req.headers['x-no-compression']) return false;
+          return compression.filter(req, res);
+        },
+      }),
+    );
+    perfLogger.log('Response compression enabled');
+  } catch {
+    perfLogger.warn(
+      'Response compression skipped — install with `npm i compression @types/compression`',
+    );
+  }
+
+  // ── Keep-alive tuning ─────────────────────────────────────────────────────
+  // Node closes idle sockets after 5s by default. Bumping to 65s lets
+  // browsers/proxies reuse the TCP+TLS handshake across bursts. headersTimeout
+  // must exceed keepAliveTimeout so we don't race the client's next request.
+  try {
+    const httpServer: any = app.getHttpAdapter().getHttpServer();
+    if (httpServer) {
+      httpServer.keepAliveTimeout = 65_000;
+      httpServer.headersTimeout = 66_000;
+      httpServer.requestTimeout = 120_000;
+      perfLogger.log('HTTP keep-alive tuned (65s idle, 66s headers)');
+    }
+  } catch (err) {
+    perfLogger.warn(`Failed to tune keep-alive timeouts: ${err}`);
+  }
 
   // ── Graceful Shutdown ─────────────────────────────────────────────────────
   // Enables onApplicationShutdown() hooks across all providers (e.g. RecoveryService)
@@ -51,10 +93,21 @@ async function bootstrap() {
     ],
   });
 
-  // ── Request context (audit trail for createdBy/updatedBy) ────────────────
+  // ── Global interceptors ──────────────────────────────────────────────────
+  // Order matters: RequestContext (per-request state) → HttpMetrics (start
+  // timing before any other work) → PublicCache (Cache-Control) → Etag
+  // (304 short-circuit) → FieldSelect (prune ?fields= last so ETag covers
+  // the full payload).
+  const httpMetrics = app.get(
+    require('./shared/monitoring/http-metrics.interceptor')
+      .HttpMetricsInterceptor,
+  );
   app.useGlobalInterceptors(
     new RequestContextInterceptor(),
+    httpMetrics,
     new PublicCacheInterceptor(),
+    new EtagInterceptor(),
+    new FieldSelectInterceptor(),
   );
 
   // Note: AllExceptionsFilter is registered via APP_FILTER in AppModule

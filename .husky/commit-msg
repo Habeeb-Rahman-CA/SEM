@@ -1,0 +1,12 @@
+# commit-msg — enforces Conventional Commits so standard-version can
+# generate a clean CHANGELOG. Bypass with `git commit --no-verify` for
+# WIP commits on personal branches.
+MSG=$(head -n1 "$1")
+if ! echo "$MSG" | grep -qE '^(feat|fix|chore|docs|style|refactor|perf|test|ci|build|revert)(\([^)]+\))?!?: .+'; then
+  echo "❌ Commit message does not follow Conventional Commits."
+  echo "   Expected:  <type>(optional scope): <subject>"
+  echo "   Examples:  feat(auctions): add live bidding console"
+  echo "              fix(cache): invalidate on member role change"
+  echo "              perf(db): add index on player_transfers.userId"
+  exit 1
+fi

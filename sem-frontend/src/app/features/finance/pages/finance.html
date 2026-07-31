@@ -1,0 +1,881 @@
+<div class="h-full flex flex-col overflow-hidden w-full text-left animate-fadeIn">
+  <!-- Header -->
+  <div class="flex items-center justify-between border-b border-white/5 pb-4 flex-shrink-0">
+    <div>
+      <h2 class="text-xl font-bold text-white">Financial Management</h2>
+      <p class="text-xs text-slate-400 mt-1">
+        Team budgets, transfer fees, salary commitments, and payment ledger.
+      </p>
+    </div>
+    <div class="flex items-center gap-3">
+      <div
+        class="flex items-center gap-2 bg-slate-900 border border-white/10 px-3 py-1.5 rounded-xl"
+      >
+        <span class="text-[10px] text-slate-400 uppercase font-bold">Season</span>
+        <input
+          type="text"
+          [ngModel]="currentSeason()"
+          (ngModelChange)="onSeasonChange($event)"
+          placeholder="2025-26"
+          class="bg-transparent border-0 outline-none text-xs text-white placeholder-slate-500 w-24"
+        />
+      </div>
+      <button
+        (click)="syncFromSources()"
+        class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl border-0 outline-none cursor-pointer"
+        title="Materialize completed transfer fees & active salaries into the ledger"
+      >
+        <i class="fi fi-rr-refresh text-xs mr-1"></i>
+        Sync sources
+      </button>
+      <button
+        (click)="openPaymentModal()"
+        class="flex items-center gap-1.5 px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-violet-900/20 transition-all cursor-pointer border-0 outline-none"
+      >
+        <i class="fi fi-rr-plus text-xs"></i>
+        Record Payment
+      </button>
+    </div>
+  </div>
+
+  <!-- KPI cards -->
+  @if (summary(); as s) {
+    <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 my-4 flex-shrink-0">
+      <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+        <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">
+          Total Budget
+        </div>
+        <div class="text-xl font-black text-violet-400 mt-1">
+          ₹{{ formatAmount(s.totalInitialBudget) }}
+        </div>
+        <div class="text-[8px] text-slate-400 mt-0.5">
+          Across {{ s.accountsCount }} team account(s)
+        </div>
+      </div>
+      <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+        <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">
+          Auction Spend
+        </div>
+        <div class="text-xl font-black text-white mt-1">
+          ₹{{ formatAmount(s.totalAuctionSpend) }}
+        </div>
+        <div class="text-[8px] text-slate-400 mt-0.5">All-time</div>
+      </div>
+      <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+        <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">
+          Transfer Fees
+        </div>
+        <div class="text-xl font-black text-sky-400 mt-1">
+          ₹{{ formatAmount(s.totalTransferFees) }}
+        </div>
+        <div class="text-[8px] text-slate-400 mt-0.5">Completed transfers</div>
+      </div>
+      <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+        <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">Pending</div>
+        <div class="text-xl font-black text-amber-400 mt-1">
+          ₹{{ formatAmount(s.outgoingPending) }}
+        </div>
+        <div class="text-[8px] text-slate-400 mt-0.5">{{ s.overdueCount }} overdue</div>
+      </div>
+      <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+        <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">Net Cash</div>
+        <div
+          class="text-xl font-black mt-1"
+          [class.text-emerald-400]="s.netCash >= 0"
+          [class.text-red-400]="s.netCash < 0"
+        >
+          ₹{{ formatAmount(s.netCash) }}
+        </div>
+        <div class="text-[8px] text-slate-400 mt-0.5">Season {{ s.season }}</div>
+      </div>
+    </div>
+  }
+
+  <!-- Tabs -->
+  <div class="flex border-b border-white/5 mb-4 flex-shrink-0 overflow-x-auto">
+    @for (
+      t of [
+        { key: 'summary', label: 'Workspace Summary', icon: 'fi fi-rr-chart-histogram' },
+        { key: 'accounts', label: 'Team Accounts', icon: 'fi fi-rr-money-bill-wave' },
+        { key: 'payments', label: 'Payments Ledger', icon: 'fi fi-rr-receipt' },
+        { key: 'team-report', label: 'Team Report', icon: 'fi fi-rr-file-invoice-dollar' },
+      ];
+      track t.key
+    ) {
+      <button
+        (click)="currentTab.set($any(t.key)); t.key === 'team-report' && loadTeamReport()"
+        [class]="
+          currentTab() === t.key
+            ? 'border-b-2 border-violet-500 text-violet-400'
+            : 'text-slate-400 hover:text-white'
+        "
+        class="px-4 py-2.5 text-xs font-bold bg-transparent border-0 cursor-pointer transition outline-none whitespace-nowrap"
+      >
+        <i [class]="t.icon" class="text-xs mr-1.5"></i>{{ t.label }}
+      </button>
+    }
+  </div>
+
+  @if (isLoading()) {
+    <div class="flex-1 flex items-center justify-center text-slate-400 text-xs">Loading…</div>
+  } @else if (error()) {
+    <div class="p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-xs">
+      {{ error() }}
+    </div>
+  } @else {
+    <div class="flex-1 overflow-y-auto pr-1">
+      <!-- ═════ WORKSPACE SUMMARY ═════ -->
+      @if (currentTab() === 'summary') {
+        @if (summary(); as s) {
+          <div class="bg-slate-900/40 border border-white/5 rounded-xl p-4">
+            <div class="text-xs font-black text-white uppercase tracking-wider mb-3">
+              Spend by Team
+            </div>
+            @if (!s.perTeam.length) {
+              <div class="text-[11px] text-slate-500 italic">No payments recorded yet.</div>
+            }
+            <div class="space-y-2">
+              @for (t of s.perTeam; track t.teamId) {
+                <div class="p-3 bg-slate-950/60 rounded border border-white/5">
+                  <div class="flex items-center justify-between text-xs mb-1">
+                    <span class="text-white font-bold">{{ t.teamName }}</span>
+                    <span class="text-slate-400">
+                      Paid
+                      <span class="text-emerald-400 font-bold">
+                        ₹{{ formatAmount(t.paidOutgoing) }}
+                      </span>
+                      @if (t.pendingOutgoing > 0) {
+                        · Pending
+                        <span class="text-amber-400 font-bold">
+                          ₹{{ formatAmount(t.pendingOutgoing) }}
+                        </span>
+                      }
+                      @if (t.incoming > 0) {
+                        · Incoming
+                        <span class="text-sky-400 font-bold">
+                          ₹{{ formatAmount(t.incoming) }}
+                        </span>
+                      }
+                    </span>
+                  </div>
+                  <div class="w-full h-1.5 bg-slate-800 rounded overflow-hidden">
+                    <div
+                      class="h-full bg-violet-500 rounded"
+                      [style.width.%]="
+                        spendPercent(t.paidOutgoing, s.perTeam[0]?.paidOutgoing || 1)
+                      "
+                    ></div>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      }
+
+      <!-- ═════ ACCOUNTS ═════ -->
+      @if (currentTab() === 'accounts') {
+        <div class="flex justify-end mb-3">
+          <button
+            (click)="openAccountModal()"
+            class="flex items-center gap-1.5 px-3 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-xl border-0 cursor-pointer"
+          >
+            <i class="fi fi-rr-plus text-xs"></i>New Account
+          </button>
+        </div>
+        @if (accounts().length === 0) {
+          <div class="text-center text-[11px] text-slate-500 italic py-8">
+            No team financial accounts for season {{ currentSeason() }}.
+          </div>
+        }
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+          @for (a of accounts(); track a.id) {
+            <div class="p-4 bg-slate-900/40 border border-white/5 rounded-xl">
+              <div class="flex items-start justify-between">
+                <div>
+                  <div class="text-sm font-bold text-white">
+                    {{ a.team?.name || '—' }}
+                  </div>
+                  <div class="text-[10px] text-slate-400 mt-0.5">Season {{ a.season }}</div>
+                </div>
+                <div class="flex gap-1">
+                  <button
+                    (click)="openAccountModal(a)"
+                    class="px-2 py-1 text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border-0 cursor-pointer"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    (click)="deleteAccount(a)"
+                    class="px-2 py-1 text-[10px] bg-slate-800 hover:bg-red-600 text-slate-400 hover:text-white rounded border-0 cursor-pointer"
+                  >
+                    <i class="fi fi-rr-trash"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="mt-3">
+                <div class="text-[9px] text-slate-500 uppercase font-black">Initial budget</div>
+                <div class="text-2xl font-black text-violet-400 mt-1">
+                  {{ currencySymbol(a.currency) }}{{ formatAmount(a.initialBudget) }}
+                </div>
+              </div>
+              @if (a.notes) {
+                <div class="text-[10px] text-slate-500 mt-2 line-clamp-2">
+                  {{ a.notes }}
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+
+      <!-- ═════ PAYMENTS ═════ -->
+      @if (currentTab() === 'payments') {
+        <div class="mb-3 flex items-center gap-2 flex-wrap">
+          <select
+            [ngModel]="paymentTeamFilter()"
+            (ngModelChange)="paymentTeamFilter.set($event)"
+            class="bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-violet-500"
+          >
+            <option value="">All teams</option>
+            @for (t of teams(); track t.id) {
+              <option [value]="t.id">{{ t.name }}</option>
+            }
+          </select>
+          <select
+            [ngModel]="paymentCategoryFilter()"
+            (ngModelChange)="paymentCategoryFilter.set($event)"
+            class="bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-violet-500"
+          >
+            <option value="">All categories</option>
+            @for (c of categories; track c) {
+              <option [value]="c">{{ labelFor(c) }}</option>
+            }
+          </select>
+          <select
+            [ngModel]="paymentStatusFilter()"
+            (ngModelChange)="paymentStatusFilter.set($event)"
+            class="bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-violet-500"
+          >
+            <option value="">All statuses</option>
+            <option value="pending">Pending</option>
+            <option value="paid">Paid</option>
+            <option value="overdue">Overdue</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+        <div class="bg-slate-900/40 border border-white/5 rounded-xl overflow-hidden">
+          <table class="w-full text-xs">
+            <thead class="bg-slate-950/60 text-[10px] uppercase tracking-wider text-slate-500">
+              <tr>
+                <th class="text-left px-3 py-2 font-black">When</th>
+                <th class="text-left px-3 py-2 font-black">Team</th>
+                <th class="text-left px-3 py-2 font-black">Category</th>
+                <th class="text-left px-3 py-2 font-black">Description</th>
+                <th class="text-right px-3 py-2 font-black">Amount</th>
+                <th class="text-left px-3 py-2 font-black">Dir</th>
+                <th class="text-left px-3 py-2 font-black">Status</th>
+                <th class="text-right px-3 py-2 font-black">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @if (filteredPayments().length === 0) {
+                <tr>
+                  <td colspan="8" class="text-center text-[11px] text-slate-500 italic py-8">
+                    No payments match this filter.
+                  </td>
+                </tr>
+              }
+              @for (p of filteredPayments(); track p.id) {
+                <tr class="border-t border-white/5 hover:bg-slate-950/40 align-top">
+                  <td class="px-3 py-2 text-slate-400 whitespace-nowrap">
+                    {{ p.paidAt || p.dueDate || p.createdAt | date: 'shortDate' }}
+                  </td>
+                  <td class="px-3 py-2 text-white font-bold">
+                    {{ p.team?.name || '—' }}
+                    @if (p.counterpartyTeam) {
+                      <div class="text-[10px] text-slate-500">↔ {{ p.counterpartyTeam.name }}</div>
+                    }
+                  </td>
+                  <td class="px-3 py-2">
+                    <span
+                      class="px-1.5 py-0.5 text-[9px] font-bold rounded border uppercase"
+                      [class]="categoryBadgeClass(p.category)"
+                    >
+                      {{ labelFor(p.category) }}
+                    </span>
+                  </td>
+                  <td class="px-3 py-2 text-slate-300 max-w-[240px]">
+                    <div>{{ p.description }}</div>
+                    @if (p.notes) {
+                      <div class="text-[10px] text-slate-500 mt-0.5">
+                        {{ p.notes }}
+                      </div>
+                    }
+                  </td>
+                  <td class="px-3 py-2 text-right">
+                    <span
+                      [class.text-emerald-400]="p.direction === 'incoming'"
+                      [class.text-red-400]="p.direction === 'outgoing'"
+                      class="font-bold"
+                    >
+                      {{ p.direction === 'outgoing' ? '−' : '+' }}{{ currencySymbol(p.currency)
+                      }}{{ formatAmount(p.amount) }}
+                    </span>
+                  </td>
+                  <td class="px-3 py-2">
+                    <span
+                      class="px-1.5 py-0.5 text-[9px] font-bold rounded border uppercase"
+                      [class]="directionBadgeClass(p.direction)"
+                    >
+                      {{ p.direction }}
+                    </span>
+                  </td>
+                  <td class="px-3 py-2">
+                    <span
+                      class="px-1.5 py-0.5 text-[9px] font-bold rounded border uppercase"
+                      [class]="statusBadgeClass(p.status)"
+                    >
+                      {{ p.status }}
+                    </span>
+                  </td>
+                  <td class="px-3 py-2 text-right">
+                    <div class="flex gap-1 justify-end">
+                      @if (p.status !== 'paid' && p.status !== 'cancelled') {
+                        <button
+                          (click)="markPaid(p)"
+                          class="px-2 py-1 text-[10px] bg-emerald-600 hover:bg-emerald-500 text-white rounded border-0 cursor-pointer"
+                        >
+                          Mark paid
+                        </button>
+                      }
+                      <button
+                        (click)="openPaymentModal(p)"
+                        class="px-2 py-1 text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border-0 cursor-pointer"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        (click)="deletePayment(p)"
+                        class="px-2 py-1 text-[10px] bg-slate-800 hover:bg-red-600 text-slate-400 hover:text-white rounded border-0 cursor-pointer"
+                      >
+                        <i class="fi fi-rr-trash"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+      <!-- ═════ TEAM REPORT ═════ -->
+      @if (currentTab() === 'team-report') {
+        <div class="mb-3 flex items-center gap-2 flex-wrap">
+          <select
+            [ngModel]="reportTeamId()"
+            (ngModelChange)="reportTeamId.set($event); loadTeamReport()"
+            class="bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-violet-500"
+          >
+            <option value="">— Select team —</option>
+            @for (t of teams(); track t.id) {
+              <option [value]="t.id">{{ t.name }}</option>
+            }
+          </select>
+          <input
+            type="text"
+            [ngModel]="reportSeason()"
+            (ngModelChange)="reportSeason.set($event)"
+            placeholder="Season"
+            class="bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-violet-500 w-32"
+          />
+          <button
+            (click)="loadTeamReport()"
+            [disabled]="!reportTeamId() || !reportSeason()"
+            [class.opacity-50]="!reportTeamId() || !reportSeason()"
+            class="px-3 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-xl border-0 cursor-pointer"
+          >
+            Load Report
+          </button>
+        </div>
+
+        @if (teamReport(); as r) {
+          <div class="space-y-4">
+            <div class="bg-slate-900/40 border border-white/5 rounded-xl p-4">
+              <div class="flex items-start justify-between">
+                <div>
+                  <div class="text-lg font-black text-white">
+                    {{ r.team.name }}
+                    <span class="text-slate-500 text-xs font-normal ml-2">
+                      Season {{ r.season }}
+                    </span>
+                  </div>
+                  @if (r.account?.notes) {
+                    <div class="text-[11px] text-slate-400 mt-1">
+                      {{ r.account?.notes }}
+                    </div>
+                  }
+                </div>
+                <div class="text-right">
+                  <div class="text-[10px] text-slate-500 uppercase font-black">Remaining</div>
+                  <div
+                    class="text-2xl font-black mt-1"
+                    [class.text-emerald-400]="r.summary.remainingBudget >= 0"
+                    [class.text-red-400]="r.summary.remainingBudget < 0"
+                  >
+                    {{ currencySymbol(r.currency) }}{{ formatAmount(r.summary.remainingBudget) }}
+                  </div>
+                  <div class="text-[10px] text-slate-500 mt-1">
+                    of {{ currencySymbol(r.currency)
+                    }}{{ formatAmount(r.summary.initialBudget) }} budget
+                  </div>
+                </div>
+              </div>
+              <div class="w-full h-2 bg-slate-800 rounded mt-3 overflow-hidden">
+                <div
+                  class="h-full rounded"
+                  [class.bg-emerald-500]="r.summary.remainingBudget >= 0"
+                  [class.bg-red-500]="r.summary.remainingBudget < 0"
+                  [style.width.%]="
+                    spendPercent(
+                      r.summary.totalOutgoing - r.summary.totalIncoming,
+                      r.summary.initialBudget
+                    )
+                  "
+                ></div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div class="p-3 bg-slate-900/40 border border-white/5 rounded-lg">
+                <div class="text-[9px] text-slate-500 uppercase font-black">Auction Spend</div>
+                <div class="text-lg font-black text-violet-400 mt-1">
+                  {{ currencySymbol(r.currency) }}{{ formatAmount(r.summary.auctionSpend) }}
+                </div>
+                <div class="text-[9px] text-slate-500 mt-0.5">
+                  {{ r.summary.auctionPlayersBought }} player(s)
+                </div>
+              </div>
+              <div class="p-3 bg-slate-900/40 border border-white/5 rounded-lg">
+                <div class="text-[9px] text-slate-500 uppercase font-black">Fees Paid</div>
+                <div class="text-lg font-black text-red-400 mt-1">
+                  {{ currencySymbol(r.currency) }}{{ formatAmount(r.summary.transferFeesPaid) }}
+                </div>
+                <div class="text-[9px] text-slate-500 mt-0.5">
+                  {{ r.transfers.incoming.length }} incoming
+                </div>
+              </div>
+              <div class="p-3 bg-slate-900/40 border border-white/5 rounded-lg">
+                <div class="text-[9px] text-slate-500 uppercase font-black">Fees Received</div>
+                <div class="text-lg font-black text-emerald-400 mt-1">
+                  {{ currencySymbol(r.currency) }}{{ formatAmount(r.summary.transferFeesReceived) }}
+                </div>
+                <div class="text-[9px] text-slate-500 mt-0.5">
+                  {{ r.transfers.outgoing.length }} outgoing
+                </div>
+              </div>
+              <div class="p-3 bg-slate-900/40 border border-white/5 rounded-lg">
+                <div class="text-[9px] text-slate-500 uppercase font-black">Salary Commitment</div>
+                <div class="text-lg font-black text-purple-400 mt-1">
+                  {{ currencySymbol(r.currency) }}{{ formatAmount(r.summary.salaryCommitment) }}
+                </div>
+                <div class="text-[9px] text-slate-500 mt-0.5">{{ r.contracts.length }} active</div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="bg-slate-900/40 border border-white/5 rounded-xl p-4">
+                <div class="text-xs font-black text-white uppercase tracking-wider mb-3">
+                  By Category
+                </div>
+                @if (!r.byCategory.length) {
+                  <div class="text-[10px] text-slate-500 italic">No categorized payments yet.</div>
+                }
+                <div class="space-y-1.5">
+                  @for (c of r.byCategory; track c.category) {
+                    <div class="flex items-center justify-between">
+                      <span
+                        class="px-1.5 py-0.5 text-[9px] font-bold rounded border uppercase"
+                        [class]="categoryBadgeClass($any(c.category))"
+                      >
+                        {{ labelFor(c.category) }}
+                      </span>
+                      <div class="text-[11px]">
+                        @if (c.outgoing > 0) {
+                          <span class="text-red-400 font-bold">
+                            −{{ currencySymbol(r.currency) }}{{ formatAmount(c.outgoing) }}
+                          </span>
+                        }
+                        @if (c.incoming > 0) {
+                          <span class="text-emerald-400 font-bold ml-2">
+                            +{{ currencySymbol(r.currency) }}{{ formatAmount(c.incoming) }}
+                          </span>
+                        }
+                        <span class="text-slate-500 ml-1"> ({{ c.count }}) </span>
+                      </div>
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <div class="bg-slate-900/40 border border-white/5 rounded-xl p-4">
+                <div class="text-xs font-black text-white uppercase tracking-wider mb-3">
+                  Auction Wins
+                </div>
+                @if (!r.auctionWins.length) {
+                  <div class="text-[10px] text-slate-500 italic">No auction purchases yet.</div>
+                }
+                <div class="space-y-1 max-h-64 overflow-y-auto">
+                  @for (a of r.auctionWins; track a.id) {
+                    <div
+                      class="flex items-center justify-between p-2 bg-slate-950/60 rounded border border-white/5"
+                    >
+                      <div class="text-xs text-white">{{ a.playerName }}</div>
+                      <div class="text-xs font-bold text-emerald-400">
+                        {{ currencySymbol(r.currency) }}{{ formatAmount(a.soldPrice) }}
+                      </div>
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="bg-slate-900/40 border border-white/5 rounded-xl p-4">
+                <div class="text-xs font-black text-white uppercase tracking-wider mb-3">
+                  Transfers In
+                </div>
+                @if (!r.transfers.incoming.length) {
+                  <div class="text-[10px] text-slate-500 italic">None.</div>
+                }
+                <div class="space-y-1">
+                  @for (t of r.transfers.incoming; track t.id) {
+                    <div
+                      class="flex items-center justify-between p-2 bg-slate-950/60 rounded border border-white/5"
+                    >
+                      <div>
+                        <div class="text-xs text-white">{{ t.playerName }}</div>
+                        <div class="text-[10px] text-slate-500">
+                          from {{ t.fromTeam }} · {{ t.transferType }}
+                        </div>
+                      </div>
+                      <div class="text-xs font-bold text-red-400">
+                        −{{ currencySymbol(r.currency) }}{{ formatAmount(t.fee) }}
+                      </div>
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <div class="bg-slate-900/40 border border-white/5 rounded-xl p-4">
+                <div class="text-xs font-black text-white uppercase tracking-wider mb-3">
+                  Transfers Out
+                </div>
+                @if (!r.transfers.outgoing.length) {
+                  <div class="text-[10px] text-slate-500 italic">None.</div>
+                }
+                <div class="space-y-1">
+                  @for (t of r.transfers.outgoing; track t.id) {
+                    <div
+                      class="flex items-center justify-between p-2 bg-slate-950/60 rounded border border-white/5"
+                    >
+                      <div>
+                        <div class="text-xs text-white">{{ t.playerName }}</div>
+                        <div class="text-[10px] text-slate-500">
+                          to {{ t.toTeam }} · {{ t.transferType }}
+                        </div>
+                      </div>
+                      <div class="text-xs font-bold text-emerald-400">
+                        +{{ currencySymbol(r.currency) }}{{ formatAmount(t.fee) }}
+                      </div>
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+        } @else {
+          <div class="text-center text-[11px] text-slate-500 italic py-8">
+            Pick a team and season, then load the report.
+          </div>
+        }
+      }
+    </div>
+  }
+</div>
+
+<!-- ═════ ACCOUNT MODAL ═════ -->
+@if (isAccountModalOpen()) {
+  <div
+    class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-start justify-center overflow-y-auto p-4"
+    (click)="closeAccountModal()"
+  >
+    <div
+      class="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-md p-6 my-8"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold text-white">Team Financial Account</h3>
+        <button
+          (click)="closeAccountModal()"
+          class="text-slate-400 hover:text-white bg-transparent border-0 cursor-pointer"
+        >
+          <i class="fi fi-rr-cross text-sm"></i>
+        </button>
+      </div>
+      <div class="space-y-3">
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Team</label>
+          <select
+            [ngModel]="accountForm().teamId"
+            (ngModelChange)="accountForm.set({ ...accountForm(), teamId: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          >
+            <option value="">— Select team —</option>
+            @for (t of teams(); track t.id) {
+              <option [value]="t.id">{{ t.name }}</option>
+            }
+          </select>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-[10px] text-slate-400 uppercase font-bold">Season</label>
+            <input
+              type="text"
+              [ngModel]="accountForm().season"
+              (ngModelChange)="accountForm.set({ ...accountForm(), season: $event })"
+              class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+            />
+          </div>
+          <div>
+            <label class="text-[10px] text-slate-400 uppercase font-bold">Currency</label>
+            <select
+              [ngModel]="accountForm().currency"
+              (ngModelChange)="accountForm.set({ ...accountForm(), currency: $event })"
+              class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+            >
+              <option value="INR">INR (₹)</option>
+              <option value="USD">USD ($)</option>
+              <option value="EUR">EUR (€)</option>
+              <option value="GBP">GBP (£)</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold"> Initial Budget </label>
+          <input
+            type="number"
+            min="0"
+            [ngModel]="accountForm().initialBudget"
+            (ngModelChange)="accountForm.set({ ...accountForm(), initialBudget: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Notes</label>
+          <textarea
+            rows="2"
+            [ngModel]="accountForm().notes"
+            (ngModelChange)="accountForm.set({ ...accountForm(), notes: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1 resize-none"
+          ></textarea>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 mt-5">
+        <button
+          (click)="closeAccountModal()"
+          class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg border-0 cursor-pointer"
+        >
+          Cancel
+        </button>
+        <button
+          (click)="saveAccount()"
+          [disabled]="!accountForm().teamId || !accountForm().season"
+          [class.opacity-50]="!accountForm().teamId || !accountForm().season"
+          class="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-lg border-0 cursor-pointer"
+        >
+          Save Account
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ═════ PAYMENT MODAL ═════ -->
+@if (isPaymentModalOpen()) {
+  <div
+    class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-start justify-center overflow-y-auto p-4"
+    (click)="closePaymentModal()"
+  >
+    <div
+      class="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-2xl p-6 my-8"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold text-white">
+          {{ editingPaymentId() ? 'Update' : 'Record' }} Payment
+        </h3>
+        <button
+          (click)="closePaymentModal()"
+          class="text-slate-400 hover:text-white bg-transparent border-0 cursor-pointer"
+        >
+          <i class="fi fi-rr-cross text-sm"></i>
+        </button>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        @if (!editingPaymentId()) {
+          <div>
+            <label class="text-[10px] text-slate-400 uppercase font-bold">Team</label>
+            <select
+              [ngModel]="paymentForm().teamId"
+              (ngModelChange)="paymentForm.set({ ...paymentForm(), teamId: $event })"
+              class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+            >
+              <option value="">— Select team —</option>
+              @for (t of teams(); track t.id) {
+                <option [value]="t.id">{{ t.name }}</option>
+              }
+            </select>
+          </div>
+          <div>
+            <label class="text-[10px] text-slate-400 uppercase font-bold">
+              Counterparty (optional)
+            </label>
+            <select
+              [ngModel]="paymentForm().counterpartyTeamId"
+              (ngModelChange)="paymentForm.set({ ...paymentForm(), counterpartyTeamId: $event })"
+              class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+            >
+              <option value="">— None —</option>
+              @for (t of teams(); track t.id) {
+                <option [value]="t.id">{{ t.name }}</option>
+              }
+            </select>
+          </div>
+          <div>
+            <label class="text-[10px] text-slate-400 uppercase font-bold">Season</label>
+            <input
+              type="text"
+              [ngModel]="paymentForm().season"
+              (ngModelChange)="paymentForm.set({ ...paymentForm(), season: $event })"
+              class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+            />
+          </div>
+          <div>
+            <label class="text-[10px] text-slate-400 uppercase font-bold">Category</label>
+            <select
+              [ngModel]="paymentForm().category"
+              (ngModelChange)="paymentForm.set({ ...paymentForm(), category: $event })"
+              class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+            >
+              @for (c of categories; track c) {
+                <option [value]="c">{{ labelFor(c) }}</option>
+              }
+            </select>
+          </div>
+          <div>
+            <label class="text-[10px] text-slate-400 uppercase font-bold">Direction</label>
+            <select
+              [ngModel]="paymentForm().direction"
+              (ngModelChange)="paymentForm.set({ ...paymentForm(), direction: $event })"
+              class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+            >
+              <option value="outgoing">Outgoing (expense)</option>
+              <option value="incoming">Incoming (revenue)</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-[10px] text-slate-400 uppercase font-bold">Currency</label>
+            <select
+              [ngModel]="paymentForm().currency"
+              (ngModelChange)="paymentForm.set({ ...paymentForm(), currency: $event })"
+              class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+            >
+              <option value="INR">INR (₹)</option>
+              <option value="USD">USD ($)</option>
+              <option value="EUR">EUR (€)</option>
+              <option value="GBP">GBP (£)</option>
+            </select>
+          </div>
+        }
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Amount</label>
+          <input
+            type="number"
+            min="0"
+            [ngModel]="paymentForm().amount"
+            (ngModelChange)="paymentForm.set({ ...paymentForm(), amount: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Status</label>
+          <select
+            [ngModel]="paymentForm().status"
+            (ngModelChange)="paymentForm.set({ ...paymentForm(), status: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          >
+            <option value="pending">Pending</option>
+            <option value="paid">Paid</option>
+            <option value="overdue">Overdue</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Due Date</label>
+          <input
+            type="date"
+            [ngModel]="paymentForm().dueDate"
+            (ngModelChange)="paymentForm.set({ ...paymentForm(), dueDate: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Paid At</label>
+          <input
+            type="date"
+            [ngModel]="paymentForm().paidAt"
+            (ngModelChange)="paymentForm.set({ ...paymentForm(), paidAt: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div class="md:col-span-2">
+          <label class="text-[10px] text-slate-400 uppercase font-bold"> Description </label>
+          <input
+            type="text"
+            [ngModel]="paymentForm().description"
+            (ngModelChange)="paymentForm.set({ ...paymentForm(), description: $event })"
+            placeholder="What is this payment for?"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div class="md:col-span-2">
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Notes</label>
+          <textarea
+            rows="2"
+            [ngModel]="paymentForm().notes"
+            (ngModelChange)="paymentForm.set({ ...paymentForm(), notes: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1 resize-none"
+          ></textarea>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 mt-5">
+        <button
+          (click)="closePaymentModal()"
+          class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg border-0 cursor-pointer"
+        >
+          Cancel
+        </button>
+        <button
+          (click)="savePayment()"
+          [disabled]="!paymentForm().description || !paymentForm().amount"
+          [class.opacity-50]="!paymentForm().description || !paymentForm().amount"
+          class="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-lg border-0 cursor-pointer"
+        >
+          {{ editingPaymentId() ? 'Update' : 'Record' }} Payment
+        </button>
+      </div>
+    </div>
+  </div>
+}

@@ -489,6 +489,46 @@
                 [workspaceId]="workspace()?.id || ''"
               ></app-automation>
             }
+
+            <!-- ═══════════════ AUCTIONS TAB ═══════════════ -->
+            @if (activeTab() === 'auctions') {
+              <app-auctions
+                class="h-full block min-h-0"
+                [workspaceId]="workspace()?.id || ''"
+              ></app-auctions>
+            }
+
+            <!-- ═══════════════ TRANSFERS TAB ═══════════════ -->
+            @if (activeTab() === 'transfers') {
+              <app-transfers
+                class="h-full block min-h-0"
+                [workspaceId]="workspace()?.id || ''"
+              ></app-transfers>
+            }
+
+            <!-- ═══════════════ ROSTERS TAB ═══════════════ -->
+            @if (activeTab() === 'rosters') {
+              <app-rosters
+                class="h-full block min-h-0"
+                [workspaceId]="workspace()?.id || ''"
+              ></app-rosters>
+            }
+
+            <!-- ═══════════════ FINANCE TAB ═══════════════ -->
+            @if (activeTab() === 'finance') {
+              <app-finance
+                class="h-full block min-h-0"
+                [workspaceId]="workspace()?.id || ''"
+              ></app-finance>
+            }
+
+            <!-- ═══════════════ GOVERNANCE TAB ═══════════════ -->
+            @if (activeTab() === 'governance') {
+              <app-governance
+                class="h-full block min-h-0"
+                [workspaceId]="workspace()?.id || ''"
+              ></app-governance>
+            }
           </div>
         </main>
       </div>

@@ -1,0 +1,114 @@
+name: Migrations check
+
+# Runs on PRs that touch entity or migration files. Catches three
+# common failure modes early:
+#
+#   1. Entity was edited but no migration was generated  → generate would
+#      produce a diff (pull-diff fails).
+#   2. Migration file was renamed/reordered              → timestamp checks.
+#   3. Migration contains destructive statements without an explicit
+#      opt-in comment (e.g. DROP TABLE)                  → linter flags it.
+
+on:
+  pull_request:
+    paths:
+      - "sem-backend/src/**/*.entity.ts"
+      - "sem-backend/src/database/migrations/**"
+      - "sem-backend/src/database/data-source.ts"
+
+concurrency:
+  group: migrations-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate migrations
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: sem_migcheck
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: npm
+          cache-dependency-path: sem-backend/package-lock.json
+      - name: Install deps
+        working-directory: sem-backend
+        run: npm ci --no-audit --no-fund
+
+      - name: Apply committed migrations
+        working-directory: sem-backend
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USERNAME: postgres
+          DB_PASSWORD: postgres
+          DB_DATABASE: sem_migcheck
+        run: npm run migration:run
+
+      - name: Fail if entities are ahead of migrations
+        working-directory: sem-backend
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USERNAME: postgres
+          DB_PASSWORD: postgres
+          DB_DATABASE: sem_migcheck
+        run: |
+          # If entities have unmigrated changes, `migration:generate` will
+          # succeed (creating a file); if they're in sync it exits with an
+          # error saying "no changes in database schema were found".
+          set +e
+          OUT=$(npx typeorm-ts-node-commonjs migration:generate \
+                  src/database/migrations/CI_DRIFT_CHECK \
+                  -d src/database/data-source.ts 2>&1)
+          RC=$?
+          echo "$OUT"
+          if [ $RC -eq 0 ]; then
+            echo "::error::Entities drifted from migrations — commit a migration file."
+            exit 1
+          fi
+          # Any other error (e.g. connection) is a real failure
+          if ! echo "$OUT" | grep -qi "no changes in database schema"; then
+            echo "::error::Unexpected migration:generate failure"; exit 1
+          fi
+
+      - name: Destructive-migration check
+        working-directory: sem-backend
+        run: node scripts/migration-check.js --check-destructive
+
+      - name: Rollback smoke test (revert the newest migration)
+        working-directory: sem-backend
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USERNAME: postgres
+          DB_PASSWORD: postgres
+          DB_DATABASE: sem_migcheck
+        run: |
+          # Every new migration must implement `down()` correctly or a
+          # rollback in prod is a shot in the dark. Only run when a
+          # migration file was added in this PR.
+          CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD \
+                    | grep -E 'sem-backend/src/database/migrations/.*\.ts$' || true)
+          if [ -z "$CHANGED" ]; then
+            echo "No new migrations in this PR — skipping rollback smoke test."
+            exit 0
+          fi
+          echo "Running rollback smoke test for: $CHANGED"
+          npm run migration:revert
+          # Re-apply so downstream steps have a fully-migrated DB
+          npm run migration:run

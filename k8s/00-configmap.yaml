@@ -1,0 +1,27 @@
+# Non-secret runtime config shared by every backend replica.
+# Values that vary per environment (dev/stage/prod) should live in
+# separate ConfigMaps per namespace.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sem-backend-config
+  labels:
+    app.kubernetes.io/name: sem-backend
+    app.kubernetes.io/part-of: sem
+data:
+  NODE_ENV: "production"
+  PORT: "3001"
+  DB_HOST: "sem-postgres.rds.svc.cluster.local"
+  DB_PORT: "5432"
+  DB_DATABASE: "sem_prod"
+  DB_SYNCHRONIZE: "false"
+  DB_POOL_MAX: "30"
+  DB_POOL_MIN: "5"
+  DB_SLOW_QUERY_MS: "500"
+  REDIS_HOST: "sem-redis.cache.svc.cluster.local"
+  REDIS_PORT: "6379"
+  REDIS_CACHE_DB: "0"
+  CACHE_NAMESPACE: "sem-prod"
+  JWT_EXPIRATION: "15m"
+  ELASTICSEARCH_NODE: "http://sem-elasticsearch.search.svc.cluster.local:9200"
+  CORS_ORIGIN: "https://app.example.com"

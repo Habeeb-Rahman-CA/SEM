@@ -1,0 +1,130 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Production overlay for docker-compose. Apply on top of docker-compose.yml:
+#
+#     docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Differences vs. the base compose file:
+#   - No hardcoded secrets — everything comes from an .env.prod file loaded via
+#     `env_file`. Values in docker-compose.yml become defaults, overlay wins.
+#   - Health checks so unhealthy containers don't take traffic.
+#   - Resource limits so a runaway process can't starve neighbors.
+#   - Replicas for the stateless services (backend, frontend) so a rolling
+#     restart never drops requests. Postgres/Redis/ES stay singletons.
+#   - Restart policy `unless-stopped` for graceful ops-triggered stops.
+#   - Named log driver limits so disk doesn't fill on long uptimes.
+#   - synchronize: false — production must never TypeORM-migrate implicitly.
+# ─────────────────────────────────────────────────────────────────────────────
+version: '3.8'
+
+x-logging: &default_logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  postgres:
+    restart: unless-stopped
+    env_file: .env.prod
+    logging: *default_logging
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-sem-dev}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+
+  redis:
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "512mb", "--maxmemory-policy", "allkeys-lru"]
+    logging: *default_logging
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 768M
+
+  elasticsearch:
+    restart: unless-stopped
+    logging: *default_logging
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+
+  sem-backend:
+    restart: unless-stopped
+    env_file: .env.prod
+    environment:
+      # Overlay wins over env_file, so these three enforce prod-safe defaults
+      # even if someone forgets to set them.
+      - NODE_ENV=production
+      - DB_SYNCHRONIZE=false
+    logging: *default_logging
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:3001/api/health/live || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 5
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 1G
+
+  sem-frontend:
+    restart: unless-stopped
+    logging: *default_logging
+    depends_on:
+      sem-backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1/nginx-health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 5s
+        order: start-first
+      restart_policy:
+        condition: any
+        max_attempts: 5
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M

@@ -1,0 +1,1182 @@
+<div class="h-full flex flex-col overflow-hidden w-full text-left animate-fadeIn">
+  <!-- Header -->
+  <div class="flex items-center justify-between border-b border-white/5 pb-4 flex-shrink-0">
+    <div>
+      <h2 class="text-xl font-bold text-white">Team Roster Management</h2>
+      <p class="text-xs text-slate-400 mt-1">
+        Squad limits, contracts & registrations, releases, eligibility checks, and season
+        carry-forward.
+      </p>
+    </div>
+    <div class="flex items-center gap-3">
+      <div
+        class="flex items-center gap-2 bg-slate-900 border border-white/10 px-3 py-1.5 rounded-xl"
+      >
+        <span class="text-[10px] text-slate-400 uppercase font-bold">Season</span>
+        <input
+          type="text"
+          [ngModel]="currentSeason()"
+          (ngModelChange)="onSeasonChange($event)"
+          placeholder="2025-26"
+          class="bg-transparent border-0 outline-none text-xs text-white placeholder-slate-500 w-24"
+        />
+      </div>
+      <button
+        (click)="openContractModal()"
+        class="flex items-center gap-1.5 px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-violet-900/20 transition-all cursor-pointer border-0 outline-none"
+      >
+        <i class="fi fi-rr-plus text-xs"></i>
+        New Contract
+      </button>
+    </div>
+  </div>
+
+  <!-- KPI cards -->
+  @if (summary(); as s) {
+    <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 my-4 flex-shrink-0">
+      <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+        <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">
+          Active Contracts
+        </div>
+        <div class="text-xl font-black text-emerald-400 mt-1">
+          {{ s.activeContracts }}
+        </div>
+        <div class="text-[8px] text-slate-400 mt-0.5">of {{ s.totalContracts }} total</div>
+      </div>
+      <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+        <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">Suspended</div>
+        <div class="text-xl font-black text-amber-400 mt-1">
+          {{ s.suspendedContracts }}
+        </div>
+        <div class="text-[8px] text-slate-400 mt-0.5">Cannot play</div>
+      </div>
+      <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+        <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">Terminated</div>
+        <div class="text-xl font-black text-red-400 mt-1">
+          {{ s.terminatedContracts }}
+        </div>
+        <div class="text-[8px] text-slate-400 mt-0.5">{{ s.expiredContracts }} expired</div>
+      </div>
+      <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+        <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">Releases</div>
+        <div class="text-xl font-black text-white mt-1">{{ s.totalReleases }}</div>
+        <div class="text-[8px] text-slate-400 mt-0.5">All-time</div>
+      </div>
+      <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+        <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">Seasons</div>
+        <div class="text-xl font-black text-violet-400 mt-1">
+          {{ s.seasons.length }}
+        </div>
+        <div class="text-[8px] text-slate-400 mt-0.5">
+          {{ s.seasons.slice(0, 2).join(', ') }}
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Tabs -->
+  <div class="flex border-b border-white/5 mb-4 flex-shrink-0 overflow-x-auto">
+    @for (
+      t of [
+        { key: 'squads', label: 'Squads', icon: 'fi fi-rr-users' },
+        { key: 'contracts', label: 'Contracts', icon: 'fi fi-rr-file' },
+        { key: 'releases', label: 'Releases', icon: 'fi fi-rr-sign-out-alt' },
+        { key: 'eligibility', label: 'Eligibility Check', icon: 'fi fi-rr-check-circle' },
+        { key: 'carry-forward', label: 'Carry Forward', icon: 'fi fi-rr-arrow-right' },
+      ];
+      track t.key
+    ) {
+      <button
+        (click)="currentTab.set($any(t.key))"
+        [class]="
+          currentTab() === t.key
+            ? 'border-b-2 border-violet-500 text-violet-400'
+            : 'text-slate-400 hover:text-white'
+        "
+        class="px-4 py-2.5 text-xs font-bold bg-transparent border-0 cursor-pointer transition outline-none whitespace-nowrap"
+      >
+        <i [class]="t.icon" class="text-xs mr-1.5"></i>{{ t.label }}
+      </button>
+    }
+  </div>
+
+  @if (isLoading()) {
+    <div class="flex-1 flex items-center justify-center text-slate-400 text-xs">Loading…</div>
+  } @else if (error()) {
+    <div class="p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-xs">
+      {{ error() }}
+    </div>
+  } @else {
+    <div class="flex-1 overflow-y-auto pr-1">
+      <!-- ═════ SQUADS ═════ -->
+      @if (currentTab() === 'squads') {
+        <div class="flex flex-col lg:flex-row gap-4">
+          <!-- Team picker -->
+          <div class="w-full lg:w-1/3 space-y-2">
+            <div class="text-[10px] text-slate-500 uppercase font-black tracking-wider mb-2">
+              Select Team
+            </div>
+            @if (teams().length === 0) {
+              <div class="p-3 text-[11px] text-slate-500 italic">No teams available.</div>
+            }
+            @for (t of teams(); track t.id) {
+              <div
+                (click)="selectedTeamId.set(t.id)"
+                [class.border-violet-500]="selectedTeamId() === t.id"
+                [class.bg-slate-900]="selectedTeamId() === t.id"
+                class="p-3 border border-white/5 rounded-xl bg-slate-950/40 hover:bg-slate-900 cursor-pointer transition"
+              >
+                <div class="text-xs font-bold text-white">{{ t.name }}</div>
+                @if (t.code) {
+                  <div class="text-[10px] text-slate-500 mt-0.5">{{ t.code }}</div>
+                }
+              </div>
+            }
+          </div>
+
+          <!-- Roster panel -->
+          <div class="flex-1 bg-slate-900/40 border border-white/5 rounded-xl p-4">
+            @if (!selectedTeamId()) {
+              <div class="text-center text-[11px] text-slate-500 italic py-8">
+                Select a team to view its roster for season {{ currentSeason() }}.
+              </div>
+            } @else if (selectedRoster(); as r) {
+              <div class="flex items-start justify-between mb-4">
+                <div>
+                  <div class="text-lg font-black text-white">{{ r.team.name }}</div>
+                  <div class="text-[11px] text-slate-400">Season {{ r.season }}</div>
+                </div>
+                <div class="flex gap-2">
+                  <button
+                    (click)="openConfigModal(r.config ?? undefined)"
+                    class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-bold rounded border-0 cursor-pointer"
+                  >
+                    {{ r.config ? 'Edit' : 'Configure' }} Rules
+                  </button>
+                </div>
+              </div>
+
+              <!-- Rules snapshot -->
+              @if (r.config; as cfg) {
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                  <div class="p-3 bg-slate-950/40 rounded-lg border border-white/5">
+                    <div class="text-[9px] text-slate-500 uppercase font-black">Squad Slots</div>
+                    <div class="text-sm text-white font-bold mt-1">
+                      {{ r.activeCount }} / {{ cfg.maxSquadSize }}
+                    </div>
+                    <div class="w-full h-1.5 bg-slate-800 rounded mt-2 overflow-hidden">
+                      <div
+                        class="h-full rounded"
+                        [class.bg-red-500]="r.activeCount >= cfg.maxSquadSize"
+                        [class.bg-violet-500]="r.activeCount < cfg.maxSquadSize"
+                        [style.width.%]="slotUsagePercent(r.activeCount, cfg.maxSquadSize)"
+                      ></div>
+                    </div>
+                  </div>
+                  <div class="p-3 bg-slate-950/40 rounded-lg border border-white/5">
+                    <div class="text-[9px] text-slate-500 uppercase font-black">
+                      Foreign Players
+                    </div>
+                    <div class="text-sm text-white font-bold mt-1">
+                      {{ r.foreignCount }}
+                      @if (cfg.maxForeignPlayers != null) {
+                        / {{ cfg.maxForeignPlayers }}
+                      }
+                    </div>
+                    @if (cfg.maxForeignPlayers != null) {
+                      <div class="w-full h-1.5 bg-slate-800 rounded mt-2 overflow-hidden">
+                        <div
+                          class="h-full rounded"
+                          [class.bg-red-500]="r.foreignCount >= cfg.maxForeignPlayers"
+                          [class.bg-amber-500]="r.foreignCount < cfg.maxForeignPlayers"
+                          [style.width.%]="slotUsagePercent(r.foreignCount, cfg.maxForeignPlayers)"
+                        ></div>
+                      </div>
+                    }
+                  </div>
+                  <div class="p-3 bg-slate-950/40 rounded-lg border border-white/5">
+                    <div class="text-[9px] text-slate-500 uppercase font-black">Min Starters</div>
+                    <div class="text-sm text-white font-bold mt-1">
+                      {{ cfg.minStarters ?? '—' }}
+                    </div>
+                  </div>
+                  <div class="p-3 bg-slate-950/40 rounded-lg border border-white/5">
+                    <div class="text-[9px] text-slate-500 uppercase font-black">Max Subs</div>
+                    <div class="text-sm text-white font-bold mt-1">
+                      {{ cfg.maxSubstitutes ?? '—' }}
+                    </div>
+                  </div>
+                </div>
+              } @else {
+                <div
+                  class="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-amber-300 text-xs mb-4"
+                >
+                  No squad rules configured for {{ r.season }}. Click "Configure Rules" to set squad
+                  size, foreign player cap, and position quotas.
+                </div>
+              }
+
+              <!-- Contracts -->
+              <div class="bg-slate-950/40 border border-white/5 rounded-lg overflow-hidden">
+                <div class="flex items-center justify-between px-4 py-2 border-b border-white/5">
+                  <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">
+                    Squad ({{ r.contracts.length }})
+                  </div>
+                  <button
+                    (click)="openContractModal()"
+                    class="px-2 py-1 text-[10px] bg-violet-600/20 hover:bg-violet-600 text-violet-400 hover:text-white rounded border-0 cursor-pointer"
+                  >
+                    + Add player
+                  </button>
+                </div>
+                @if (r.contracts.length === 0) {
+                  <div class="text-[11px] text-slate-500 italic p-4">
+                    No contracts registered for this team & season.
+                  </div>
+                }
+                <table class="w-full text-xs">
+                  <thead
+                    class="bg-slate-950/60 text-[10px] uppercase tracking-wider text-slate-500"
+                  >
+                    <tr>
+                      <th class="text-left px-3 py-2 font-black">#</th>
+                      <th class="text-left px-3 py-2 font-black">Player</th>
+                      <th class="text-left px-3 py-2 font-black">Reg #</th>
+                      <th class="text-left px-3 py-2 font-black">Type</th>
+                      <th class="text-left px-3 py-2 font-black">Contract</th>
+                      <th class="text-right px-3 py-2 font-black">Salary</th>
+                      <th class="text-left px-3 py-2 font-black">Status</th>
+                      <th class="text-right px-3 py-2 font-black">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (c of r.contracts; track c.id) {
+                      <tr class="border-t border-white/5 hover:bg-slate-950/60">
+                        <td class="px-3 py-2 text-slate-400 font-mono">
+                          {{ c.jerseyNumber || '—' }}
+                        </td>
+                        <td class="px-3 py-2">
+                          <div class="text-white font-bold flex items-center gap-1.5">
+                            {{ c.player?.user?.username || '—' }}
+                            @if (c.isForeign) {
+                              <span
+                                class="px-1 py-0.5 text-[8px] font-bold rounded bg-amber-500/20 text-amber-400"
+                              >
+                                FOR
+                              </span>
+                            }
+                          </div>
+                          @if (c.player?.position) {
+                            <div class="text-[10px] text-slate-500">
+                              {{ c.player?.position }}
+                            </div>
+                          }
+                        </td>
+                        <td class="px-3 py-2 text-slate-400 font-mono">
+                          {{ c.registrationNumber || '—' }}
+                        </td>
+                        <td class="px-3 py-2">
+                          <span
+                            class="px-1.5 py-0.5 text-[9px] font-bold rounded border uppercase"
+                            [class]="contractTypeBadgeClass(c.contractType)"
+                          >
+                            {{ c.contractType.replace('_', ' ') }}
+                          </span>
+                        </td>
+                        <td class="px-3 py-2 text-[10px] text-slate-400">
+                          {{ c.startDate | date: 'shortDate' }} →
+                          {{ c.endDate | date: 'shortDate' }}
+                        </td>
+                        <td class="px-3 py-2 text-right text-white">
+                          {{ currencySymbol(c.currency) }}{{ formatAmount(c.salary) }}
+                        </td>
+                        <td class="px-3 py-2">
+                          <span
+                            class="px-1.5 py-0.5 text-[9px] font-bold rounded border uppercase"
+                            [class]="statusBadgeClass(c.status)"
+                          >
+                            {{ c.status }}
+                          </span>
+                        </td>
+                        <td class="px-3 py-2 text-right">
+                          <div class="flex gap-1 justify-end">
+                            <button
+                              (click)="openContractModal(c)"
+                              class="px-2 py-1 text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border-0 cursor-pointer"
+                            >
+                              Edit
+                            </button>
+                            @if (c.status === 'active') {
+                              <button
+                                (click)="openReleaseModal(c)"
+                                class="px-2 py-1 text-[10px] bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white rounded border-0 cursor-pointer"
+                              >
+                                Release
+                              </button>
+                            }
+                          </div>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            } @else {
+              <div class="text-center text-[11px] text-slate-500 italic py-8">Loading roster…</div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- ═════ CONTRACTS ═════ -->
+      @if (currentTab() === 'contracts') {
+        <div class="bg-slate-900/40 border border-white/5 rounded-xl overflow-hidden">
+          <table class="w-full text-xs">
+            <thead class="bg-slate-950/60 text-[10px] uppercase tracking-wider text-slate-500">
+              <tr>
+                <th class="text-left px-3 py-2 font-black">Player</th>
+                <th class="text-left px-3 py-2 font-black">Team</th>
+                <th class="text-left px-3 py-2 font-black">Season</th>
+                <th class="text-left px-3 py-2 font-black">Type</th>
+                <th class="text-left px-3 py-2 font-black">Contract</th>
+                <th class="text-right px-3 py-2 font-black">Salary</th>
+                <th class="text-left px-3 py-2 font-black">Status</th>
+                <th class="text-right px-3 py-2 font-black">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @if (contracts().length === 0) {
+                <tr>
+                  <td colspan="8" class="text-center text-[11px] text-slate-500 italic py-8">
+                    No contracts for {{ currentSeason() }} yet.
+                  </td>
+                </tr>
+              }
+              @for (c of contracts(); track c.id) {
+                <tr class="border-t border-white/5 hover:bg-slate-950/40">
+                  <td class="px-3 py-2 text-white font-bold">
+                    {{ c.player?.user?.username || '—' }}
+                    @if (c.isForeign) {
+                      <span
+                        class="ml-1 px-1 py-0.5 text-[8px] font-bold rounded bg-amber-500/20 text-amber-400"
+                      >
+                        FOR
+                      </span>
+                    }
+                  </td>
+                  <td class="px-3 py-2 text-slate-400">{{ c.team?.name || '—' }}</td>
+                  <td class="px-3 py-2 text-slate-400">{{ c.season }}</td>
+                  <td class="px-3 py-2">
+                    <span
+                      class="px-1.5 py-0.5 text-[9px] font-bold rounded border uppercase"
+                      [class]="contractTypeBadgeClass(c.contractType)"
+                    >
+                      {{ c.contractType.replace('_', ' ') }}
+                    </span>
+                  </td>
+                  <td class="px-3 py-2 text-[10px] text-slate-400">
+                    {{ c.startDate | date: 'shortDate' }} →
+                    {{ c.endDate | date: 'shortDate' }}
+                  </td>
+                  <td class="px-3 py-2 text-right text-white">
+                    {{ currencySymbol(c.currency) }}{{ formatAmount(c.salary) }}
+                  </td>
+                  <td class="px-3 py-2">
+                    <span
+                      class="px-1.5 py-0.5 text-[9px] font-bold rounded border uppercase"
+                      [class]="statusBadgeClass(c.status)"
+                    >
+                      {{ c.status }}
+                    </span>
+                  </td>
+                  <td class="px-3 py-2 text-right">
+                    <div class="flex gap-1 justify-end">
+                      <button
+                        (click)="openContractModal(c)"
+                        class="px-2 py-1 text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border-0 cursor-pointer"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        (click)="deleteContract(c)"
+                        class="px-2 py-1 text-[10px] bg-slate-800 hover:bg-red-600 text-slate-400 hover:text-white rounded border-0 cursor-pointer"
+                      >
+                        <i class="fi fi-rr-trash"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+      <!-- ═════ RELEASES ═════ -->
+      @if (currentTab() === 'releases') {
+        <div class="bg-slate-900/40 border border-white/5 rounded-xl overflow-hidden">
+          <table class="w-full text-xs">
+            <thead class="bg-slate-950/60 text-[10px] uppercase tracking-wider text-slate-500">
+              <tr>
+                <th class="text-left px-3 py-2 font-black">When</th>
+                <th class="text-left px-3 py-2 font-black">Player</th>
+                <th class="text-left px-3 py-2 font-black">Team</th>
+                <th class="text-left px-3 py-2 font-black">Kind</th>
+                <th class="text-left px-3 py-2 font-black">Replacement</th>
+                <th class="text-left px-3 py-2 font-black">Reason</th>
+                <th class="text-left px-3 py-2 font-black">By</th>
+              </tr>
+            </thead>
+            <tbody>
+              @if (releases().length === 0) {
+                <tr>
+                  <td colspan="7" class="text-center text-[11px] text-slate-500 italic py-8">
+                    No releases recorded yet.
+                  </td>
+                </tr>
+              }
+              @for (r of releases(); track r.id) {
+                <tr class="border-t border-white/5 hover:bg-slate-950/40">
+                  <td class="px-3 py-2 text-slate-300 whitespace-nowrap">
+                    {{ r.releasedAt | date: 'short' }}
+                  </td>
+                  <td class="px-3 py-2 text-white font-bold">
+                    {{ r.player?.user?.username || '—' }}
+                  </td>
+                  <td class="px-3 py-2 text-slate-400">{{ r.team?.name || '—' }}</td>
+                  <td class="px-3 py-2">
+                    <span
+                      class="px-1.5 py-0.5 text-[9px] font-bold rounded border uppercase"
+                      [class]="
+                        r.kind === 'replace'
+                          ? 'bg-sky-500/15 text-sky-400 border-sky-500/30'
+                          : 'bg-slate-500/15 text-slate-300 border-slate-500/30'
+                      "
+                    >
+                      {{ r.kind.replace('_', ' ') }}
+                    </span>
+                  </td>
+                  <td class="px-3 py-2 text-slate-300">
+                    {{ r.replacementPlayer?.user?.username || '—' }}
+                  </td>
+                  <td class="px-3 py-2 text-slate-400 max-w-[240px]">
+                    {{ r.reason || '—' }}
+                  </td>
+                  <td class="px-3 py-2 text-slate-400">
+                    {{ r.performedBy?.username || '—' }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+      <!-- ═════ ELIGIBILITY ═════ -->
+      @if (currentTab() === 'eligibility') {
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div class="bg-slate-900/40 border border-white/5 rounded-xl p-4">
+            <div class="text-xs font-black text-white uppercase tracking-wider mb-3">
+              Check Player Eligibility
+            </div>
+            <div class="space-y-3">
+              <div>
+                <label class="text-[10px] text-slate-400 uppercase font-bold"> Player </label>
+                <select
+                  [ngModel]="eligibilityForm().playerId"
+                  (ngModelChange)="eligibilityForm.set({ ...eligibilityForm(), playerId: $event })"
+                  class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+                >
+                  <option value="">— Select player —</option>
+                  @for (p of players(); track p.id) {
+                    <option [value]="p.id">{{ p.user.username }} ({{ p.team?.name }})</option>
+                  }
+                </select>
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="text-[10px] text-slate-400 uppercase font-bold"> Season </label>
+                  <input
+                    type="text"
+                    [ngModel]="eligibilityForm().season"
+                    (ngModelChange)="eligibilityForm.set({ ...eligibilityForm(), season: $event })"
+                    class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+                  />
+                </div>
+                <div>
+                  <label class="text-[10px] text-slate-400 uppercase font-bold">
+                    Match Date (optional)
+                  </label>
+                  <input
+                    type="date"
+                    [ngModel]="eligibilityForm().matchDate"
+                    (ngModelChange)="
+                      eligibilityForm.set({ ...eligibilityForm(), matchDate: $event })
+                    "
+                    class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+                  />
+                </div>
+              </div>
+              <button
+                (click)="runEligibilityCheck()"
+                [disabled]="!eligibilityForm().playerId || !eligibilityForm().season"
+                [class.opacity-50]="!eligibilityForm().playerId || !eligibilityForm().season"
+                class="w-full px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-lg border-0 cursor-pointer"
+              >
+                Run Eligibility Check
+              </button>
+            </div>
+          </div>
+
+          <div class="bg-slate-900/40 border border-white/5 rounded-xl p-4">
+            <div class="text-xs font-black text-white uppercase tracking-wider mb-3">Result</div>
+            @if (eligibilityResult(); as r) {
+              <div
+                class="p-4 rounded-lg border-2"
+                [class.border-emerald-500\/40]="r.eligible"
+                [class.bg-emerald-500\/10]="r.eligible"
+                [class.border-red-500\/40]="!r.eligible"
+                [class.bg-red-500\/10]="!r.eligible"
+              >
+                <div class="flex items-center gap-2 mb-2">
+                  @if (r.eligible) {
+                    <i class="fi fi-rr-check text-2xl text-emerald-400"></i>
+                    <div class="text-lg font-black text-emerald-400">ELIGIBLE</div>
+                  } @else {
+                    <i class="fi fi-rr-cross-circle text-2xl text-red-400"></i>
+                    <div class="text-lg font-black text-red-400">NOT ELIGIBLE</div>
+                  }
+                </div>
+                <div class="text-xs text-white">{{ r.playerName }} · {{ r.season }}</div>
+                @if (r.contract) {
+                  <div class="text-[11px] text-slate-400 mt-1">
+                    Contract: {{ r.contract.contractType.replace('_', ' ') }} · Reg #{{
+                      r.contract.registrationNumber || '—'
+                    }}
+                  </div>
+                }
+                @if (r.reasons.length > 0) {
+                  <div class="mt-3 pt-3 border-t border-white/10 space-y-1.5">
+                    @for (rr of r.reasons; track rr.rule) {
+                      <div class="flex items-start gap-2">
+                        <span
+                          class="px-1.5 py-0.5 text-[9px] font-bold rounded border uppercase"
+                          [class]="
+                            rr.severity === 'blocker'
+                              ? 'bg-red-500/20 text-red-400 border-red-500/40'
+                              : 'bg-amber-500/20 text-amber-400 border-amber-500/40'
+                          "
+                        >
+                          {{ rr.severity }}
+                        </span>
+                        <span class="text-[11px] text-slate-300">
+                          {{ rr.message }}
+                        </span>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            } @else {
+              <div class="text-[11px] text-slate-500 italic">
+                Run a check to see whether a player is cleared for a match.
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- ═════ CARRY FORWARD ═════ -->
+      @if (currentTab() === 'carry-forward') {
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div class="bg-slate-900/40 border border-white/5 rounded-xl p-4">
+            <div class="text-xs font-black text-white uppercase tracking-wider mb-3">
+              Carry Contracts Forward
+            </div>
+            <div class="text-[11px] text-slate-400 mb-3">
+              Copies all active contracts from one season to the next, applying new start/end dates.
+              Existing contracts in the target season are left untouched.
+            </div>
+            <div class="space-y-3">
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="text-[10px] text-slate-400 uppercase font-bold">
+                    From Season
+                  </label>
+                  <input
+                    type="text"
+                    [ngModel]="carryForwardForm().fromSeason"
+                    (ngModelChange)="
+                      carryForwardForm.set({
+                        ...carryForwardForm(),
+                        fromSeason: $event,
+                      })
+                    "
+                    placeholder="2024-25"
+                    class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+                  />
+                </div>
+                <div>
+                  <label class="text-[10px] text-slate-400 uppercase font-bold"> To Season </label>
+                  <input
+                    type="text"
+                    [ngModel]="carryForwardForm().toSeason"
+                    (ngModelChange)="
+                      carryForwardForm.set({
+                        ...carryForwardForm(),
+                        toSeason: $event,
+                      })
+                    "
+                    placeholder="2025-26"
+                    class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+                  />
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="text-[10px] text-slate-400 uppercase font-bold">
+                    New Start Date
+                  </label>
+                  <input
+                    type="date"
+                    [ngModel]="carryForwardForm().newStartDate"
+                    (ngModelChange)="
+                      carryForwardForm.set({
+                        ...carryForwardForm(),
+                        newStartDate: $event,
+                      })
+                    "
+                    class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+                  />
+                </div>
+                <div>
+                  <label class="text-[10px] text-slate-400 uppercase font-bold">
+                    New End Date
+                  </label>
+                  <input
+                    type="date"
+                    [ngModel]="carryForwardForm().newEndDate"
+                    (ngModelChange)="
+                      carryForwardForm.set({
+                        ...carryForwardForm(),
+                        newEndDate: $event,
+                      })
+                    "
+                    class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+                  />
+                </div>
+              </div>
+              <div>
+                <label class="text-[10px] text-slate-400 uppercase font-bold">
+                  Limit to team (optional)
+                </label>
+                <select
+                  [ngModel]="carryForwardForm().teamId"
+                  (ngModelChange)="carryForwardForm.set({ ...carryForwardForm(), teamId: $event })"
+                  class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+                >
+                  <option value="">All teams</option>
+                  @for (t of teams(); track t.id) {
+                    <option [value]="t.id">{{ t.name }}</option>
+                  }
+                </select>
+              </div>
+              <button
+                (click)="runCarryForward()"
+                [disabled]="
+                  !carryForwardForm().fromSeason ||
+                  !carryForwardForm().toSeason ||
+                  !carryForwardForm().newStartDate ||
+                  !carryForwardForm().newEndDate
+                "
+                [class.opacity-50]="
+                  !carryForwardForm().fromSeason ||
+                  !carryForwardForm().toSeason ||
+                  !carryForwardForm().newStartDate ||
+                  !carryForwardForm().newEndDate
+                "
+                class="w-full px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-lg border-0 cursor-pointer"
+              >
+                Carry Forward
+              </button>
+            </div>
+          </div>
+
+          <div class="bg-slate-900/40 border border-white/5 rounded-xl p-4">
+            <div class="text-xs font-black text-white uppercase tracking-wider mb-3">Result</div>
+            @if (carryForwardResult(); as r) {
+              <div class="space-y-2">
+                <div class="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
+                  <div class="text-2xl font-black text-emerald-400">
+                    {{ r.created }}
+                  </div>
+                  <div class="text-[10px] text-slate-400 uppercase font-bold">
+                    Contracts created
+                  </div>
+                </div>
+                <div class="p-3 bg-slate-950/40 border border-white/5 rounded-lg">
+                  <div class="text-2xl font-black text-slate-300">
+                    {{ r.skipped }}
+                  </div>
+                  <div class="text-[10px] text-slate-400 uppercase font-bold">
+                    Skipped (already existed)
+                  </div>
+                </div>
+                @if (r.failed > 0) {
+                  <div class="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+                    <div class="text-2xl font-black text-red-400">
+                      {{ r.failed }}
+                    </div>
+                    <div class="text-[10px] text-slate-400 uppercase font-bold">
+                      Failed (check squad rules)
+                    </div>
+                  </div>
+                }
+              </div>
+            } @else {
+              <div class="text-[11px] text-slate-500 italic">
+                Set from/to seasons and new contract dates to migrate the squad.
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>
+
+<!-- ═════ CONFIG MODAL ═════ -->
+@if (isConfigModalOpen()) {
+  <div
+    class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-start justify-center overflow-y-auto p-4"
+    (click)="closeConfigModal()"
+  >
+    <div
+      class="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-lg p-6 my-8"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold text-white">Squad Rules</h3>
+        <button
+          (click)="closeConfigModal()"
+          class="text-slate-400 hover:text-white bg-transparent border-0 cursor-pointer"
+        >
+          <i class="fi fi-rr-cross text-sm"></i>
+        </button>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div class="col-span-2">
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Season</label>
+          <input
+            type="text"
+            [ngModel]="configForm().season"
+            (ngModelChange)="configForm.set({ ...configForm(), season: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold"> Max Squad Size </label>
+          <input
+            type="number"
+            min="1"
+            [ngModel]="configForm().maxSquadSize"
+            (ngModelChange)="configForm.set({ ...configForm(), maxSquadSize: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">
+            Max Foreign Players
+          </label>
+          <input
+            type="number"
+            min="0"
+            [ngModel]="configForm().maxForeignPlayers"
+            (ngModelChange)="configForm.set({ ...configForm(), maxForeignPlayers: $event })"
+            placeholder="No limit"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold"> Min Starters </label>
+          <input
+            type="number"
+            min="0"
+            [ngModel]="configForm().minStarters"
+            (ngModelChange)="configForm.set({ ...configForm(), minStarters: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold"> Max Substitutes </label>
+          <input
+            type="number"
+            min="0"
+            [ngModel]="configForm().maxSubstitutes"
+            (ngModelChange)="configForm.set({ ...configForm(), maxSubstitutes: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div class="col-span-2">
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Notes</label>
+          <textarea
+            rows="2"
+            [ngModel]="configForm().notes"
+            (ngModelChange)="configForm.set({ ...configForm(), notes: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1 resize-none"
+          ></textarea>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 mt-5">
+        <button
+          (click)="closeConfigModal()"
+          class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg border-0 cursor-pointer"
+        >
+          Cancel
+        </button>
+        <button
+          (click)="saveConfig()"
+          [disabled]="!configForm().season"
+          [class.opacity-50]="!configForm().season"
+          class="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-lg border-0 cursor-pointer"
+        >
+          Save Rules
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ═════ CONTRACT MODAL ═════ -->
+@if (isContractModalOpen()) {
+  <div
+    class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-start justify-center overflow-y-auto p-4"
+    (click)="closeContractModal()"
+  >
+    <div
+      class="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-2xl p-6 my-8"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold text-white">
+          {{ editingContractId() ? 'Update' : 'New' }} Contract
+        </h3>
+        <button
+          (click)="closeContractModal()"
+          class="text-slate-400 hover:text-white bg-transparent border-0 cursor-pointer"
+        >
+          <i class="fi fi-rr-cross text-sm"></i>
+        </button>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        @if (!editingContractId()) {
+          <div>
+            <label class="text-[10px] text-slate-400 uppercase font-bold">Player</label>
+            <select
+              [ngModel]="contractForm().playerId"
+              (ngModelChange)="contractForm.set({ ...contractForm(), playerId: $event })"
+              class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+            >
+              <option value="">— Select player —</option>
+              @for (p of players(); track p.id) {
+                <option [value]="p.id">{{ p.user.username }} ({{ p.team?.name }})</option>
+              }
+            </select>
+          </div>
+          <div>
+            <label class="text-[10px] text-slate-400 uppercase font-bold">Team</label>
+            <select
+              [ngModel]="contractForm().teamId"
+              (ngModelChange)="contractForm.set({ ...contractForm(), teamId: $event })"
+              class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+            >
+              <option value="">— Select team —</option>
+              @for (t of teams(); track t.id) {
+                <option [value]="t.id">{{ t.name }}</option>
+              }
+            </select>
+          </div>
+          <div>
+            <label class="text-[10px] text-slate-400 uppercase font-bold">Season</label>
+            <input
+              type="text"
+              [ngModel]="contractForm().season"
+              (ngModelChange)="contractForm.set({ ...contractForm(), season: $event })"
+              class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+            />
+          </div>
+        }
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold"> Contract Type </label>
+          <select
+            [ngModel]="contractForm().contractType"
+            (ngModelChange)="contractForm.set({ ...contractForm(), contractType: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          >
+            <option value="full_time">Full time</option>
+            <option value="loan">Loan</option>
+            <option value="youth">Youth</option>
+            <option value="short_term">Short term</option>
+            <option value="amateur">Amateur</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold"> Start Date </label>
+          <input
+            type="date"
+            [ngModel]="contractForm().startDate"
+            (ngModelChange)="contractForm.set({ ...contractForm(), startDate: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">End Date</label>
+          <input
+            type="date"
+            [ngModel]="contractForm().endDate"
+            (ngModelChange)="contractForm.set({ ...contractForm(), endDate: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Salary</label>
+          <input
+            type="number"
+            min="0"
+            [ngModel]="contractForm().salary"
+            (ngModelChange)="contractForm.set({ ...contractForm(), salary: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Currency</label>
+          <select
+            [ngModel]="contractForm().currency"
+            (ngModelChange)="contractForm.set({ ...contractForm(), currency: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          >
+            <option value="INR">INR (₹)</option>
+            <option value="USD">USD ($)</option>
+            <option value="EUR">EUR (€)</option>
+            <option value="GBP">GBP (£)</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold"> Jersey Number </label>
+          <input
+            type="text"
+            [ngModel]="contractForm().jerseyNumber"
+            (ngModelChange)="contractForm.set({ ...contractForm(), jerseyNumber: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold"> Registration # </label>
+          <input
+            type="text"
+            [ngModel]="contractForm().registrationNumber"
+            (ngModelChange)="contractForm.set({ ...contractForm(), registrationNumber: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div class="md:col-span-2 flex items-center gap-2">
+          <input
+            id="isForeign"
+            type="checkbox"
+            [ngModel]="contractForm().isForeign"
+            (ngModelChange)="contractForm.set({ ...contractForm(), isForeign: $event })"
+            class="w-4 h-4"
+          />
+          <label for="isForeign" class="text-xs text-slate-300 cursor-pointer">
+            Foreign player (counts against foreign quota)
+          </label>
+        </div>
+        @if (editingContractId()) {
+          <div>
+            <label class="text-[10px] text-slate-400 uppercase font-bold"> Status </label>
+            <select
+              [ngModel]="contractForm().status"
+              (ngModelChange)="contractForm.set({ ...contractForm(), status: $event })"
+              class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+            >
+              <option value="active">Active</option>
+              <option value="suspended">Suspended</option>
+              <option value="terminated">Terminated</option>
+              <option value="expired">Expired</option>
+            </select>
+          </div>
+          @if (contractForm().status === 'suspended') {
+            <div>
+              <label class="text-[10px] text-slate-400 uppercase font-bold">
+                Suspension Ends
+              </label>
+              <input
+                type="date"
+                [ngModel]="contractForm().suspensionEndsAt"
+                (ngModelChange)="contractForm.set({ ...contractForm(), suspensionEndsAt: $event })"
+                class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+              />
+            </div>
+            <div class="md:col-span-2">
+              <label class="text-[10px] text-slate-400 uppercase font-bold">
+                Suspension Reason
+              </label>
+              <textarea
+                rows="2"
+                [ngModel]="contractForm().suspensionReason"
+                (ngModelChange)="contractForm.set({ ...contractForm(), suspensionReason: $event })"
+                class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1 resize-none"
+              ></textarea>
+            </div>
+          }
+        }
+        <div class="md:col-span-2">
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Notes</label>
+          <textarea
+            rows="2"
+            [ngModel]="contractForm().notes"
+            (ngModelChange)="contractForm.set({ ...contractForm(), notes: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1 resize-none"
+          ></textarea>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 mt-5">
+        <button
+          (click)="closeContractModal()"
+          class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg border-0 cursor-pointer"
+        >
+          Cancel
+        </button>
+        <button
+          (click)="saveContract()"
+          [disabled]="
+            !contractForm().startDate ||
+            !contractForm().endDate ||
+            (!editingContractId() &&
+              (!contractForm().playerId || !contractForm().teamId || !contractForm().season))
+          "
+          [class.opacity-50]="
+            !contractForm().startDate ||
+            !contractForm().endDate ||
+            (!editingContractId() &&
+              (!contractForm().playerId || !contractForm().teamId || !contractForm().season))
+          "
+          class="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-lg border-0 cursor-pointer"
+        >
+          {{ editingContractId() ? 'Update' : 'Create' }} Contract
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ═════ RELEASE MODAL ═════ -->
+@if (isReleaseModalOpen()) {
+  <div
+    class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-start justify-center overflow-y-auto p-4"
+    (click)="closeReleaseModal()"
+  >
+    <div
+      class="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-lg p-6 my-8"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold text-white">Release / Replace Player</h3>
+        <button
+          (click)="closeReleaseModal()"
+          class="text-slate-400 hover:text-white bg-transparent border-0 cursor-pointer"
+        >
+          <i class="fi fi-rr-cross text-sm"></i>
+        </button>
+      </div>
+      <div class="space-y-3">
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold"> Reason </label>
+          <textarea
+            rows="2"
+            [ngModel]="releaseForm().reason"
+            (ngModelChange)="releaseForm.set({ ...releaseForm(), reason: $event })"
+            placeholder="Contract termination, injury, mutual consent…"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1 resize-none"
+          ></textarea>
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">
+            Replace with (optional)
+          </label>
+          <select
+            [ngModel]="releaseForm().replaceWithPlayerId"
+            (ngModelChange)="releaseForm.set({ ...releaseForm(), replaceWithPlayerId: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          >
+            <option value="">— Release only (no replacement) —</option>
+            @for (p of players(); track p.id) {
+              @if (p.id !== releaseForm().playerId) {
+                <option [value]="p.id">{{ p.user.username }} ({{ p.team?.name }})</option>
+              }
+            }
+          </select>
+        </div>
+        @if (releaseForm().replaceWithPlayerId) {
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-[10px] text-slate-400 uppercase font-bold">
+                New contract start
+              </label>
+              <input
+                type="date"
+                [ngModel]="releaseForm().contractStartDate"
+                (ngModelChange)="releaseForm.set({ ...releaseForm(), contractStartDate: $event })"
+                class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+              />
+            </div>
+            <div>
+              <label class="text-[10px] text-slate-400 uppercase font-bold">
+                New contract end
+              </label>
+              <input
+                type="date"
+                [ngModel]="releaseForm().contractEndDate"
+                (ngModelChange)="releaseForm.set({ ...releaseForm(), contractEndDate: $event })"
+                class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+              />
+            </div>
+            <div>
+              <label class="text-[10px] text-slate-400 uppercase font-bold"> Salary </label>
+              <input
+                type="number"
+                min="0"
+                [ngModel]="releaseForm().salary"
+                (ngModelChange)="releaseForm.set({ ...releaseForm(), salary: $event })"
+                class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+              />
+            </div>
+            <div>
+              <label class="text-[10px] text-slate-400 uppercase font-bold"> Jersey # </label>
+              <input
+                type="text"
+                [ngModel]="releaseForm().jerseyNumber"
+                (ngModelChange)="releaseForm.set({ ...releaseForm(), jerseyNumber: $event })"
+                class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+              />
+            </div>
+          </div>
+        }
+      </div>
+      <div class="flex justify-end gap-2 mt-5">
+        <button
+          (click)="closeReleaseModal()"
+          class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg border-0 cursor-pointer"
+        >
+          Cancel
+        </button>
+        <button
+          (click)="confirmRelease()"
+          class="px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-lg border-0 cursor-pointer"
+        >
+          {{ releaseForm().replaceWithPlayerId ? 'Release & Sign Replacement' : 'Release' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
