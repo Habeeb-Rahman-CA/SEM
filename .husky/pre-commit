@@ -1,7 +1,1 @@
-#!/usr/bin/env sh
-# Fast pre-commit — runs on the staged files only so it stays snappy.
-# Full typecheck + tests happen on pre-push; keeping commit friction low
-# encourages small, frequent commits.
-. "$(dirname -- "$0")/_/husky.sh"
-
 npx lint-staged
