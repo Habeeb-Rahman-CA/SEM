@@ -4,6 +4,7 @@ import { Player } from './entities/player.entity';
 import { Team } from '../teams/entities/team.entity';
 import { Match } from '../competitions/entities/match.entity';
 import { MatchPlayer } from './entities/match-player.entity';
+import { PlayerTransfer } from './entities/player-transfer.entity';
 import { WorkspaceMember } from '../workspaces/entities/workspace-member.entity';
 import { PlayersService } from './players.service';
 import { PlayerInsightsService } from './services/player-insights.service';
@@ -21,6 +22,7 @@ import { AiModule } from '../ai/ai.module';
       Team,
       Match,
       MatchPlayer,
+      PlayerTransfer,
       WorkspaceMember,
     ]),
     WorkspacesModule,

@@ -33,6 +33,12 @@ import { MonitoringModule } from './shared/monitoring/monitoring.module';
 import { BackupModule } from './jobs/cron/backup/backup.module';
 import { RecoveryModule } from './common/recovery/recovery.module';
 import { AiModule } from './modules/ai/ai.module';
+import { VolunteersModule } from './modules/volunteers/volunteers.module';
+import { EquipmentModule } from './modules/equipment/equipment.module';
+import { MedicalModule } from './modules/medical/medical.module';
+import { AccreditationModule } from './modules/accreditation/accreditation.module';
+import { StreamingModule } from './modules/streaming/streaming.module';
+import { AutomationModule } from './modules/automation/automation.module';
 
 @Module({
   imports: [
@@ -82,6 +88,12 @@ import { AiModule } from './modules/ai/ai.module';
     BackupModule,
     RecoveryModule,
     AiModule,
+    VolunteersModule,
+    EquipmentModule,
+    MedicalModule,
+    AccreditationModule,
+    StreamingModule,
+    AutomationModule,
   ],
   controllers: [AppController],
   providers: [

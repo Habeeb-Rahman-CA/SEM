@@ -1,0 +1,1482 @@
+<div class="h-full flex flex-col overflow-hidden w-full text-left animate-fadeIn">
+  <!-- Header -->
+  <div class="flex items-center justify-between border-b border-white/5 pb-4 flex-shrink-0">
+    <div>
+      <h2 class="text-xl font-bold text-white">Medical Records</h2>
+      <p class="text-xs text-slate-400 mt-1">
+        Confidential player medical profiles, injuries, recovery, fitness & health alerts.
+      </p>
+    </div>
+    <div class="flex items-center gap-3">
+      <button
+        (click)="loadAll()"
+        class="flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl border-0 outline-none cursor-pointer transition"
+        title="Refresh"
+      >
+        <i class="fi fi-rr-refresh text-xs"></i>
+        Refresh
+      </button>
+      <button
+        (click)="openProfileModal()"
+        [disabled]="playersWithoutProfile().length === 0"
+        [class.opacity-50]="playersWithoutProfile().length === 0"
+        [class.cursor-not-allowed]="playersWithoutProfile().length === 0"
+        class="flex items-center gap-1.5 px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-violet-900/20 transition-all cursor-pointer border-0 outline-none"
+      >
+        <i class="fi fi-rr-plus text-xs"></i>
+        New Medical Profile
+      </button>
+    </div>
+  </div>
+
+  <!-- KPI Summary Cards -->
+  @if (summary(); as s) {
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 my-4 flex-shrink-0">
+      <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+        <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">
+          Total Profiles
+        </div>
+        <div class="text-xl font-black text-white mt-1">{{ s.totalProfiles }}</div>
+        <div class="text-[8px] text-slate-400 mt-0.5">Registered players</div>
+      </div>
+      <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+        <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">
+          Active Injuries
+        </div>
+        <div class="text-xl font-black text-amber-400 mt-1">{{ s.activeInjuries }}</div>
+        <div class="text-[8px] text-slate-400 mt-0.5">Currently recovering</div>
+      </div>
+      <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+        <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">Not Cleared</div>
+        <div class="text-xl font-black text-red-400 mt-1">{{ s.notCleared }}</div>
+        <div class="text-[8px] text-slate-400 mt-0.5">Cannot play</div>
+      </div>
+      <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+        <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">Open Alerts</div>
+        <div class="text-xl font-black text-violet-400 mt-1">
+          {{ s.openAlerts }}
+          @if (s.criticalAlerts > 0) {
+            <span class="text-xs text-red-400 font-bold ml-2">
+              {{ s.criticalAlerts }} critical
+            </span>
+          }
+        </div>
+        <div class="text-[8px] text-slate-400 mt-0.5">Awaiting review</div>
+      </div>
+    </div>
+  }
+
+  <!-- Sub Navigation Tabs -->
+  <div class="flex border-b border-white/5 mb-4 flex-shrink-0">
+    <button
+      (click)="currentTab.set('overview')"
+      [class]="
+        currentTab() === 'overview'
+          ? 'border-b-2 border-violet-500 text-violet-400'
+          : 'text-slate-400 hover:text-white'
+      "
+      class="px-4 py-2.5 text-xs font-bold bg-transparent border-0 cursor-pointer transition outline-none"
+    >
+      <i class="fi fi-rr-apps text-xs mr-1.5"></i>
+      Overview
+    </button>
+    <button
+      (click)="currentTab.set('profiles')"
+      [class]="
+        currentTab() === 'profiles'
+          ? 'border-b-2 border-violet-500 text-violet-400'
+          : 'text-slate-400 hover:text-white'
+      "
+      class="px-4 py-2.5 text-xs font-bold bg-transparent border-0 cursor-pointer transition outline-none"
+    >
+      <i class="fi fi-rr-user-md text-xs mr-1.5"></i>
+      Profiles
+    </button>
+    <button
+      (click)="currentTab.set('injuries')"
+      [class]="
+        currentTab() === 'injuries'
+          ? 'border-b-2 border-violet-500 text-violet-400'
+          : 'text-slate-400 hover:text-white'
+      "
+      class="px-4 py-2.5 text-xs font-bold bg-transparent border-0 cursor-pointer transition outline-none"
+    >
+      <i class="fi fi-rr-band-aid text-xs mr-1.5"></i>
+      Injuries & Recovery
+    </button>
+    <button
+      (click)="currentTab.set('alerts')"
+      [class]="
+        currentTab() === 'alerts'
+          ? 'border-b-2 border-violet-500 text-violet-400'
+          : 'text-slate-400 hover:text-white'
+      "
+      class="px-4 py-2.5 text-xs font-bold bg-transparent border-0 cursor-pointer transition outline-none"
+    >
+      <i class="fi fi-rr-bell text-xs mr-1.5"></i>
+      Health Alerts
+      @if (summary()?.openAlerts) {
+        <span class="ml-1.5 px-1.5 py-0.5 bg-red-500/20 text-red-400 rounded text-[9px] font-black">
+          {{ summary()!.openAlerts }}
+        </span>
+      }
+    </button>
+  </div>
+
+  @if (isLoading()) {
+    <div class="flex-1 flex items-center justify-center text-slate-400 text-xs">Loading…</div>
+  } @else if (error()) {
+    <div class="p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-xs">
+      {{ error() }}
+    </div>
+  } @else {
+    <div class="flex-1 overflow-y-auto pr-1">
+      <!-- ═══════════ OVERVIEW ═══════════ -->
+      @if (currentTab() === 'overview') {
+        <div class="space-y-4">
+          <!-- Critical alerts strip -->
+          @if (filteredAlerts().length > 0) {
+            <div class="bg-slate-900/40 border border-white/5 rounded-xl p-4">
+              <div class="flex items-center justify-between mb-3">
+                <div class="text-xs font-black text-white uppercase tracking-wider">
+                  Latest Open Alerts
+                </div>
+                <button
+                  (click)="currentTab.set('alerts')"
+                  class="text-[10px] text-violet-400 hover:text-violet-300 bg-transparent border-0 cursor-pointer"
+                >
+                  View all →
+                </button>
+              </div>
+              <div class="space-y-2">
+                @for (alert of filteredAlerts().slice(0, 5); track alert.id) {
+                  <div
+                    class="flex items-start gap-3 p-3 rounded-lg border"
+                    [class]="alertSeverityBadgeClass(alert.severity)"
+                  >
+                    <i class="fi fi-rr-triangle-warning text-sm mt-0.5"></i>
+                    <div class="flex-1 min-w-0">
+                      <div class="text-xs font-bold">{{ alert.title }}</div>
+                      <div class="text-[10px] opacity-80 mt-0.5">{{ alert.message }}</div>
+                      @if (alert.profile?.player?.user?.username) {
+                        <div class="text-[10px] mt-1 opacity-60">
+                          Player: {{ alert.profile?.player?.user?.username }}
+                        </div>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- Injured / Not-cleared roster snapshot -->
+          <div class="bg-slate-900/40 border border-white/5 rounded-xl p-4">
+            <div class="text-xs font-black text-white uppercase tracking-wider mb-3">
+              Fitness Roster
+            </div>
+            @if (profiles().length === 0) {
+              <div class="text-[11px] text-slate-500 italic">
+                No medical profiles yet. Create one to get started.
+              </div>
+            } @else {
+              <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                @for (p of profiles(); track p.id) {
+                  <div
+                    class="p-3 border border-white/5 rounded-lg bg-slate-950/40 hover:bg-slate-950/60 cursor-pointer transition"
+                    (click)="selectProfile(p.id); currentTab.set('profiles')"
+                  >
+                    <div class="flex items-center justify-between">
+                      <div class="text-xs font-bold text-white truncate">
+                        {{ p.player?.user?.username || '—' }}
+                      </div>
+                      <span
+                        class="px-2 py-0.5 text-[9px] font-bold rounded border uppercase"
+                        [class]="fitnessBadgeClass(p.fitnessLevel)"
+                      >
+                        {{ p.fitnessLevel }}
+                      </span>
+                    </div>
+                    <div class="text-[10px] text-slate-400 mt-1">
+                      {{ p.player?.team?.name }}
+                      @if (!p.clearedToPlay) {
+                        <span class="text-red-400 font-bold ml-2">• Not cleared</span>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- ═══════════ PROFILES ═══════════ -->
+      @if (currentTab() === 'profiles') {
+        <div class="flex gap-4 h-full">
+          <!-- List -->
+          <div class="w-full lg:w-1/3 space-y-3">
+            <input
+              type="text"
+              [ngModel]="searchQuery()"
+              (ngModelChange)="searchQuery.set($event)"
+              placeholder="Search by player, team, condition…"
+              class="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 outline-none focus:border-violet-500"
+            />
+            @if (filteredProfiles().length === 0) {
+              <div class="p-4 text-center text-[11px] text-slate-500 italic">
+                No matching profiles.
+              </div>
+            }
+            @for (p of filteredProfiles(); track p.id) {
+              <div
+                (click)="selectProfile(p.id)"
+                [class.border-violet-500]="selectedProfileId() === p.id"
+                [class.bg-slate-900]="selectedProfileId() === p.id"
+                class="p-3 border border-white/5 rounded-xl bg-slate-950/40 hover:bg-slate-900 cursor-pointer transition"
+              >
+                <div class="flex items-center justify-between">
+                  <div class="text-xs font-bold text-white">
+                    {{ p.player?.user?.username || '—' }}
+                  </div>
+                  <span
+                    class="px-2 py-0.5 text-[9px] font-bold rounded border uppercase"
+                    [class]="fitnessBadgeClass(p.fitnessLevel)"
+                  >
+                    {{ p.fitnessLevel }}
+                  </span>
+                </div>
+                <div class="text-[10px] text-slate-400 mt-1">{{ p.player?.team?.name }}</div>
+                <div class="flex items-center gap-2 mt-2">
+                  @if (!p.clearedToPlay) {
+                    <span
+                      class="px-1.5 py-0.5 text-[9px] font-bold rounded bg-red-500/15 text-red-400"
+                    >
+                      Not cleared
+                    </span>
+                  }
+                  @if (p.allergies && p.allergies.length > 0) {
+                    <span
+                      class="px-1.5 py-0.5 text-[9px] font-bold rounded bg-amber-500/15 text-amber-400"
+                    >
+                      {{ p.allergies.length }} allergy
+                    </span>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+
+          <!-- Detail Panel -->
+          <div class="hidden lg:block flex-1 bg-slate-900/40 border border-white/5 rounded-xl p-4">
+            @if (selectedProfile(); as p) {
+              <div class="flex items-start justify-between mb-4">
+                <div>
+                  <div class="text-lg font-black text-white">
+                    {{ p.player?.user?.username }}
+                  </div>
+                  <div class="text-[11px] text-slate-400">
+                    {{ p.player?.team?.name }}
+                    @if (p.player?.position) {
+                      · {{ p.player?.position }}
+                    }
+                    @if (p.player?.jerseyNumber) {
+                      · #{{ p.player?.jerseyNumber }}
+                    }
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button
+                    (click)="openInjuryModal(p.id)"
+                    class="px-2.5 py-1.5 bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white text-[10px] font-bold rounded border-0 cursor-pointer transition"
+                  >
+                    + Log Injury
+                  </button>
+                  <button
+                    (click)="openFitnessModal(p.id)"
+                    class="px-2.5 py-1.5 bg-emerald-600/20 hover:bg-emerald-600 text-emerald-400 hover:text-white text-[10px] font-bold rounded border-0 cursor-pointer transition"
+                  >
+                    + Fitness
+                  </button>
+                  <button
+                    (click)="openAlertModal(p.id)"
+                    class="px-2.5 py-1.5 bg-amber-600/20 hover:bg-amber-600 text-amber-400 hover:text-white text-[10px] font-bold rounded border-0 cursor-pointer transition"
+                  >
+                    + Alert
+                  </button>
+                  <button
+                    (click)="openProfileModal(p)"
+                    class="px-2.5 py-1.5 bg-violet-600/20 hover:bg-violet-600 text-violet-400 hover:text-white text-[10px] font-bold rounded border-0 cursor-pointer transition"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    (click)="deleteProfile(p)"
+                    class="px-2.5 py-1.5 bg-slate-800 hover:bg-red-600 text-slate-400 hover:text-white text-[10px] font-bold rounded border-0 cursor-pointer transition"
+                    title="Delete profile"
+                  >
+                    <i class="fi fi-rr-trash"></i>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Vitals grid -->
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                <div class="p-3 bg-slate-950/40 rounded-lg border border-white/5">
+                  <div class="text-[9px] text-slate-500 uppercase font-black">Blood group</div>
+                  <div class="text-sm text-white font-bold mt-1">{{ p.bloodGroup || '—' }}</div>
+                </div>
+                <div class="p-3 bg-slate-950/40 rounded-lg border border-white/5">
+                  <div class="text-[9px] text-slate-500 uppercase font-black">Height / Weight</div>
+                  <div class="text-sm text-white font-bold mt-1">
+                    {{ p.heightCm || '—' }}cm / {{ p.weightKg || '—' }}kg
+                  </div>
+                </div>
+                <div class="p-3 bg-slate-950/40 rounded-lg border border-white/5">
+                  <div class="text-[9px] text-slate-500 uppercase font-black">BMI</div>
+                  <div class="text-sm text-white font-bold mt-1">{{ bmi(p) ?? '—' }}</div>
+                </div>
+                <div class="p-3 bg-slate-950/40 rounded-lg border border-white/5">
+                  <div class="text-[9px] text-slate-500 uppercase font-black">Cleared to play</div>
+                  <div
+                    class="text-sm font-bold mt-1"
+                    [class.text-emerald-400]="p.clearedToPlay"
+                    [class.text-red-400]="!p.clearedToPlay"
+                  >
+                    {{ p.clearedToPlay ? 'Yes' : 'No' }}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Contacts & Records -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                <div class="p-3 bg-slate-950/40 rounded-lg border border-white/5">
+                  <div class="text-[9px] text-slate-500 uppercase font-black mb-1.5">
+                    Emergency Contact
+                  </div>
+                  <div class="text-xs text-white">
+                    {{ p.emergencyContactName || '—' }}
+                    @if (p.emergencyContactRelation) {
+                      <span class="text-slate-400">({{ p.emergencyContactRelation }})</span>
+                    }
+                  </div>
+                  <div class="text-[11px] text-slate-400 mt-0.5">
+                    {{ p.emergencyContactPhone || 'No phone' }}
+                  </div>
+                </div>
+                <div class="p-3 bg-slate-950/40 rounded-lg border border-white/5">
+                  <div class="text-[9px] text-slate-500 uppercase font-black mb-1.5">Physician</div>
+                  <div class="text-xs text-white">{{ p.physicianName || '—' }}</div>
+                  <div class="text-[11px] text-slate-400 mt-0.5">
+                    {{ p.physicianPhone || 'No phone' }}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Health flags -->
+              @if (
+                (p.allergies && p.allergies.length) ||
+                (p.chronicConditions && p.chronicConditions.length) ||
+                (p.medications && p.medications.length)
+              ) {
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                  <div class="p-3 bg-slate-950/40 rounded-lg border border-amber-500/20">
+                    <div class="text-[9px] text-amber-400 uppercase font-black mb-1.5">
+                      Allergies
+                    </div>
+                    <div class="flex flex-wrap gap-1">
+                      @for (a of p.allergies || []; track a) {
+                        <span
+                          class="px-1.5 py-0.5 text-[9px] font-bold rounded bg-amber-500/10 text-amber-400"
+                          >{{ a }}</span
+                        >
+                      }
+                      @if (!p.allergies?.length) {
+                        <span class="text-[10px] text-slate-500">None</span>
+                      }
+                    </div>
+                  </div>
+                  <div class="p-3 bg-slate-950/40 rounded-lg border border-purple-500/20">
+                    <div class="text-[9px] text-purple-400 uppercase font-black mb-1.5">
+                      Chronic Conditions
+                    </div>
+                    <div class="flex flex-wrap gap-1">
+                      @for (c of p.chronicConditions || []; track c) {
+                        <span
+                          class="px-1.5 py-0.5 text-[9px] font-bold rounded bg-purple-500/10 text-purple-400"
+                          >{{ c }}</span
+                        >
+                      }
+                      @if (!p.chronicConditions?.length) {
+                        <span class="text-[10px] text-slate-500">None</span>
+                      }
+                    </div>
+                  </div>
+                  <div class="p-3 bg-slate-950/40 rounded-lg border border-sky-500/20">
+                    <div class="text-[9px] text-sky-400 uppercase font-black mb-1.5">
+                      Medications
+                    </div>
+                    <div class="flex flex-wrap gap-1">
+                      @for (m of p.medications || []; track m) {
+                        <span
+                          class="px-1.5 py-0.5 text-[9px] font-bold rounded bg-sky-500/10 text-sky-400"
+                          >{{ m }}</span
+                        >
+                      }
+                      @if (!p.medications?.length) {
+                        <span class="text-[10px] text-slate-500">None</span>
+                      }
+                    </div>
+                  </div>
+                </div>
+              }
+
+              <!-- Recent injuries -->
+              @if (p.injuries && p.injuries.length > 0) {
+                <div class="p-3 bg-slate-950/40 rounded-lg border border-white/5">
+                  <div class="text-[9px] text-slate-500 uppercase font-black mb-2">
+                    Injuries ({{ p.injuries.length }})
+                  </div>
+                  <div class="space-y-2">
+                    @for (inj of p.injuries; track inj.id) {
+                      <div class="p-2 border border-white/5 rounded bg-slate-950/60">
+                        <div class="flex items-start justify-between">
+                          <div>
+                            <div class="text-xs font-bold text-white">{{ inj.title }}</div>
+                            <div class="text-[10px] text-slate-400">
+                              @if (inj.bodyPart) {
+                                {{ inj.bodyPart }} ·
+                              }
+                              Sustained {{ inj.sustainedDate | date: 'mediumDate' }}
+                            </div>
+                          </div>
+                          <div class="flex items-center gap-1">
+                            <span
+                              class="px-1.5 py-0.5 text-[9px] font-bold rounded border uppercase"
+                              [class]="severityBadgeClass(inj.severity)"
+                            >
+                              {{ inj.severity }}
+                            </span>
+                            <span
+                              class="px-1.5 py-0.5 text-[9px] font-bold rounded border uppercase"
+                              [class]="injuryStatusBadgeClass(inj.status)"
+                            >
+                              {{ inj.status }}
+                            </span>
+                          </div>
+                        </div>
+                        <div class="flex items-center gap-2 mt-2">
+                          <button
+                            (click)="openInjuryModal(p.id, inj)"
+                            class="px-2 py-1 text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border-0 cursor-pointer"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            (click)="openRecoveryModal(inj)"
+                            class="px-2 py-1 text-[10px] bg-emerald-600/20 hover:bg-emerald-600 text-emerald-400 hover:text-white rounded border-0 cursor-pointer"
+                          >
+                            {{ inj.recoveryPlan ? 'Update' : 'Add' }} Recovery Plan
+                          </button>
+                          <button
+                            (click)="deleteInjury(p.id, inj.id)"
+                            class="px-2 py-1 text-[10px] bg-slate-800 hover:bg-red-600 text-slate-400 hover:text-white rounded border-0 cursor-pointer"
+                          >
+                            <i class="fi fi-rr-trash"></i>
+                          </button>
+                        </div>
+                        @if (inj.recoveryPlan) {
+                          <div class="mt-2 pt-2 border-t border-white/5">
+                            <div class="flex items-center justify-between">
+                              <span class="text-[10px] text-slate-400">
+                                Recovery: {{ inj.recoveryPlan.title }}
+                              </span>
+                              <span class="text-[10px] font-bold text-emerald-400">
+                                {{ inj.recoveryPlan.progressPercent }}%
+                              </span>
+                            </div>
+                            <div class="w-full h-1.5 bg-slate-800 rounded mt-1 overflow-hidden">
+                              <div
+                                class="h-full bg-emerald-500 rounded"
+                                [style.width.%]="inj.recoveryPlan.progressPercent"
+                              ></div>
+                            </div>
+                            @if (inj.recoveryPlan.expectedReturnDate) {
+                              <div class="text-[10px] text-slate-500 mt-1">
+                                Expected return:
+                                {{ inj.recoveryPlan.expectedReturnDate | date: 'mediumDate' }}
+                              </div>
+                            }
+                          </div>
+                        }
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+
+              @if (p.notes) {
+                <div class="p-3 bg-slate-950/40 rounded-lg border border-white/5 mt-3">
+                  <div class="text-[9px] text-slate-500 uppercase font-black mb-1.5">Notes</div>
+                  <div class="text-xs text-slate-300 whitespace-pre-wrap">{{ p.notes }}</div>
+                </div>
+              }
+            } @else {
+              <div class="h-full flex items-center justify-center text-slate-500 text-xs">
+                Select a profile to view details.
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- ═══════════ INJURIES ═══════════ -->
+      @if (currentTab() === 'injuries') {
+        <div class="space-y-3">
+          @for (p of profiles(); track p.id) {
+            @if (p.injuries && p.injuries.length > 0) {
+              <div class="bg-slate-900/40 border border-white/5 rounded-xl p-4">
+                <div class="flex items-center justify-between mb-2">
+                  <div>
+                    <div class="text-sm font-bold text-white">
+                      {{ p.player?.user?.username }}
+                    </div>
+                    <div class="text-[10px] text-slate-400">{{ p.player?.team?.name }}</div>
+                  </div>
+                  <button
+                    (click)="openInjuryModal(p.id)"
+                    class="px-2.5 py-1 text-[10px] bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white rounded border-0 cursor-pointer"
+                  >
+                    + Log Injury
+                  </button>
+                </div>
+                <div class="space-y-2">
+                  @for (inj of p.injuries; track inj.id) {
+                    <div class="p-3 border border-white/5 rounded bg-slate-950/60">
+                      <div class="flex items-start justify-between">
+                        <div>
+                          <div class="text-xs font-bold text-white">{{ inj.title }}</div>
+                          <div class="text-[10px] text-slate-400 mt-0.5">
+                            {{ inj.bodyPart }} · Sustained
+                            {{ inj.sustainedDate | date: 'mediumDate' }}
+                          </div>
+                          @if (inj.diagnosis) {
+                            <div class="text-[11px] text-slate-300 mt-1">
+                              {{ inj.diagnosis }}
+                            </div>
+                          }
+                        </div>
+                        <div class="flex flex-col items-end gap-1">
+                          <span
+                            class="px-1.5 py-0.5 text-[9px] font-bold rounded border uppercase"
+                            [class]="severityBadgeClass(inj.severity)"
+                          >
+                            {{ inj.severity }}
+                          </span>
+                          <span
+                            class="px-1.5 py-0.5 text-[9px] font-bold rounded border uppercase"
+                            [class]="injuryStatusBadgeClass(inj.status)"
+                          >
+                            {{ inj.status }}
+                          </span>
+                        </div>
+                      </div>
+                      @if (inj.recoveryPlan) {
+                        <div class="mt-2 pt-2 border-t border-white/5">
+                          <div class="flex items-center justify-between">
+                            <span class="text-[10px] text-slate-300">
+                              {{ inj.recoveryPlan.title }}
+                            </span>
+                            <span class="text-[10px] font-bold text-emerald-400">
+                              {{ inj.recoveryPlan.progressPercent }}% ·
+                              {{ inj.recoveryPlan.status }}
+                            </span>
+                          </div>
+                          <div class="w-full h-1.5 bg-slate-800 rounded mt-1 overflow-hidden">
+                            <div
+                              class="h-full bg-emerald-500 rounded"
+                              [style.width.%]="inj.recoveryPlan.progressPercent"
+                            ></div>
+                          </div>
+                        </div>
+                      }
+                      <div class="flex items-center gap-2 mt-2">
+                        <button
+                          (click)="openInjuryModal(p.id, inj)"
+                          class="px-2 py-1 text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border-0 cursor-pointer"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          (click)="openRecoveryModal(inj)"
+                          class="px-2 py-1 text-[10px] bg-emerald-600/20 hover:bg-emerald-600 text-emerald-400 hover:text-white rounded border-0 cursor-pointer"
+                        >
+                          {{ inj.recoveryPlan ? 'Update' : 'Add' }} Recovery
+                        </button>
+                      </div>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          }
+          @if (!profiles().length || !profiles().some((p) => (p.injuries?.length ?? 0) > 0)) {
+            <div class="text-center text-[11px] text-slate-500 italic py-8">
+              No injuries logged yet.
+            </div>
+          }
+        </div>
+      }
+
+      <!-- ═══════════ ALERTS ═══════════ -->
+      @if (currentTab() === 'alerts') {
+        <div class="flex items-center gap-2 mb-3">
+          <button
+            (click)="alertFilter.set('open')"
+            [class]="
+              alertFilter() === 'open'
+                ? 'bg-violet-600 text-white'
+                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+            "
+            class="px-3 py-1.5 text-[10px] font-bold rounded border-0 cursor-pointer"
+          >
+            Open
+          </button>
+          <button
+            (click)="alertFilter.set('all')"
+            [class]="
+              alertFilter() === 'all'
+                ? 'bg-violet-600 text-white'
+                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+            "
+            class="px-3 py-1.5 text-[10px] font-bold rounded border-0 cursor-pointer"
+          >
+            All
+          </button>
+        </div>
+        <div class="space-y-2">
+          @if (filteredAlerts().length === 0) {
+            <div class="text-center text-[11px] text-slate-500 italic py-8">
+              No {{ alertFilter() === 'open' ? 'open ' : '' }}alerts.
+            </div>
+          }
+          @for (alert of filteredAlerts(); track alert.id) {
+            <div class="p-4 bg-slate-900/40 border border-white/5 rounded-xl">
+              <div class="flex items-start justify-between">
+                <div class="flex items-start gap-3 flex-1">
+                  <span
+                    class="px-2 py-1 text-[9px] font-bold rounded border uppercase"
+                    [class]="alertSeverityBadgeClass(alert.severity)"
+                  >
+                    {{ alert.severity }}
+                  </span>
+                  <div class="flex-1">
+                    <div class="text-xs font-bold text-white">{{ alert.title }}</div>
+                    <div class="text-[11px] text-slate-300 mt-1">{{ alert.message }}</div>
+                    <div class="text-[10px] text-slate-500 mt-1">
+                      @if (alert.profile?.player?.user?.username) {
+                        Player: {{ alert.profile?.player?.user?.username }} ·
+                      }
+                      Source: {{ alert.source }} · {{ alert.createdAt | date: 'medium' }}
+                    </div>
+                    @if (alert.acknowledgedBy) {
+                      <div class="text-[10px] text-slate-500 mt-0.5">
+                        Acknowledged by {{ alert.acknowledgedBy.username }}
+                        @if (alert.acknowledgedAt) {
+                          on {{ alert.acknowledgedAt | date: 'short' }}
+                        }
+                      </div>
+                    }
+                  </div>
+                </div>
+                <div class="flex flex-col items-end gap-1 min-w-[80px]">
+                  <span
+                    class="px-2 py-0.5 text-[9px] font-bold rounded uppercase"
+                    [class.bg-red-500\/20]="alert.status === 'open'"
+                    [class.text-red-400]="alert.status === 'open'"
+                    [class.bg-amber-500\/20]="alert.status === 'acknowledged'"
+                    [class.text-amber-400]="alert.status === 'acknowledged'"
+                    [class.bg-emerald-500\/20]="alert.status === 'resolved'"
+                    [class.text-emerald-400]="alert.status === 'resolved'"
+                    [class.bg-slate-500\/20]="alert.status === 'dismissed'"
+                    [class.text-slate-400]="alert.status === 'dismissed'"
+                  >
+                    {{ alert.status }}
+                  </span>
+                  @if (alert.status === 'open') {
+                    <button
+                      (click)="changeAlertStatus(alert, 'acknowledged')"
+                      class="px-2 py-1 text-[10px] bg-amber-600/20 hover:bg-amber-600 text-amber-400 hover:text-white rounded border-0 cursor-pointer"
+                    >
+                      Acknowledge
+                    </button>
+                  }
+                  @if (alert.status !== 'resolved' && alert.status !== 'dismissed') {
+                    <button
+                      (click)="changeAlertStatus(alert, 'resolved')"
+                      class="px-2 py-1 text-[10px] bg-emerald-600/20 hover:bg-emerald-600 text-emerald-400 hover:text-white rounded border-0 cursor-pointer"
+                    >
+                      Resolve
+                    </button>
+                    <button
+                      (click)="changeAlertStatus(alert, 'dismissed')"
+                      class="px-2 py-1 text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded border-0 cursor-pointer"
+                    >
+                      Dismiss
+                    </button>
+                  }
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>
+
+<!-- ═══════════ PROFILE MODAL ═══════════ -->
+@if (isProfileModalOpen()) {
+  <div
+    class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-start justify-center overflow-y-auto p-4"
+    (click)="closeProfileModal()"
+  >
+    <div
+      class="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-3xl p-6 my-8"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold text-white">
+          {{ editingProfileId() ? 'Edit' : 'New' }} Medical Profile
+        </h3>
+        <button
+          (click)="closeProfileModal()"
+          class="text-slate-400 hover:text-white bg-transparent border-0 cursor-pointer"
+        >
+          <i class="fi fi-rr-cross text-sm"></i>
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        @if (!editingProfileId()) {
+          <div class="md:col-span-2">
+            <label class="text-[10px] text-slate-400 uppercase font-bold">Player</label>
+            <select
+              [ngModel]="profileForm().playerId"
+              (ngModelChange)="profileForm.set({ ...profileForm(), playerId: $event })"
+              class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+            >
+              <option value="">— Select player —</option>
+              @for (p of playersWithoutProfile(); track p.id) {
+                <option [value]="p.id">{{ p.user.username }} ({{ p.team.name }})</option>
+              }
+            </select>
+          </div>
+        }
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Blood Group</label>
+          <input
+            type="text"
+            [ngModel]="profileForm().bloodGroup"
+            (ngModelChange)="profileForm.set({ ...profileForm(), bloodGroup: $event })"
+            placeholder="e.g. O+"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Fitness Level</label>
+          <select
+            [ngModel]="profileForm().fitnessLevel"
+            (ngModelChange)="profileForm.set({ ...profileForm(), fitnessLevel: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          >
+            <option value="fit">Fit</option>
+            <option value="limited">Limited</option>
+            <option value="unfit">Unfit</option>
+            <option value="injured">Injured</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Height (cm)</label>
+          <input
+            type="number"
+            [ngModel]="profileForm().heightCm"
+            (ngModelChange)="profileForm.set({ ...profileForm(), heightCm: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Weight (kg)</label>
+          <input
+            type="number"
+            [ngModel]="profileForm().weightKg"
+            (ngModelChange)="profileForm.set({ ...profileForm(), weightKg: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div class="md:col-span-2">
+          <label class="text-[10px] text-slate-400 uppercase font-bold">
+            Allergies (comma separated)
+          </label>
+          <input
+            type="text"
+            [ngModel]="profileForm().allergiesInput"
+            (ngModelChange)="profileForm.set({ ...profileForm(), allergiesInput: $event })"
+            placeholder="e.g. Peanuts, Penicillin"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div class="md:col-span-2">
+          <label class="text-[10px] text-slate-400 uppercase font-bold">
+            Chronic Conditions (comma separated)
+          </label>
+          <input
+            type="text"
+            [ngModel]="profileForm().chronicConditionsInput"
+            (ngModelChange)="profileForm.set({ ...profileForm(), chronicConditionsInput: $event })"
+            placeholder="e.g. Asthma, Hypertension"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div class="md:col-span-2">
+          <label class="text-[10px] text-slate-400 uppercase font-bold">
+            Medications (comma separated)
+          </label>
+          <input
+            type="text"
+            [ngModel]="profileForm().medicationsInput"
+            (ngModelChange)="profileForm.set({ ...profileForm(), medicationsInput: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Emergency Contact</label>
+          <input
+            type="text"
+            [ngModel]="profileForm().emergencyContactName"
+            (ngModelChange)="profileForm.set({ ...profileForm(), emergencyContactName: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Contact Phone</label>
+          <input
+            type="text"
+            [ngModel]="profileForm().emergencyContactPhone"
+            (ngModelChange)="profileForm.set({ ...profileForm(), emergencyContactPhone: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Relation</label>
+          <input
+            type="text"
+            [ngModel]="profileForm().emergencyContactRelation"
+            (ngModelChange)="
+              profileForm.set({ ...profileForm(), emergencyContactRelation: $event })
+            "
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Physician Name</label>
+          <input
+            type="text"
+            [ngModel]="profileForm().physicianName"
+            (ngModelChange)="profileForm.set({ ...profileForm(), physicianName: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Physician Phone</label>
+          <input
+            type="text"
+            [ngModel]="profileForm().physicianPhone"
+            (ngModelChange)="profileForm.set({ ...profileForm(), physicianPhone: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Insurance Provider</label>
+          <input
+            type="text"
+            [ngModel]="profileForm().insuranceProvider"
+            (ngModelChange)="profileForm.set({ ...profileForm(), insuranceProvider: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Policy Number</label>
+          <input
+            type="text"
+            [ngModel]="profileForm().insurancePolicyNumber"
+            (ngModelChange)="profileForm.set({ ...profileForm(), insurancePolicyNumber: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Last Checkup</label>
+          <input
+            type="date"
+            [ngModel]="profileForm().lastCheckupDate"
+            (ngModelChange)="profileForm.set({ ...profileForm(), lastCheckupDate: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Next Checkup</label>
+          <input
+            type="date"
+            [ngModel]="profileForm().nextCheckupDate"
+            (ngModelChange)="profileForm.set({ ...profileForm(), nextCheckupDate: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div class="md:col-span-2 flex items-center gap-2">
+          <input
+            id="clearedToPlay"
+            type="checkbox"
+            [ngModel]="profileForm().clearedToPlay"
+            (ngModelChange)="profileForm.set({ ...profileForm(), clearedToPlay: $event })"
+            class="w-4 h-4"
+          />
+          <label for="clearedToPlay" class="text-xs text-slate-300 cursor-pointer">
+            Cleared to play
+          </label>
+        </div>
+        <div class="md:col-span-2">
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Notes</label>
+          <textarea
+            rows="3"
+            [ngModel]="profileForm().notes"
+            (ngModelChange)="profileForm.set({ ...profileForm(), notes: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1 resize-none"
+          ></textarea>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 mt-5">
+        <button
+          (click)="closeProfileModal()"
+          class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg border-0 cursor-pointer"
+        >
+          Cancel
+        </button>
+        <button
+          (click)="saveProfile()"
+          [disabled]="!editingProfileId() && !profileForm().playerId"
+          [class.opacity-50]="!editingProfileId() && !profileForm().playerId"
+          class="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-lg border-0 cursor-pointer"
+        >
+          {{ editingProfileId() ? 'Update' : 'Create' }} Profile
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ═══════════ INJURY MODAL ═══════════ -->
+@if (isInjuryModalOpen()) {
+  <div
+    class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-start justify-center overflow-y-auto p-4"
+    (click)="closeInjuryModal()"
+  >
+    <div
+      class="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-2xl p-6 my-8"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold text-white">
+          {{ editingInjuryId() ? 'Update' : 'Log New' }} Injury
+        </h3>
+        <button
+          (click)="closeInjuryModal()"
+          class="text-slate-400 hover:text-white bg-transparent border-0 cursor-pointer"
+        >
+          <i class="fi fi-rr-cross text-sm"></i>
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div class="md:col-span-2">
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Injury title</label>
+          <input
+            type="text"
+            [ngModel]="injuryForm().title"
+            (ngModelChange)="injuryForm.set({ ...injuryForm(), title: $event })"
+            placeholder="e.g. ACL Tear"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Body Part</label>
+          <input
+            type="text"
+            [ngModel]="injuryForm().bodyPart"
+            (ngModelChange)="injuryForm.set({ ...injuryForm(), bodyPart: $event })"
+            placeholder="e.g. Left Knee"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Severity</label>
+          <select
+            [ngModel]="injuryForm().severity"
+            (ngModelChange)="injuryForm.set({ ...injuryForm(), severity: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          >
+            <option value="minor">Minor</option>
+            <option value="moderate">Moderate</option>
+            <option value="severe">Severe</option>
+            <option value="critical">Critical</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Status</label>
+          <select
+            [ngModel]="injuryForm().status"
+            (ngModelChange)="injuryForm.set({ ...injuryForm(), status: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          >
+            <option value="active">Active</option>
+            <option value="recovering">Recovering</option>
+            <option value="recovered">Recovered</option>
+            <option value="chronic">Chronic</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Sustained Date</label>
+          <input
+            type="date"
+            [ngModel]="injuryForm().sustainedDate"
+            (ngModelChange)="injuryForm.set({ ...injuryForm(), sustainedDate: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Diagnosis Date</label>
+          <input
+            type="date"
+            [ngModel]="injuryForm().diagnosisDate"
+            (ngModelChange)="injuryForm.set({ ...injuryForm(), diagnosisDate: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div class="md:col-span-2">
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Description</label>
+          <textarea
+            rows="2"
+            [ngModel]="injuryForm().description"
+            (ngModelChange)="injuryForm.set({ ...injuryForm(), description: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1 resize-none"
+          ></textarea>
+        </div>
+        <div class="md:col-span-2">
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Diagnosis</label>
+          <textarea
+            rows="2"
+            [ngModel]="injuryForm().diagnosis"
+            (ngModelChange)="injuryForm.set({ ...injuryForm(), diagnosis: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1 resize-none"
+          ></textarea>
+        </div>
+        <div class="md:col-span-2">
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Treatment</label>
+          <textarea
+            rows="2"
+            [ngModel]="injuryForm().treatment"
+            (ngModelChange)="injuryForm.set({ ...injuryForm(), treatment: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1 resize-none"
+          ></textarea>
+        </div>
+        <div class="md:col-span-2">
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Notes</label>
+          <textarea
+            rows="2"
+            [ngModel]="injuryForm().notes"
+            (ngModelChange)="injuryForm.set({ ...injuryForm(), notes: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1 resize-none"
+          ></textarea>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 mt-5">
+        <button
+          (click)="closeInjuryModal()"
+          class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg border-0 cursor-pointer"
+        >
+          Cancel
+        </button>
+        <button
+          (click)="saveInjury()"
+          [disabled]="!injuryForm().title || !injuryForm().sustainedDate"
+          [class.opacity-50]="!injuryForm().title || !injuryForm().sustainedDate"
+          class="px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-lg border-0 cursor-pointer"
+        >
+          {{ editingInjuryId() ? 'Update' : 'Log' }} Injury
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ═══════════ RECOVERY MODAL ═══════════ -->
+@if (isRecoveryModalOpen()) {
+  <div
+    class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-start justify-center overflow-y-auto p-4"
+    (click)="closeRecoveryModal()"
+  >
+    <div
+      class="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-2xl p-6 my-8"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold text-white">
+          {{ editingRecoveryId() ? 'Update' : 'Create' }} Recovery Plan
+        </h3>
+        <button
+          (click)="closeRecoveryModal()"
+          class="text-slate-400 hover:text-white bg-transparent border-0 cursor-pointer"
+        >
+          <i class="fi fi-rr-cross text-sm"></i>
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div class="md:col-span-2">
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Plan title</label>
+          <input
+            type="text"
+            [ngModel]="recoveryForm().title"
+            (ngModelChange)="recoveryForm.set({ ...recoveryForm(), title: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Start Date</label>
+          <input
+            type="date"
+            [ngModel]="recoveryForm().startDate"
+            (ngModelChange)="recoveryForm.set({ ...recoveryForm(), startDate: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Expected Return</label>
+          <input
+            type="date"
+            [ngModel]="recoveryForm().expectedReturnDate"
+            (ngModelChange)="recoveryForm.set({ ...recoveryForm(), expectedReturnDate: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Status</label>
+          <select
+            [ngModel]="recoveryForm().status"
+            (ngModelChange)="recoveryForm.set({ ...recoveryForm(), status: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          >
+            <option value="in_progress">In Progress</option>
+            <option value="on_track">On Track</option>
+            <option value="delayed">Delayed</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">
+            Progress ({{ recoveryForm().progressPercent }}%)
+          </label>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            [ngModel]="recoveryForm().progressPercent"
+            (ngModelChange)="recoveryForm.set({ ...recoveryForm(), progressPercent: $event })"
+            class="w-full mt-3"
+          />
+        </div>
+        <div class="md:col-span-2">
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Protocol / Treatment</label>
+          <textarea
+            rows="3"
+            [ngModel]="recoveryForm().protocol"
+            (ngModelChange)="recoveryForm.set({ ...recoveryForm(), protocol: $event })"
+            placeholder="Physio schedule, exercises, medications, etc."
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1 resize-none"
+          ></textarea>
+        </div>
+        <div class="md:col-span-2">
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Notes</label>
+          <textarea
+            rows="2"
+            [ngModel]="recoveryForm().notes"
+            (ngModelChange)="recoveryForm.set({ ...recoveryForm(), notes: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1 resize-none"
+          ></textarea>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 mt-5">
+        <button
+          (click)="closeRecoveryModal()"
+          class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg border-0 cursor-pointer"
+        >
+          Cancel
+        </button>
+        <button
+          (click)="saveRecoveryPlan()"
+          [disabled]="!recoveryForm().title || !recoveryForm().startDate"
+          [class.opacity-50]="!recoveryForm().title || !recoveryForm().startDate"
+          class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg border-0 cursor-pointer"
+        >
+          Save Plan
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ═══════════ FITNESS MODAL ═══════════ -->
+@if (isFitnessModalOpen()) {
+  <div
+    class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-start justify-center overflow-y-auto p-4"
+    (click)="closeFitnessModal()"
+  >
+    <div
+      class="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-2xl p-6 my-8"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold text-white">New Fitness Assessment</h3>
+        <button
+          (click)="closeFitnessModal()"
+          class="text-slate-400 hover:text-white bg-transparent border-0 cursor-pointer"
+        >
+          <i class="fi fi-rr-cross text-sm"></i>
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Assessed On</label>
+          <input
+            type="date"
+            [ngModel]="fitnessForm().assessedAt"
+            (ngModelChange)="fitnessForm.set({ ...fitnessForm(), assessedAt: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Fitness Level</label>
+          <select
+            [ngModel]="fitnessForm().fitnessLevel"
+            (ngModelChange)="fitnessForm.set({ ...fitnessForm(), fitnessLevel: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          >
+            <option value="fit">Fit</option>
+            <option value="limited">Limited</option>
+            <option value="unfit">Unfit</option>
+            <option value="injured">Injured</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Cardio (0-100)</label>
+          <input
+            type="number"
+            min="0"
+            max="100"
+            [ngModel]="fitnessForm().cardioScore"
+            (ngModelChange)="fitnessForm.set({ ...fitnessForm(), cardioScore: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Strength (0-100)</label>
+          <input
+            type="number"
+            min="0"
+            max="100"
+            [ngModel]="fitnessForm().strengthScore"
+            (ngModelChange)="fitnessForm.set({ ...fitnessForm(), strengthScore: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Flexibility (0-100)</label>
+          <input
+            type="number"
+            min="0"
+            max="100"
+            [ngModel]="fitnessForm().flexibilityScore"
+            (ngModelChange)="fitnessForm.set({ ...fitnessForm(), flexibilityScore: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Endurance (0-100)</label>
+          <input
+            type="number"
+            min="0"
+            max="100"
+            [ngModel]="fitnessForm().enduranceScore"
+            (ngModelChange)="fitnessForm.set({ ...fitnessForm(), enduranceScore: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Resting HR (bpm)</label>
+          <input
+            type="number"
+            [ngModel]="fitnessForm().restingHeartRate"
+            (ngModelChange)="fitnessForm.set({ ...fitnessForm(), restingHeartRate: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Body Fat %</label>
+          <input
+            type="number"
+            min="0"
+            max="100"
+            [ngModel]="fitnessForm().bodyFatPercent"
+            (ngModelChange)="fitnessForm.set({ ...fitnessForm(), bodyFatPercent: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div class="md:col-span-2 flex items-center gap-2">
+          <input
+            id="fitClearedToPlay"
+            type="checkbox"
+            [ngModel]="fitnessForm().clearedToPlay"
+            (ngModelChange)="fitnessForm.set({ ...fitnessForm(), clearedToPlay: $event })"
+            class="w-4 h-4"
+          />
+          <label for="fitClearedToPlay" class="text-xs text-slate-300 cursor-pointer">
+            Cleared to play
+          </label>
+        </div>
+        <div class="md:col-span-2">
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Restrictions</label>
+          <textarea
+            rows="2"
+            [ngModel]="fitnessForm().restrictions"
+            (ngModelChange)="fitnessForm.set({ ...fitnessForm(), restrictions: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1 resize-none"
+          ></textarea>
+        </div>
+        <div class="md:col-span-2">
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Notes</label>
+          <textarea
+            rows="2"
+            [ngModel]="fitnessForm().notes"
+            (ngModelChange)="fitnessForm.set({ ...fitnessForm(), notes: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1 resize-none"
+          ></textarea>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 mt-5">
+        <button
+          (click)="closeFitnessModal()"
+          class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg border-0 cursor-pointer"
+        >
+          Cancel
+        </button>
+        <button
+          (click)="saveFitness()"
+          [disabled]="!fitnessForm().assessedAt"
+          [class.opacity-50]="!fitnessForm().assessedAt"
+          class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg border-0 cursor-pointer"
+        >
+          Save Assessment
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ═══════════ ALERT MODAL ═══════════ -->
+@if (isAlertModalOpen()) {
+  <div
+    class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-start justify-center overflow-y-auto p-4"
+    (click)="closeAlertModal()"
+  >
+    <div
+      class="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-lg p-6 my-8"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold text-white">Raise Health Alert</h3>
+        <button
+          (click)="closeAlertModal()"
+          class="text-slate-400 hover:text-white bg-transparent border-0 cursor-pointer"
+        >
+          <i class="fi fi-rr-cross text-sm"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3">
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Severity</label>
+          <select
+            [ngModel]="alertForm().severity"
+            (ngModelChange)="alertForm.set({ ...alertForm(), severity: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          >
+            <option value="info">Info</option>
+            <option value="warning">Warning</option>
+            <option value="critical">Critical</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Title</label>
+          <input
+            type="text"
+            [ngModel]="alertForm().title"
+            (ngModelChange)="alertForm.set({ ...alertForm(), title: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Message</label>
+          <textarea
+            rows="3"
+            [ngModel]="alertForm().message"
+            (ngModelChange)="alertForm.set({ ...alertForm(), message: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1 resize-none"
+          ></textarea>
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold"
+            >Expires On (optional)</label
+          >
+          <input
+            type="date"
+            [ngModel]="alertForm().expiresAt"
+            (ngModelChange)="alertForm.set({ ...alertForm(), expiresAt: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 mt-5">
+        <button
+          (click)="closeAlertModal()"
+          class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg border-0 cursor-pointer"
+        >
+          Cancel
+        </button>
+        <button
+          (click)="saveAlert()"
+          [disabled]="!alertForm().title || !alertForm().message"
+          [class.opacity-50]="!alertForm().title || !alertForm().message"
+          class="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-lg border-0 cursor-pointer"
+        >
+          Raise Alert
+        </button>
+      </div>
+    </div>
+  </div>
+}

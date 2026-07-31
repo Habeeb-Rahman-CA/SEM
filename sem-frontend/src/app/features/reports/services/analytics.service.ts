@@ -38,4 +38,10 @@ export class AnalyticsService {
       headers: this.headers,
     });
   }
+
+  getOrganizationStats(workspaceId: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/${workspaceId}/analytics/organization-stats`, {
+      headers: this.headers,
+    });
+  }
 }

@@ -93,6 +93,12 @@ interface PublicPlayerProfile {
     avgRating: number;
   };
   competitions: CompetitionStats[];
+  transfers?: Array<{
+    id: string;
+    fromTeam: { id: string; name: string } | null;
+    toTeam: { id: string; name: string };
+    transferredAt: string;
+  }>;
 }
 
 @Component({

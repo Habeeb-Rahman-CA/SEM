@@ -1,5 +1,6 @@
 import { Component, input, output, signal, computed, effect, inject, model } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { DatePipe } from '@angular/common';
 import { PlayerService } from '../services/player.service';
 import { Player, Team, WorkspaceMember } from '../../workspaces/services/workspace.service';
 import { AvatarComponent } from '../../../shared/components/avatar/avatar';
@@ -20,6 +21,7 @@ import { PaginatorComponent } from '../../../shared';
   standalone: true,
   imports: [
     FormsModule,
+    DatePipe,
     AvatarComponent,
     ButtonComponent,
     BadgeComponent,

@@ -152,6 +152,13 @@ export const routes: Routes = [
       ),
   },
 
+  // Public spectator portal for a live stream session
+  {
+    path: 'public/streaming/:id',
+    loadComponent: () =>
+      import('./features/streaming/pages/public-spectator').then((m) => m.PublicSpectatorComponent),
+  },
+
   // Catch-all → back to the landing page
   { path: '**', redirectTo: '' },
 ];

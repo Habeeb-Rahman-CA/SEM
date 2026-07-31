@@ -12,6 +12,7 @@ import { Match } from '../competitions/entities/match.entity';
 import { Venue } from '../venues/entities/venue.entity';
 import { AuditLog } from './entities/audit-log.entity';
 import { WorkspaceAnalyticsSnapshot } from './entities/workspace-analytics-snapshot.entity';
+import { Invoice } from '../billing/entities/invoice.entity';
 import { AiService } from '../ai/ai.service';
 import { NotFoundException } from '@nestjs/common';
 
@@ -24,6 +25,7 @@ describe('AnalyticsService', () => {
   let venueRepo: Repository<Venue>;
   let matchRepo: Repository<Match>;
   let auditLogRepo: Repository<AuditLog>;
+  let invoiceRepo: Repository<Invoice>;
 
   const mockWorkspace = {
     id: 'ws-1',
@@ -105,6 +107,12 @@ describe('AnalyticsService', () => {
           },
         },
         {
+          provide: getRepositoryToken(Invoice),
+          useValue: {
+            find: jest.fn().mockResolvedValue([]),
+          },
+        },
+        {
           provide: AiService,
           useValue: {
             generateText: jest.fn().mockResolvedValue(
@@ -131,6 +139,7 @@ describe('AnalyticsService', () => {
     auditLogRepo = module.get<Repository<AuditLog>>(
       getRepositoryToken(AuditLog),
     );
+    invoiceRepo = module.get<Repository<Invoice>>(getRepositoryToken(Invoice));
   });
 
   it('should be defined', () => {
@@ -234,6 +243,59 @@ describe('AnalyticsService', () => {
       expect(result.productivity[0].name).toBe('Admin');
       expect(result.bottlenecks).toBeDefined();
       expect(result.aiRecommendation).toBeDefined();
+    });
+  });
+
+  describe('getOrganizationStats', () => {
+    it('should aggregate financial, participation, and attendance stats', async () => {
+      const mockEvent = {
+        id: 'evt-1',
+        name: 'Event 1',
+        status: 'completed',
+        startDate: new Date('2026-07-15'),
+        venue: 'Main Stadium',
+        competitions: [],
+        teams: [{ id: 'team-1' }, { id: 'team-2' }],
+      } as any;
+
+      const mockInvoice = {
+        id: 'inv-1',
+        status: 'paid',
+        totalCents: 10000,
+        issuedAt: new Date('2026-07-20'),
+        payments: [{ status: 'succeeded', method: 'card', amountCents: 10000 }],
+      } as any;
+
+      const mockVenue = {
+        id: 'venue-1',
+        name: 'Main Stadium',
+        capacity: 500,
+      } as any;
+
+      jest.spyOn(eventRepo, 'find').mockResolvedValueOnce([mockEvent]);
+      jest
+        .spyOn(teamRepo, 'find')
+        .mockResolvedValueOnce([
+          { id: 'team-1' } as Team,
+          { id: 'team-2' } as Team,
+        ]);
+      jest
+        .spyOn(playerRepo, 'find')
+        .mockResolvedValueOnce([
+          { id: 'player-1', createdAt: new Date() } as Player,
+        ]);
+      jest.spyOn(venueRepo, 'find').mockResolvedValueOnce([mockVenue]);
+      jest.spyOn(invoiceRepo, 'find').mockResolvedValueOnce([mockInvoice]);
+
+      const result = await service.getOrganizationStats('ws-1');
+      expect(result).toBeDefined();
+      expect(result.participation.totalRegisteredTeams).toBe(2);
+      expect(result.participation.totalRegisteredPlayers).toBe(1);
+      expect(result.finance.totalRevenue).toBe(10000);
+      expect(result.finance.averageInvoiceValue).toBe(10000);
+      expect(result.attendance.totalAttendance).toBeGreaterThan(0);
+      expect(result.seasonalTrends.length).toBeGreaterThan(0);
+      expect(result.predictiveInsights).toBeDefined();
     });
   });
 });
