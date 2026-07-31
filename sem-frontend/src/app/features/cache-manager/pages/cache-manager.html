@@ -1,0 +1,577 @@
+<div class="min-h-screen bg-slate-950 text-white p-4">
+  <div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="flex items-center justify-between border-b border-white/5 pb-4 mb-4">
+      <div>
+        <a
+          routerLink="/system-settings"
+          class="text-xs text-slate-400 hover:text-white flex items-center gap-1 mb-2"
+        >
+          <i class="fi fi-rr-angle-left"></i>
+          Back to System Settings
+        </a>
+        <h2 class="text-xl font-bold text-white">Cache Manager</h2>
+        <p class="text-xs text-slate-400 mt-1">
+          Observability, key inspection, targeted invalidation, and persistent configuration for the
+          cache layer. Super-admin only.
+        </p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button
+          (click)="refreshStats()"
+          class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl border-0 cursor-pointer"
+        >
+          <i class="fi fi-rr-refresh text-xs mr-1"></i>
+          Refresh
+        </button>
+        <button
+          (click)="runFlush()"
+          class="px-3 py-2 bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white text-xs font-bold rounded-xl border-0 cursor-pointer"
+        >
+          <i class="fi fi-rr-trash text-xs mr-1"></i>
+          Flush All
+        </button>
+      </div>
+    </div>
+
+    <!-- KPI cards -->
+    @if (stats(); as s) {
+      <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-4">
+        <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+          <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">Backend</div>
+          <div class="flex items-center gap-2 mt-1">
+            <span
+              class="px-2 py-0.5 text-[10px] font-bold rounded border uppercase"
+              [class]="backendBadgeClass(s.backend)"
+            >
+              {{ s.backend }}
+            </span>
+            @if (s.backend === 'redis') {
+              <span
+                class="text-[10px]"
+                [class.text-emerald-400]="s.connected"
+                [class.text-red-400]="!s.connected"
+              >
+                {{ s.connected ? '● connected' : '○ disconnected' }}
+              </span>
+            }
+          </div>
+          <div class="text-[10px] text-slate-500 mt-1">
+            ns:
+            <span class="font-mono text-white">{{ s.namespace }}</span>
+          </div>
+        </div>
+        <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+          <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">Hit Rate</div>
+          <div class="text-xl font-black mt-1" [class]="hitRateColor(hitRatePct())">
+            {{ hitRatePct() }}%
+          </div>
+          <div class="w-full h-1.5 bg-slate-800 rounded mt-2 overflow-hidden">
+            <div
+              class="h-full rounded"
+              [class.bg-emerald-500]="hitRatePct() >= 80"
+              [class.bg-amber-500]="hitRatePct() >= 50 && hitRatePct() < 80"
+              [class.bg-red-500]="hitRatePct() < 50"
+              [style.width.%]="hitRatePct()"
+            ></div>
+          </div>
+        </div>
+        <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+          <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">
+            Hits / Misses
+          </div>
+          <div class="text-xl font-black text-white mt-1">{{ s.hits }} / {{ s.misses }}</div>
+          <div class="text-[10px] text-slate-500 mt-1">{{ totalOps() }} total lookups</div>
+        </div>
+        <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+          <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">Writes</div>
+          <div class="text-xl font-black text-violet-400 mt-1">{{ s.sets }}</div>
+          <div class="text-[10px] text-slate-500 mt-1">{{ s.invalidations }} invalidations</div>
+        </div>
+        <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+          <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">Entries</div>
+          <div class="text-xl font-black text-sky-400 mt-1">
+            {{ s.size ?? '—' }}
+          </div>
+          <div class="text-[10px] text-slate-500 mt-1">
+            {{ s.backend === 'memory' ? 'in-memory count' : 'redis approx' }}
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Tabs -->
+    <div class="flex border-b border-white/5 mb-4 overflow-x-auto">
+      @for (
+        t of [
+          { key: 'overview', label: 'Overview', icon: 'fi fi-rr-chart-histogram' },
+          { key: 'keys', label: 'Keys Browser', icon: 'fi fi-rr-search' },
+          { key: 'domains', label: 'Domain Settings', icon: 'fi fi-rr-settings-sliders' },
+          { key: 'config', label: 'Configuration', icon: 'fi fi-rr-cog' },
+        ];
+        track t.key
+      ) {
+        <button
+          (click)="currentTab.set($any(t.key))"
+          [class]="
+            currentTab() === t.key
+              ? 'border-b-2 border-violet-500 text-violet-400'
+              : 'text-slate-400 hover:text-white'
+          "
+          class="px-4 py-2.5 text-xs font-bold bg-transparent border-0 cursor-pointer transition outline-none whitespace-nowrap"
+        >
+          <i [class]="t.icon" class="text-xs mr-1.5"></i>{{ t.label }}
+        </button>
+      }
+    </div>
+
+    @if (isLoading()) {
+      <div class="text-center text-slate-400 text-xs py-8">Loading…</div>
+    } @else if (error()) {
+      <div class="p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-xs">
+        {{ error() }}
+      </div>
+    } @else {
+      <!-- ═════ OVERVIEW ═════ -->
+      @if (currentTab() === 'overview') {
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <!-- Invalidate by pattern -->
+          <div class="bg-slate-900/40 border border-white/5 rounded-xl p-4">
+            <div class="text-xs font-black text-white uppercase tracking-wider mb-3">
+              Invalidate by Pattern
+            </div>
+            <div class="text-[11px] text-slate-400 mb-3">
+              Glob-style pattern (Redis semantics). e.g.
+              <code class="text-violet-400">ws:abc:*</code>,
+              <code class="text-violet-400">public:*</code>,
+              <code class="text-violet-400">*:leaderboard:*</code>.
+            </div>
+            <div class="flex items-center gap-2">
+              <input
+                type="text"
+                [ngModel]="invalidatePattern()"
+                (ngModelChange)="invalidatePattern.set($event)"
+                placeholder="ws:abc:*"
+                class="flex-1 bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs font-mono text-white outline-none focus:border-violet-500"
+              />
+              <button
+                (click)="runInvalidatePattern()"
+                [disabled]="!invalidatePattern().trim()"
+                [class.opacity-50]="!invalidatePattern().trim()"
+                class="px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-lg border-0 cursor-pointer"
+              >
+                Invalidate
+              </button>
+            </div>
+          </div>
+
+          <!-- Invalidate by domain -->
+          <div class="bg-slate-900/40 border border-white/5 rounded-xl p-4">
+            <div class="text-xs font-black text-white uppercase tracking-wider mb-3">
+              Invalidate by Domain
+            </div>
+            <div class="space-y-2">
+              <div class="grid grid-cols-2 gap-2">
+                <select
+                  [ngModel]="invalidateDomain()"
+                  (ngModelChange)="invalidateDomain.set($event)"
+                  class="bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500"
+                >
+                  @for (d of domainOptions; track d) {
+                    <option [value]="d">{{ d }}</option>
+                  }
+                </select>
+                <input
+                  type="text"
+                  [ngModel]="domainWorkspaceId()"
+                  (ngModelChange)="domainWorkspaceId.set($event)"
+                  placeholder="workspaceId (if scoped)"
+                  class="bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs font-mono text-white outline-none focus:border-violet-500"
+                />
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                <input
+                  type="text"
+                  [ngModel]="domainCompetitionId()"
+                  (ngModelChange)="domainCompetitionId.set($event)"
+                  placeholder="competitionId (rankings)"
+                  class="bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs font-mono text-white outline-none focus:border-violet-500"
+                />
+                <input
+                  type="text"
+                  [ngModel]="domainSeason()"
+                  (ngModelChange)="domainSeason.set($event)"
+                  placeholder="season (finance)"
+                  class="bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500"
+                />
+              </div>
+              <button
+                (click)="runInvalidateDomain()"
+                class="w-full px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-lg border-0 cursor-pointer"
+              >
+                Invalidate Domain
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- ═════ KEYS BROWSER ═════ -->
+      @if (currentTab() === 'keys') {
+        <div class="bg-slate-900/40 border border-white/5 rounded-xl p-4 mb-4">
+          <div class="flex items-center gap-2 flex-wrap">
+            <input
+              type="text"
+              [ngModel]="keyPattern()"
+              (ngModelChange)="keyPattern.set($event)"
+              (keyup.enter)="searchKeys()"
+              placeholder="Pattern (e.g. ws:*:dashboard:*)"
+              class="flex-1 bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs font-mono text-white outline-none focus:border-violet-500"
+            />
+            <input
+              type="number"
+              min="1"
+              max="500"
+              [ngModel]="keyLimit()"
+              (ngModelChange)="keyLimit.set($event)"
+              placeholder="Limit"
+              class="w-24 bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500"
+            />
+            <button
+              (click)="searchKeys()"
+              class="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-lg border-0 cursor-pointer"
+            >
+              Search
+            </button>
+          </div>
+          @if (keyList(); as kl) {
+            <div class="text-[10px] text-slate-500 mt-2">
+              Showing {{ kl.keys.length }} of {{ kl.matched }} matches
+              @if (kl.truncated) {
+                <span class="text-amber-400">(truncated — narrow the pattern to see more)</span>
+              }
+            </div>
+          }
+        </div>
+
+        <div class="bg-slate-900/40 border border-white/5 rounded-xl overflow-hidden">
+          <table class="w-full text-xs">
+            <thead class="bg-slate-950/60 text-[10px] uppercase tracking-wider text-slate-500">
+              <tr>
+                <th class="text-left px-3 py-2 font-black">Key</th>
+                <th class="text-right px-3 py-2 font-black">TTL</th>
+                <th class="text-right px-3 py-2 font-black">Size</th>
+                <th class="text-left px-3 py-2 font-black">Preview</th>
+                <th class="text-right px-3 py-2 font-black">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @if (!keyList()?.keys?.length) {
+                <tr>
+                  <td colspan="5" class="text-center text-[11px] text-slate-500 italic py-8">
+                    No cache entries match this pattern.
+                  </td>
+                </tr>
+              }
+              @for (k of keyList()?.keys || []; track k.key) {
+                <tr class="border-t border-white/5 hover:bg-slate-950/40">
+                  <td class="px-3 py-2 font-mono text-white truncate max-w-[320px]">
+                    {{ k.key }}
+                  </td>
+                  <td class="px-3 py-2 text-right text-slate-400 whitespace-nowrap">
+                    {{ formatTtl(k.ttlSec) }}
+                  </td>
+                  <td class="px-3 py-2 text-right text-slate-400 whitespace-nowrap">
+                    {{ formatBytes(k.sizeBytes) }}
+                  </td>
+                  <td class="px-3 py-2 text-slate-500 truncate max-w-[280px] font-mono text-[10px]">
+                    {{ k.preview }}
+                  </td>
+                  <td class="px-3 py-2 text-right">
+                    <div class="flex gap-1 justify-end">
+                      <button
+                        (click)="inspect(k.key)"
+                        class="px-2 py-1 text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border-0 cursor-pointer"
+                      >
+                        Inspect
+                      </button>
+                      <button
+                        (click)="copyKey(k.key)"
+                        class="px-2 py-1 text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border-0 cursor-pointer"
+                        title="Copy key"
+                      >
+                        <i class="fi fi-rr-copy"></i>
+                      </button>
+                      <button
+                        (click)="deleteKey(k.key)"
+                        class="px-2 py-1 text-[10px] bg-slate-800 hover:bg-red-600 text-slate-400 hover:text-white rounded border-0 cursor-pointer"
+                      >
+                        <i class="fi fi-rr-trash"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+      <!-- ═════ DOMAINS ═════ -->
+      @if (currentTab() === 'domains') {
+        <div class="bg-slate-900/40 border border-white/5 rounded-xl overflow-hidden">
+          <table class="w-full text-xs">
+            <thead class="bg-slate-950/60 text-[10px] uppercase tracking-wider text-slate-500">
+              <tr>
+                <th class="text-left px-3 py-2 font-black">Domain</th>
+                <th class="text-center px-3 py-2 font-black">Enabled</th>
+                <th class="text-right px-3 py-2 font-black">TTL</th>
+                <th class="text-left px-3 py-2 font-black">Source</th>
+                <th class="text-right px-3 py-2 font-black">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (d of domains(); track d.domain) {
+                <tr class="border-t border-white/5 hover:bg-slate-950/40">
+                  <td class="px-3 py-2 text-white font-bold uppercase">
+                    {{ d.domain }}
+                  </td>
+                  <td class="px-3 py-2 text-center">
+                    @if (d.settings.enabled) {
+                      <span
+                        class="px-1.5 py-0.5 text-[9px] font-bold rounded border uppercase bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                      >
+                        Enabled
+                      </span>
+                    } @else {
+                      <span
+                        class="px-1.5 py-0.5 text-[9px] font-bold rounded border uppercase bg-red-500/15 text-red-400 border-red-500/30"
+                      >
+                        Disabled
+                      </span>
+                    }
+                  </td>
+                  <td class="px-3 py-2 text-right text-white">
+                    {{ formatTtl(d.settings.ttlSec) }}
+                  </td>
+                  <td class="px-3 py-2 text-[10px] text-slate-500">
+                    {{ d.isDefault ? 'default' : 'override' }}
+                  </td>
+                  <td class="px-3 py-2 text-right">
+                    <div class="flex gap-1 justify-end">
+                      <button
+                        (click)="openDomainEditor(d)"
+                        class="px-2 py-1 text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border-0 cursor-pointer"
+                      >
+                        Edit
+                      </button>
+                      @if (!d.isDefault) {
+                        <button
+                          (click)="resetDomain(d)"
+                          class="px-2 py-1 text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border-0 cursor-pointer"
+                        >
+                          Reset
+                        </button>
+                      }
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+      <!-- ═════ CONFIG ═════ -->
+      @if (currentTab() === 'config') {
+        @if (config(); as c) {
+          <div class="bg-slate-900/40 border border-white/5 rounded-xl p-4 space-y-3">
+            <div class="flex items-start justify-between">
+              <div>
+                <div class="text-xs font-black text-white uppercase tracking-wider">
+                  Global Settings
+                </div>
+                <div class="text-[10px] text-slate-500 mt-1">
+                  Last updated
+                  {{ c.updatedAt | date: 'medium' }}
+                </div>
+              </div>
+              <button
+                (click)="saveConfig()"
+                class="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-lg border-0 cursor-pointer"
+              >
+                Save Config
+              </button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <label
+                class="flex items-start gap-3 p-3 bg-slate-950/60 border border-white/5 rounded-lg cursor-pointer"
+              >
+                <input
+                  type="checkbox"
+                  [ngModel]="configDraft().globallyEnabled"
+                  (ngModelChange)="configDraft.set({ ...configDraft(), globallyEnabled: $event })"
+                  class="w-4 h-4 mt-0.5"
+                />
+                <div>
+                  <div class="text-xs font-bold text-white">Cache globally enabled</div>
+                  <div class="text-[10px] text-slate-400 mt-0.5">
+                    Kill switch. When off, every domain returns
+                    <span class="font-mono">enabled: false</span> to callers.
+                  </div>
+                </div>
+              </label>
+              <div class="p-3 bg-slate-950/60 border border-white/5 rounded-lg">
+                <label class="text-[10px] text-slate-400 uppercase font-bold"> Namespace </label>
+                <input
+                  type="text"
+                  [ngModel]="configDraft().namespace"
+                  (ngModelChange)="configDraft.set({ ...configDraft(), namespace: $event })"
+                  class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs font-mono text-white outline-none focus:border-violet-500 mt-1"
+                />
+                <div class="text-[10px] text-slate-500 mt-1">
+                  Prepended to every cache key. Change takes effect on restart.
+                </div>
+              </div>
+            </div>
+            <div>
+              <label class="text-[10px] text-slate-400 uppercase font-bold">Notes</label>
+              <textarea
+                rows="3"
+                [ngModel]="configDraft().notes"
+                (ngModelChange)="configDraft.set({ ...configDraft(), notes: $event })"
+                placeholder="Operator notes, incident reference, etc."
+                class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1 resize-none"
+              ></textarea>
+            </div>
+          </div>
+        }
+      }
+    }
+  </div>
+</div>
+
+<!-- ═════ INSPECT MODAL ═════ -->
+@if (isInspectOpen() && keyDetail(); as k) {
+  <div
+    class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-start justify-center overflow-y-auto p-4"
+    (click)="closeInspect()"
+  >
+    <div
+      class="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-3xl p-6 my-8"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h3 class="text-lg font-bold text-white">Cache Entry</h3>
+          <div class="text-[10px] font-mono text-slate-400 mt-1 break-all">
+            {{ k.key }}
+          </div>
+        </div>
+        <button
+          (click)="closeInspect()"
+          class="text-slate-400 hover:text-white bg-transparent border-0 cursor-pointer"
+        >
+          <i class="fi fi-rr-cross text-sm"></i>
+        </button>
+      </div>
+      <div class="grid grid-cols-2 gap-3 mb-3">
+        <div class="p-3 bg-slate-950/60 border border-white/5 rounded-lg">
+          <div class="text-[9px] text-slate-500 uppercase font-black">TTL</div>
+          <div class="text-sm text-white font-bold mt-1">
+            {{ formatTtl(k.ttlSec) }}
+          </div>
+        </div>
+        <div class="p-3 bg-slate-950/60 border border-white/5 rounded-lg">
+          <div class="text-[9px] text-slate-500 uppercase font-black">Size</div>
+          <div class="text-sm text-white font-bold mt-1">
+            {{ formatBytes(k.sizeBytes) }}
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="text-[9px] text-slate-500 uppercase font-black mb-2">Value</div>
+        <pre
+          class="max-h-96 overflow-auto p-3 bg-slate-950/80 border border-white/5 rounded-lg text-[10px] font-mono text-slate-200"
+          >{{ k.value | json }}</pre>
+      </div>
+      <div class="flex justify-end gap-2 mt-4">
+        <button
+          (click)="deleteKey(k.key); closeInspect()"
+          class="px-4 py-2 bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white text-xs font-bold rounded-lg border-0 cursor-pointer"
+        >
+          Delete this key
+        </button>
+        <button
+          (click)="closeInspect()"
+          class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg border-0 cursor-pointer"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ═════ DOMAIN EDITOR ═════ -->
+@if (editingDomain(); as e) {
+  <div
+    class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-start justify-center overflow-y-auto p-4"
+    (click)="closeDomainEditor()"
+  >
+    <div
+      class="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-md p-6 my-8"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold text-white uppercase">
+          {{ e.domain }}
+        </h3>
+        <button
+          (click)="closeDomainEditor()"
+          class="text-slate-400 hover:text-white bg-transparent border-0 cursor-pointer"
+        >
+          <i class="fi fi-rr-cross text-sm"></i>
+        </button>
+      </div>
+      <div class="space-y-3">
+        <label
+          class="flex items-center gap-3 p-3 bg-slate-950/60 border border-white/5 rounded-lg cursor-pointer"
+        >
+          <input
+            type="checkbox"
+            [ngModel]="e.enabled"
+            (ngModelChange)="editingDomain.set({ ...e, enabled: $event })"
+            class="w-4 h-4"
+          />
+          <span class="text-xs text-white">Caching enabled for this domain</span>
+        </label>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold"> TTL (seconds) </label>
+          <input
+            type="number"
+            min="0"
+            [ngModel]="e.ttlSec"
+            (ngModelChange)="editingDomain.set({ ...e, ttlSec: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+          <div class="text-[10px] text-slate-500 mt-1">Current: {{ formatTtl(e.ttlSec) }}</div>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 mt-5">
+        <button
+          (click)="closeDomainEditor()"
+          class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg border-0 cursor-pointer"
+        >
+          Cancel
+        </button>
+        <button
+          (click)="saveDomain()"
+          class="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-lg border-0 cursor-pointer"
+        >
+          Save
+        </button>
+      </div>
+    </div>
+  </div>
+}

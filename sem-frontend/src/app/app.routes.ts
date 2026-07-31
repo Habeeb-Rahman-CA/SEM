@@ -95,6 +95,12 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
   {
+    path: 'system-settings/cache',
+    loadComponent: () =>
+      import('./features/cache-manager/pages/cache-manager').then((m) => m.CacheManagerComponent),
+    canActivate: [authGuard],
+  },
+  {
     path: 'profile',
     loadComponent: () => import('./features/profile/pages/profile').then((m) => m.ProfileComponent),
     canActivate: [authGuard],
