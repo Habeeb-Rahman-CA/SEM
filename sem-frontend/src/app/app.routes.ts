@@ -165,6 +165,12 @@ export const routes: Routes = [
       import('./features/streaming/pages/public-spectator').then((m) => m.PublicSpectatorComponent),
   },
 
-  // Catch-all → back to the landing page
-  { path: '**', redirectTo: '' },
+  // Dedicated 404 (also the catch-all target — no silent redirect, so
+  // broken links surface in analytics instead of blending into landing traffic)
+  {
+    path: '404',
+    loadComponent: () =>
+      import('./features/not-found/pages/not-found').then((m) => m.NotFoundComponent),
+  },
+  { path: '**', redirectTo: '/404' },
 ];
