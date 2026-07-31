@@ -1,0 +1,77 @@
+# Ingress with TLS, HSTS, HTTP/2, WebSocket upgrade, and cert-manager
+# integration for automatic certificate provisioning.
+#
+# Prereqs:
+#   - nginx-ingress-controller installed (or swap to your ingress class)
+#   - cert-manager installed with a ClusterIssuer named `letsencrypt-prod`
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: sem
+  labels:
+    app.kubernetes.io/part-of: sem
+  annotations:
+    # cert-manager provisions + renews certs automatically
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    # HSTS + upgrade to HTTP/2 handled by the ingress controller
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/hsts: "true"
+    nginx.ingress.kubernetes.io/hsts-max-age: "31536000"
+    nginx.ingress.kubernetes.io/hsts-include-subdomains: "true"
+    nginx.ingress.kubernetes.io/hsts-preload: "true"
+    # HTTP/2 is on by default in modern controllers; forced here for clarity
+    nginx.ingress.kubernetes.io/use-http2: "true"
+    # Enable Brotli where the controller supports it (nginx-ingress ≥ 1.4)
+    nginx.ingress.kubernetes.io/enable-brotli: "true"
+    nginx.ingress.kubernetes.io/brotli-level: "5"
+    # WebSocket keep-alive (socket.io streams)
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    # Body size for uploads
+    nginx.ingress.kubernetes.io/proxy-body-size: "25m"
+    # Rate limiting at the edge
+    nginx.ingress.kubernetes.io/limit-rps: "50"
+    nginx.ingress.kubernetes.io/limit-burst-multiplier: "5"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - app.example.com
+      secretName: sem-tls
+  rules:
+    - host: app.example.com
+      http:
+        paths:
+          # API traffic goes straight to the backend (skips the frontend
+          # nginx proxy — one less hop, one less CPU cycle per request).
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: sem-backend
+                port:
+                  number: 3001
+          # WebSocket streams — same story
+          - path: /socket.io
+            pathType: Prefix
+            backend:
+              service:
+                name: sem-backend
+                port:
+                  number: 3001
+          # Payment webhooks (unbuffered)
+          - path: /webhooks
+            pathType: Prefix
+            backend:
+              service:
+                name: sem-backend
+                port:
+                  number: 3001
+          # Everything else = the Angular SPA served by nginx
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: sem-frontend
+                port:
+                  number: 80

@@ -1,0 +1,24 @@
+# PodDisruptionBudget — ensures at least one replica of each service
+# stays online during voluntary disruptions (node drains for cluster
+# upgrades, HPA scale-down, etc.). Combined with `maxUnavailable: 0` in
+# the Deployments, this gives zero-downtime deploys and rolling
+# node maintenance.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: sem-backend
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: sem-backend
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: sem-frontend
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: sem-frontend
