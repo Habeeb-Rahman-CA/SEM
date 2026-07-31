@@ -465,6 +465,14 @@
                 [workspaceId]="workspace()?.id || ''"
               ></app-medical>
             }
+
+            <!-- ═══════════════ ACCREDITATION TAB ═══════════════ -->
+            @if (activeTab() === 'accreditation') {
+              <app-accreditation
+                class="h-full block min-h-0"
+                [workspaceId]="workspace()?.id || ''"
+              ></app-accreditation>
+            }
           </div>
         </main>
       </div>

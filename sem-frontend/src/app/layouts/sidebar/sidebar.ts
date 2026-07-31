@@ -25,6 +25,7 @@ export class SidebarComponent {
     | 'volunteers'
     | 'equipment'
     | 'medical'
+    | 'accreditation'
   >('overview');
   membersCount = input<number>(0);
   teamsCount = input<number>(0);

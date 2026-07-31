@@ -44,6 +44,7 @@ export class WorkspaceSettingsComponent {
     | 'volunteers'
     | 'equipment'
     | 'medical'
+    | 'accreditation'
   >();
 
   // Settings form states

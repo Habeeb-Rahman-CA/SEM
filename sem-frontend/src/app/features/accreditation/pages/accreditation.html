@@ -1,0 +1,1026 @@
+<div class="h-full flex flex-col overflow-hidden w-full text-left animate-fadeIn">
+  <!-- Header -->
+  <div class="flex items-center justify-between border-b border-white/5 pb-4 flex-shrink-0">
+    <div>
+      <h2 class="text-xl font-bold text-white">Accreditation</h2>
+      <p class="text-xs text-slate-400 mt-1">
+        Digital IDs with QR codes, access control zones, and gate attendance tracking.
+      </p>
+    </div>
+    <div class="flex items-center gap-3">
+      <button
+        (click)="expireStale()"
+        class="flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl border-0 outline-none cursor-pointer transition"
+        title="Auto-expire past-due credentials"
+      >
+        <i class="fi fi-rr-time-past text-xs"></i>
+        Expire Stale
+      </button>
+      <button
+        (click)="openCredentialModal()"
+        class="flex items-center gap-1.5 px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-violet-900/20 transition-all cursor-pointer border-0 outline-none"
+      >
+        <i class="fi fi-rr-plus text-xs"></i>
+        Issue Credential
+      </button>
+    </div>
+  </div>
+
+  <!-- KPI cards -->
+  @if (summary(); as s) {
+    <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 my-4 flex-shrink-0">
+      <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+        <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">Active</div>
+        <div class="text-xl font-black text-emerald-400 mt-1">{{ s.activeCredentials }}</div>
+        <div class="text-[8px] text-slate-400 mt-0.5">{{ s.totalCredentials }} total issued</div>
+      </div>
+      <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+        <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">Zones</div>
+        <div class="text-xl font-black text-violet-400 mt-1">{{ s.totalZones }}</div>
+        <div class="text-[8px] text-slate-400 mt-0.5">Controlled areas</div>
+      </div>
+      <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+        <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">Scans Today</div>
+        <div class="text-xl font-black text-white mt-1">{{ s.totalScansToday }}</div>
+        <div class="text-[8px] text-slate-400 mt-0.5">
+          {{ s.grantedToday }} granted · {{ s.deniedToday }} denied
+        </div>
+      </div>
+      <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+        <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">
+          Expiring Soon
+        </div>
+        <div class="text-xl font-black text-amber-400 mt-1">{{ s.expiringSoon }}</div>
+        <div class="text-[8px] text-slate-400 mt-0.5">Next 7 days</div>
+      </div>
+      <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+        <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">Revoked</div>
+        <div class="text-xl font-black text-red-400 mt-1">{{ s.revoked }}</div>
+        <div class="text-[8px] text-slate-400 mt-0.5">{{ s.expired }} expired</div>
+      </div>
+    </div>
+  }
+
+  <!-- Sub tabs -->
+  <div class="flex border-b border-white/5 mb-4 flex-shrink-0 overflow-x-auto">
+    <button
+      (click)="currentTab.set('overview')"
+      [class]="
+        currentTab() === 'overview'
+          ? 'border-b-2 border-violet-500 text-violet-400'
+          : 'text-slate-400 hover:text-white'
+      "
+      class="px-4 py-2.5 text-xs font-bold bg-transparent border-0 cursor-pointer transition outline-none whitespace-nowrap"
+    >
+      <i class="fi fi-rr-apps text-xs mr-1.5"></i>Overview
+    </button>
+    <button
+      (click)="currentTab.set('credentials')"
+      [class]="
+        currentTab() === 'credentials'
+          ? 'border-b-2 border-violet-500 text-violet-400'
+          : 'text-slate-400 hover:text-white'
+      "
+      class="px-4 py-2.5 text-xs font-bold bg-transparent border-0 cursor-pointer transition outline-none whitespace-nowrap"
+    >
+      <i class="fi fi-rr-id-badge text-xs mr-1.5"></i>Credentials
+    </button>
+    <button
+      (click)="currentTab.set('zones')"
+      [class]="
+        currentTab() === 'zones'
+          ? 'border-b-2 border-violet-500 text-violet-400'
+          : 'text-slate-400 hover:text-white'
+      "
+      class="px-4 py-2.5 text-xs font-bold bg-transparent border-0 cursor-pointer transition outline-none whitespace-nowrap"
+    >
+      <i class="fi fi-rr-map-marker text-xs mr-1.5"></i>Access Zones
+    </button>
+    <button
+      (click)="currentTab.set('scan')"
+      [class]="
+        currentTab() === 'scan'
+          ? 'border-b-2 border-violet-500 text-violet-400'
+          : 'text-slate-400 hover:text-white'
+      "
+      class="px-4 py-2.5 text-xs font-bold bg-transparent border-0 cursor-pointer transition outline-none whitespace-nowrap"
+    >
+      <i class="fi fi-rr-qrcode text-xs mr-1.5"></i>Scan / Gate
+    </button>
+    <button
+      (click)="currentTab.set('attendance')"
+      [class]="
+        currentTab() === 'attendance'
+          ? 'border-b-2 border-violet-500 text-violet-400'
+          : 'text-slate-400 hover:text-white'
+      "
+      class="px-4 py-2.5 text-xs font-bold bg-transparent border-0 cursor-pointer transition outline-none whitespace-nowrap"
+    >
+      <i class="fi fi-rr-clipboard-list text-xs mr-1.5"></i>Attendance
+    </button>
+  </div>
+
+  @if (isLoading()) {
+    <div class="flex-1 flex items-center justify-center text-slate-400 text-xs">Loading…</div>
+  } @else if (error()) {
+    <div class="p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-xs">
+      {{ error() }}
+    </div>
+  } @else {
+    <div class="flex-1 overflow-y-auto pr-1">
+      <!-- ═══════ OVERVIEW ═══════ -->
+      @if (currentTab() === 'overview') {
+        <div class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="bg-slate-900/40 border border-white/5 rounded-xl p-4">
+              <div class="text-xs font-black text-white uppercase tracking-wider mb-3">
+                Credentials by Holder Type
+              </div>
+              @if (summary(); as s) {
+                <div class="space-y-2">
+                  @for (type of allHolderTypes; track type) {
+                    <div class="flex items-center justify-between">
+                      <span
+                        class="px-2 py-0.5 text-[9px] font-bold rounded border uppercase"
+                        [class]="holderBadgeClass(type)"
+                      >
+                        {{ type }}
+                      </span>
+                      <span class="text-sm text-white font-bold">
+                        {{ s.byHolderType[type] || 0 }}
+                      </span>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+            <div class="bg-slate-900/40 border border-white/5 rounded-xl p-4">
+              <div class="text-xs font-black text-white uppercase tracking-wider mb-3">
+                Recent Scans
+              </div>
+              @if (attendance().length === 0) {
+                <div class="text-[11px] text-slate-500 italic">No scans yet.</div>
+              }
+              <div class="space-y-2 max-h-64 overflow-y-auto">
+                @for (log of attendance().slice(0, 8); track log.id) {
+                  <div
+                    class="flex items-start gap-2 p-2 rounded border border-white/5 bg-slate-950/40"
+                  >
+                    <span
+                      class="px-1.5 py-0.5 text-[9px] font-bold rounded border uppercase"
+                      [class]="scanResultClass(log.result)"
+                    >
+                      {{ log.direction }}
+                    </span>
+                    <div class="flex-1 min-w-0">
+                      <div class="text-xs text-white truncate">
+                        {{ log.credential?.holderName || log.scannedCode || 'Unknown' }}
+                      </div>
+                      <div class="text-[10px] text-slate-500 truncate">
+                        {{ log.zone?.name || 'No zone' }} · {{ formatScanResult(log.result) }} ·
+                        {{ log.scannedAt | date: 'short' }}
+                      </div>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- ═══════ CREDENTIALS ═══════ -->
+      @if (currentTab() === 'credentials') {
+        <div class="flex flex-col lg:flex-row gap-4 h-full">
+          <div class="w-full lg:w-1/2 space-y-3">
+            <div class="flex flex-wrap items-center gap-2">
+              <input
+                type="text"
+                [ngModel]="searchQuery()"
+                (ngModelChange)="searchQuery.set($event)"
+                placeholder="Search name, code, org…"
+                class="flex-1 min-w-[160px] bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 outline-none focus:border-violet-500"
+              />
+              <select
+                [ngModel]="holderFilter()"
+                (ngModelChange)="holderFilter.set($event)"
+                class="bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-violet-500"
+              >
+                <option value="">All types</option>
+                @for (t of allHolderTypes; track t) {
+                  <option [value]="t">{{ t }}</option>
+                }
+              </select>
+            </div>
+            @if (filteredCredentials().length === 0) {
+              <div class="p-6 text-center text-[11px] text-slate-500 italic">
+                No credentials match.
+              </div>
+            }
+            @for (c of filteredCredentials(); track c.id) {
+              <div
+                (click)="selectCredential(c.id)"
+                [class.border-violet-500]="selectedCredentialId() === c.id"
+                [class.bg-slate-900]="selectedCredentialId() === c.id"
+                class="p-3 border border-white/5 rounded-xl bg-slate-950/40 hover:bg-slate-900 cursor-pointer transition"
+              >
+                <div class="flex items-start justify-between">
+                  <div class="flex-1 min-w-0">
+                    <div class="text-xs font-bold text-white truncate">{{ c.holderName }}</div>
+                    <div class="text-[10px] text-slate-400 truncate">
+                      @if (c.holderRole) {
+                        {{ c.holderRole }} ·
+                      }
+                      {{ c.organization || c.holderPlayer?.team?.name || '—' }}
+                    </div>
+                    <div class="text-[10px] font-mono text-slate-500 mt-1">{{ c.code }}</div>
+                  </div>
+                  <div class="flex flex-col items-end gap-1">
+                    <span
+                      class="px-1.5 py-0.5 text-[9px] font-bold rounded border uppercase"
+                      [class]="holderBadgeClass(c.holderType)"
+                    >
+                      {{ c.holderType }}
+                    </span>
+                    <span
+                      class="px-1.5 py-0.5 text-[9px] font-bold rounded border uppercase"
+                      [class]="statusBadgeClass(c.status)"
+                    >
+                      {{ c.status }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+
+          <!-- Detail panel with QR -->
+          <div class="flex-1 bg-slate-900/40 border border-white/5 rounded-xl p-4">
+            @if (selectedCredential(); as c) {
+              <div class="flex items-start justify-between mb-4">
+                <div>
+                  <div class="text-lg font-black text-white">{{ c.holderName }}</div>
+                  <div class="text-[11px] text-slate-400">
+                    {{ c.holderRole || '—' }}
+                    @if (c.organization) {
+                      · {{ c.organization }}
+                    }
+                  </div>
+                </div>
+                <div class="flex gap-2">
+                  <button
+                    (click)="openCredentialModal(c)"
+                    class="px-2.5 py-1.5 bg-violet-600/20 hover:bg-violet-600 text-violet-400 hover:text-white text-[10px] font-bold rounded border-0 cursor-pointer"
+                  >
+                    Edit
+                  </button>
+                  @if (c.status === 'active') {
+                    <button
+                      (click)="revokeCredential(c)"
+                      class="px-2.5 py-1.5 bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white text-[10px] font-bold rounded border-0 cursor-pointer"
+                    >
+                      Revoke
+                    </button>
+                  }
+                  <button
+                    (click)="deleteCredential(c)"
+                    class="px-2.5 py-1.5 bg-slate-800 hover:bg-red-600 text-slate-400 hover:text-white text-[10px] font-bold rounded border-0 cursor-pointer"
+                  >
+                    <i class="fi fi-rr-trash"></i>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Digital ID card -->
+              <div
+                class="p-4 bg-slate-950/70 border-2 rounded-xl mb-4"
+                [class]="statusBadgeClass(c.status)"
+              >
+                <div class="flex gap-4">
+                  <div class="flex-shrink-0">
+                    @if (c.photoUrl) {
+                      <img
+                        [src]="c.photoUrl"
+                        [alt]="c.holderName"
+                        class="w-24 h-24 rounded-lg object-cover border border-white/10"
+                      />
+                    } @else {
+                      <div
+                        class="w-24 h-24 rounded-lg bg-slate-800 flex items-center justify-center text-slate-500"
+                      >
+                        <i class="fi fi-rr-user text-2xl"></i>
+                      </div>
+                    }
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 mb-2">
+                      <span
+                        class="px-2 py-0.5 text-[9px] font-bold rounded border uppercase"
+                        [class]="holderBadgeClass(c.holderType)"
+                      >
+                        {{ c.holderType }}
+                      </span>
+                      <span
+                        class="px-2 py-0.5 text-[9px] font-bold rounded border uppercase"
+                        [class]="accessBadgeClass(c.accessLevel)"
+                      >
+                        {{ c.accessLevel }}
+                      </span>
+                    </div>
+                    <div class="text-xs text-slate-400">Valid</div>
+                    <div class="text-xs text-white font-bold">
+                      {{ c.validFrom | date: 'mediumDate' }} →
+                      {{ c.validUntil | date: 'mediumDate' }}
+                    </div>
+                    @if (c.event) {
+                      <div class="text-[10px] text-slate-400 mt-1">Event: {{ c.event.title }}</div>
+                    }
+                    <div class="mt-2 flex items-center gap-2">
+                      <span class="text-[10px] text-slate-400">Code:</span>
+                      <span
+                        class="text-[10px] font-mono text-white bg-slate-900 px-2 py-0.5 rounded"
+                      >
+                        {{ c.code }}
+                      </span>
+                      <button
+                        (click)="copyCode(c.code)"
+                        class="text-[10px] text-violet-400 hover:text-violet-300 bg-transparent border-0 cursor-pointer"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                  </div>
+                  <div class="flex-shrink-0 text-center">
+                    <img
+                      [src]="qrImageUrl(c.code)"
+                      [alt]="'QR for ' + c.holderName"
+                      class="w-32 h-32 bg-white p-1 rounded"
+                    />
+                    <div class="text-[9px] text-slate-500 mt-1">Scan at gate</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Access grants -->
+              <div class="p-3 bg-slate-950/40 rounded-lg border border-white/5">
+                <div class="text-[9px] text-slate-500 uppercase font-black mb-2">
+                  Zone-Specific Grants ({{ c.accessGrants?.length || 0 }})
+                </div>
+                @if (!c.accessGrants || c.accessGrants.length === 0) {
+                  <div class="text-[10px] text-slate-500 italic">
+                    Access decided by holder type + access level (no explicit grants).
+                  </div>
+                } @else {
+                  <div class="flex flex-wrap gap-1.5">
+                    @for (g of c.accessGrants; track g.id) {
+                      <span
+                        class="px-2 py-0.5 text-[10px] font-bold rounded bg-violet-500/15 text-violet-400 border border-violet-500/30"
+                      >
+                        {{ g.zone?.name }}
+                      </span>
+                    }
+                  </div>
+                }
+              </div>
+
+              @if (c.notes) {
+                <div class="p-3 bg-slate-950/40 rounded-lg border border-white/5 mt-3">
+                  <div class="text-[9px] text-slate-500 uppercase font-black mb-1">Notes</div>
+                  <div class="text-xs text-slate-300 whitespace-pre-wrap">{{ c.notes }}</div>
+                </div>
+              }
+            } @else {
+              <div class="h-full flex items-center justify-center text-slate-500 text-xs">
+                Select a credential to view the digital ID card & QR.
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- ═══════ ZONES ═══════ -->
+      @if (currentTab() === 'zones') {
+        <div class="flex justify-end mb-3">
+          <button
+            (click)="openZoneModal()"
+            class="flex items-center gap-1.5 px-3 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-xl border-0 cursor-pointer"
+          >
+            <i class="fi fi-rr-plus text-xs"></i>New Zone
+          </button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          @if (zones().length === 0) {
+            <div class="col-span-full text-center text-[11px] text-slate-500 italic py-8">
+              No access zones defined yet.
+            </div>
+          }
+          @for (z of zones(); track z.id) {
+            <div class="p-4 bg-slate-900/40 border border-white/5 rounded-xl">
+              <div class="flex items-start justify-between">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2">
+                    @if (z.color) {
+                      <span class="w-3 h-3 rounded-full" [style.background-color]="z.color"></span>
+                    }
+                    <div class="text-sm font-bold text-white">{{ z.name }}</div>
+                    @if (!z.isActive) {
+                      <span class="px-1.5 py-0.5 text-[9px] bg-slate-700 text-slate-300 rounded">
+                        inactive
+                      </span>
+                    }
+                  </div>
+                  @if (z.description) {
+                    <div class="text-[10px] text-slate-400 mt-1">{{ z.description }}</div>
+                  }
+                  @if (z.venue) {
+                    <div class="text-[10px] text-slate-500 mt-0.5">Venue: {{ z.venue.name }}</div>
+                  }
+                </div>
+                <div class="flex gap-1">
+                  <button
+                    (click)="openZoneModal(z)"
+                    class="px-2 py-1 text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border-0 cursor-pointer"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    (click)="deleteZone(z)"
+                    class="px-2 py-1 text-[10px] bg-slate-800 hover:bg-red-600 text-slate-400 hover:text-white rounded border-0 cursor-pointer"
+                  >
+                    <i class="fi fi-rr-trash"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="mt-3 space-y-2">
+                <div>
+                  <div class="text-[9px] text-slate-500 uppercase font-black mb-1">
+                    Allowed Holder Types
+                  </div>
+                  <div class="flex flex-wrap gap-1">
+                    @if (!z.allowedHolderTypes || z.allowedHolderTypes.length === 0) {
+                      <span class="text-[10px] text-slate-500 italic">All (unrestricted)</span>
+                    }
+                    @for (t of z.allowedHolderTypes || []; track t) {
+                      <span
+                        class="px-1.5 py-0.5 text-[9px] font-bold rounded border uppercase"
+                        [class]="holderBadgeClass(t)"
+                      >
+                        {{ t }}
+                      </span>
+                    }
+                  </div>
+                </div>
+                <div>
+                  <div class="text-[9px] text-slate-500 uppercase font-black mb-1">
+                    Allowed Access Levels
+                  </div>
+                  <div class="flex flex-wrap gap-1">
+                    @if (!z.allowedAccessLevels || z.allowedAccessLevels.length === 0) {
+                      <span class="text-[10px] text-slate-500 italic">All</span>
+                    }
+                    @for (lvl of z.allowedAccessLevels || []; track lvl) {
+                      <span
+                        class="px-1.5 py-0.5 text-[9px] font-bold rounded border uppercase"
+                        [class]="accessBadgeClass(lvl)"
+                      >
+                        {{ lvl }}
+                      </span>
+                    }
+                  </div>
+                </div>
+                @if (z.capacity) {
+                  <div class="text-[10px] text-slate-400">
+                    Capacity: <span class="text-white font-bold">{{ z.capacity }}</span>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- ═══════ SCAN / GATE ═══════ -->
+      @if (currentTab() === 'scan') {
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div class="bg-slate-900/40 border border-white/5 rounded-xl p-4">
+            <div class="text-xs font-black text-white uppercase tracking-wider mb-3">
+              Scan / Verify Credential
+            </div>
+            <div class="space-y-3">
+              <div>
+                <label class="text-[10px] text-slate-400 uppercase font-bold">Zone</label>
+                <select
+                  [ngModel]="scanZoneId()"
+                  (ngModelChange)="scanZoneId.set($event)"
+                  class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+                >
+                  <option value="">— No zone (general check) —</option>
+                  @for (z of zones(); track z.id) {
+                    <option [value]="z.id" [disabled]="!z.isActive">
+                      {{ z.name }}
+                      @if (!z.isActive) {
+                        (inactive)
+                      }
+                    </option>
+                  }
+                </select>
+              </div>
+              <div>
+                <label class="text-[10px] text-slate-400 uppercase font-bold">Direction</label>
+                <div class="flex gap-2 mt-1">
+                  <button
+                    (click)="scanDirection.set('in')"
+                    [class]="
+                      scanDirection() === 'in'
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                    "
+                    class="flex-1 px-3 py-2 text-xs font-bold rounded-lg border-0 cursor-pointer"
+                  >
+                    Entry (in)
+                  </button>
+                  <button
+                    (click)="scanDirection.set('out')"
+                    [class]="
+                      scanDirection() === 'out'
+                        ? 'bg-amber-600 text-white'
+                        : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                    "
+                    class="flex-1 px-3 py-2 text-xs font-bold rounded-lg border-0 cursor-pointer"
+                  >
+                    Exit (out)
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label class="text-[10px] text-slate-400 uppercase font-bold">
+                  QR Code / Badge ID
+                </label>
+                <div class="flex gap-2 mt-1">
+                  <input
+                    type="text"
+                    [ngModel]="scanCode()"
+                    (ngModelChange)="scanCode.set($event)"
+                    (keyup.enter)="runScan()"
+                    placeholder="Paste or scan code…"
+                    class="flex-1 bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 outline-none focus:border-violet-500"
+                  />
+                  <button
+                    (click)="runScan()"
+                    [disabled]="isScanning() || !scanCode().trim()"
+                    [class.opacity-50]="isScanning() || !scanCode().trim()"
+                    class="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-lg border-0 cursor-pointer"
+                  >
+                    Verify
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Last scan result -->
+          <div class="bg-slate-900/40 border border-white/5 rounded-xl p-4">
+            <div class="text-xs font-black text-white uppercase tracking-wider mb-3">Last Scan</div>
+            @if (lastScan(); as s) {
+              <div class="p-4 rounded-xl border-2" [class]="scanResultClass(s.result)">
+                <div class="flex items-center gap-2 mb-2">
+                  @if (s.result === 'granted') {
+                    <i class="fi fi-rr-check text-2xl"></i>
+                  } @else {
+                    <i class="fi fi-rr-cross-circle text-2xl"></i>
+                  }
+                  <div class="text-lg font-black uppercase">
+                    {{ s.result === 'granted' ? 'GRANTED' : 'DENIED' }}
+                  </div>
+                </div>
+                <div class="text-xs">{{ s.message }}</div>
+                @if (s.credential) {
+                  <div class="mt-3 pt-3 border-t border-white/10 space-y-1">
+                    <div class="text-sm font-bold text-white">
+                      {{ s.credential.holderName }}
+                    </div>
+                    <div class="text-[11px]">
+                      {{ s.credential.holderRole || s.credential.holderType }}
+                      @if (s.credential.organization) {
+                        · {{ s.credential.organization }}
+                      }
+                    </div>
+                    <div class="flex items-center gap-2 mt-1">
+                      <span
+                        class="px-1.5 py-0.5 text-[9px] font-bold rounded border uppercase"
+                        [class]="holderBadgeClass(s.credential.holderType)"
+                      >
+                        {{ s.credential.holderType }}
+                      </span>
+                      <span
+                        class="px-1.5 py-0.5 text-[9px] font-bold rounded border uppercase"
+                        [class]="accessBadgeClass(s.credential.accessLevel)"
+                      >
+                        {{ s.credential.accessLevel }}
+                      </span>
+                    </div>
+                  </div>
+                }
+                @if (s.zone) {
+                  <div class="text-[11px] mt-2">Zone: {{ s.zone.name }}</div>
+                }
+              </div>
+            } @else {
+              <div class="text-[11px] text-slate-500 italic">
+                No scans yet. Scan a QR code to check access.
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- ═══════ ATTENDANCE ═══════ -->
+      @if (currentTab() === 'attendance') {
+        <div class="bg-slate-900/40 border border-white/5 rounded-xl overflow-hidden">
+          <table class="w-full text-xs">
+            <thead class="bg-slate-950/60 text-[10px] uppercase tracking-wider text-slate-500">
+              <tr>
+                <th class="text-left px-4 py-2 font-black">When</th>
+                <th class="text-left px-4 py-2 font-black">Holder</th>
+                <th class="text-left px-4 py-2 font-black">Zone</th>
+                <th class="text-left px-4 py-2 font-black">Direction</th>
+                <th class="text-left px-4 py-2 font-black">Result</th>
+                <th class="text-left px-4 py-2 font-black">By</th>
+              </tr>
+            </thead>
+            <tbody>
+              @if (attendance().length === 0) {
+                <tr>
+                  <td colspan="6" class="text-center text-[11px] text-slate-500 italic py-8">
+                    No attendance recorded yet.
+                  </td>
+                </tr>
+              }
+              @for (log of attendance(); track log.id) {
+                <tr class="border-t border-white/5 hover:bg-slate-950/40">
+                  <td class="px-4 py-2 text-slate-300 whitespace-nowrap">
+                    {{ log.scannedAt | date: 'short' }}
+                  </td>
+                  <td class="px-4 py-2">
+                    <div class="text-white font-bold">
+                      {{ log.credential?.holderName || '—' }}
+                    </div>
+                    <div class="text-[10px] font-mono text-slate-500">
+                      {{ log.credential?.code || log.scannedCode }}
+                    </div>
+                  </td>
+                  <td class="px-4 py-2 text-slate-300">{{ log.zone?.name || '—' }}</td>
+                  <td class="px-4 py-2">
+                    <span
+                      class="px-1.5 py-0.5 text-[9px] font-bold rounded border uppercase"
+                      [class]="
+                        log.direction === 'in'
+                          ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                          : 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                      "
+                    >
+                      {{ log.direction }}
+                    </span>
+                  </td>
+                  <td class="px-4 py-2">
+                    <span
+                      class="px-1.5 py-0.5 text-[9px] font-bold rounded border"
+                      [class]="scanResultClass(log.result)"
+                    >
+                      {{ formatScanResult(log.result) }}
+                    </span>
+                  </td>
+                  <td class="px-4 py-2 text-slate-400">
+                    {{ log.scannedBy?.username || '—' }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  }
+</div>
+
+<!-- ═══════ CREDENTIAL MODAL ═══════ -->
+@if (isCredentialModalOpen()) {
+  <div
+    class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-start justify-center overflow-y-auto p-4"
+    (click)="closeCredentialModal()"
+  >
+    <div
+      class="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-3xl p-6 my-8"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold text-white">
+          {{ editingCredentialId() ? 'Update' : 'Issue' }} Credential
+        </h3>
+        <button
+          (click)="closeCredentialModal()"
+          class="text-slate-400 hover:text-white bg-transparent border-0 cursor-pointer"
+        >
+          <i class="fi fi-rr-cross text-sm"></i>
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        @if (!editingCredentialId()) {
+          <div>
+            <label class="text-[10px] text-slate-400 uppercase font-bold">Holder Type</label>
+            <select
+              [ngModel]="credentialForm().holderType"
+              (ngModelChange)="credentialForm.set({ ...credentialForm(), holderType: $event })"
+              class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+            >
+              @for (t of allHolderTypes; track t) {
+                <option [value]="t">{{ t }}</option>
+              }
+            </select>
+          </div>
+        } @else {
+          <div>
+            <label class="text-[10px] text-slate-400 uppercase font-bold">Status</label>
+            <select
+              [ngModel]="credentialForm().status"
+              (ngModelChange)="credentialForm.set({ ...credentialForm(), status: $event })"
+              class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+            >
+              <option value="active">Active</option>
+              <option value="revoked">Revoked</option>
+              <option value="expired">Expired</option>
+              <option value="lost">Lost</option>
+            </select>
+          </div>
+        }
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Access Level</label>
+          <select
+            [ngModel]="credentialForm().accessLevel"
+            (ngModelChange)="credentialForm.set({ ...credentialForm(), accessLevel: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          >
+            @for (lvl of allAccessLevels; track lvl) {
+              <option [value]="lvl">{{ lvl }}</option>
+            }
+          </select>
+        </div>
+        <div class="md:col-span-2">
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Holder Name</label>
+          <input
+            type="text"
+            [ngModel]="credentialForm().holderName"
+            (ngModelChange)="credentialForm.set({ ...credentialForm(), holderName: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Role</label>
+          <input
+            type="text"
+            [ngModel]="credentialForm().holderRole"
+            (ngModelChange)="credentialForm.set({ ...credentialForm(), holderRole: $event })"
+            placeholder="e.g. Referee, Photographer"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Organization</label>
+          <input
+            type="text"
+            [ngModel]="credentialForm().organization"
+            (ngModelChange)="credentialForm.set({ ...credentialForm(), organization: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Valid From</label>
+          <input
+            type="date"
+            [ngModel]="credentialForm().validFrom"
+            (ngModelChange)="credentialForm.set({ ...credentialForm(), validFrom: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Valid Until</label>
+          <input
+            type="date"
+            [ngModel]="credentialForm().validUntil"
+            (ngModelChange)="credentialForm.set({ ...credentialForm(), validUntil: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div class="md:col-span-2">
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Photo URL</label>
+          <input
+            type="text"
+            [ngModel]="credentialForm().photoUrl"
+            (ngModelChange)="credentialForm.set({ ...credentialForm(), photoUrl: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div class="md:col-span-2">
+          <label class="text-[10px] text-slate-400 uppercase font-bold">
+            Explicit Zone Grants (in addition to holder-type / access-level rules)
+          </label>
+          <div class="flex flex-wrap gap-2 mt-2">
+            @if (zones().length === 0) {
+              <span class="text-[10px] text-slate-500 italic">
+                No zones defined. Configure zones first.
+              </span>
+            }
+            @for (z of zones(); track z.id) {
+              <button
+                type="button"
+                (click)="toggleZoneInForm(z.id)"
+                [class]="
+                  credentialForm().zoneIds.includes(z.id)
+                    ? 'bg-violet-600 text-white'
+                    : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                "
+                class="px-2.5 py-1 text-[10px] font-bold rounded border-0 cursor-pointer"
+              >
+                {{ z.name }}
+              </button>
+            }
+          </div>
+        </div>
+        <div class="md:col-span-2">
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Notes</label>
+          <textarea
+            rows="2"
+            [ngModel]="credentialForm().notes"
+            (ngModelChange)="credentialForm.set({ ...credentialForm(), notes: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1 resize-none"
+          ></textarea>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 mt-5">
+        <button
+          (click)="closeCredentialModal()"
+          class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg border-0 cursor-pointer"
+        >
+          Cancel
+        </button>
+        <button
+          (click)="saveCredential()"
+          [disabled]="
+            !credentialForm().holderName ||
+            !credentialForm().validFrom ||
+            !credentialForm().validUntil
+          "
+          [class.opacity-50]="
+            !credentialForm().holderName ||
+            !credentialForm().validFrom ||
+            !credentialForm().validUntil
+          "
+          class="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-lg border-0 cursor-pointer"
+        >
+          {{ editingCredentialId() ? 'Update' : 'Issue' }} Credential
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ═══════ ZONE MODAL ═══════ -->
+@if (isZoneModalOpen()) {
+  <div
+    class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-start justify-center overflow-y-auto p-4"
+    (click)="closeZoneModal()"
+  >
+    <div
+      class="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-2xl p-6 my-8"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold text-white">
+          {{ editingZoneId() ? 'Update' : 'Create' }} Access Zone
+        </h3>
+        <button
+          (click)="closeZoneModal()"
+          class="text-slate-400 hover:text-white bg-transparent border-0 cursor-pointer"
+        >
+          <i class="fi fi-rr-cross text-sm"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3">
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Name</label>
+          <input
+            type="text"
+            [ngModel]="zoneForm().name"
+            (ngModelChange)="zoneForm.set({ ...zoneForm(), name: $event })"
+            placeholder="e.g. Locker Rooms, Media Deck"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Description</label>
+          <textarea
+            rows="2"
+            [ngModel]="zoneForm().description"
+            (ngModelChange)="zoneForm.set({ ...zoneForm(), description: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1 resize-none"
+          ></textarea>
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">
+            Allowed Holder Types (leave empty = allow all)
+          </label>
+          <div class="flex flex-wrap gap-2 mt-2">
+            @for (t of allHolderTypes; track t) {
+              <button
+                type="button"
+                (click)="toggleZoneHolderType(t)"
+                [class]="
+                  zoneForm().allowedHolderTypes.includes(t)
+                    ? 'bg-violet-600 text-white'
+                    : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                "
+                class="px-2.5 py-1 text-[10px] font-bold rounded border-0 cursor-pointer uppercase"
+              >
+                {{ t }}
+              </button>
+            }
+          </div>
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">
+            Allowed Access Levels (leave empty = allow all)
+          </label>
+          <div class="flex flex-wrap gap-2 mt-2">
+            @for (lvl of allAccessLevels; track lvl) {
+              <button
+                type="button"
+                (click)="toggleZoneAccessLevel(lvl)"
+                [class]="
+                  zoneForm().allowedAccessLevels.includes(lvl)
+                    ? 'bg-violet-600 text-white'
+                    : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                "
+                class="px-2.5 py-1 text-[10px] font-bold rounded border-0 cursor-pointer uppercase"
+              >
+                {{ lvl }}
+              </button>
+            }
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-[10px] text-slate-400 uppercase font-bold">Capacity</label>
+            <input
+              type="number"
+              min="0"
+              [ngModel]="zoneForm().capacity"
+              (ngModelChange)="zoneForm.set({ ...zoneForm(), capacity: $event })"
+              class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+            />
+          </div>
+          <div>
+            <label class="text-[10px] text-slate-400 uppercase font-bold">Color</label>
+            <input
+              type="color"
+              [ngModel]="zoneForm().color"
+              (ngModelChange)="zoneForm.set({ ...zoneForm(), color: $event })"
+              class="w-full h-9 bg-slate-950 border border-white/10 rounded-lg mt-1 cursor-pointer"
+            />
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <input
+            id="zoneActive"
+            type="checkbox"
+            [ngModel]="zoneForm().isActive"
+            (ngModelChange)="zoneForm.set({ ...zoneForm(), isActive: $event })"
+            class="w-4 h-4"
+          />
+          <label for="zoneActive" class="text-xs text-slate-300 cursor-pointer">
+            Zone is active (accepting scans)
+          </label>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 mt-5">
+        <button
+          (click)="closeZoneModal()"
+          class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg border-0 cursor-pointer"
+        >
+          Cancel
+        </button>
+        <button
+          (click)="saveZone()"
+          [disabled]="!zoneForm().name"
+          [class.opacity-50]="!zoneForm().name"
+          class="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-lg border-0 cursor-pointer"
+        >
+          {{ editingZoneId() ? 'Update' : 'Create' }} Zone
+        </button>
+      </div>
+    </div>
+  </div>
+}

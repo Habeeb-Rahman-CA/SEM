@@ -36,6 +36,7 @@ import { AiModule } from './modules/ai/ai.module';
 import { VolunteersModule } from './modules/volunteers/volunteers.module';
 import { EquipmentModule } from './modules/equipment/equipment.module';
 import { MedicalModule } from './modules/medical/medical.module';
+import { AccreditationModule } from './modules/accreditation/accreditation.module';
 
 @Module({
   imports: [
@@ -88,6 +89,7 @@ import { MedicalModule } from './modules/medical/medical.module';
     VolunteersModule,
     EquipmentModule,
     MedicalModule,
+    AccreditationModule,
   ],
   controllers: [AppController],
   providers: [
