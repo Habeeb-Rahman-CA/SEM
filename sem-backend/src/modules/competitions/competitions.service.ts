@@ -751,6 +751,55 @@ export class CompetitionsService {
     return this.aiSummaryService.generateAndSaveSummary(matchId);
   }
 
+  async publishMatchSummary(
+    workspaceId: string,
+    eventId: string,
+    competitionId: string,
+    stageId: string,
+    matchId: string,
+    userId: string,
+  ): Promise<Match> {
+    await this.workspacesService.ensurePermission(
+      workspaceId,
+      userId,
+      'match.score',
+    );
+    const stage = await this.stageRepo.findOne({
+      where: { id: stageId, competitionId },
+    });
+    if (!stage) {
+      throw new NotFoundException(
+        `Stage "${stageId}" not found in this competition`,
+      );
+    }
+    return this.aiSummaryService.publishSummary(matchId);
+  }
+
+  async updateMatchSummaryDraft(
+    workspaceId: string,
+    eventId: string,
+    competitionId: string,
+    stageId: string,
+    matchId: string,
+    summaryDraft: string,
+    userId: string,
+  ): Promise<Match> {
+    await this.workspacesService.ensurePermission(
+      workspaceId,
+      userId,
+      'match.score',
+    );
+    const stage = await this.stageRepo.findOne({
+      where: { id: stageId, competitionId },
+    });
+    if (!stage) {
+      throw new NotFoundException(
+        `Stage "${stageId}" not found in this competition`,
+      );
+    }
+    return this.aiSummaryService.updateSummaryDraft(matchId, summaryDraft);
+  }
+
   async acquireMatchLock(
     workspaceId: string,
     matchId: string,

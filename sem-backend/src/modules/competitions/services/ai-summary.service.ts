@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Match } from '../entities/match.entity';
 import { MatchPlayer } from '../../players/entities/match-player.entity';
-import { generateTextWithFallback } from '../../../common/ai-client';
+import { AiService } from '../../ai/ai.service';
 
 @Injectable()
 export class AiSummaryService {
@@ -12,6 +12,7 @@ export class AiSummaryService {
     private readonly matchRepo: Repository<Match>,
     @InjectRepository(MatchPlayer)
     private readonly matchPlayerRepo: Repository<MatchPlayer>,
+    private readonly aiService: AiService,
   ) {}
 
   async generateAndSaveSummary(matchId: string): Promise<Match> {
@@ -40,7 +41,26 @@ export class AiSummaryService {
     });
 
     const summary = await this.buildSummary(match, matchPlayers);
-    match.summary = summary;
+    match.summaryDraft = summary;
+    match.isSummaryPublished = false; // set as draft, awaiting human review
+    return this.matchRepo.save(match);
+  }
+
+  async publishSummary(matchId: string): Promise<Match> {
+    const match = await this.matchRepo.findOne({ where: { id: matchId } });
+    if (!match) throw new NotFoundException(`Match "${matchId}" not found`);
+    match.summary = match.summaryDraft || match.summary;
+    match.isSummaryPublished = true;
+    return this.matchRepo.save(match);
+  }
+
+  async updateSummaryDraft(
+    matchId: string,
+    summaryDraft: string,
+  ): Promise<Match> {
+    const match = await this.matchRepo.findOne({ where: { id: matchId } });
+    if (!match) throw new NotFoundException(`Match "${matchId}" not found`);
+    match.summaryDraft = summaryDraft;
     return this.matchRepo.save(match);
   }
 
@@ -50,7 +70,7 @@ export class AiSummaryService {
   ): Promise<string> {
     try {
       const prompt = this.buildPrompt(match, matchPlayers);
-      const summary = await generateTextWithFallback(prompt);
+      const summary = await this.aiService.generateText(prompt);
       if (summary) return summary.trim();
     } catch (err) {
       console.error('Failed to generate summary with AI:', err);

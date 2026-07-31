@@ -10,7 +10,8 @@ import { Competition } from '../competitions/entities/competition.entity';
 import { Match } from '../competitions/entities/match.entity';
 import { Venue } from '../venues/entities/venue.entity';
 import { AuditLog } from './entities/audit-log.entity';
-import { generateTextWithFallback } from '../../common/ai-client';
+import { WorkspaceAnalyticsSnapshot } from './entities/workspace-analytics-snapshot.entity';
+import { AiService } from '../ai/ai.service';
 
 @Injectable()
 export class AnalyticsService {
@@ -33,6 +34,9 @@ export class AnalyticsService {
     private readonly venueRepo: Repository<Venue>,
     @InjectRepository(AuditLog)
     private readonly auditLogRepo: Repository<AuditLog>,
+    @InjectRepository(WorkspaceAnalyticsSnapshot)
+    private readonly snapshotRepo: Repository<WorkspaceAnalyticsSnapshot>,
+    private readonly aiService: AiService,
   ) {}
 
   private async validateWorkspace(workspaceId: string) {
@@ -44,7 +48,7 @@ export class AnalyticsService {
   }
 
   // ─── 1. Event Reports Dashboard ──────────────────────────────────────────
-  async getEventReports(workspaceId: string) {
+  async calculateEventReports(workspaceId: string) {
     await this.validateWorkspace(workspaceId);
 
     const events = await this.eventRepo.find({
@@ -158,7 +162,7 @@ export class AnalyticsService {
   }
 
   // ─── 2. Participation Trends ──────────────────────────────────────────────
-  async getParticipationTrends(workspaceId: string) {
+  async calculateParticipationTrends(workspaceId: string) {
     await this.validateWorkspace(workspaceId);
 
     const players = await this.playerRepo.find({
@@ -317,7 +321,7 @@ export class AnalyticsService {
   }
 
   // ─── 3. Historical Comparisons ────────────────────────────────────────────
-  async getHistoricalComparisons(workspaceId: string) {
+  async calculateHistoricalComparisons(workspaceId: string) {
     await this.validateWorkspace(workspaceId);
 
     const events = await this.eventRepo.find({
@@ -489,7 +493,7 @@ export class AnalyticsService {
   }
 
   // ─── 4. Organizer Insights ────────────────────────────────────────────────
-  async getOrganizerInsights(workspaceId: string) {
+  async calculateOrganizerInsights(workspaceId: string) {
     await this.validateWorkspace(workspaceId);
 
     const auditLogs = await this.auditLogRepo.find({
@@ -653,7 +657,7 @@ Provide the response STRICTLY in the following JSON format:
 }
 `;
 
-      const text = await generateTextWithFallback(prompt);
+      const text = await this.aiService.generateText(prompt);
       if (text) {
         const cleanJsonStr = text
           .trim()
@@ -674,5 +678,102 @@ Provide the response STRICTLY in the following JSON format:
       bottlenecks,
       aiRecommendation,
     };
+  }
+
+  // ─── Dedicated Analytics Warehouse Synchronization ───────────────────────
+
+  private async getOrCreateSnapshot(
+    workspaceId: string,
+  ): Promise<WorkspaceAnalyticsSnapshot> {
+    await this.validateWorkspace(workspaceId);
+
+    let snapshot = await this.snapshotRepo.findOne({
+      where: { workspaceId },
+      order: { updatedAt: 'DESC' },
+    });
+
+    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+
+    if (!snapshot) {
+      snapshot = new WorkspaceAnalyticsSnapshot();
+      snapshot.workspaceId = workspaceId;
+      await this.snapshotRepo.save(snapshot);
+    } else if (snapshot.updatedAt < tenMinutesAgo) {
+      // Trigger background update asynchronously without awaiting it
+      this.runAggregationJob(workspaceId, snapshot).catch((err) =>
+        console.error(
+          `Error running background aggregation for workspace ${workspaceId}:`,
+          err,
+        ),
+      );
+    }
+
+    return snapshot;
+  }
+
+  private async runAggregationJob(
+    workspaceId: string,
+    snapshot: WorkspaceAnalyticsSnapshot,
+  ): Promise<void> {
+    const kpis = await this.calculateEventReports(workspaceId);
+    const participationTrends =
+      await this.calculateParticipationTrends(workspaceId);
+    const historicalComparisons =
+      await this.calculateHistoricalComparisons(workspaceId);
+    const organizerInsights =
+      await this.calculateOrganizerInsights(workspaceId);
+
+    snapshot.kpis = kpis;
+    snapshot.participationTrends = participationTrends;
+    snapshot.historicalComparisons = historicalComparisons;
+    snapshot.organizerInsights = organizerInsights;
+    snapshot.updatedAt = new Date();
+    await this.snapshotRepo.save(snapshot);
+  }
+
+  // ─── Public Facade (Read-optimized from the dedicated Analytics Warehouse) ──
+
+  async getEventReports(workspaceId: string) {
+    const snapshot = await this.getOrCreateSnapshot(workspaceId);
+    if (snapshot.kpis) {
+      return snapshot.kpis;
+    }
+    const data = await this.calculateEventReports(workspaceId);
+    snapshot.kpis = data;
+    await this.snapshotRepo.save(snapshot);
+    return data;
+  }
+
+  async getParticipationTrends(workspaceId: string) {
+    const snapshot = await this.getOrCreateSnapshot(workspaceId);
+    if (snapshot.participationTrends) {
+      return snapshot.participationTrends;
+    }
+    const data = await this.calculateParticipationTrends(workspaceId);
+    snapshot.participationTrends = data;
+    await this.snapshotRepo.save(snapshot);
+    return data;
+  }
+
+  async getHistoricalComparisons(workspaceId: string) {
+    const snapshot = await this.getOrCreateSnapshot(workspaceId);
+    if (snapshot.historicalComparisons) {
+      return snapshot.historicalComparisons;
+    }
+    const data = await this.calculateHistoricalComparisons(workspaceId);
+    snapshot.historicalComparisons = data;
+    await this.snapshotRepo.save(snapshot);
+    return data;
+  }
+
+  async getOrganizerInsights(workspaceId: string) {
+    const snapshot = await this.getOrCreateSnapshot(workspaceId);
+    if (snapshot.organizerInsights) {
+      return snapshot.organizerInsights;
+    }
+    const data = await this.calculateOrganizerInsights(workspaceId);
+    snapshot.organizerInsights = data;
+    await this.snapshotRepo.save(snapshot);
+    return data;
   }
 }

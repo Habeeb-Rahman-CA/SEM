@@ -132,6 +132,12 @@ export class Match extends AuditableEntity {
   @Column({ type: 'text', nullable: true })
   summary: string | null;
 
+  @Column({ name: 'summary_draft', type: 'text', nullable: true })
+  summaryDraft: string | null;
+
+  @Column({ name: 'is_summary_published', type: 'boolean', default: false })
+  isSummaryPublished: boolean;
+
   @Column({ name: 'highlight_videos', type: 'jsonb', nullable: true })
   highlightVideos: Array<{
     id: string;

@@ -11,6 +11,7 @@ import { TeamsController } from './teams.controller';
 import { PublicTeamsController } from './public-teams.controller';
 import { WorkspacesModule } from '../workspaces/workspaces.module';
 import { SearchModule } from '../search/search.module';
+import { AiModule } from '../ai/ai.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { SearchModule } from '../search/search.module';
     ]),
     WorkspacesModule,
     SearchModule,
+    AiModule,
   ],
   controllers: [TeamsController, PublicTeamsController],
   providers: [TeamsService, TeamInsightsService],

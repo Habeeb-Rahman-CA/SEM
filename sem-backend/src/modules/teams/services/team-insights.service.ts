@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { Team } from '../entities/team.entity';
 import { Match } from '../../competitions/entities/match.entity';
-import { generateTextWithFallback } from '../../../common/ai-client';
+import { AiService } from '../../ai/ai.service';
 
 @Injectable()
 export class TeamInsightsService {
+  constructor(private readonly aiService: AiService) {}
   async getTeamAnalytics(team: Team, matches: Match[]): Promise<any> {
     const completedMatches = matches.filter((m) => m.status === 'completed');
 
@@ -251,7 +252,7 @@ Provide the response STRICTLY in the following JSON format:
 }
 `;
 
-      const text = await generateTextWithFallback(prompt);
+      const text = await this.aiService.generateText(prompt);
       if (text) {
         const cleanJsonStr = text
           .trim()

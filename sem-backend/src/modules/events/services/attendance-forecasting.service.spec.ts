@@ -4,10 +4,11 @@ import { AttendanceForecastingService } from './attendance-forecasting.service';
 import { Event } from '../entities/event.entity';
 import { Venue } from '../../venues/entities/venue.entity';
 import { Competition } from '../../competitions/entities/competition.entity';
-import * as aiClient from '../../../common/ai-client';
+import { AiService } from '../../ai/ai.service';
 
 describe('AttendanceForecastingService', () => {
   let service: AttendanceForecastingService;
+  let aiService: AiService;
   let eventRepoMock: any;
   let venueRepoMock: any;
   let competitionRepoMock: any;
@@ -39,12 +40,19 @@ describe('AttendanceForecastingService', () => {
           provide: getRepositoryToken(Competition),
           useValue: competitionRepoMock,
         },
+        {
+          provide: AiService,
+          useValue: {
+            generateText: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<AttendanceForecastingService>(
       AttendanceForecastingService,
     );
+    aiService = module.get<AiService>(AiService);
   });
 
   it('should be defined', () => {
@@ -82,7 +90,7 @@ describe('AttendanceForecastingService', () => {
       eventRepoMock.findOne.mockResolvedValue(mockEvent);
       venueRepoMock.findOne.mockResolvedValue(mockVenue);
       eventRepoMock.find.mockResolvedValue([]);
-      jest.spyOn(aiClient, 'generateTextWithFallback').mockResolvedValue(null);
+      jest.spyOn(aiService, 'generateText').mockResolvedValue(null);
 
       const forecast = await service.getAttendanceForecast(
         'workspace-1',
@@ -130,9 +138,7 @@ describe('AttendanceForecastingService', () => {
         aiAnalysisText: 'Detailed AI analysis',
       });
 
-      jest
-        .spyOn(aiClient, 'generateTextWithFallback')
-        .mockResolvedValue(mockAiOutput);
+      jest.spyOn(aiService, 'generateText').mockResolvedValue(mockAiOutput);
 
       const forecast = await service.getAttendanceForecast(
         'workspace-1',

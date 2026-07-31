@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import { Event } from '../entities/event.entity';
 import { Venue } from '../../venues/entities/venue.entity';
 import { Competition } from '../../competitions/entities/competition.entity';
-import { generateTextWithFallback } from '../../../common/ai-client';
+import { AiService } from '../../ai/ai.service';
 
 export interface AttendanceForecastResponse {
   forecastedSpectators: number;
@@ -42,6 +42,7 @@ export class AttendanceForecastingService {
     private readonly venueRepo: Repository<Venue>,
     @InjectRepository(Competition)
     private readonly competitionRepo: Repository<Competition>,
+    private readonly aiService: AiService,
   ) {}
 
   async getAttendanceForecast(
@@ -92,7 +93,7 @@ export class AttendanceForecastingService {
     );
 
     try {
-      const aiResponse = await generateTextWithFallback(prompt);
+      const aiResponse = await this.aiService.generateText(prompt);
       if (aiResponse) {
         const cleaned = this.extractJson(aiResponse);
         if (cleaned) {

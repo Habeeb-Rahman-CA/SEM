@@ -13,12 +13,14 @@ import { EventTemplatesController } from './event-templates.controller';
 import { AttendanceForecastingService } from './services/attendance-forecasting.service';
 import { WorkspacesModule } from '../workspaces/workspaces.module';
 import { CompetitionsModule } from '../competitions/competitions.module';
+import { AiModule } from '../ai/ai.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Event, Team, EventTemplate, Venue, Competition]),
     WorkspacesModule,
     CompetitionsModule,
+    AiModule,
   ],
   controllers: [
     EventsController,

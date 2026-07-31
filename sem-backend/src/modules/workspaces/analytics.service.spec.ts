@@ -11,6 +11,8 @@ import { Competition } from '../competitions/entities/competition.entity';
 import { Match } from '../competitions/entities/match.entity';
 import { Venue } from '../venues/entities/venue.entity';
 import { AuditLog } from './entities/audit-log.entity';
+import { WorkspaceAnalyticsSnapshot } from './entities/workspace-analytics-snapshot.entity';
+import { AiService } from '../ai/ai.service';
 import { NotFoundException } from '@nestjs/common';
 
 describe('AnalyticsService', () => {
@@ -93,6 +95,25 @@ describe('AnalyticsService', () => {
           provide: getRepositoryToken(AuditLog),
           useValue: {
             find: jest.fn().mockResolvedValue([]),
+          },
+        },
+        {
+          provide: getRepositoryToken(WorkspaceAnalyticsSnapshot),
+          useValue: {
+            findOne: jest.fn().mockResolvedValue(null),
+            save: jest.fn().mockImplementation((val) => Promise.resolve(val)),
+          },
+        },
+        {
+          provide: AiService,
+          useValue: {
+            generateText: jest.fn().mockResolvedValue(
+              JSON.stringify({
+                bottlenecksIdentified: ['bottleneck 1'],
+                recommendations: ['recommendation 1'],
+                predictedEfficiencyGain: 'Some forecast',
+              }),
+            ),
           },
         },
       ],

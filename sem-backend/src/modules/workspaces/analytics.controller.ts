@@ -27,8 +27,12 @@ export class AnalyticsController {
   ) {}
 
   private async checkMembership(workspaceId: string, userId: string) {
-    // Throws error if user is not a member
-    await this.membersService.ensureMember(workspaceId, userId);
+    // Ensure privacy, security, and permission controls for analytical data
+    await this.membersService.ensurePermission(
+      workspaceId,
+      userId,
+      'analytics.view',
+    );
   }
 
   @Get('event-reports')

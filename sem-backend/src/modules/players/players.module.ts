@@ -12,6 +12,7 @@ import { PublicPlayersController } from './public-players.controller';
 import { WorkspacesModule } from '../workspaces/workspaces.module';
 import { UsersModule } from '../users/users.module';
 import { SearchModule } from '../search/search.module';
+import { AiModule } from '../ai/ai.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { SearchModule } from '../search/search.module';
     WorkspacesModule,
     UsersModule,
     SearchModule,
+    AiModule,
   ],
   controllers: [PlayersController, PublicPlayersController],
   providers: [PlayersService, PlayerInsightsService],

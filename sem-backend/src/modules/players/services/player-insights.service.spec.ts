@@ -1,13 +1,22 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PlayerInsightsService } from './player-insights.service';
 import { Player } from '../entities/player.entity';
+import { AiService } from '../../ai/ai.service';
 
 describe('PlayerInsightsService', () => {
   let service: PlayerInsightsService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [PlayerInsightsService],
+      providers: [
+        PlayerInsightsService,
+        {
+          provide: AiService,
+          useValue: {
+            generateText: jest.fn().mockResolvedValue(null),
+          },
+        },
+      ],
     }).compile();
 
     service = module.get<PlayerInsightsService>(PlayerInsightsService);

@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { Player } from '../entities/player.entity';
-import { generateTextWithFallback } from '../../../common/ai-client';
+import { AiService } from '../../ai/ai.service';
 
 @Injectable()
 export class PlayerInsightsService {
+  constructor(private readonly aiService: AiService) {}
   async getPlayerInsights(
     player: Player,
     stats: any,
@@ -39,7 +40,7 @@ Provide the response STRICTLY in the following JSON format:
   "aiAnalysisText": "AI-generated text analysis..."
 }
 `;
-      const text = await generateTextWithFallback(prompt);
+      const text = await this.aiService.generateText(prompt);
       if (text) {
         // Attempt to clean markdown wrapper if present
         const cleanJsonStr = text

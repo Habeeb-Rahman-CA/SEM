@@ -3,6 +3,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { AiSummaryService } from './ai-summary.service';
 import { Match } from '../entities/match.entity';
 import { MatchPlayer } from '../../players/entities/match-player.entity';
+import { AiService } from '../../ai/ai.service';
 
 describe('AiSummaryService', () => {
   let service: AiSummaryService;
@@ -28,6 +29,12 @@ describe('AiSummaryService', () => {
         {
           provide: getRepositoryToken(MatchPlayer),
           useValue: matchPlayerRepoMock,
+        },
+        {
+          provide: AiService,
+          useValue: {
+            generateText: jest.fn().mockResolvedValue(null),
+          },
         },
       ],
     }).compile();
@@ -106,11 +113,43 @@ describe('AiSummaryService', () => {
 
       const result = await service.generateAndSaveSummary('match-1');
 
-      expect(result.summary).toContain('Arsenal');
-      expect(result.summary).toContain('Chelsea');
-      expect(result.summary).toContain('3 - 1');
-      expect(result.summary).toContain('Saka');
-      expect(result.summary).toContain('Odegaard');
+      expect(result.summaryDraft).toContain('Arsenal');
+      expect(result.summaryDraft).toContain('Chelsea');
+      expect(result.summaryDraft).toContain('3 - 1');
+      expect(result.summaryDraft).toContain('Saka');
+      expect(result.summaryDraft).toContain('Odegaard');
+      expect(result.isSummaryPublished).toBe(false);
+      expect(matchRepoMock.save).toHaveBeenCalled();
+    });
+  });
+
+  describe('publishSummary', () => {
+    it('should copy summaryDraft to summary and publish it', async () => {
+      const mockMatch = {
+        id: 'match-1',
+        summary: null,
+        summaryDraft: 'Generated draft',
+        isSummaryPublished: false,
+      } as any;
+      matchRepoMock.findOne.mockResolvedValue(mockMatch);
+
+      const result = await service.publishSummary('match-1');
+      expect(result.summary).toBe('Generated draft');
+      expect(result.isSummaryPublished).toBe(true);
+      expect(matchRepoMock.save).toHaveBeenCalled();
+    });
+  });
+
+  describe('updateSummaryDraft', () => {
+    it('should update the summaryDraft text', async () => {
+      const mockMatch = {
+        id: 'match-1',
+        summaryDraft: 'Old draft',
+      } as any;
+      matchRepoMock.findOne.mockResolvedValue(mockMatch);
+
+      const result = await service.updateSummaryDraft('match-1', 'New draft');
+      expect(result.summaryDraft).toBe('New draft');
       expect(matchRepoMock.save).toHaveBeenCalled();
     });
   });

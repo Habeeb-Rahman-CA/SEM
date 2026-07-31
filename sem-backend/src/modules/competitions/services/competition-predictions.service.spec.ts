@@ -5,10 +5,11 @@ import { Competition } from '../entities/competition.entity';
 import { CompetitionStage } from '../entities/competition-stage.entity';
 import { Match } from '../entities/match.entity';
 import { CompetitionTeam } from '../entities/competition-team.entity';
-import * as aiClient from '../../../common/ai-client';
+import { AiService } from '../../ai/ai.service';
 
 describe('CompetitionPredictionsService', () => {
   let service: CompetitionPredictionsService;
+  let aiService: AiService;
   let competitionRepoMock: any;
   let stageRepoMock: any;
   let matchRepoMock: any;
@@ -47,12 +48,19 @@ describe('CompetitionPredictionsService', () => {
           provide: getRepositoryToken(CompetitionTeam),
           useValue: competitionTeamRepoMock,
         },
+        {
+          provide: AiService,
+          useValue: {
+            generateText: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<CompetitionPredictionsService>(
       CompetitionPredictionsService,
     );
+    aiService = module.get<AiService>(AiService);
   });
 
   it('should be defined', () => {
@@ -107,7 +115,7 @@ describe('CompetitionPredictionsService', () => {
       matchRepoMock.find.mockResolvedValue(mockMatches);
 
       // Mock AI client to fail / return null
-      jest.spyOn(aiClient, 'generateTextWithFallback').mockResolvedValue(null);
+      jest.spyOn(aiService, 'generateText').mockResolvedValue(null);
 
       const predictions = await service.getPredictions('comp-1');
 
@@ -158,9 +166,7 @@ describe('CompetitionPredictionsService', () => {
         disclaimer: 'AI predictions for testing.',
       });
 
-      jest
-        .spyOn(aiClient, 'generateTextWithFallback')
-        .mockResolvedValue(mockAiOutput);
+      jest.spyOn(aiService, 'generateText').mockResolvedValue(mockAiOutput);
 
       const predictions = await service.getPredictions('comp-1');
 

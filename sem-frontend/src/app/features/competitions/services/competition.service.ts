@@ -360,6 +360,35 @@ export class CompetitionService {
     );
   }
 
+  publishMatchSummary(
+    workspaceId: string,
+    eventId: string,
+    competitionId: string,
+    stageId: string,
+    matchId: string,
+  ): Observable<Match> {
+    return this.http.post<Match>(
+      `${this.apiUrl}/${workspaceId}/events/${eventId}/competitions/${competitionId}/stages/${stageId}/matches/${matchId}/publish-summary`,
+      {},
+      { headers: this.headers },
+    );
+  }
+
+  updateMatchSummaryDraft(
+    workspaceId: string,
+    eventId: string,
+    competitionId: string,
+    stageId: string,
+    matchId: string,
+    summaryDraft: string,
+  ): Observable<Match> {
+    return this.http.patch<Match>(
+      `${this.apiUrl}/${workspaceId}/events/${eventId}/competitions/${competitionId}/stages/${stageId}/matches/${matchId}/summary-draft`,
+      { summaryDraft },
+      { headers: this.headers },
+    );
+  }
+
   // ─── Lineups ──────────────────────────────────────────────────────────────
 
   getMatchLineup(

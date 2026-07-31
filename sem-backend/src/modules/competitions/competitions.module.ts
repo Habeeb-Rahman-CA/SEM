@@ -15,6 +15,7 @@ import { Venue } from '../venues/entities/venue.entity';
 import { CompetitionsService } from './competitions.service';
 import { CompetitionsController } from './competitions.controller';
 import { WorkspacesModule } from '../workspaces/workspaces.module';
+import { AiModule } from '../ai/ai.module';
 import { FixturesGeneratorService } from './services/fixtures-generator.service';
 import { MatchLineupService } from './services/match-lineup.service';
 import { StatisticsRatingsService } from './services/statistics-ratings.service';
@@ -54,6 +55,7 @@ import { FixtureTemplate } from './entities/fixture-template.entity';
       FixtureTemplate,
     ]),
     WorkspacesModule,
+    AiModule,
   ],
   controllers: [
     CompetitionsController,

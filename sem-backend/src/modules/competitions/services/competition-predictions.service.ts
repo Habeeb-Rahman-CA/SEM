@@ -5,7 +5,7 @@ import { Competition } from '../entities/competition.entity';
 import { CompetitionStage } from '../entities/competition-stage.entity';
 import { Match } from '../entities/match.entity';
 import { CompetitionTeam } from '../entities/competition-team.entity';
-import { generateTextWithFallback } from '../../../common/ai-client';
+import { AiService } from '../../ai/ai.service';
 
 export interface PredictionResponse {
   qualificationProbabilities: Array<{
@@ -42,6 +42,7 @@ export class CompetitionPredictionsService {
     private readonly matchRepo: Repository<Match>,
     @InjectRepository(CompetitionTeam)
     private readonly competitionTeamRepo: Repository<CompetitionTeam>,
+    private readonly aiService: AiService,
   ) {}
 
   async getPredictions(competitionId: string): Promise<PredictionResponse> {
@@ -146,7 +147,7 @@ export class CompetitionPredictionsService {
     const prompt = this.buildPrompt(competition, stages, matches, sortedStats);
 
     try {
-      const aiResponse = await generateTextWithFallback(prompt);
+      const aiResponse = await this.aiService.generateText(prompt);
       if (aiResponse) {
         const cleaned = this.extractJson(aiResponse);
         if (cleaned) {

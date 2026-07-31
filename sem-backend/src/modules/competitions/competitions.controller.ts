@@ -609,6 +609,68 @@ export class CompetitionsController {
   }
 
   @Post(
+    'events/:eventId/competitions/:competitionId/stages/:stageId/matches/:matchId/publish-summary',
+  )
+  @ApiOperation({ summary: 'Publish/approve AI match summary' })
+  @ApiParam(WS)
+  @ApiParam(EV)
+  @ApiParam(COMP)
+  @ApiParam(STG)
+  @ApiParam(MATCH)
+  @ApiResponse(R200('Match with published summary'))
+  @ApiResponse(R403)
+  @ApiResponse(R404)
+  publishMatchSummary(
+    @Param('workspaceId') workspaceId: string,
+    @Param('eventId') eventId: string,
+    @Param('competitionId') competitionId: string,
+    @Param('stageId') stageId: string,
+    @Param('matchId') matchId: string,
+    @Request() req: any,
+  ) {
+    return this.competitionsService.publishMatchSummary(
+      workspaceId,
+      eventId,
+      competitionId,
+      stageId,
+      matchId,
+      req.user.id,
+    );
+  }
+
+  @Patch(
+    'events/:eventId/competitions/:competitionId/stages/:stageId/matches/:matchId/summary-draft',
+  )
+  @ApiOperation({ summary: 'Update AI match summary draft before publishing' })
+  @ApiParam(WS)
+  @ApiParam(EV)
+  @ApiParam(COMP)
+  @ApiParam(STG)
+  @ApiParam(MATCH)
+  @ApiResponse(R200('Match with updated summary draft'))
+  @ApiResponse(R403)
+  @ApiResponse(R404)
+  updateMatchSummaryDraft(
+    @Param('workspaceId') workspaceId: string,
+    @Param('eventId') eventId: string,
+    @Param('competitionId') competitionId: string,
+    @Param('stageId') stageId: string,
+    @Param('matchId') matchId: string,
+    @Body() dto: { summaryDraft: string },
+    @Request() req: any,
+  ) {
+    return this.competitionsService.updateMatchSummaryDraft(
+      workspaceId,
+      eventId,
+      competitionId,
+      stageId,
+      matchId,
+      dto.summaryDraft,
+      req.user.id,
+    );
+  }
+
+  @Post(
     'events/:eventId/competitions/:competitionId/stages/:stageId/matches/:matchId/lock',
   )
   @ApiOperation({ summary: 'Acquire or renew edit lock on a match' })
