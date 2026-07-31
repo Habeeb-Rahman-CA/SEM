@@ -6,6 +6,12 @@ dist/
 tmp/
 out/
 
+# Test coverage reports
+coverage/
+
+# Local runtime artifacts (DB dumps written by BackupService)
+backups/
+
 # Environment configurations
 .env
 .env.*
