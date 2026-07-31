@@ -47,6 +47,7 @@ import { PoliciesModule } from './modules/policies/policies.module';
 import { TeamAlertsModule } from './modules/team-alerts/team-alerts.module';
 import { BootstrapModule } from './modules/bootstrap/bootstrap.module';
 import { CacheModule } from './common/cache/cache.module';
+import { RealtimeModule } from './common/realtime/realtime.module';
 
 @Module({
   imports: [
@@ -147,6 +148,7 @@ import { CacheModule } from './common/cache/cache.module';
     TeamAlertsModule,
     BootstrapModule,
     CacheModule,
+    RealtimeModule,
   ],
   controllers: [AppController],
   providers: [
