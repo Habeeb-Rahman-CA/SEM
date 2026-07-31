@@ -481,6 +481,14 @@
                 [workspaceId]="workspace()?.id || ''"
               ></app-streaming>
             }
+
+            <!-- ═══════════════ AUTOMATION TAB ═══════════════ -->
+            @if (activeTab() === 'automation') {
+              <app-automation
+                class="h-full block min-h-0"
+                [workspaceId]="workspace()?.id || ''"
+              ></app-automation>
+            }
           </div>
         </main>
       </div>

@@ -46,6 +46,7 @@ export class WorkspaceSettingsComponent {
     | 'medical'
     | 'accreditation'
     | 'streaming'
+    | 'automation'
   >();
 
   // Settings form states
