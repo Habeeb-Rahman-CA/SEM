@@ -550,6 +550,40 @@ export class CompetitionsController {
   }
 
   @Post(
+    'events/:eventId/competitions/:competitionId/stages/:stageId/matches/:matchId/generate-summary',
+  )
+  @ApiOperation({
+    summary: 'Generate or regenerate AI match summary',
+    description:
+      'Triggers the AI logic to dynamically generate a human-readable match summary from match events and player ratings.',
+  })
+  @ApiParam(WS)
+  @ApiParam(EV)
+  @ApiParam(COMP)
+  @ApiParam(STG)
+  @ApiParam(MATCH)
+  @ApiResponse(R200('Match with generated summary'))
+  @ApiResponse(R403)
+  @ApiResponse(R404)
+  generateMatchSummary(
+    @Param('workspaceId') workspaceId: string,
+    @Param('eventId') eventId: string,
+    @Param('competitionId') competitionId: string,
+    @Param('stageId') stageId: string,
+    @Param('matchId') matchId: string,
+    @Request() req: any,
+  ) {
+    return this.competitionsService.generateMatchSummary(
+      workspaceId,
+      eventId,
+      competitionId,
+      stageId,
+      matchId,
+      req.user.id,
+    );
+  }
+
+  @Post(
     'events/:eventId/competitions/:competitionId/stages/:stageId/matches/:matchId/lock',
   )
   @ApiOperation({ summary: 'Acquire or renew edit lock on a match' })

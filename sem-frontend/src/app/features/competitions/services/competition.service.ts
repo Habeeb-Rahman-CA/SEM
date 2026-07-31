@@ -346,6 +346,20 @@ export class CompetitionService {
     );
   }
 
+  generateMatchSummary(
+    workspaceId: string,
+    eventId: string,
+    competitionId: string,
+    stageId: string,
+    matchId: string,
+  ): Observable<Match> {
+    return this.http.post<Match>(
+      `${this.apiUrl}/${workspaceId}/events/${eventId}/competitions/${competitionId}/stages/${stageId}/matches/${matchId}/generate-summary`,
+      {},
+      { headers: this.headers },
+    );
+  }
+
   // ─── Lineups ──────────────────────────────────────────────────────────────
 
   getMatchLineup(

@@ -132,4 +132,30 @@ export class PlayersController {
       req.user.id,
     );
   }
+
+  @Get(':playerId/insights')
+  @ApiOperation({
+    summary: 'Get player performance insights',
+    description:
+      'Returns AI-powered or rule-based analytical insights on the player: strengths, weaknesses, consistency, recent form, and recommendations.',
+  })
+  @ApiParam(WS)
+  @ApiParam(PLAYER)
+  @ApiResponse({
+    status: 200,
+    description: 'Player performance insights object',
+  })
+  @ApiResponse({ status: 403, description: 'Not a member of this workspace' })
+  @ApiResponse({ status: 404, description: 'Player not found' })
+  getPlayerInsights(
+    @Param('workspaceId') workspaceId: string,
+    @Param('playerId') playerId: string,
+    @Request() req: any,
+  ) {
+    return this.playersService.getPlayerInsights(
+      workspaceId,
+      playerId,
+      req.user.id,
+    );
+  }
 }

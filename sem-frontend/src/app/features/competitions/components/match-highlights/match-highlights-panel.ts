@@ -61,14 +61,25 @@ interface HighlightVideo {
           (ngModelChange)="summaryDraft.set($event)"
           [disabled]="!canScore() || isSaving()"
         ></textarea>
-        <button
-          type="button"
-          (click)="saveSummary()"
-          [disabled]="!canScore() || isSaving() || summaryDraft() === (match().summary ?? '')"
-          class="self-end px-3 py-1.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-[11px] font-bold rounded-lg transition cursor-pointer"
-        >
-          Save summary
-        </button>
+        <div class="flex justify-between items-center gap-2 mt-1">
+          <button
+            type="button"
+            (click)="generateAiSummary()"
+            [disabled]="!canScore() || isSaving()"
+            class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-violet-300 text-[11px] font-bold rounded-lg transition cursor-pointer flex items-center gap-1.5"
+          >
+            <i class="fi fi-rr-sparkles"></i>
+            Generate with AI
+          </button>
+          <button
+            type="button"
+            (click)="saveSummary()"
+            [disabled]="!canScore() || isSaving() || summaryDraft() === (match().summary ?? '')"
+            class="px-3 py-1.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-[11px] font-bold rounded-lg transition cursor-pointer"
+          >
+            Save summary
+          </button>
+        </div>
       </div>
 
       <!-- Add video -->
@@ -207,6 +218,32 @@ export class MatchHighlightsPanelComponent {
 
   saveSummary() {
     this.persist({ summary: this.summaryDraft() }, 'Summary saved.');
+  }
+
+  generateAiSummary() {
+    const match = this.match();
+    if (!match) return;
+    this.isSaving.set(true);
+    this.competitionService
+      .generateMatchSummary(
+        this.workspaceId(),
+        this.eventId(),
+        this.competitionId(),
+        this.stageId(),
+        match.id,
+      )
+      .subscribe({
+        next: (updated) => {
+          this.isSaving.set(false);
+          this.summaryDraft.set(updated.summary ?? '');
+          this.matchUpdated.emit(updated);
+          this.ui.success('AI Match Summary generated successfully!');
+        },
+        error: (err) => {
+          this.isSaving.set(false);
+          this.ui.error(err?.error?.message ?? 'AI Generation failed.');
+        },
+      });
   }
 
   addVideo() {

@@ -110,6 +110,8 @@ export class PublicPlayerProfileComponent implements OnInit {
   profile = signal<PublicPlayerProfile | null>(null);
   isLoading = signal<boolean>(true);
   error = signal<string | null>(null);
+  insights = signal<any | null>(null);
+  isLoadingInsights = signal<boolean>(false);
 
   getSportBadgeClass = getSportBadgeClass;
   getSportIconClass = getSportIconClass;
@@ -208,10 +210,12 @@ export class PublicPlayerProfileComponent implements OnInit {
   private load(id: string) {
     this.isLoading.set(true);
     this.error.set(null);
+    this.insights.set(null);
     this.playerService.getPublicPlayer(id).subscribe({
       next: (data) => {
         this.profile.set(data);
         this.isLoading.set(false);
+        this.loadInsights(id);
         const p = data?.player;
         if (p) {
           this.shareService.setPageMeta({
@@ -229,6 +233,20 @@ export class PublicPlayerProfileComponent implements OnInit {
       error: (err) => {
         this.error.set(err?.error?.message ?? 'Player profile not found');
         this.isLoading.set(false);
+      },
+    });
+  }
+
+  private loadInsights(id: string) {
+    this.isLoadingInsights.set(true);
+    this.playerService.getPublicPlayerInsights(id).subscribe({
+      next: (data) => {
+        this.insights.set(data);
+        this.isLoadingInsights.set(false);
+      },
+      error: (err) => {
+        console.error('Failed to load player insights', err);
+        this.isLoadingInsights.set(false);
       },
     });
   }

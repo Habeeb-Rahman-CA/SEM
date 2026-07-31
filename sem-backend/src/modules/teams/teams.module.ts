@@ -6,6 +6,7 @@ import { Match } from '../competitions/entities/match.entity';
 import { MatchPlayer } from '../players/entities/match-player.entity';
 import { WorkspaceMember } from '../workspaces/entities/workspace-member.entity';
 import { TeamsService } from './teams.service';
+import { TeamInsightsService } from './services/team-insights.service';
 import { TeamsController } from './teams.controller';
 import { PublicTeamsController } from './public-teams.controller';
 import { WorkspacesModule } from '../workspaces/workspaces.module';
@@ -24,7 +25,7 @@ import { SearchModule } from '../search/search.module';
     SearchModule,
   ],
   controllers: [TeamsController, PublicTeamsController],
-  providers: [TeamsService],
-  exports: [TeamsService],
+  providers: [TeamsService, TeamInsightsService],
+  exports: [TeamsService, TeamInsightsService],
 })
 export class TeamsModule {}

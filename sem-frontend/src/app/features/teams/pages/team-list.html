@@ -414,6 +414,401 @@
         </div>
       }
 
+      <!-- TAB CONTENT: PERFORMANCE ANALYTICS -->
+      @if (activeTeamDetailTab() === 'analytics') {
+        <div class="flex flex-col gap-6 animate-fadeIn">
+          @if (isLoadingTeamAnalytics()) {
+            <app-loading-spinner
+              message="Computing team performance metrics and generating AI insights..."
+              [fullPage]="true"
+            />
+          } @else if (selectedTeamAnalytics(); as analytics) {
+            <!-- Executive Summary & AI Insights Card -->
+            <div
+              class="bg-gradient-to-br from-slate-900 via-slate-900 to-violet-950/20 border border-violet-500/20 rounded-2xl p-6 flex flex-col gap-6 text-left shadow-xl"
+            >
+              <div class="flex items-center justify-between pb-4 border-b border-white/5">
+                <h3
+                  class="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2"
+                >
+                  <i class="fi fi-rr-sparkles text-violet-400"></i> AI Team Performance Insights
+                </h3>
+                <span class="text-[10px] text-slate-500 font-mono">Powered by Google AI</span>
+              </div>
+
+              <!-- AI Summary Block -->
+              <div
+                class="flex items-start gap-3 bg-violet-500/10 border border-violet-500/20 p-4 rounded-xl"
+              >
+                <i class="fi fi-rr-info text-violet-400 text-lg mt-0.5"></i>
+                <div>
+                  <h4 class="text-xs font-bold text-violet-300 uppercase tracking-wider">
+                    Executive Analysis
+                  </h4>
+                  <p class="text-xs text-slate-300 mt-1 leading-relaxed">
+                    {{ analytics.aiInsights.summary }}
+                  </p>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Strengths -->
+                <div>
+                  <h4
+                    class="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-2 mb-2"
+                  >
+                    <i class="fi fi-rr-arrow-trend-up"></i> Key Strengths
+                  </h4>
+                  <ul class="flex flex-col gap-2">
+                    @for (s of analytics.aiInsights.strengths; track s) {
+                      <li
+                        class="text-xs text-slate-300 flex items-start gap-2 bg-slate-950/40 p-3 rounded-xl border border-white/5"
+                      >
+                        <i class="fi fi-rr-check-circle text-emerald-400 mt-0.5"></i>
+                        <span>{{ s }}</span>
+                      </li>
+                    }
+                  </ul>
+                </div>
+
+                <!-- Weaknesses / Improvements -->
+                <div>
+                  <h4
+                    class="text-xs font-bold text-rose-400 uppercase tracking-wider flex items-center gap-2 mb-2"
+                  >
+                    <i class="fi fi-rr-arrow-trend-down"></i> Areas for Improvement
+                  </h4>
+                  <ul class="flex flex-col gap-2">
+                    @for (w of analytics.aiInsights.weaknesses; track w) {
+                      <li
+                        class="text-xs text-slate-300 flex items-start gap-2 bg-slate-950/40 p-3 rounded-xl border border-white/5"
+                      >
+                        <i class="fi fi-rr-exclamation text-rose-400 mt-0.5"></i>
+                        <span>{{ w }}</span>
+                      </li>
+                    }
+                  </ul>
+                </div>
+              </div>
+
+              <!-- Tactical Recommendations -->
+              <div class="border-t border-white/5 pt-4">
+                <h4
+                  class="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-2 mb-3"
+                >
+                  <i class="fi fi-rr-bulb text-amber-400"></i> Actionable Tactical Recommendations
+                </h4>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  @for (rec of analytics.aiInsights.recommendations; track rec) {
+                    <div
+                      class="bg-slate-950/40 p-3 rounded-xl border border-white/5 flex items-start gap-2"
+                    >
+                      <i class="fi fi-rr-star text-amber-400 mt-0.5"></i>
+                      <span class="text-xs text-slate-300 leading-relaxed">{{ rec }}</span>
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
+
+            <!-- Efficiency Indicators Row -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <!-- Attacking Card -->
+              <div
+                class="bg-slate-900 border border-white/10 rounded-2xl p-5 flex items-center justify-between gap-4"
+              >
+                <div class="flex flex-col gap-1 text-left">
+                  <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider"
+                    >Attacking Efficiency</span
+                  >
+                  <span class="text-2xl font-black text-white"
+                    >{{ analytics.efficiency.attacking }}%</span
+                  >
+                  <div class="text-xs text-slate-400 mt-2">
+                    Avg Scored:
+                    <span class="text-emerald-400 font-bold">{{
+                      analytics.avgGoalsScored.toFixed(1)
+                    }}</span>
+                  </div>
+                  <div class="text-xs text-slate-400">
+                    Total Scored:
+                    <span class="text-white font-semibold">{{ analytics.totalGoalsScored }}</span>
+                  </div>
+                </div>
+                <div class="relative flex items-center justify-center w-20 h-20">
+                  <svg class="w-full h-full transform -rotate-90">
+                    <circle
+                      cx="40"
+                      cy="40"
+                      r="32"
+                      stroke="rgba(255,255,255,0.03)"
+                      stroke-width="6"
+                      fill="transparent"
+                    />
+                    <circle
+                      cx="40"
+                      cy="40"
+                      r="32"
+                      stroke="#10b981"
+                      stroke-width="6"
+                      fill="transparent"
+                      [attr.stroke-dasharray]="201"
+                      [attr.stroke-dashoffset]="201 - (201 * analytics.efficiency.attacking) / 100"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                  <i class="fi fi-rr-football absolute text-xl text-emerald-400/55"></i>
+                </div>
+              </div>
+
+              <!-- Defensive Card -->
+              <div
+                class="bg-slate-900 border border-white/10 rounded-2xl p-5 flex items-center justify-between gap-4"
+              >
+                <div class="flex flex-col gap-1 text-left">
+                  <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider"
+                    >Defensive Efficiency</span
+                  >
+                  <span class="text-2xl font-black text-white"
+                    >{{ analytics.efficiency.defensive }}%</span
+                  >
+                  <div class="text-xs text-slate-400 mt-2">
+                    Avg Conceded:
+                    <span class="text-rose-400 font-bold">{{
+                      analytics.avgGoalsConceded.toFixed(1)
+                    }}</span>
+                  </div>
+                  <div class="text-xs text-slate-400">
+                    Clean Sheets:
+                    <span class="text-white font-semibold">{{ analytics.cleanSheets }}</span>
+                  </div>
+                </div>
+                <div class="relative flex items-center justify-center w-20 h-20">
+                  <svg class="w-full h-full transform -rotate-90">
+                    <circle
+                      cx="40"
+                      cy="40"
+                      r="32"
+                      stroke="rgba(255,255,255,0.03)"
+                      stroke-width="6"
+                      fill="transparent"
+                    />
+                    <circle
+                      cx="40"
+                      cy="40"
+                      r="32"
+                      stroke="#3b82f6"
+                      stroke-width="6"
+                      fill="transparent"
+                      [attr.stroke-dasharray]="201"
+                      [attr.stroke-dashoffset]="201 - (201 * analytics.efficiency.defensive) / 100"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                  <i class="fi fi-rr-shield-check absolute text-xl text-blue-400/55"></i>
+                </div>
+              </div>
+
+              <!-- Overall Card -->
+              <div
+                class="bg-slate-900 border border-white/10 rounded-2xl p-5 flex items-center justify-between gap-4"
+              >
+                <div class="flex flex-col gap-1 text-left">
+                  <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider"
+                    >Overall Efficiency</span
+                  >
+                  <span class="text-2xl font-black text-white"
+                    >{{ analytics.efficiency.overall }}%</span
+                  >
+                  <div class="text-xs text-slate-400 mt-2">
+                    Win Rate:
+                    <span class="text-amber-400 font-bold"
+                      >{{ analytics.winRate.toFixed(0) }}%</span
+                    >
+                  </div>
+                  <div class="text-xs text-slate-400">
+                    W/D/L:
+                    <span class="text-white font-semibold"
+                      >{{ analytics.wins }}/{{ analytics.draws }}/{{ analytics.losses }}</span
+                    >
+                  </div>
+                </div>
+                <div class="relative flex items-center justify-center w-20 h-20">
+                  <svg class="w-full h-full transform -rotate-90">
+                    <circle
+                      cx="40"
+                      cy="40"
+                      r="32"
+                      stroke="rgba(255,255,255,0.03)"
+                      stroke-width="6"
+                      fill="transparent"
+                    />
+                    <circle
+                      cx="40"
+                      cy="40"
+                      r="32"
+                      stroke="#f59e0b"
+                      stroke-width="6"
+                      fill="transparent"
+                      [attr.stroke-dasharray]="201"
+                      [attr.stroke-dashoffset]="201 - (201 * analytics.efficiency.overall) / 100"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                  <i class="fi fi-rr-trophy absolute text-xl text-amber-400/55"></i>
+                </div>
+              </div>
+            </div>
+
+            <!-- Trend & Match History Section -->
+            <div
+              class="bg-slate-900 border border-white/10 rounded-2xl p-5 flex flex-col gap-4 text-left"
+            >
+              <div>
+                <h4 class="text-sm font-bold text-white">Recent Form Trend</h4>
+                <p class="text-xs text-slate-500 mt-0.5">
+                  Chronological visualization of the team's outcomes (max last 10 games)
+                </p>
+              </div>
+
+              <!-- Form interactive timeline graph -->
+              <div class="flex items-center gap-2 overflow-x-auto py-3 px-1">
+                @for (m of analytics.recentOutcomes; track m.matchId; let idx = $index) {
+                  <div class="flex items-center flex-shrink-0">
+                    <div
+                      class="group relative flex flex-col items-center gap-1.5 p-2 bg-slate-950 border border-white/5 hover:border-violet-500/40 rounded-xl cursor-help transition-all"
+                    >
+                      <!-- Badge -->
+                      <span
+                        class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-black select-none shadow animate-fadeIn"
+                        [ngClass]="{
+                          'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30':
+                            m.outcome === 'win',
+                          'bg-rose-500/20 text-rose-400 border border-rose-500/30':
+                            m.outcome === 'loss',
+                          'bg-slate-500/20 text-slate-400 border border-slate-500/30':
+                            m.outcome === 'draw',
+                        }"
+                      >
+                        {{ m.outcome === 'win' ? 'W' : m.outcome === 'loss' ? 'L' : 'D' }}
+                      </span>
+                      <!-- Label -->
+                      <span class="text-[9px] text-slate-500 font-mono">G{{ idx + 1 }}</span>
+
+                      <!-- Hover Tooltip -->
+                      <div
+                        class="absolute bottom-full mb-2 hidden group-hover:flex flex-col bg-slate-950 border border-white/10 p-2.5 rounded-xl shadow-2xl z-20 w-44 pointer-events-none text-xs"
+                      >
+                        <span class="font-bold text-white text-[10px] uppercase truncate">{{
+                          m.competitionName
+                        }}</span>
+                        <div
+                          class="flex justify-between items-center gap-2 mt-1.5 border-t border-white/5 pt-1.5"
+                        >
+                          <span class="text-slate-400 truncate max-w-[85px]">{{
+                            m.opponentName || 'Opponent'
+                          }}</span>
+                          <span
+                            class="font-black"
+                            [ngClass]="{
+                              'text-emerald-400': m.outcome === 'win',
+                              'text-rose-400': m.outcome === 'loss',
+                              'text-slate-300': m.outcome === 'draw',
+                            }"
+                            >{{ m.scored }} - {{ m.conceded }}</span
+                          >
+                        </div>
+                      </div>
+                    </div>
+
+                    @if (idx < analytics.recentOutcomes.length - 1) {
+                      <div class="w-4 h-[2px] bg-white/10"></div>
+                    }
+                  </div>
+                } @empty {
+                  <p class="text-xs text-slate-500 py-3">
+                    No matches completed yet to visualize form trend.
+                  </p>
+                }
+              </div>
+            </div>
+
+            <!-- Multi-Event Analysis Table -->
+            <div
+              class="bg-slate-900 border border-white/10 rounded-2xl p-5 flex flex-col gap-4 text-left"
+            >
+              <div>
+                <h4 class="text-sm font-bold text-white">Event Performance Breakdown</h4>
+                <p class="text-xs text-slate-500 mt-0.5">
+                  Summary of wins, losses and scores computed across multiple events
+                </p>
+              </div>
+
+              <div class="overflow-x-auto">
+                <table class="w-full text-xs text-left border-collapse">
+                  <thead>
+                    <tr class="border-b border-white/5 text-slate-500">
+                      <th class="pb-3 font-bold uppercase tracking-wider">Event / Tournament</th>
+                      <th class="pb-3 font-bold uppercase tracking-wider text-center">Played</th>
+                      <th class="pb-3 font-bold uppercase tracking-wider text-center">Wins</th>
+                      <th class="pb-3 font-bold uppercase tracking-wider text-center">Draws</th>
+                      <th class="pb-3 font-bold uppercase tracking-wider text-center">Losses</th>
+                      <th class="pb-3 font-bold uppercase tracking-wider text-center">
+                        Goals / Points
+                      </th>
+                      <th class="pb-3 font-bold uppercase tracking-wider text-right">Win Rate</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (ev of analytics.eventBreakdowns; track ev.eventId) {
+                      <tr class="border-b border-white/5 hover:bg-slate-950/20 transition-colors">
+                        <td class="py-3 font-bold text-white">{{ ev.eventName }}</td>
+                        <td class="py-3 text-center text-slate-300 font-semibold">
+                          {{ ev.matchesCount }}
+                        </td>
+                        <td class="py-3 text-center text-emerald-400 font-bold">{{ ev.wins }}</td>
+                        <td class="py-3 text-center text-slate-400 font-semibold">
+                          {{ ev.draws }}
+                        </td>
+                        <td class="py-3 text-center text-rose-400 font-bold">{{ ev.losses }}</td>
+                        <td class="py-3 text-center text-slate-300 font-mono">
+                          {{ ev.goalsScored }}:{{ ev.goalsConceded }}
+                        </td>
+                        <td class="py-3 text-right font-bold text-white">
+                          <div class="flex items-center justify-end gap-2">
+                            <span>{{ ev.winRate.toFixed(0) }}%</span>
+                            <div
+                              class="w-16 bg-slate-950 h-1.5 rounded-full overflow-hidden border border-white/5"
+                            >
+                              <div
+                                class="bg-violet-500 h-full rounded-full"
+                                [style.width]="ev.winRate + '%'"
+                              ></div>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    } @empty {
+                      <tr>
+                        <td colspan="7" class="py-6 text-center text-slate-500">
+                          No event breakdown data available.
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          } @else {
+            <app-empty-state
+              iconClass="fi-rr-chart-pie-alt"
+              title="No Analytics Available"
+              message="No completed matches were found for this team to calculate efficiency stats or generate AI insights."
+            />
+          }
+        </div>
+      }
+
       <!-- TAB CONTENT: COMPETITIONS (HISTORY BY COMPETITION) -->
       @if (activeTeamDetailTab() === 'competitions') {
         <div class="flex flex-col gap-4 animate-fadeIn">

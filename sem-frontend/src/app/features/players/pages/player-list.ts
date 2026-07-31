@@ -62,7 +62,9 @@ export class PlayerListComponent {
   pageSize = signal(12);
 
   selectedPlayerForDetails = signal<any | null>(null);
+  selectedPlayerInsights = signal<any | null>(null);
   isLoadingPlayerStats = signal(false);
+  isLoadingPlayerInsights = signal(false);
 
   // Bulk Import
   isBulkModalOpen = signal(false);
@@ -133,6 +135,7 @@ export class PlayerListComponent {
           this.loadPlayerStats(wsId, playerId);
         } else {
           this.selectedPlayerForDetails.set(null);
+          this.selectedPlayerInsights.set(null);
         }
       },
       { allowSignalWrites: true },
@@ -151,10 +154,12 @@ export class PlayerListComponent {
 
   loadPlayerStats(workspaceId: string, playerId: string) {
     this.isLoadingPlayerStats.set(true);
+    this.selectedPlayerInsights.set(null);
     this.playerService.getPlayerStats(workspaceId, playerId).subscribe({
       next: (stats) => {
         this.selectedPlayerForDetails.set(stats);
         this.isLoadingPlayerStats.set(false);
+        this.loadPlayerInsights(workspaceId, playerId);
       },
       error: (err) => {
         this.isLoadingPlayerStats.set(false);
@@ -165,8 +170,23 @@ export class PlayerListComponent {
     });
   }
 
+  loadPlayerInsights(workspaceId: string, playerId: string) {
+    this.isLoadingPlayerInsights.set(true);
+    this.playerService.getPlayerInsights(workspaceId, playerId).subscribe({
+      next: (insights) => {
+        this.selectedPlayerInsights.set(insights);
+        this.isLoadingPlayerInsights.set(false);
+      },
+      error: (err) => {
+        this.isLoadingPlayerInsights.set(false);
+        console.error('Failed to load player insights', err);
+      },
+    });
+  }
+
   onBackToPlayers() {
     this.selectedPlayerId.set(null);
+    this.selectedPlayerInsights.set(null);
   }
 
   // Bulk import actions

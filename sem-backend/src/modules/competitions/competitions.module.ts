@@ -26,6 +26,7 @@ import { SportEngineRegistry } from './sports/sport-engine.registry';
 import { MatchLockService } from './services/match-lock.service';
 import { CompetitionTemplatesService } from './services/competition-templates.service';
 import { FixtureTemplatesService } from './services/fixture-templates.service';
+import { AiSummaryService } from './services/ai-summary.service';
 import {
   CompetitionTemplatesController,
   FixtureTemplatesController,
@@ -71,6 +72,7 @@ import { FixtureTemplate } from './entities/fixture-template.entity';
     MatchLockService,
     CompetitionTemplatesService,
     FixtureTemplatesService,
+    AiSummaryService,
   ],
   exports: [
     CompetitionsService,
@@ -85,6 +87,7 @@ import { FixtureTemplate } from './entities/fixture-template.entity';
     MatchLockService,
     CompetitionTemplatesService,
     FixtureTemplatesService,
+    AiSummaryService,
   ],
 })
 export class CompetitionsModule {}

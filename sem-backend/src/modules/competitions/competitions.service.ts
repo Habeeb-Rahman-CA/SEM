@@ -29,6 +29,7 @@ import { UpdateStageDto } from './dto/update-stage.dto';
 import { CreateMatchDto } from './dto/create-match.dto';
 import { UpdateMatchDto } from './dto/update-match.dto';
 import { MatchLockService } from './services/match-lock.service';
+import { AiSummaryService } from './services/ai-summary.service';
 
 @Injectable()
 export class CompetitionsService {
@@ -61,6 +62,7 @@ export class CompetitionsService {
     private readonly statisticsRatingsService: StatisticsRatingsService,
     private readonly bracketAdvancementService: BracketAdvancementService,
     private readonly matchLockService: MatchLockService,
+    private readonly aiSummaryService: AiSummaryService,
   ) {}
 
   // ─── Validation Helpers ───────────────────────────────────────────────────
@@ -714,6 +716,37 @@ export class CompetitionsService {
       dto,
       userId,
     );
+  }
+
+  async generateMatchSummary(
+    workspaceId: string,
+    eventId: string,
+    competitionId: string,
+    stageId: string,
+    matchId: string,
+    userId: string,
+  ): Promise<Match> {
+    await this.workspacesService.ensurePermission(
+      workspaceId,
+      userId,
+      'match.score',
+    );
+    const stage = await this.stageRepo.findOne({
+      where: { id: stageId, competitionId },
+    });
+    if (!stage) {
+      throw new NotFoundException(
+        `Stage "${stageId}" not found in this competition`,
+      );
+    }
+    const match = await this.matchRepo.findOne({
+      where: { id: matchId, stageId },
+    });
+    if (!match) {
+      throw new NotFoundException(`Match "${matchId}" not found in this stage`);
+    }
+
+    return this.aiSummaryService.generateAndSaveSummary(matchId);
   }
 
   async acquireMatchLock(

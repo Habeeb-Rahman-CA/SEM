@@ -25,4 +25,20 @@ export class PublicTeamsController {
   async getPublicTeam(@Param('teamId') teamId: string) {
     return this.teamsService.getPublicTeamProfile(teamId);
   }
+
+  @Get(':teamId/analytics')
+  @ApiOperation({
+    summary: 'Get public team performance analytics',
+    description:
+      'Returns comprehensive, sport-specific efficiency metrics, event-by-event trend analysis, and AI-powered performance insights for spectator views.',
+  })
+  @ApiParam({ name: 'teamId', description: 'Team UUID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Team analytics and insights object',
+  })
+  @ApiResponse({ status: 404, description: 'Team not found' })
+  async getPublicTeamAnalytics(@Param('teamId') teamId: string) {
+    return this.teamsService.getPublicTeamAnalytics(teamId);
+  }
 }

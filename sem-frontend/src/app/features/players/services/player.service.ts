@@ -76,7 +76,17 @@ export class PlayerService {
     });
   }
 
+  getPlayerInsights(workspaceId: string, playerId: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/${workspaceId}/players/${playerId}/insights`, {
+      headers: this.headers,
+    });
+  }
+
   getPublicPlayer(playerId: string): Observable<any> {
     return this.http.get<any>(`${environment.apiUrl}/public/players/${playerId}`);
+  }
+
+  getPublicPlayerInsights(playerId: string): Observable<any> {
+    return this.http.get<any>(`${environment.apiUrl}/public/players/${playerId}/insights`);
   }
 }

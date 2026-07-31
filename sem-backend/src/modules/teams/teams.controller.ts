@@ -124,4 +124,26 @@ export class TeamsController {
   ) {
     return this.teamsService.getTeamStats(workspaceId, teamId, req.user.id);
   }
+
+  @Get(':teamId/analytics')
+  @ApiOperation({
+    summary: 'Get team performance analytics',
+    description:
+      'Returns comprehensive, sport-specific efficiency metrics, event-by-event trend analysis, and AI-powered performance insights.',
+  })
+  @ApiParam(WS)
+  @ApiParam(TEAM)
+  @ApiResponse({
+    status: 200,
+    description: 'Team analytics and insights object',
+  })
+  @ApiResponse({ status: 403, description: 'Not a member of this workspace' })
+  @ApiResponse({ status: 404, description: 'Team not found' })
+  getTeamAnalytics(
+    @Param('workspaceId') workspaceId: string,
+    @Param('teamId') teamId: string,
+    @Request() req: any,
+  ) {
+    return this.teamsService.getTeamAnalytics(workspaceId, teamId, req.user.id);
+  }
 }

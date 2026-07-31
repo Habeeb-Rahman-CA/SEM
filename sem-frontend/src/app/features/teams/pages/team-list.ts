@@ -1,5 +1,5 @@
 import { Component, input, output, signal, computed, effect, inject, model } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { DatePipe, NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TeamService } from '../services/team.service';
 import { Team } from '../../workspaces/services/workspace.service';
@@ -7,6 +7,7 @@ import { AvatarComponent } from '../../../shared/components/avatar/avatar';
 import { ButtonComponent } from '../../../shared/components/button/button';
 import { BadgeComponent } from '../../../shared/components/badge/badge';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state';
+import { LoadingSpinnerComponent } from '../../../shared/components/loading-spinner/loading-spinner';
 import { SearchInputComponent } from '../../../shared/components/search-input/search-input';
 import { StatCardComponent } from '../../../shared/components/stat-card/stat-card';
 import { TabBarComponent } from '../../../shared/components/tab-bar/tab-bar';
@@ -22,11 +23,13 @@ import { PaginatorComponent } from '../../../shared';
   standalone: true,
   imports: [
     DatePipe,
+    NgClass,
     FormsModule,
     AvatarComponent,
     ButtonComponent,
     BadgeComponent,
     EmptyStateComponent,
+    LoadingSpinnerComponent,
     SearchInputComponent,
     StatCardComponent,
     TabBarComponent,
@@ -62,17 +65,20 @@ export class TeamListComponent {
   pageSize = signal(12);
 
   selectedTeamForDetails = signal<any | null>(null);
-  activeTeamDetailTab = signal<'overview' | 'competitions' | 'squad'>('overview');
+  selectedTeamAnalytics = signal<any | null>(null);
+  activeTeamDetailTab = signal<'overview' | 'analytics' | 'competitions' | 'squad'>('overview');
   teamDetailTabs = computed<TabItem[]>(() => {
     const details = this.selectedTeamForDetails();
     const squadCount = details?.squad?.length ?? 0;
     return [
       { id: 'overview', label: 'All-Time Stats' },
+      { id: 'analytics', label: 'Performance Analytics' },
       { id: 'competitions', label: 'Competition History' },
       { id: 'squad', label: 'Squad', badge: squadCount },
     ];
   });
   isLoadingTeamStats = signal(false);
+  isLoadingTeamAnalytics = signal(false);
 
   // Bulk Import
   isBulkModalOpen = signal(false);
@@ -127,6 +133,7 @@ export class TeamListComponent {
           this.loadTeamStats(wsId, teamId);
         } else {
           this.selectedTeamForDetails.set(null);
+          this.selectedTeamAnalytics.set(null);
         }
       },
       { allowSignalWrites: true },
@@ -144,23 +151,41 @@ export class TeamListComponent {
 
   loadTeamStats(workspaceId: string, teamId: string) {
     this.isLoadingTeamStats.set(true);
+    this.selectedTeamAnalytics.set(null);
     this.teamService.getTeamStats(workspaceId, teamId).subscribe({
       next: (stats) => {
         this.selectedTeamForDetails.set(stats);
         this.activeTeamDetailTab.set('overview');
         this.isLoadingTeamStats.set(false);
+        this.loadTeamAnalytics(workspaceId, teamId);
       },
       error: (err) => {
         this.isLoadingTeamStats.set(false);
         this.selectedTeamForDetails.set(null);
+        this.selectedTeamAnalytics.set(null);
         this.selectedTeamId.set(null);
         console.error('Failed to load team statistics', err);
       },
     });
   }
 
+  loadTeamAnalytics(workspaceId: string, teamId: string) {
+    this.isLoadingTeamAnalytics.set(true);
+    this.teamService.getTeamAnalytics(workspaceId, teamId).subscribe({
+      next: (analytics) => {
+        this.selectedTeamAnalytics.set(analytics);
+        this.isLoadingTeamAnalytics.set(false);
+      },
+      error: (err) => {
+        this.isLoadingTeamAnalytics.set(false);
+        console.error('Failed to load team analytics', err);
+      },
+    });
+  }
+
   onBackToTeams() {
     this.selectedTeamId.set(null);
+    this.selectedTeamAnalytics.set(null);
   }
 
   // Bulk import actions
