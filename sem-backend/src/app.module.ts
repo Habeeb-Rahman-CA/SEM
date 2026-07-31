@@ -43,6 +43,8 @@ import { AuctionsModule } from './modules/auctions/auctions.module';
 import { TransfersModule } from './modules/transfers/transfers.module';
 import { RostersModule } from './modules/rosters/rosters.module';
 import { FinanceModule } from './modules/finance/finance.module';
+import { PoliciesModule } from './modules/policies/policies.module';
+import { TeamAlertsModule } from './modules/team-alerts/team-alerts.module';
 
 @Module({
   imports: [
@@ -102,6 +104,8 @@ import { FinanceModule } from './modules/finance/finance.module';
     TransfersModule,
     RostersModule,
     FinanceModule,
+    PoliciesModule,
+    TeamAlertsModule,
   ],
   controllers: [AppController],
   providers: [

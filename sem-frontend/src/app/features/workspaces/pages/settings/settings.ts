@@ -51,6 +51,7 @@ export class WorkspaceSettingsComponent {
     | 'transfers'
     | 'rosters'
     | 'finance'
+    | 'governance'
   >();
 
   // Settings form states

@@ -521,6 +521,14 @@
                 [workspaceId]="workspace()?.id || ''"
               ></app-finance>
             }
+
+            <!-- ═══════════════ GOVERNANCE TAB ═══════════════ -->
+            @if (activeTab() === 'governance') {
+              <app-governance
+                class="h-full block min-h-0"
+                [workspaceId]="workspace()?.id || ''"
+              ></app-governance>
+            }
           </div>
         </main>
       </div>
