@@ -43,6 +43,7 @@ export class WorkspaceSettingsComponent {
     | 'files'
     | 'volunteers'
     | 'equipment'
+    | 'medical'
   >();
 
   // Settings form states

@@ -35,6 +35,7 @@ import { RecoveryModule } from './common/recovery/recovery.module';
 import { AiModule } from './modules/ai/ai.module';
 import { VolunteersModule } from './modules/volunteers/volunteers.module';
 import { EquipmentModule } from './modules/equipment/equipment.module';
+import { MedicalModule } from './modules/medical/medical.module';
 
 @Module({
   imports: [
@@ -86,6 +87,7 @@ import { EquipmentModule } from './modules/equipment/equipment.module';
     AiModule,
     VolunteersModule,
     EquipmentModule,
+    MedicalModule,
   ],
   controllers: [AppController],
   providers: [

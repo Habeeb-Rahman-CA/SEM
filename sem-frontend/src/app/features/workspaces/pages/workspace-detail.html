@@ -457,6 +457,14 @@
                 [events]="events()"
               ></app-equipment>
             }
+
+            <!-- ═══════════════ MEDICAL TAB ═══════════════ -->
+            @if (activeTab() === 'medical') {
+              <app-medical
+                class="h-full block min-h-0"
+                [workspaceId]="workspace()?.id || ''"
+              ></app-medical>
+            }
           </div>
         </main>
       </div>
