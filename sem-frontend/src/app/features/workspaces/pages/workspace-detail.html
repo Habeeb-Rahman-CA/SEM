@@ -505,6 +505,14 @@
                 [workspaceId]="workspace()?.id || ''"
               ></app-transfers>
             }
+
+            <!-- ═══════════════ ROSTERS TAB ═══════════════ -->
+            @if (activeTab() === 'rosters') {
+              <app-rosters
+                class="h-full block min-h-0"
+                [workspaceId]="workspace()?.id || ''"
+              ></app-rosters>
+            }
           </div>
         </main>
       </div>

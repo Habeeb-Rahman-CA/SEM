@@ -30,6 +30,7 @@ export class SidebarComponent {
     | 'automation'
     | 'auctions'
     | 'transfers'
+    | 'rosters'
   >('overview');
   membersCount = input<number>(0);
   teamsCount = input<number>(0);

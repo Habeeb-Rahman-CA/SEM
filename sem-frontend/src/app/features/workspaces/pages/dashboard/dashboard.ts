@@ -29,6 +29,7 @@ export class WorkspaceDashboardComponent {
     | 'automation'
     | 'auctions'
     | 'transfers'
+    | 'rosters'
   >();
 
   liveMatches = input<any[]>([]);

@@ -41,6 +41,7 @@ import { StreamingModule } from './modules/streaming/streaming.module';
 import { AutomationModule } from './modules/automation/automation.module';
 import { AuctionsModule } from './modules/auctions/auctions.module';
 import { TransfersModule } from './modules/transfers/transfers.module';
+import { RostersModule } from './modules/rosters/rosters.module';
 
 @Module({
   imports: [
@@ -98,6 +99,7 @@ import { TransfersModule } from './modules/transfers/transfers.module';
     AutomationModule,
     AuctionsModule,
     TransfersModule,
+    RostersModule,
   ],
   controllers: [AppController],
   providers: [

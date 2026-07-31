@@ -49,6 +49,7 @@ export class WorkspaceSettingsComponent {
     | 'automation'
     | 'auctions'
     | 'transfers'
+    | 'rosters'
   >();
 
   // Settings form states
