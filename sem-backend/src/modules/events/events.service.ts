@@ -19,6 +19,7 @@ import { SearchEventDto } from './dto/search-event.dto';
 import { SearchPublicEventsDto } from './dto/search-public-events.dto';
 import { NotificationType } from '../workspaces/entities/notification.entity';
 import { CompetitionsService } from '../competitions/competitions.service';
+import { AttendanceForecastingService } from './services/attendance-forecasting.service';
 
 @Injectable()
 export class EventsService {
@@ -29,6 +30,7 @@ export class EventsService {
     private readonly teamRepo: Repository<Team>,
     private readonly workspacesService: WorkspacesService,
     private readonly competitionsService: CompetitionsService,
+    private readonly attendanceForecastingService: AttendanceForecastingService,
   ) {}
 
   async getEvents(
@@ -731,5 +733,17 @@ export class EventsService {
     qb.orderBy(orderField, orderDirection);
 
     return qb.getMany();
+  }
+
+  async getAttendanceForecast(
+    workspaceId: string,
+    eventId: string,
+    userId: string,
+  ) {
+    await this.workspacesService.ensureMember(workspaceId, userId);
+    return this.attendanceForecastingService.getAttendanceForecast(
+      workspaceId,
+      eventId,
+    );
   }
 }

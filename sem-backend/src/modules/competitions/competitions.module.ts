@@ -27,6 +27,7 @@ import { MatchLockService } from './services/match-lock.service';
 import { CompetitionTemplatesService } from './services/competition-templates.service';
 import { FixtureTemplatesService } from './services/fixture-templates.service';
 import { AiSummaryService } from './services/ai-summary.service';
+import { CompetitionPredictionsService } from './services/competition-predictions.service';
 import {
   CompetitionTemplatesController,
   FixtureTemplatesController,
@@ -73,6 +74,7 @@ import { FixtureTemplate } from './entities/fixture-template.entity';
     CompetitionTemplatesService,
     FixtureTemplatesService,
     AiSummaryService,
+    CompetitionPredictionsService,
   ],
   exports: [
     CompetitionsService,
@@ -88,6 +90,7 @@ import { FixtureTemplate } from './entities/fixture-template.entity';
     CompetitionTemplatesService,
     FixtureTemplatesService,
     AiSummaryService,
+    CompetitionPredictionsService,
   ],
 })
 export class CompetitionsModule {}

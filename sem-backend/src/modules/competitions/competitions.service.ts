@@ -30,6 +30,7 @@ import { CreateMatchDto } from './dto/create-match.dto';
 import { UpdateMatchDto } from './dto/update-match.dto';
 import { MatchLockService } from './services/match-lock.service';
 import { AiSummaryService } from './services/ai-summary.service';
+import { CompetitionPredictionsService } from './services/competition-predictions.service';
 
 @Injectable()
 export class CompetitionsService {
@@ -63,6 +64,7 @@ export class CompetitionsService {
     private readonly bracketAdvancementService: BracketAdvancementService,
     private readonly matchLockService: MatchLockService,
     private readonly aiSummaryService: AiSummaryService,
+    private readonly predictionsService: CompetitionPredictionsService,
   ) {}
 
   // ─── Validation Helpers ───────────────────────────────────────────────────
@@ -1771,5 +1773,33 @@ export class CompetitionsService {
       totalCompleted: results.length,
       groupedResults,
     };
+  }
+
+  async getCompetitionPredictions(
+    workspaceId: string,
+    eventId: string,
+    competitionId: string,
+    userId: string,
+  ) {
+    await this.workspacesService.ensureMember(workspaceId, userId);
+    await this.validateCompetitionContext(workspaceId, eventId, competitionId);
+    return this.predictionsService.getPredictions(competitionId);
+  }
+
+  async getPublicCompetitionPredictions(
+    eventId: string,
+    competitionId: string,
+  ) {
+    const event = await this.eventRepo.findOne({ where: { id: eventId } });
+    if (!event || !event.isPublic) {
+      throw new NotFoundException('Event not found or is not public');
+    }
+    const competition = await this.competitionRepo.findOne({
+      where: { id: competitionId, eventId },
+    });
+    if (!competition) {
+      throw new NotFoundException('Competition not found in this event');
+    }
+    return this.predictionsService.getPredictions(competitionId);
   }
 }

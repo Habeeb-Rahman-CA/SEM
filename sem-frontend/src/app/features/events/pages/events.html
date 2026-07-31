@@ -333,6 +333,167 @@
                 </div>
               }
             </div>
+
+            <!-- Attendance Forecasting Card -->
+            <div
+              class="bg-slate-900 border border-white/10 rounded-2xl p-6 shadow-xl flex flex-col gap-4 mt-6"
+            >
+              <div class="flex items-center justify-between border-b border-white/5 pb-3">
+                <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                  <i class="fi fi-rr-sparkles text-violet-400"></i>
+                  Attendance Forecast
+                </h3>
+                <span
+                  class="text-[9px] bg-violet-500/10 border border-violet-500/20 text-violet-400 rounded-full px-2 py-0.5 font-bold uppercase tracking-wider"
+                >
+                  AI Insight
+                </span>
+              </div>
+
+              @if (isLoadingAttendanceForecast()) {
+                <div class="flex items-center justify-center py-8">
+                  <svg class="animate-spin w-5 h-5 text-violet-500" fill="none" viewBox="0 0 24 24">
+                    <circle
+                      class="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      stroke-width="4"
+                    ></circle>
+                    <path
+                      class="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                    ></path>
+                  </svg>
+                </div>
+              } @else if (attendanceForecast(); as forecast) {
+                <!-- Capacity alert banner -->
+                @if (forecast.warning) {
+                  <div
+                    class="p-3 rounded-xl border text-[11px] font-medium leading-relaxed"
+                    [class]="
+                      forecast.warning.level === 'danger'
+                        ? 'bg-rose-500/10 border-rose-500/20 text-rose-400'
+                        : forecast.warning.level === 'warning'
+                          ? 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+                          : 'bg-slate-950/40 border-white/5 text-slate-300'
+                    "
+                  >
+                    <div class="flex gap-2">
+                      <i
+                        class="fi text-xs mt-0.5"
+                        [class]="
+                          forecast.warning.level === 'danger'
+                            ? 'fi-rr-shield-exclamation'
+                            : 'fi-rr-info'
+                        "
+                      ></i>
+                      <p>{{ forecast.warning.message }}</p>
+                    </div>
+                  </div>
+                }
+
+                <!-- Stats Breakdown -->
+                <div class="grid grid-cols-2 gap-3">
+                  <div class="bg-slate-950/40 border border-white/5 rounded-xl p-3 text-left">
+                    <span class="text-[9px] text-slate-500 uppercase font-bold tracking-wider"
+                      >Spectators</span
+                    >
+                    <p class="text-lg font-black text-white mt-1">
+                      {{ forecast.forecastedSpectators }}
+                    </p>
+                  </div>
+                  <div class="bg-slate-950/40 border border-white/5 rounded-xl p-3 text-left">
+                    <span class="text-[9px] text-slate-500 uppercase font-bold tracking-wider"
+                      >Participants</span
+                    >
+                    <p class="text-lg font-black text-white mt-1">
+                      {{ forecast.forecastedParticipants }}
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Venue Capacity Bar -->
+                <div class="flex flex-col gap-1 text-left">
+                  <div class="flex justify-between text-[10px] font-bold">
+                    <span class="text-slate-400"
+                      >Venue Capacity ({{ forecast.venueCapacity }})</span
+                    >
+                    <span
+                      [class]="
+                        forecast.capacityUtilization > 85 ? 'text-rose-400' : 'text-slate-300'
+                      "
+                    >
+                      {{ forecast.capacityUtilization }}%
+                    </span>
+                  </div>
+                  <div class="w-full bg-slate-800 rounded-full h-1.5 mt-1">
+                    <div
+                      class="rounded-full h-1.5 transition-all duration-500"
+                      [class]="forecast.capacityUtilization > 85 ? 'bg-rose-500' : 'bg-violet-500'"
+                      [style.width.%]="forecast.capacityUtilization"
+                    ></div>
+                  </div>
+                </div>
+
+                <!-- Resource estimates list -->
+                <div class="border-t border-white/5 pt-3">
+                  <h4 class="text-xs font-bold text-white text-left mb-2.5">Organiser Resources</h4>
+                  <div class="grid grid-cols-2 gap-2 text-left">
+                    <div class="flex items-center gap-2 text-[11px] text-slate-300">
+                      <i class="fi fi-rr-users text-slate-400"></i>
+                      <span
+                        >Staff:
+                        <strong class="text-white">{{
+                          forecast.resourceEstimates?.staffRequired
+                        }}</strong></span
+                      >
+                    </div>
+                    <div class="flex items-center gap-2 text-[11px] text-slate-300">
+                      <i class="fi fi-rr-shield text-slate-400"></i>
+                      <span
+                        >Security:
+                        <strong class="text-white">{{
+                          forecast.resourceEstimates?.securityGuards
+                        }}</strong></span
+                      >
+                    </div>
+                    <div class="flex items-center gap-2 text-[11px] text-slate-300">
+                      <i class="fi fi-rr-heart text-slate-400"></i>
+                      <span
+                        >First Aid:
+                        <strong class="text-white">{{
+                          forecast.resourceEstimates?.firstAidResponders
+                        }}</strong></span
+                      >
+                    </div>
+                    <div class="flex items-center gap-2 text-[11px] text-slate-300">
+                      <i class="fi fi-rr-shop text-slate-400"></i>
+                      <span
+                        >Concessions:
+                        <strong class="text-white">{{
+                          forecast.resourceEstimates?.concessionStands
+                        }}</strong></span
+                      >
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Trend analysis text -->
+                <div class="border-t border-white/5 pt-3 text-left">
+                  <span class="text-[9px] text-slate-500 uppercase font-black tracking-widest"
+                    >Trend Report</span
+                  >
+                  <p class="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                    {{ forecast.trendReport?.summary }}
+                  </p>
+                </div>
+              } @else {
+                <div class="text-xs text-slate-500 text-center py-4">Could not fetch forecast.</div>
+              }
+            </div>
           </div>
         </div>
       } @else {
@@ -394,6 +555,16 @@
                 "
               >
                 <i class="fi fi-rr-chart-histogram text-sm"></i> Leaderboards & Stats
+              </button>
+              <button
+                (click)="setCompetitionTab('predictions')"
+                [class]="
+                  activeCompetitionTab() === 'predictions'
+                    ? 'px-4 py-2 bg-violet-600/10 border border-violet-500/20 text-violet-400 text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-md shadow-violet-900/10'
+                    : 'px-4 py-2 text-slate-400 hover:text-white border border-transparent hover:bg-white/5 text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5'
+                "
+              >
+                <i class="fi fi-rr-sparkles text-sm text-violet-400"></i> AI Predictions
               </button>
             </div>
           }
@@ -967,6 +1138,288 @@
                   }
                 </div>
               }
+            } @else if (activeCompetitionTab() === 'predictions') {
+              <!-- Display AI Predictions Dashboard -->
+              <div class="flex flex-col gap-6">
+                <!-- AI Header Card -->
+                <div
+                  class="bg-slate-900 border border-white/10 rounded-2xl p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6"
+                >
+                  <div class="flex items-start gap-4">
+                    <div
+                      class="w-12 h-12 rounded-2xl bg-violet-600/10 flex items-center justify-center text-violet-400 flex-shrink-0"
+                    >
+                      <i class="fi fi-rr-sparkles text-2xl animate-pulse"></i>
+                    </div>
+                    <div class="text-left">
+                      <h3 class="text-base font-extrabold text-white flex items-center gap-2">
+                        AI Predictive Analytics
+                      </h3>
+                      <p class="text-xs text-slate-400 mt-1 max-w-xl">
+                        {{
+                          predictionsData()?.disclaimer ||
+                            'Leveraging advanced machine learning models to forecast tournament standings and qualification probabilities based on live performance stats.'
+                        }}
+                      </p>
+                    </div>
+                  </div>
+                  <!-- Model Confidence Gauge -->
+                  <div
+                    class="flex items-center gap-4 bg-slate-950/40 border border-white/5 rounded-2xl p-4 flex-shrink-0"
+                  >
+                    <div class="relative w-16 h-16 flex items-center justify-center">
+                      <svg class="w-full h-full transform -rotate-90">
+                        <circle
+                          cx="32"
+                          cy="32"
+                          r="28"
+                          class="stroke-slate-800"
+                          stroke-width="6"
+                          fill="transparent"
+                        />
+                        <circle
+                          cx="32"
+                          cy="32"
+                          r="28"
+                          class="stroke-violet-500 transition-all duration-500"
+                          stroke-width="6"
+                          fill="transparent"
+                          [attr.stroke-dasharray]="175.9"
+                          [attr.stroke-dashoffset]="
+                            175.9 - (175.9 * (predictionsData()?.confidenceScore || 0)) / 100
+                          "
+                        />
+                      </svg>
+                      <div class="absolute inset-0 flex flex-col items-center justify-center">
+                        <span class="text-sm font-black text-white"
+                          >{{ predictionsData()?.confidenceScore || 0 }}%</span
+                        >
+                        <span class="text-[7px] text-slate-500 uppercase font-bold">Conf</span>
+                      </div>
+                    </div>
+                    <div class="text-left">
+                      <span
+                        class="text-[9px] bg-violet-500/10 border border-violet-500/20 text-violet-400 px-2 py-0.5 rounded-md font-bold uppercase tracking-wider"
+                      >
+                        Prediction Model
+                      </span>
+                      <p class="text-xs text-white font-bold mt-1">Standings Forecast</p>
+                    </div>
+                  </div>
+                </div>
+
+                @if (isLoadingPredictions()) {
+                  <div class="py-24 flex flex-col items-center justify-center gap-3">
+                    <svg
+                      class="animate-spin w-8 h-8 text-violet-500"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        class="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        stroke-width="4"
+                      ></circle>
+                      <path
+                        class="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                      ></path>
+                    </svg>
+                    <span class="text-xs text-slate-400">Running AI forecasting pipeline...</span>
+                  </div>
+                } @else if (!predictionsData()) {
+                  <div
+                    class="rounded-2xl border border-dashed border-white/10 p-12 text-center flex flex-col items-center justify-center gap-3 bg-slate-900/50"
+                  >
+                    <div
+                      class="w-16 h-16 rounded-full bg-violet-600/10 flex items-center justify-center text-violet-400"
+                    >
+                      <i class="fi fi-rr-sparkles text-3xl"></i>
+                    </div>
+                    <div>
+                      <h3 class="text-sm font-semibold text-white">No prediction data</h3>
+                      <p class="text-xs text-slate-500 mt-1">
+                        Ensure matches are configured or in progress to generate predictive reports.
+                      </p>
+                    </div>
+                  </div>
+                } @else {
+                  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <!-- Column 1 & 2: Likely Winners & Qualification Probabilities -->
+                    <div class="lg:col-span-2 flex flex-col gap-8">
+                      <!-- Likely Winners Card -->
+                      <div
+                        class="bg-slate-900 border border-white/10 rounded-2xl p-5 shadow-xl flex flex-col gap-4"
+                      >
+                        <h3
+                          class="text-sm font-bold text-white flex items-center gap-2 border-b border-white/5 pb-3"
+                        >
+                          <i class="fi fi-rr-trophy text-amber-400 text-base"></i> Likely Winners
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          @for (winner of predictionsData()?.likelyWinners; track winner.rank) {
+                            <div
+                              class="bg-slate-950/40 border border-white/5 rounded-2xl p-4 flex flex-col gap-2 relative overflow-hidden text-left group hover:border-violet-500/20 transition-all"
+                            >
+                              <!-- Badge decoration -->
+                              <div
+                                class="absolute -right-3 -top-3 w-12 h-12 rounded-full bg-violet-500/5 flex items-center justify-center text-violet-400/20 group-hover:bg-violet-500/10 group-hover:text-violet-400/30 transition-all"
+                              >
+                                <span class="text-lg font-black">#{{ winner.rank }}</span>
+                              </div>
+                              <span
+                                class="text-[9px] w-fit font-bold px-2 py-0.5 rounded border uppercase"
+                                [class]="
+                                  winner.confidence === 'High'
+                                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                                    : winner.confidence === 'Medium'
+                                      ? 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+                                      : 'bg-slate-500/10 border-slate-500/20 text-slate-400'
+                                "
+                              >
+                                {{ winner.confidence }} Confidence
+                              </span>
+                              <h4 class="text-sm font-black text-white mt-1">
+                                {{ winner.teamName }}
+                              </h4>
+                              <p class="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                                {{ winner.reasoning }}
+                              </p>
+                            </div>
+                          }
+                        </div>
+                      </div>
+
+                      <!-- Qualification Probabilities Card -->
+                      <div
+                        class="bg-slate-900 border border-white/10 rounded-2xl p-5 shadow-xl flex flex-col gap-4"
+                      >
+                        <h3
+                          class="text-sm font-bold text-white flex items-center gap-2 border-b border-white/5 pb-3"
+                        >
+                          <i class="fi fi-rr-chart-bar text-violet-400 text-base"></i> Qualification
+                          Probabilities
+                        </h3>
+                        <div class="flex flex-col gap-4">
+                          @for (
+                            team of predictionsData()?.qualificationProbabilities;
+                            track team.teamId
+                          ) {
+                            <div
+                              class="bg-slate-950/20 border border-white/5 rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 text-left"
+                            >
+                              <div class="flex-1">
+                                <div class="flex items-center justify-between">
+                                  <span class="font-extrabold text-xs text-white">{{
+                                    team.teamName
+                                  }}</span>
+                                  <span
+                                    class="text-[10px] font-bold"
+                                    [class]="
+                                      team.probability > 75
+                                        ? 'text-emerald-400'
+                                        : team.probability > 40
+                                          ? 'text-amber-400'
+                                          : 'text-rose-400'
+                                    "
+                                  >
+                                    {{ team.probability }}% Probability
+                                  </span>
+                                </div>
+                                <div class="w-full bg-slate-800 rounded-full h-1.5 mt-2">
+                                  <div
+                                    class="rounded-full h-1.5 transition-all duration-500"
+                                    [class]="
+                                      team.probability > 75
+                                        ? 'bg-emerald-500'
+                                        : team.probability > 40
+                                          ? 'bg-amber-500'
+                                          : 'bg-rose-500'
+                                    "
+                                    [style.width.%]="team.probability"
+                                  ></div>
+                                </div>
+                              </div>
+                              <div
+                                class="md:w-64 border-t md:border-t-0 md:border-l border-white/5 pt-3 md:pt-0 md:pl-4"
+                              >
+                                <span
+                                  class="text-[8px] font-black uppercase tracking-wider text-slate-500"
+                                  >Analysis</span
+                                >
+                                <p class="text-[10px] text-slate-400 mt-0.5 leading-relaxed">
+                                  {{ team.reasoning }}
+                                </p>
+                              </div>
+                            </div>
+                          }
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Column 3: Forecasted Standings -->
+                    <div class="lg:col-span-1">
+                      <div
+                        class="bg-slate-900 border border-white/10 rounded-2xl p-5 shadow-xl flex flex-col gap-4"
+                      >
+                        <h3
+                          class="text-sm font-bold text-white flex items-center gap-2 border-b border-white/5 pb-3"
+                        >
+                          <i class="fi fi-rr-list-ol text-violet-400 text-base"></i> Projected
+                          Standings
+                        </h3>
+                        <div class="overflow-x-auto">
+                          <table class="w-full text-left text-xs border-collapse">
+                            <thead>
+                              <tr class="text-slate-400 border-b border-white/5">
+                                <th
+                                  class="py-2.5 font-bold uppercase tracking-wider text-[9px] w-12 text-center"
+                                >
+                                  Rank
+                                </th>
+                                <th
+                                  class="py-2.5 font-bold uppercase tracking-wider text-[9px] pl-2"
+                                >
+                                  Team
+                                </th>
+                                <th
+                                  class="py-2.5 font-bold uppercase tracking-wider text-[9px] text-right pr-2"
+                                >
+                                  Proj. Pts
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              @for (
+                                proj of predictionsData()?.forecastedStandings;
+                                track proj.teamName
+                              ) {
+                                <tr
+                                  class="border-b border-white/5 hover:bg-white/5 transition-colors"
+                                >
+                                  <td class="py-3 text-center font-bold text-slate-400">
+                                    #{{ proj.projectedRank }}
+                                  </td>
+                                  <td class="py-3 font-bold text-white pl-2">
+                                    {{ proj.teamName }}
+                                  </td>
+                                  <td class="py-3 text-right pr-2 font-extrabold text-violet-400">
+                                    {{ proj.projectedPoints }}
+                                  </td>
+                                </tr>
+                              }
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                }
+              </div>
             } @else {
               <!-- ─── 2. Matches List & Schedule ─── -->
               <div class="flex flex-col gap-6">

@@ -105,17 +105,21 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
   selectedMatch = model<Match | null>(null);
   matches = model<Match[]>([]);
   matchLineup = model<MatchPlayer[]>([]);
-  activeCompetitionTab = model<'matches' | 'stats'>('matches');
+  activeCompetitionTab = model<'matches' | 'stats' | 'predictions'>('matches');
 
   // LOCAL STATE SIGNALS
   sports = signal<Sport[]>([]);
   eventStandings = signal<any[]>([]);
   competitionStats = signal<CompetitionStats | null>(null);
+  predictionsData = signal<any | null>(null);
+  attendanceForecast = signal<any | null>(null);
 
   isLoadingCompetitions = signal(false);
   isLoadingStages = signal(false);
   isLoadingStats = signal(false);
   isLoadingCompetitionTeams = signal(false);
+  isLoadingPredictions = signal(false);
+  isLoadingAttendanceForecast = signal(false);
   isResettingStages = signal(false);
 
   // Archive & View
@@ -196,6 +200,7 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
         if (event) {
           this.loadCompetitions(event.id);
           this.loadEventStandings(event.id);
+          this.loadAttendanceForecast(event.id);
         }
       },
       { allowSignalWrites: true },
@@ -208,11 +213,24 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
         if (comp) {
           this.activeCompetitionTab.set('matches');
           this.competitionStats.set(null);
+          this.predictionsData.set(null);
           this.selectedStage.set(null);
           this.selectedMatch.set(null);
           this.matches.set([]);
           this.loadStages(comp.id);
           this.loadCompetitionTeams(comp.id);
+        }
+      },
+      { allowSignalWrites: true },
+    );
+
+    // Load predictions when selectedCompetition or tab changes
+    effect(
+      () => {
+        const comp = this.selectedCompetition();
+        const tab = this.activeCompetitionTab();
+        if (comp && tab === 'predictions') {
+          this.loadCompetitionPredictions(comp.id);
         }
       },
       { allowSignalWrites: true },
@@ -752,6 +770,39 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
     });
   }
 
+  loadAttendanceForecast(eventId: string) {
+    const ws = this.workspace();
+    if (!ws) return;
+    this.isLoadingAttendanceForecast.set(true);
+    this.eventService.getAttendanceForecast(ws.id, eventId).subscribe({
+      next: (data) => {
+        this.attendanceForecast.set(data);
+        this.isLoadingAttendanceForecast.set(false);
+      },
+      error: (err) => {
+        console.error('Failed to load attendance forecast', err);
+        this.isLoadingAttendanceForecast.set(false);
+      },
+    });
+  }
+
+  loadCompetitionPredictions(compId: string) {
+    const ws = this.workspace();
+    const event = this.selectedEvent();
+    if (!ws || !event) return;
+    this.isLoadingPredictions.set(true);
+    this.competitionService.getPredictions(ws.id, event.id, compId).subscribe({
+      next: (data) => {
+        this.predictionsData.set(data);
+        this.isLoadingPredictions.set(false);
+      },
+      error: (err) => {
+        console.error('Failed to load competition predictions', err);
+        this.isLoadingPredictions.set(false);
+      },
+    });
+  }
+
   onAddEvent() {
     this.editingEvent.set(null);
     this.isEventModalOpen.set(true);
@@ -1130,7 +1181,7 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
   }
 
   // STAGE & STATS HANDLERS
-  setCompetitionTab(tab: 'matches' | 'stats') {
+  setCompetitionTab(tab: 'matches' | 'stats' | 'predictions') {
     this.activeCompetitionTab.set(tab);
     if (tab === 'stats') {
       this.loadCompetitionStats();

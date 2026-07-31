@@ -222,4 +222,23 @@ export class EventsController {
         throw err;
       });
   }
+
+  @Get(':eventId/attendance-forecast')
+  @ApiOperation({
+    summary: 'Get attendance forecast and resource requirements for organizers',
+  })
+  @ApiParam(WS)
+  @ApiParam(EV)
+  @ApiResponse({ status: 200, description: 'Attendance forecast data' })
+  getAttendanceForecast(
+    @Param('workspaceId') workspaceId: string,
+    @Param('eventId') eventId: string,
+    @Request() req: any,
+  ) {
+    return this.eventsService.getAttendanceForecast(
+      workspaceId,
+      eventId,
+      req.user.id,
+    );
+  }
 }

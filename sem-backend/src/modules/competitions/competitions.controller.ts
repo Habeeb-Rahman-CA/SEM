@@ -145,6 +145,31 @@ export class CompetitionsController {
     );
   }
 
+  @Get('events/:eventId/competitions/:competitionId/predictions')
+  @ApiOperation({
+    summary: 'Get competition qualification predictions and likely winners',
+  })
+  @ApiParam(WS)
+  @ApiParam(EV)
+  @ApiParam(COMP)
+  @ApiResponse(R200('Competition predictions data'))
+  @ApiResponse(R401)
+  @ApiResponse(R403)
+  @ApiResponse(R404)
+  getCompetitionPredictions(
+    @Param('workspaceId') workspaceId: string,
+    @Param('eventId') eventId: string,
+    @Param('competitionId') competitionId: string,
+    @Request() req: any,
+  ) {
+    return this.competitionsService.getCompetitionPredictions(
+      workspaceId,
+      eventId,
+      competitionId,
+      req.user.id,
+    );
+  }
+
   // ─── Competition Teams ───────────────────────────────────────────────────
 
   @Get('events/:eventId/competitions/:competitionId/teams')

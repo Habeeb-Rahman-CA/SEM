@@ -414,4 +414,17 @@ export class CompetitionService {
       { headers: this.headers },
     );
   }
+
+  getPredictions(workspaceId: string, eventId: string, competitionId: string): Observable<any> {
+    return this.http.get<any>(
+      `${this.apiUrl}/${workspaceId}/events/${eventId}/competitions/${competitionId}/predictions`,
+      { headers: this.headers },
+    );
+  }
+
+  getPublicPredictions(eventId: string, competitionId: string): Observable<any> {
+    return this.http.get<any>(
+      `${environment.apiUrl}/public/events/${eventId}/competitions/${competitionId}/predictions`,
+    );
+  }
 }
