@@ -28,6 +28,9 @@ export class WorkspaceAnalyticsSnapshot {
   @Column({ name: 'organizer_insights', type: 'jsonb', nullable: true })
   organizerInsights: any;
 
+  @Column({ name: 'organization_stats', type: 'jsonb', nullable: true })
+  organizationStats: any;
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamp without time zone' })
   createdAt: Date;
 

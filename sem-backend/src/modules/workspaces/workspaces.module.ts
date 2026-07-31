@@ -25,6 +25,7 @@ import { EventTemplate } from '../events/entities/event-template.entity';
 import { CompetitionTemplate } from '../competitions/entities/competition-template.entity';
 import { FixtureTemplate } from '../competitions/entities/fixture-template.entity';
 import { WorkspaceAnalyticsSnapshot } from './entities/workspace-analytics-snapshot.entity';
+import { Invoice } from '../billing/entities/invoice.entity';
 import { WorkspacesService } from './workspaces.service';
 import { WorkspacesController } from './workspaces.controller';
 import { SystemSettingsController } from './system-settings.controller';
@@ -73,6 +74,7 @@ import { WorkspaceMembersService } from './members/members.service';
       CompetitionTemplate,
       FixtureTemplate,
       WorkspaceAnalyticsSnapshot,
+      Invoice,
     ]),
     UsersModule,
     UploadModule,

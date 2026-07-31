@@ -51,6 +51,7 @@ export class WorkspaceReportsComponent {
     | 'trends'
     | 'historical'
     | 'organizer'
+    | 'org-stats'
   >('workspace');
   selectedSport = signal<string>('');
   dateFrom = signal<string>('');
@@ -63,6 +64,7 @@ export class WorkspaceReportsComponent {
   participationTrendsData = signal<any>(null);
   historicalComparisonsData = signal<any>(null);
   organizerInsightsData = signal<any>(null);
+  organizationStatsData = signal<any>(null);
   isLoadingAnalytics = signal<boolean>(false);
 
   sports = signal<Sport[]>([]);
@@ -95,7 +97,7 @@ export class WorkspaceReportsComponent {
     if (type === 'competition') return this.isGeneratingCompExcel();
     if (type === 'team') return this.isGeneratingTeamExcel();
     if (type === 'player') return this.isGeneratingPlayerReport();
-    if (['event-dashboard', 'trends', 'historical', 'organizer'].includes(type))
+    if (['event-dashboard', 'trends', 'historical', 'organizer', 'org-stats'].includes(type))
       return this.isGeneratingAnalyticsExcel();
     return false;
   });
@@ -111,6 +113,7 @@ export class WorkspaceReportsComponent {
     else if (type === 'trends') this.downloadParticipationTrendsExcel();
     else if (type === 'historical') this.downloadHistoricalComparisonsExcel();
     else if (type === 'organizer') this.downloadOrganizerInsightsExcel();
+    else if (type === 'org-stats') this.downloadOrganizationStatsExcel();
   }
 
   ngOnInit() {
@@ -1038,7 +1041,8 @@ export class WorkspaceReportsComponent {
       | 'event-dashboard'
       | 'trends'
       | 'historical'
-      | 'organizer',
+      | 'organizer'
+      | 'org-stats',
   ) {
     this.reportType.set(type);
     const wsId = this.workspace()?.id;
@@ -1089,6 +1093,18 @@ export class WorkspaceReportsComponent {
         },
         error: (err) => {
           console.error('Failed to load organizer insights', err);
+          this.isLoadingAnalytics.set(false);
+        },
+      });
+    } else if (type === 'org-stats') {
+      this.isLoadingAnalytics.set(true);
+      this.analyticsService.getOrganizationStats(wsId).subscribe({
+        next: (data) => {
+          this.organizationStatsData.set(data);
+          this.isLoadingAnalytics.set(false);
+        },
+        error: (err) => {
+          console.error('Failed to load organization stats', err);
           this.isLoadingAnalytics.set(false);
         },
       });
@@ -2232,6 +2248,168 @@ export class WorkspaceReportsComponent {
           </div>
         `;
       }
+    } else if (type === 'org-stats') {
+      const data = this.organizationStatsData();
+      if (data) {
+        let partGrowthHtml = '';
+        data.participation.growth.forEach((g: any) => {
+          partGrowthHtml += `<tr><td>${g.month}</td><td style="text-align: center;">${g.newPlayers}</td><td style="text-align: center;">${g.newTeams}</td><td style="text-align: right;">${g.totalPlayers}</td><td style="text-align: right;">${g.totalTeams}</td></tr>`;
+        });
+
+        let sportsDistHtml = '';
+        data.participation.sportsDistribution.forEach((s: any) => {
+          sportsDistHtml += `<tr><td><b>${s.sport}</b></td><td style="text-align: center;">${s.events}</td><td style="text-align: center;">${s.competitions}</td><td style="text-align: right;">${s.participants}</td></tr>`;
+        });
+
+        let ageGroupsHtml = '';
+        data.participation.ageGroups.forEach((a: any) => {
+          ageGroupsHtml += `<tr><td>${a.group}</td><td style="text-align: center;">${a.count}</td><td style="text-align: right;">${a.percentage}%</td></tr>`;
+        });
+
+        let teamRankingsHtml = '';
+        data.performance.teamRankings.forEach((r: any, idx: number) => {
+          teamRankingsHtml += `<tr><td style="text-align: center;">${idx + 1}</td><td><b>${r.name}</b></td><td style="text-align: center;">${r.played}</td><td style="text-align: center;">${r.won}</td><td style="text-align: center;">${r.drawn}</td><td style="text-align: center;">${r.lost}</td><td style="text-align: right;">${r.winRate}%</td></tr>`;
+        });
+
+        let monthlyRevenueHtml = '';
+        data.finance.monthlyRevenueTrend.forEach((m: any) => {
+          monthlyRevenueHtml += `<tr><td>${m.month}</td><td style="text-align: center;">${m.invoicesCount}</td><td style="text-align: right;">$${(m.revenue / 100).toFixed(2)}</td></tr>`;
+        });
+
+        let pmDistHtml = '';
+        data.finance.paymentMethodsDistribution.forEach((p: any) => {
+          pmDistHtml += `<tr><td>${p.method.toUpperCase()}</td><td style="text-align: center;">${p.count}</td><td style="text-align: right;">$${(p.totalAmount / 100).toFixed(2)}</td></tr>`;
+        });
+
+        let monthlyAttendanceHtml = '';
+        data.attendance.monthlyAttendanceTrend.forEach((m: any) => {
+          monthlyAttendanceHtml += `<tr><td>${m.month}</td><td style="text-align: right;">${m.attendance}</td></tr>`;
+        });
+
+        let seasonalHtml = '';
+        data.seasonalTrends.forEach((s: any) => {
+          seasonalHtml += `<tr><td><b>${s.season}</b></td><td style="text-align: center;">${s.eventsCount}</td><td style="text-align: center;">${s.attendance}</td><td style="text-align: right;">$${(s.revenue / 100).toFixed(2)}</td></tr>`;
+        });
+
+        let aiRecList = '';
+        data.predictiveInsights.resourceRecommendations.forEach((rec: string) => {
+          aiRecList += `<li>${rec}</li>`;
+        });
+
+        htmlContent += `
+          <h1 class="report-title">Organization-Wide Statistics</h1>
+          
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 25px;">
+            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 6px;">
+              <div style="font-size: 11px; color: #64748b; text-transform: uppercase;">Total Players</div>
+              <div style="font-size: 20px; font-weight: bold; color: #1e1b4b;">${data.participation.totalRegisteredPlayers}</div>
+            </div>
+            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 6px;">
+              <div style="font-size: 11px; color: #64748b; text-transform: uppercase;">Total Revenue</div>
+              <div style="font-size: 20px; font-weight: bold; color: #15803d;">$${(data.finance.totalRevenue / 100).toFixed(2)}</div>
+            </div>
+            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 6px;">
+              <div style="font-size: 11px; color: #64748b; text-transform: uppercase;">Total Attendance</div>
+              <div style="font-size: 20px; font-weight: bold; color: #1d4ed8;">${data.attendance.totalAttendance}</div>
+            </div>
+            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 6px;">
+              <div style="font-size: 11px; color: #64748b; text-transform: uppercase;">Capacity Utilization</div>
+              <div style="font-size: 20px; font-weight: bold; color: #b45309;">${data.attendance.averageCapacityUtilization}%</div>
+            </div>
+          </div>
+
+          <h2 class="section-title">1. Participation & Demographics</h2>
+          <h3>Sports Distribution</h3>
+          <table>
+            <thead>
+              <tr><th>Sport</th><th style="text-align: center;">Events</th><th style="text-align: center;">Competitions</th><th style="text-align: right;">Est. Participants</th></tr>
+            </thead>
+            <tbody>${sportsDistHtml}</tbody>
+          </table>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 15px; margin-bottom: 25px;">
+            <div>
+              <h3>Monthly Growth Trend</h3>
+              <table>
+                <thead>
+                  <tr><th>Month</th><th style="text-align: center;">New Players</th><th style="text-align: center;">New Teams</th><th style="text-align: right;">Total Players</th></tr>
+                </thead>
+                <tbody>${partGrowthHtml}</tbody>
+              </table>
+            </div>
+            <div>
+              <h3>Age Division Demographics</h3>
+              <table>
+                <thead>
+                  <tr><th>Division</th><th style="text-align: center;">Players</th><th style="text-align: right;">Percentage</th></tr>
+                </thead>
+                <tbody>${ageGroupsHtml}</tbody>
+              </table>
+            </div>
+          </div>
+
+          <h2 class="section-title">2. Team Performance Leaderboard</h2>
+          <table>
+            <thead>
+              <tr><th style="text-align: center;">Rank</th><th>Team</th><th style="text-align: center;">Played</th><th style="text-align: center;">Won</th><th style="text-align: center;">Drawn</th><th style="text-align: center;">Lost</th><th style="text-align: right;">Win Rate</th></tr>
+            </thead>
+            <tbody>${teamRankingsHtml}</tbody>
+          </table>
+
+          <h2 class="section-title" style="margin-top: 25px;">3. Financial Overview</h2>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 25px;">
+            <div>
+              <h3>Monthly Billing Revenue</h3>
+              <table>
+                <thead>
+                  <tr><th>Month</th><th style="text-align: center;">Invoices Count</th><th style="text-align: right;">Revenue</th></tr>
+                </thead>
+                <tbody>${monthlyRevenueHtml}</tbody>
+              </table>
+            </div>
+            <div>
+              <h3>Payment Methods Breakdown</h3>
+              <table>
+                <thead>
+                  <tr><th>Method</th><th style="text-align: center;">Count</th><th style="text-align: right;">Revenue</th></tr>
+                </thead>
+                <tbody>${pmDistHtml}</tbody>
+              </table>
+            </div>
+          </div>
+
+          <h2 class="section-title">4. Estimated Event Attendance</h2>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 25px;">
+            <div>
+              <h3>Monthly Projected Turnout</h3>
+              <table>
+                <thead>
+                  <tr><th>Month</th><th style="text-align: right;">Turnout</th></tr>
+                </thead>
+                <tbody>${monthlyAttendanceHtml}</tbody>
+              </table>
+            </div>
+            <div>
+              <h3>Seasonal Activity Breakdown</h3>
+              <table>
+                <thead>
+                  <tr><th>Season</th><th style="text-align: center;">Events</th><th style="text-align: center;">Attendance</th><th style="text-align: right;">Revenue</th></tr>
+                </thead>
+                <tbody>${seasonalHtml}</tbody>
+              </table>
+            </div>
+          </div>
+
+          <div style="border: 1px dashed #4f46e5; background-color: #faf5ff; padding: 20px; border-radius: 8px; margin-top: 25px; page-break-inside: avoid;">
+            <div style="font-weight: bold; color: #4f46e5; margin-bottom: 10px;">🔮 AI-Generated Operational & Planning Insights</div>
+            <p><b>Growth Forecast:</b> ${data.predictiveInsights.growthForecast}</p>
+            <p><b>Budget Projection:</b> ${data.predictiveInsights.budgetProjection}</p>
+            <p><b>Efficiency Opportunities:</b> ${data.predictiveInsights.efficiencyOpportunities}</p>
+            <p><b>Strategic Resource Recommendations:</b></p>
+            <ul>${aiRecList}</ul>
+          </div>
+        `;
+      }
     }
 
     htmlContent += `
@@ -2241,5 +2419,222 @@ export class WorkspaceReportsComponent {
 
     printWindow.document.write(htmlContent);
     printWindow.document.close();
+  }
+
+  async downloadOrganizationStatsExcel() {
+    const data = this.organizationStatsData();
+    if (!data) return;
+    this.isGeneratingAnalyticsExcel.set(true);
+    try {
+      const XLSX = (await import('xlsx-js-style')) as any;
+      const wb = XLSX.utils.book_new();
+
+      // Sheet 1: Summary KPI
+      const summaryData = [
+        ['Metric Category', 'Metric Name', 'Value'],
+        ['Participation', 'Total Registered Teams', data.participation.totalRegisteredTeams],
+        ['Participation', 'Total Registered Players', data.participation.totalRegisteredPlayers],
+        ['Performance', 'Total Matches Played', data.performance.totalMatches],
+        ['Performance', 'Average Score Per Match', data.performance.avgScorePerMatch],
+        ['Finance', 'Total Paid Revenue', `$${(data.finance.totalRevenue / 100).toFixed(2)}`],
+        [
+          'Finance',
+          'Outstanding Invoice Revenue',
+          `$${(data.finance.outstandingRevenue / 100).toFixed(2)}`,
+        ],
+        [
+          'Finance',
+          'Average Invoice Value',
+          `$${(data.finance.averageInvoiceValue / 100).toFixed(2)}`,
+        ],
+        ['Attendance', 'Total Attendance', data.attendance.totalAttendance],
+        ['Attendance', 'Average Attendance Per Event', data.attendance.averageAttendance],
+        [
+          'Attendance',
+          'Average Capacity Utilization',
+          `${data.attendance.averageCapacityUtilization}%`,
+        ],
+      ];
+      const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
+
+      // Sheet 2: Participation & Sports
+      const partData: any[] = [
+        ['Growth Trend By Month'],
+        ['Month', 'New Players', 'New Teams', 'Total Players', 'Total Teams'],
+      ];
+      data.participation.growth.forEach((g: any) => {
+        partData.push([g.month, g.newPlayers, g.newTeams, g.totalPlayers, g.totalTeams]);
+      });
+      partData.push([]);
+      partData.push(
+        ['Sports Distribution'],
+        ['Sport', 'Events Count', 'Competitions Count', 'Est. Participants'],
+      );
+      data.participation.sportsDistribution.forEach((s: any) => {
+        partData.push([s.sport, s.events, s.competitions, s.participants]);
+      });
+      partData.push([]);
+      partData.push(['Age Group Demographics'], ['Age Division', 'Players Count', 'Percentage']);
+      data.participation.ageGroups.forEach((a: any) => {
+        partData.push([a.group, a.count, `${a.percentage}%`]);
+      });
+      const wsParticipation = XLSX.utils.aoa_to_sheet(partData);
+
+      // Sheet 3: Performance Leaderboard
+      const perfData: any[] = [
+        ['Team Leaderboard (Top 5 Win Rate)'],
+        ['Rank', 'Team Name', 'Matches Played', 'Won', 'Drawn', 'Lost', 'Win Rate (%)'],
+      ];
+      data.performance.teamRankings.forEach((r: any, idx: number) => {
+        perfData.push([idx + 1, r.name, r.played, r.won, r.drawn, r.lost, `${r.winRate}%`]);
+      });
+      const wsPerformance = XLSX.utils.aoa_to_sheet(perfData);
+
+      // Sheet 4: Finance Analytics
+      const finData: any[] = [
+        ['Monthly Billing & Invoice Revenue'],
+        ['Month', 'Invoiced Amount', 'Invoices Count'],
+      ];
+      data.finance.monthlyRevenueTrend.forEach((m: any) => {
+        finData.push([m.month, `$${(m.revenue / 100).toFixed(2)}`, m.invoicesCount]);
+      });
+      finData.push([]);
+      finData.push(
+        ['Payment Methods Breakdown'],
+        ['Payment Method', 'Transactions Count', 'Total Paid Cents'],
+      );
+      data.finance.paymentMethodsDistribution.forEach((p: any) => {
+        finData.push([p.method.toUpperCase(), p.count, `$${(p.totalAmount / 100).toFixed(2)}`]);
+      });
+      finData.push([]);
+      finData.push(['Invoice Status Counts'], ['Status', 'Count']);
+      data.finance.statusCounts.forEach((s: any) => {
+        finData.push([s.status.toUpperCase(), s.count]);
+      });
+      const wsFinance = XLSX.utils.aoa_to_sheet(finData);
+
+      // Sheet 5: Attendance Logs
+      const attData: any[] = [['Monthly Estimated Turnout'], ['Month', 'Total Estimated Turnout']];
+      data.attendance.monthlyAttendanceTrend.forEach((m: any) => {
+        attData.push([m.month, m.attendance]);
+      });
+      attData.push([]);
+      attData.push(
+        ['Event Breakdown'],
+        [
+          'Event Name',
+          'Spectators',
+          'Participants',
+          'Total Turnout',
+          'Venue Capacity',
+          'Utilization Rate (%)',
+        ],
+      );
+      data.attendance.breakdown.forEach((b: any) => {
+        attData.push([
+          b.eventName,
+          b.spectators,
+          b.participants,
+          b.total,
+          b.capacity,
+          `${b.utilization}%`,
+        ]);
+      });
+      const wsAttendance = XLSX.utils.aoa_to_sheet(attData);
+
+      // Sheet 6: Seasons & AI Insights
+      const seaData: any[] = [
+        ['Seasonal Operations Breakdown'],
+        ['Season', 'Events Count', 'Attendance Total', 'Revenue Paid'],
+      ];
+      data.seasonalTrends.forEach((s: any) => {
+        seaData.push([s.season, s.eventsCount, s.attendance, `$${(s.revenue / 100).toFixed(2)}`]);
+      });
+      seaData.push([]);
+      seaData.push(['AI-Generated Predictive Planning Insights']);
+      seaData.push(['Metric / Recommendation Area', 'Insights / Suggested Action']);
+      seaData.push(['Growth Forecast', data.predictiveInsights.growthForecast]);
+      seaData.push(['Budget Projection', data.predictiveInsights.budgetProjection]);
+      seaData.push([
+        'Operational Efficiency Opportunities',
+        data.predictiveInsights.efficiencyOpportunities,
+      ]);
+      data.predictiveInsights.resourceRecommendations.forEach((rec: string, idx: number) => {
+        seaData.push([`Resource Recommendation ${idx + 1}`, rec]);
+      });
+      const wsSeasons = XLSX.utils.aoa_to_sheet(seaData);
+
+      const sheets = [
+        { name: 'Summary Metrics', ws: wsSummary, isAoa: true },
+        { name: 'Participation Details', ws: wsParticipation, isAoa: true },
+        { name: 'Performance Details', ws: wsPerformance, isAoa: true },
+        { name: 'Finance Details', ws: wsFinance, isAoa: true },
+        { name: 'Attendance Details', ws: wsAttendance, isAoa: true },
+        { name: 'Seasons & AI Planning', ws: wsSeasons, isAoa: true },
+      ];
+
+      for (const sheet of sheets) {
+        const range = XLSX.utils.decode_range(sheet.ws['!ref'] || 'A1:A1');
+        const cols: any[] = [];
+        for (let C = range.s.c; C <= range.e.c; ++C) {
+          let maxLen = 12;
+          for (let R = range.s.r; R <= range.e.r; ++R) {
+            const cell = sheet.ws[XLSX.utils.encode_cell({ r: R, c: C })];
+            if (cell && cell.v) {
+              maxLen = Math.max(maxLen, cell.v.toString().length);
+            }
+          }
+          cols.push({ wch: maxLen + 2 });
+        }
+        sheet.ws['!cols'] = cols;
+
+        for (let R = range.s.r; R <= range.e.r; ++R) {
+          for (let C = range.s.c; C <= range.e.c; ++C) {
+            const address = XLSX.utils.encode_cell({ r: R, c: C });
+            const cell = sheet.ws[address];
+            if (!cell) continue;
+
+            const val = cell.v ? cell.v.toString() : '';
+            const isHeaderRow =
+              R === 0 ||
+              val.includes('Distribution') ||
+              val.includes('Trend') ||
+              val.includes('Demographics') ||
+              val.includes('Leaderboard') ||
+              val.includes('Breakdown') ||
+              val.includes('Counts') ||
+              val.includes('Insights') ||
+              val.includes('Category') ||
+              val === 'Metric Category' ||
+              val === 'Month' ||
+              val === 'Rank' ||
+              val === 'Payment Method' ||
+              val === 'Season' ||
+              val === 'Metric / Recommendation Area';
+
+            if (isHeaderRow) {
+              cell.s = {
+                fill: { fgColor: { rgb: R === 0 ? '1E1B4B' : '4F46E5' } },
+                font: { bold: true, color: { rgb: 'FFFFFF' }, name: 'Segoe UI', size: 10 },
+                alignment: { horizontal: 'left', vertical: 'center' },
+              };
+            } else {
+              cell.s = {
+                font: { name: 'Segoe UI', size: 10 },
+                alignment: { vertical: 'center' },
+              };
+            }
+          }
+        }
+
+        XLSX.utils.book_append_sheet(wb, sheet.ws, sheet.name);
+      }
+
+      XLSX.writeFile(wb, `${this.workspace()?.slug}_organization_wide_statistics.xlsx`);
+    } catch (err) {
+      console.error('Failed to generate organization stats Excel', err);
+    } finally {
+      this.isGeneratingAnalyticsExcel.set(false);
+    }
   }
 }

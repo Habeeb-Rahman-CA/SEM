@@ -94,4 +94,19 @@ export class AnalyticsController {
     await this.checkMembership(workspaceId, req.user.id);
     return this.analyticsService.getOrganizerInsights(workspaceId);
   }
+
+  @Get('organization-stats')
+  @ApiOperation({
+    summary:
+      'Get organization-wide statistics: participation, performance, finance, attendance, and seasonal trends with predictive planning insights',
+  })
+  @ApiParam(WS)
+  @ApiResponse({ status: 200, description: 'Organization-wide stats object' })
+  async getOrganizationStats(
+    @Param('workspaceId') workspaceId: string,
+    @Request() req: any,
+  ) {
+    await this.checkMembership(workspaceId, req.user.id);
+    return this.analyticsService.getOrganizationStats(workspaceId);
+  }
 }
