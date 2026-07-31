@@ -41,6 +41,7 @@ export class WorkspaceSettingsComponent {
     | 'venues'
     | 'reports'
     | 'files'
+    | 'volunteers'
   >();
 
   // Settings form states

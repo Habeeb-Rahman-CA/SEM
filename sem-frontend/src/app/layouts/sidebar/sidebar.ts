@@ -22,6 +22,7 @@ export class SidebarComponent {
     | 'venues'
     | 'reports'
     | 'files'
+    | 'volunteers'
   >('overview');
   membersCount = input<number>(0);
   teamsCount = input<number>(0);

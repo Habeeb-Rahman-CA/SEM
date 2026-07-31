@@ -55,6 +55,7 @@ import { WorkspaceMembersComponent } from './members/members';
 import { WorkspaceSettingsComponent } from './settings/settings';
 import { WorkspaceReportsComponent } from '../../reports/pages/reports';
 import { WorkspaceFilesComponent } from './files/files';
+import { VolunteersComponent } from '../../volunteers/pages/volunteers';
 import { RefereeDashboardComponent } from '../components/referee-dashboard/referee-dashboard';
 import { FootballConsoleComponent } from '../../competitions/consoles/football-console/football-console';
 import { CricketConsoleComponent } from '../../competitions/consoles/cricket-console/cricket-console';
@@ -98,6 +99,7 @@ declare const L: any;
     GenericConsoleComponent,
     LineupModalComponent,
     BottomNavComponent,
+    VolunteersComponent,
   ],
   templateUrl: './workspace-detail.html',
   styleUrl: './workspace-detail.css',
@@ -203,6 +205,7 @@ export class WorkspaceDetailComponent implements OnInit {
     | 'venues'
     | 'reports'
     | 'files'
+    | 'volunteers'
   >('overview');
   isSidebarOpen = signal(true);
 

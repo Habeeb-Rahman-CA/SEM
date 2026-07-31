@@ -439,6 +439,15 @@
                 ></app-workspace-events>
               </div>
             }
+
+            <!-- ═══════════════ VOLUNTEERS TAB ═══════════════ -->
+            @if (activeTab() === 'volunteers') {
+              <app-volunteers
+                class="h-full block min-h-0"
+                [workspaceId]="workspace()?.id || ''"
+                [members]="members()"
+              ></app-volunteers>
+            }
           </div>
         </main>
       </div>

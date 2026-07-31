@@ -1,0 +1,859 @@
+<div class="flex flex-col gap-6 h-full overflow-y-auto pr-1">
+  <!-- Header / Mode Toggler -->
+  <div
+    class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-5 border-b border-white/10"
+  >
+    <div>
+      <h1 class="text-2xl font-black tracking-tight text-white flex items-center gap-2">
+        <i class="fi fi-rr-heart text-violet-400"></i> Volunteer Center
+      </h1>
+      <p class="text-xs text-slate-400 mt-1">
+        Coordinate events helpers, schedule shifts, track attendance, service hours, and feedback.
+      </p>
+    </div>
+
+    @if (isManager()) {
+      <div class="flex bg-slate-900 border border-white/10 p-1 rounded-xl">
+        <button
+          (click)="viewMode.set('manager')"
+          [class]="
+            viewMode() === 'manager'
+              ? 'bg-violet-600 text-white font-bold'
+              : 'text-slate-400 hover:text-white'
+          "
+          class="px-3.5 py-1.5 rounded-lg text-xs transition cursor-pointer"
+        >
+          Organizer Center
+        </button>
+        <button
+          (click)="viewMode.set('volunteer')"
+          [class]="
+            viewMode() === 'volunteer'
+              ? 'bg-violet-600 text-white font-bold'
+              : 'text-slate-400 hover:text-white'
+          "
+          class="px-3.5 py-1.5 rounded-lg text-xs transition cursor-pointer"
+        >
+          My Self-Service Portal
+        </button>
+      </div>
+    }
+  </div>
+
+  @if (isLoading()) {
+    <div class="flex flex-col items-center justify-center py-20 text-slate-500 text-sm gap-2">
+      <i class="fi fi-rr-settings-sliders animate-spin text-2xl text-violet-500"></i>
+      <span>Loading volunteer workspace data...</span>
+    </div>
+  } @else {
+    <!-- ═════════════════════════ ORGANIZER VIEW ═════════════════════════ -->
+    @if (viewMode() === 'manager') {
+      <!-- Tabs for Manager: Shifts & Volunteer Rosters -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Shifts & Assignments Panel (Left 2 cols) -->
+        <div class="lg:col-span-2 flex flex-col gap-6">
+          <div class="bg-slate-900/40 border border-white/5 rounded-3xl p-6 shadow-xl">
+            <div class="flex justify-between items-center mb-4">
+              <h2
+                class="text-sm font-black text-slate-300 uppercase tracking-widest flex items-center gap-2"
+              >
+                <i class="fi fi-rr-calendar text-violet-400"></i> Scheduled Shifts
+              </h2>
+              <button
+                (click)="openShiftModal()"
+                class="px-3 py-1.5 bg-violet-600 hover:bg-violet-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+              >
+                <i class="fi fi-rr-plus"></i> Add Shift
+              </button>
+            </div>
+
+            @if (shifts().length === 0) {
+              <div class="py-12 text-center text-xs text-slate-500">
+                No volunteer shifts scheduled yet. Click Add Shift to create one.
+              </div>
+            } @else {
+              <div class="space-y-4">
+                @for (shift of shifts(); track shift.id) {
+                  <div class="bg-slate-900 border border-white/10 rounded-2xl p-5 space-y-4">
+                    <div class="flex flex-col sm:flex-row justify-between items-start gap-2">
+                      <div>
+                        <h3 class="text-sm font-bold text-white">{{ shift.title }}</h3>
+                        <p class="text-xs text-violet-300 font-semibold mt-1">
+                          Role: {{ shift.role }}
+                        </p>
+                        @if (shift.description) {
+                          <p class="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                            {{ shift.description }}
+                          </p>
+                        }
+                        <div
+                          class="flex items-center gap-4 mt-2.5 text-[10px] text-slate-500 font-medium"
+                        >
+                          <span>
+                            <i class="fi fi-rr-clock mr-1"></i>
+                            {{ shift.startAt | date: 'short' }} -
+                            {{ shift.endAt | date: 'shortTime' }}
+                          </span>
+                          <span class="flex items-center gap-1">
+                            <i class="fi fi-rr-users mr-0.5"></i>
+                            {{ getFilledCount(shift) }} / {{ shift.maxVolunteers }} spots filled
+                          </span>
+                        </div>
+                      </div>
+
+                      <div class="flex items-center gap-1.5 self-end sm:self-start">
+                        <button
+                          (click)="openShiftModal(shift)"
+                          class="p-2 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg transition cursor-pointer"
+                          title="Edit Shift"
+                        >
+                          <i class="fi fi-rr-edit text-xs"></i>
+                        </button>
+                        <button
+                          (click)="deleteShift(shift.id)"
+                          class="p-2 hover:bg-rose-500/10 text-slate-400 hover:text-rose-400 rounded-lg transition cursor-pointer"
+                          title="Delete Shift"
+                        >
+                          <i class="fi fi-rr-trash text-xs"></i>
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- Assignments list for this shift -->
+                    <div class="border-t border-white/5 pt-4">
+                      <h4
+                        class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2"
+                      >
+                        Signed Up Volunteers
+                      </h4>
+                      @if (getFilledCount(shift) === 0) {
+                        <p class="text-[10px] text-slate-600 italic">
+                          No volunteers signed up for this shift yet.
+                        </p>
+                      } @else {
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          @for (a of shift.assignments; track a.id) {
+                            @if (a.status !== 'cancelled') {
+                              <div
+                                class="bg-slate-950/50 border border-white/5 rounded-xl p-3 flex flex-col justify-between gap-2"
+                              >
+                                <div class="flex justify-between items-start gap-1">
+                                  <div>
+                                    <span class="text-xs font-bold text-slate-200">{{
+                                      a.volunteer.user.username
+                                    }}</span>
+                                    <div class="flex items-center gap-1.5 mt-1">
+                                      @if (a.status === 'attended') {
+                                        <span
+                                          class="text-[9px] px-1.5 py-0.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-md font-bold flex items-center gap-0.5"
+                                        >
+                                          <i class="fi fi-rr-check-circle"></i> Attended
+                                        </span>
+                                      } @else if (a.status === 'absent') {
+                                        <span
+                                          class="text-[9px] px-1.5 py-0.5 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-md font-bold flex items-center gap-0.5"
+                                        >
+                                          <i class="fi fi-rr-cross-circle"></i> Absent
+                                        </span>
+                                      } @else {
+                                        <span
+                                          class="text-[9px] px-1.5 py-0.5 bg-violet-500/10 border border-violet-500/20 text-violet-400 rounded-md font-bold"
+                                        >
+                                          Assigned
+                                        </span>
+                                      }
+                                      @if (a.serviceHours > 0) {
+                                        <span class="text-[9px] text-slate-400 font-bold">
+                                          {{ a.serviceHours }} hrs completed
+                                        </span>
+                                      }
+                                    </div>
+                                  </div>
+                                  <button
+                                    (click)="
+                                      openAssignmentModal(
+                                        a.id,
+                                        a.status,
+                                        a.serviceHours,
+                                        a.feedback,
+                                        a.rating
+                                      )
+                                    "
+                                    class="text-[10px] font-bold text-violet-400 hover:text-violet-300 px-2 py-1 hover:bg-violet-500/10 rounded-lg transition cursor-pointer"
+                                  >
+                                    Update Roster
+                                  </button>
+                                </div>
+
+                                @if (a.feedback) {
+                                  <div
+                                    class="text-[9px] text-slate-400 border-t border-white/5 pt-1.5 italic"
+                                  >
+                                    "{{ a.feedback }}"
+                                    <span
+                                      class="ml-1 text-[8px] font-bold text-amber-400 flex items-center gap-0.5 inline-flex"
+                                    >
+                                      <i class="fi fi-rr-star"></i> {{ a.rating }}/5
+                                    </span>
+                                  </div>
+                                }
+                              </div>
+                            }
+                          }
+                        </div>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Volunteers Application Approval & Roster (Right Column) -->
+        <div class="lg:col-span-1 flex flex-col gap-6">
+          <div class="bg-slate-900/40 border border-white/5 rounded-3xl p-6 shadow-xl">
+            <h2
+              class="text-sm font-black text-slate-300 uppercase tracking-widest flex items-center gap-2 mb-4"
+            >
+              <i class="fi fi-rr-users text-violet-400"></i> Volunteers Registry
+            </h2>
+
+            @if (volunteers().length === 0) {
+              <div class="py-12 text-center text-xs text-slate-500">
+                No volunteer registrations submitted yet.
+              </div>
+            } @else {
+              <div class="space-y-4">
+                @for (v of volunteers(); track v.id) {
+                  <div class="bg-slate-900 border border-white/10 rounded-2xl p-4 space-y-3">
+                    <div class="flex justify-between items-start gap-2">
+                      <div>
+                        <span class="text-xs font-bold text-white">{{ v.user.username }}</span>
+
+                        <div class="mt-1">
+                          @if (v.status === 'approved') {
+                            <span
+                              class="text-[9px] px-1.5 py-0.5 bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 rounded-md font-bold"
+                            >
+                              Approved
+                            </span>
+                          } @else if (v.status === 'rejected') {
+                            <span
+                              class="text-[9px] px-1.5 py-0.5 bg-rose-500/10 border border-rose-500/25 text-rose-400 rounded-md font-bold"
+                            >
+                              Rejected
+                            </span>
+                          } @else {
+                            <span
+                              class="text-[9px] px-1.5 py-0.5 bg-amber-500/10 border border-amber-500/25 text-amber-400 rounded-md font-bold"
+                            >
+                              Pending Review
+                            </span>
+                          }
+                        </div>
+                      </div>
+
+                      <div class="flex items-center gap-1">
+                        @if (v.status === 'pending') {
+                          <button
+                            (click)="updateVolunteerStatus(v.id, 'approved')"
+                            class="p-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 rounded-lg transition text-[10px] font-bold cursor-pointer"
+                            title="Approve Application"
+                          >
+                            Approve
+                          </button>
+                          <button
+                            (click)="updateVolunteerStatus(v.id, 'rejected')"
+                            class="p-1.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 rounded-lg transition text-[10px] font-bold cursor-pointer"
+                            title="Reject Application"
+                          >
+                            Reject
+                          </button>
+                        }
+                        <button
+                          (click)="deleteVolunteerRegistration(v.id)"
+                          class="p-1.5 hover:bg-rose-500/10 text-slate-400 hover:text-rose-400 rounded-lg transition cursor-pointer"
+                          title="Delete Registration"
+                        >
+                          <i class="fi fi-rr-trash text-xs"></i>
+                        </button>
+                      </div>
+                    </div>
+
+                    @if (v.skills && v.skills.length > 0) {
+                      <div class="flex flex-wrap gap-1 mt-1.5">
+                        @for (skill of v.skills; track skill) {
+                          <span
+                            class="text-[9px] px-2 py-0.5 bg-slate-950 text-slate-300 rounded-md border border-white/5 font-medium"
+                          >
+                            {{ skill }}
+                          </span>
+                        }
+                      </div>
+                    }
+
+                    @if (v.notes) {
+                      <p
+                        class="text-[10px] text-slate-400 italic bg-slate-950/40 p-2 rounded-lg border border-white/5 mt-1"
+                      >
+                        "{{ v.notes }}"
+                      </p>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- ═════════════════════════ VOLUNTEER VIEW ═════════════════════════ -->
+    @if (viewMode() === 'volunteer') {
+      @let profile = myProfile();
+
+      @if (!profile) {
+        <!-- Call to Action Registration Banner -->
+        <div
+          class="bg-gradient-to-br from-slate-900 via-slate-900 to-violet-950/20 border border-violet-500/20 rounded-3xl p-8 max-w-2xl mx-auto text-center space-y-6 shadow-2xl"
+        >
+          <div
+            class="w-16 h-16 rounded-2xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center mx-auto text-violet-400"
+          >
+            <i class="fi fi-rr-heart text-3xl"></i>
+          </div>
+          <div>
+            <h2 class="text-xl font-black text-white">Join the Event Support Team!</h2>
+            <p class="text-xs text-slate-400 mt-2 leading-relaxed max-w-md mx-auto">
+              Contribute your skills, manage matches, support event logistics, track attendees, and
+              earn certified service hours.
+            </p>
+          </div>
+          <button
+            (click)="openRegisterModal()"
+            class="px-5 py-2.5 bg-violet-600 hover:bg-violet-500 text-white font-bold rounded-xl text-xs transition cursor-pointer shadow-lg shadow-violet-600/20"
+          >
+            Apply as Volunteer
+          </button>
+        </div>
+      } @else {
+        @let status = profile.volunteer.status;
+
+        @if (status === 'pending') {
+          <div
+            class="bg-slate-900 border border-white/10 rounded-3xl p-8 max-w-xl mx-auto text-center space-y-4 shadow-xl"
+          >
+            <div
+              class="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto text-amber-400 animate-pulse"
+            >
+              <i class="fi fi-rr-hourglass text-2xl"></i>
+            </div>
+            <h3 class="text-base font-bold text-white">Application Pending Review</h3>
+            <p class="text-xs text-slate-400 leading-relaxed">
+              Your volunteer application was successfully submitted and is currently being reviewed
+              by our organizers. You will be able to sign up for shifts as soon as it gets approved.
+            </p>
+          </div>
+        } @else if (status === 'rejected') {
+          <div
+            class="bg-slate-900 border border-white/10 rounded-3xl p-8 max-w-xl mx-auto text-center space-y-4 shadow-xl"
+          >
+            <div
+              class="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center mx-auto text-rose-400"
+            >
+              <i class="fi fi-rr-cross-circle text-2xl"></i>
+            </div>
+            <h3 class="text-base font-bold text-white">Application Not Accepted</h3>
+            <p class="text-xs text-slate-400 leading-relaxed">
+              Unfortunately, your application for event support in this workspace was not accepted
+              at this time. You can contact an administrator for more details.
+            </p>
+          </div>
+        } @else {
+          <!-- Approved Volunteer Portal -->
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Profile, Hours & Shifts (Left 2 columns) -->
+            <div class="lg:col-span-2 flex flex-col gap-6">
+              <!-- Quick Stats row -->
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div
+                  class="rounded-2xl border border-white/5 bg-slate-900/40 p-5 flex flex-col gap-1"
+                >
+                  <span
+                    class="text-[10px] uppercase tracking-wider text-slate-500 font-bold flex items-center gap-1.5"
+                  >
+                    <i class="fi fi-rr-calendar text-violet-400"></i> Registered Shifts
+                  </span>
+                  <div class="text-2xl font-black text-white mt-1">
+                    {{ profile.stats.totalShifts }}
+                  </div>
+                </div>
+
+                <div
+                  class="rounded-2xl border border-white/5 bg-slate-900/40 p-5 flex flex-col gap-1"
+                >
+                  <span
+                    class="text-[10px] uppercase tracking-wider text-slate-500 font-bold flex items-center gap-1.5"
+                  >
+                    <i class="fi fi-rr-check-circle text-emerald-400"></i> Completed Shifts
+                  </span>
+                  <div class="text-2xl font-black text-white mt-1">
+                    {{ profile.stats.completedShifts }}
+                  </div>
+                </div>
+
+                <div
+                  class="rounded-2xl border border-white/5 bg-slate-900/40 p-5 flex flex-col gap-1"
+                >
+                  <span
+                    class="text-[10px] uppercase tracking-wider text-slate-500 font-bold flex items-center gap-1.5"
+                  >
+                    <i class="fi fi-rr-clock text-amber-400"></i> Service Hours Logged
+                  </span>
+                  <div class="text-2xl font-black text-white mt-1">
+                    {{ profile.stats.serviceHours }} hrs
+                  </div>
+                </div>
+              </div>
+
+              <!-- Available Shifts to Sign Up -->
+              <div class="bg-slate-900/40 border border-white/5 rounded-3xl p-6 shadow-xl">
+                <h2
+                  class="text-sm font-black text-slate-300 uppercase tracking-widest flex items-center gap-2 mb-4"
+                >
+                  <i class="fi fi-rr-calendar text-violet-400"></i> Available Shifts
+                </h2>
+
+                @if (shifts().length === 0) {
+                  <div class="py-12 text-center text-xs text-slate-500">
+                    No volunteer shifts are scheduled. Check back later!
+                  </div>
+                } @else {
+                  <div class="space-y-4">
+                    @for (shift of shifts(); track shift.id) {
+                      <div
+                        class="bg-slate-900 border border-white/10 rounded-2xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
+                      >
+                        <div>
+                          <h3 class="text-sm font-bold text-white">{{ shift.title }}</h3>
+                          <div class="flex items-center gap-3 mt-1">
+                            <span class="text-xs text-violet-300 font-semibold"
+                              >Role: {{ shift.role }}</span
+                            >
+                            <span class="text-[10px] text-slate-500 font-bold">•</span>
+                            <span class="text-[10px] text-slate-400 font-medium">
+                              {{ getFilledCount(shift) }} / {{ shift.maxVolunteers }} registered
+                            </span>
+                          </div>
+                          <div class="text-[10px] text-slate-500 font-medium mt-1.5">
+                            <i class="fi fi-rr-clock mr-1"></i>
+                            {{ shift.startAt | date: 'short' }} -
+                            {{ shift.endAt | date: 'shortTime' }}
+                          </div>
+                        </div>
+
+                        <div>
+                          @if (hasSignedUp(shift)) {
+                            <div class="flex items-center gap-2">
+                              <span
+                                class="text-xs font-bold text-emerald-400 flex items-center gap-1"
+                              >
+                                <i class="fi fi-rr-check-circle"></i> Signed Up
+                              </span>
+                              <button
+                                (click)="cancelShiftSignup(shift.id)"
+                                class="px-2.5 py-1.5 bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500/20 text-rose-400 font-bold rounded-lg text-[10px] transition cursor-pointer"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          } @else if (getFilledCount(shift) >= shift.maxVolunteers) {
+                            <span class="text-xs font-bold text-slate-500">Shift Full</span>
+                          } @else {
+                            <button
+                              (click)="signupForShift(shift.id)"
+                              class="px-3.5 py-1.5 bg-violet-600 hover:bg-violet-500 text-white font-bold rounded-lg text-xs transition cursor-pointer"
+                            >
+                              Sign Up
+                            </button>
+                          }
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- My History (Right Column) -->
+            <div class="lg:col-span-1 flex flex-col gap-6">
+              <div class="bg-slate-900/40 border border-white/5 rounded-3xl p-6 shadow-xl">
+                <h2
+                  class="text-sm font-black text-slate-300 uppercase tracking-widest flex items-center gap-2 mb-4"
+                >
+                  <i class="fi fi-rr-heart text-violet-400"></i> My Assignments
+                </h2>
+
+                @if (profile.volunteer.assignments.length === 0) {
+                  <div class="py-12 text-center text-xs text-slate-500">
+                    You haven't registered for any shifts yet. Sign up on the left!
+                  </div>
+                } @else {
+                  <div class="space-y-4">
+                    @for (a of profile.volunteer.assignments; track a.id) {
+                      <div class="bg-slate-900 border border-white/10 rounded-2xl p-4 space-y-3">
+                        <div class="flex justify-between items-start gap-2">
+                          <div>
+                            <span class="text-xs font-bold text-white">{{ a.shift.title }}</span>
+                            <div class="text-[9px] text-slate-500 font-medium mt-0.5">
+                              {{ a.shift.startAt | date: 'shortDate' }}
+                            </div>
+                          </div>
+
+                          <div>
+                            @if (a.status === 'attended') {
+                              <span
+                                class="text-[9px] px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-md font-bold flex items-center gap-0.5"
+                              >
+                                <i class="fi fi-rr-check-circle"></i> Attended
+                              </span>
+                            } @else if (a.status === 'absent') {
+                              <span
+                                class="text-[9px] px-2 py-0.5 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-md font-bold flex items-center gap-0.5"
+                              >
+                                <i class="fi fi-rr-cross-circle"></i> Absent
+                              </span>
+                            } @else if (a.status === 'cancelled') {
+                              <span
+                                class="text-[9px] px-2 py-0.5 bg-slate-800 text-slate-500 rounded-md font-bold"
+                              >
+                                Cancelled
+                              </span>
+                            } @else {
+                              <span
+                                class="text-[9px] px-2 py-0.5 bg-violet-500/10 border border-violet-500/20 text-violet-400 rounded-md font-bold"
+                              >
+                                Assigned
+                              </span>
+                            }
+                          </div>
+                        </div>
+
+                        @if (a.status === 'attended') {
+                          <div class="border-t border-white/5 pt-2 flex flex-col gap-1.5">
+                            <div class="flex justify-between text-[10px]">
+                              <span class="text-slate-500">Service Hours:</span>
+                              <span class="font-bold text-white">{{ a.serviceHours }} hours</span>
+                            </div>
+
+                            @if (a.rating) {
+                              <div class="flex justify-between text-[10px]">
+                                <span class="text-slate-500">Feedback score:</span>
+                                <span class="font-bold text-amber-400 flex items-center gap-0.5">
+                                  <i class="fi fi-rr-star"></i> {{ a.rating }} / 5
+                                </span>
+                              </div>
+                            }
+
+                            @if (a.feedback) {
+                              <p
+                                class="text-[10px] text-slate-400 italic bg-slate-950/40 p-2 rounded-lg border border-white/5 mt-0.5"
+                              >
+                                "{{ a.feedback }}"
+                              </p>
+                            }
+                          </div>
+                        }
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+        }
+      }
+    }
+  }
+</div>
+
+<!-- ═════════════════════════ MODALS ═════════════════════════ -->
+
+<!-- 1. Volunteer registration modal -->
+@if (isRegisterModalOpen()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+    <div
+      class="bg-slate-900 border border-white/10 rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl animate-fadeIn"
+    >
+      <div class="flex justify-between items-center">
+        <h3 class="text-base font-bold text-white flex items-center gap-2">
+          <i class="fi fi-rr-heart text-violet-400"></i> Join Volunteer Team
+        </h3>
+        <button
+          (click)="closeRegisterModal()"
+          class="text-slate-400 hover:text-white cursor-pointer"
+        >
+          <i class="fi fi-rr-cross"></i>
+        </button>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+            Skills (Comma separated)
+          </label>
+          <input
+            [ngModel]="skillsInput()"
+            (ngModelChange)="skillsInput.set($event)"
+            type="text"
+            placeholder="e.g. Medic, Scorekeeping, Crowd Control"
+            class="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-violet-500"
+          />
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+            Why do you want to join? / Cover Notes
+          </label>
+          <textarea
+            [ngModel]="notesInput()"
+            (ngModelChange)="notesInput.set($event)"
+            rows="3"
+            placeholder="Introduce yourself, list any past experience..."
+            class="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-violet-500 resize-none"
+          ></textarea>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-3 pt-2">
+        <button
+          (click)="closeRegisterModal()"
+          class="px-4 py-2 bg-slate-950 border border-white/10 hover:bg-slate-800 text-slate-300 rounded-xl text-xs font-bold transition cursor-pointer"
+        >
+          Cancel
+        </button>
+        <button
+          (click)="registerAsVolunteer()"
+          class="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-xl text-xs font-bold transition cursor-pointer"
+        >
+          Submit Application
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- 2. Shift Create/Edit Modal -->
+@if (isShiftModalOpen()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+    <div
+      class="bg-slate-900 border border-white/10 rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl animate-fadeIn"
+    >
+      <div class="flex justify-between items-center">
+        <h3 class="text-base font-bold text-white flex items-center gap-2">
+          <i class="fi fi-rr-calendar text-violet-400"></i>
+          {{ editingShiftId() ? 'Edit Shift' : 'Create Volunteer Shift' }}
+        </h3>
+        <button (click)="closeShiftModal()" class="text-slate-400 hover:text-white cursor-pointer">
+          <i class="fi fi-rr-cross"></i>
+        </button>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2"
+            >Shift Title</label
+          >
+          <input
+            [ngModel]="newShiftTitle()"
+            (ngModelChange)="newShiftTitle.set($event)"
+            type="text"
+            placeholder="e.g. Field A Steward"
+            class="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-violet-500"
+          />
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2"
+            >Shift Description</label
+          >
+          <textarea
+            [ngModel]="newShiftDescription()"
+            (ngModelChange)="newShiftDescription.set($event)"
+            rows="2"
+            placeholder="Details about responsibilities..."
+            class="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-violet-500 resize-none"
+          ></textarea>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2"
+              >Role Name</label
+            >
+            <input
+              [ngModel]="newShiftRole()"
+              (ngModelChange)="newShiftRole.set($event)"
+              type="text"
+              placeholder="e.g. Medic"
+              class="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-violet-500"
+            />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2"
+              >Max Volunteers</label
+            >
+            <input
+              [ngModel]="newShiftMaxVolunteers()"
+              (ngModelChange)="newShiftMaxVolunteers.set($event)"
+              type="number"
+              min="1"
+              class="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-violet-500"
+            />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2"
+              >Start Date/Time</label
+            >
+            <input
+              [ngModel]="newShiftStartAt()"
+              (ngModelChange)="newShiftStartAt.set($event)"
+              type="datetime-local"
+              class="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-violet-500"
+            />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2"
+              >End Date/Time</label
+            >
+            <input
+              [ngModel]="newShiftEndAt()"
+              (ngModelChange)="newShiftEndAt.set($event)"
+              type="datetime-local"
+              class="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-violet-500"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-3 pt-2">
+        <button
+          (click)="closeShiftModal()"
+          class="px-4 py-2 bg-slate-950 border border-white/10 hover:bg-slate-800 text-slate-300 rounded-xl text-xs font-bold transition cursor-pointer"
+        >
+          Cancel
+        </button>
+        <button
+          (click)="saveShift()"
+          class="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-xl text-xs font-bold transition cursor-pointer"
+        >
+          Save Shift
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- 3. Update Assignment Completion & Feedback Modal -->
+@if (isAssignmentModalOpen()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+    <div
+      class="bg-slate-900 border border-white/10 rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl animate-fadeIn"
+    >
+      <div class="flex justify-between items-center">
+        <h3 class="text-base font-bold text-white flex items-center gap-2">
+          <i class="fi fi-rr-check-circle text-violet-400"></i> Update Shift Attendance & Hours
+        </h3>
+        <button
+          (click)="closeAssignmentModal()"
+          class="text-slate-400 hover:text-white cursor-pointer"
+        >
+          <i class="fi fi-rr-cross"></i>
+        </button>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2"
+            >Attendance Status</label
+          >
+          <select
+            [ngModel]="assignmentStatus()"
+            (ngModelChange)="assignmentStatus.set($event)"
+            class="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-violet-500"
+          >
+            <option value="assigned">Assigned (Not completed yet)</option>
+            <option value="attended">Attended</option>
+            <option value="absent">Absent</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2"
+              >Hours Completed</label
+            >
+            <input
+              [ngModel]="assignmentHours()"
+              (ngModelChange)="assignmentHours.set($event)"
+              type="number"
+              step="0.5"
+              min="0"
+              class="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-violet-500"
+            />
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2"
+              >Performance Rating</label
+            >
+            <select
+              [ngModel]="assignmentRating()"
+              (ngModelChange)="assignmentRating.set($event)"
+              class="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-violet-500"
+            >
+              <option [value]="5">5 - Excellent</option>
+              <option [value]="4">4 - Good</option>
+              <option [value]="3">3 - Satisfactory</option>
+              <option [value]="2">2 - Poor</option>
+              <option [value]="1">1 - Unsatisfactory</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2"
+            >Roster Feedback / Comments</label
+          >
+          <textarea
+            [ngModel]="assignmentFeedback()"
+            (ngModelChange)="assignmentFeedback.set($event)"
+            rows="2"
+            placeholder="Great work, showed up on time..."
+            class="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-violet-500 resize-none"
+          ></textarea>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-3 pt-2">
+        <button
+          (click)="closeAssignmentModal()"
+          class="px-4 py-2 bg-slate-950 border border-white/10 hover:bg-slate-800 text-slate-300 rounded-xl text-xs font-bold transition cursor-pointer"
+        >
+          Cancel
+        </button>
+        <button
+          (click)="saveAssignment()"
+          class="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-xl text-xs font-bold transition cursor-pointer"
+        >
+          Save Changes
+        </button>
+      </div>
+    </div>
+  </div>
+}

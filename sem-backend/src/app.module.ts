@@ -33,6 +33,7 @@ import { MonitoringModule } from './shared/monitoring/monitoring.module';
 import { BackupModule } from './jobs/cron/backup/backup.module';
 import { RecoveryModule } from './common/recovery/recovery.module';
 import { AiModule } from './modules/ai/ai.module';
+import { VolunteersModule } from './modules/volunteers/volunteers.module';
 
 @Module({
   imports: [
@@ -82,6 +83,7 @@ import { AiModule } from './modules/ai/ai.module';
     BackupModule,
     RecoveryModule,
     AiModule,
+    VolunteersModule,
   ],
   controllers: [AppController],
   providers: [
