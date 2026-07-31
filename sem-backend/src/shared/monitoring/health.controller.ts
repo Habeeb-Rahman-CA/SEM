@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Header,
   HttpCode,
   HttpStatus,
   UseGuards,
@@ -20,6 +21,7 @@ import {
   ApiProperty,
 } from '@nestjs/swagger';
 import { MetricsService } from './metrics.service';
+import { PrometheusRegistry } from './prometheus.registry';
 import { JwtAuthGuard } from '../../modules/auth/guards/jwt-auth.guard';
 import { SuperAdminGuard } from '../../modules/auth/guards/super-admin.guard';
 
@@ -149,7 +151,32 @@ export class HealthController {
     private readonly memory: MemoryHealthIndicator,
     private readonly disk: DiskHealthIndicator,
     private readonly metricsService: MetricsService,
+    private readonly prometheus: PrometheusRegistry,
   ) {}
+
+  /**
+   * GET /api/health/prometheus
+   * Prometheus text-exposition endpoint. Scrape target for Prometheus /
+   * VictoriaMetrics / Grafana Agent / Alloy. Public because the standard
+   * assumption is that scrape targets sit on a private network; put an
+   * ingress-level allowlist in front if this is internet-facing.
+   */
+  @Get('prometheus')
+  @HttpCode(HttpStatus.OK)
+  @Header('Content-Type', 'text/plain; version=0.0.4; charset=utf-8')
+  @Header('Cache-Control', 'no-store')
+  @ApiOperation({
+    summary: 'Prometheus metrics (scrape endpoint)',
+    description:
+      'Standard `text/plain` Prometheus exposition format. Includes ' +
+      '`sem_http_requests_total`, `sem_http_request_duration_seconds`, ' +
+      '`sem_process_memory_bytes`, `sem_process_cpu_percent`, ' +
+      '`sem_event_loop_lag_seconds`, `sem_process_uptime_seconds`, ' +
+      'and `sem_errors_total`.',
+  })
+  prometheusMetrics(): string {
+    return this.prometheus.render();
+  }
 
   /**
    * GET /api/health/live
@@ -213,6 +240,23 @@ export class HealthController {
       () => this.memory.checkRSS('memory_rss', 1024 * 1024 * 1024),
       () =>
         this.disk.checkStorage('disk', { thresholdPercent: 0.9, path: '/' }),
+      // Event-loop lag check — sourced from the prometheus registry's
+      // ongoing sampler. Flags the process as not-ready if p95 latency
+      // is above 200ms (typical smoke test for a stalled loop).
+      async () => {
+        const rendered = this.prometheus.render();
+        const match = rendered.match(
+          /sem_event_loop_lag_seconds\{q="p95"\}\s+([\d.eE+-]+)/,
+        );
+        const p95 = match ? parseFloat(match[1]) : 0;
+        const healthy = p95 < 0.2;
+        return {
+          event_loop: {
+            status: healthy ? 'up' : 'down',
+            p95Seconds: p95,
+          },
+        };
+      },
     ]);
   }
 

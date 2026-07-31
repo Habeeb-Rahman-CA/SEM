@@ -94,12 +94,17 @@ async function bootstrap() {
   });
 
   // ── Global interceptors ──────────────────────────────────────────────────
-  // Order matters: RequestContext (per-request state) → PublicCache (write
-  // Cache-Control) → Etag (compute + honor If-None-Match with 304 short-
-  // circuit) → FieldSelect (prune ?fields=... last so ETag covers the full
-  // payload and different `fields` selections don't share cache slots).
+  // Order matters: RequestContext (per-request state) → HttpMetrics (start
+  // timing before any other work) → PublicCache (Cache-Control) → Etag
+  // (304 short-circuit) → FieldSelect (prune ?fields= last so ETag covers
+  // the full payload).
+  const httpMetrics = app.get(
+    require('./shared/monitoring/http-metrics.interceptor')
+      .HttpMetricsInterceptor,
+  );
   app.useGlobalInterceptors(
     new RequestContextInterceptor(),
+    httpMetrics,
     new PublicCacheInterceptor(),
     new EtagInterceptor(),
     new FieldSelectInterceptor(),

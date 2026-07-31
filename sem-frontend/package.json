@@ -16,7 +16,9 @@
     "analyze": "npm run build:stats && npx source-map-explorer 'dist/sem-frontend/browser/*.js'",
     "analyze:report": "npm run build:stats && npx source-map-explorer 'dist/sem-frontend/browser/*.js' --html dist/bundle-report.html",
     "depcheck": "npx depcheck --ignores=\"@types/*,@capacitor/*,postcss,@tailwindcss/postcss,tailwindcss,jsdom,@angular/build,@angular/compiler-cli,tslib\"",
-    "size": "npm run build:prod && node -e \"const fs=require('fs'),p=require('path'),d='dist/sem-frontend/browser';let t=0;for(const f of fs.readdirSync(d).filter(x=>x.endsWith('.js'))){const s=fs.statSync(p.join(d,f)).size;t+=s;console.log(f.padEnd(60),(s/1024).toFixed(1)+' KB')}console.log('TOTAL'.padEnd(60),(t/1024).toFixed(1)+' KB')\""
+    "size": "npm run build:prod && node -e \"const fs=require('fs'),p=require('path'),d='dist/sem-frontend/browser';let t=0;for(const f of fs.readdirSync(d).filter(x=>x.endsWith('.js'))){const s=fs.statSync(p.join(d,f)).size;t+=s;console.log(f.padEnd(60),(s/1024).toFixed(1)+' KB')}console.log('TOTAL'.padEnd(60),(t/1024).toFixed(1)+' KB')\"",
+    "lighthouse": "npx @lhci/cli@0.13.x autorun --config=./lighthouse/lighthouserc.json",
+    "lighthouse:quick": "npx lighthouse http://localhost:4200 --output=html --output-path=./lighthouse/report.html --view --preset=desktop --chrome-flags=\"--headless=new --no-sandbox\""
   },
   "private": true,
   "packageManager": "npm@11.11.0",
