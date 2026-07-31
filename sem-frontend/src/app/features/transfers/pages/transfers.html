@@ -1,0 +1,795 @@
+<div class="h-full flex flex-col overflow-hidden w-full text-left animate-fadeIn">
+  <!-- Header -->
+  <div class="flex items-center justify-between border-b border-white/5 pb-4 flex-shrink-0">
+    <div>
+      <h2 class="text-xl font-bold text-white">Player Transfers</h2>
+      <p class="text-xs text-slate-400 mt-1">
+        Submit and approve permanent or loan transfers, configure transfer windows, and track fees &
+        history.
+      </p>
+    </div>
+    <button
+      (click)="openSubmitModal()"
+      class="flex items-center gap-1.5 px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-violet-900/20 transition-all cursor-pointer border-0 outline-none"
+    >
+      <i class="fi fi-rr-refresh text-xs"></i>
+      Submit Transfer
+    </button>
+  </div>
+
+  <!-- KPI cards -->
+  @if (summary(); as s) {
+    <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 my-4 flex-shrink-0">
+      <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+        <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">Pending</div>
+        <div class="text-xl font-black text-amber-400 mt-1">{{ s.pending }}</div>
+        <div class="text-[8px] text-slate-400 mt-0.5">Awaiting review</div>
+      </div>
+      <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+        <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">Completed</div>
+        <div class="text-xl font-black text-emerald-400 mt-1">{{ s.completed }}</div>
+        <div class="text-[8px] text-slate-400 mt-0.5">
+          {{ s.permanent }} permanent · {{ s.loan }} loan
+        </div>
+      </div>
+      <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+        <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">Rejected</div>
+        <div class="text-xl font-black text-red-400 mt-1">{{ s.rejected }}</div>
+        <div class="text-[8px] text-slate-400 mt-0.5">{{ s.cancelled }} cancelled</div>
+      </div>
+      <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+        <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">Total Fees</div>
+        <div class="text-xl font-black text-violet-400 mt-1">₹{{ formatAmount(s.totalFees) }}</div>
+        <div class="text-[8px] text-slate-400 mt-0.5">On completed transfers</div>
+      </div>
+      <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+        <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">
+          Active Window
+        </div>
+        @if (s.activeWindow; as w) {
+          <div class="text-xs font-black text-emerald-400 mt-1 truncate">
+            {{ w.name }}
+          </div>
+          <div class="text-[8px] text-slate-400 mt-0.5">Ends {{ w.endAt | date: 'shortDate' }}</div>
+        } @else {
+          <div class="text-xs font-black text-slate-400 mt-1">None open</div>
+          <div class="text-[8px] text-slate-400 mt-0.5">Configure a window</div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- Tabs -->
+  <div class="flex border-b border-white/5 mb-4 flex-shrink-0 overflow-x-auto">
+    <button
+      (click)="currentTab.set('requests')"
+      [class]="
+        currentTab() === 'requests'
+          ? 'border-b-2 border-violet-500 text-violet-400'
+          : 'text-slate-400 hover:text-white'
+      "
+      class="px-4 py-2.5 text-xs font-bold bg-transparent border-0 cursor-pointer transition outline-none whitespace-nowrap"
+    >
+      <i class="fi fi-rr-file text-xs mr-1.5"></i>
+      Requests
+      @if (summary()?.pending) {
+        <span
+          class="ml-1.5 px-1.5 py-0.5 bg-amber-500/20 text-amber-400 rounded text-[9px] font-black"
+        >
+          {{ summary()!.pending }}
+        </span>
+      }
+    </button>
+    <button
+      (click)="currentTab.set('windows')"
+      [class]="
+        currentTab() === 'windows'
+          ? 'border-b-2 border-violet-500 text-violet-400'
+          : 'text-slate-400 hover:text-white'
+      "
+      class="px-4 py-2.5 text-xs font-bold bg-transparent border-0 cursor-pointer transition outline-none whitespace-nowrap"
+    >
+      <i class="fi fi-rr-calendar text-xs mr-1.5"></i>Transfer Windows
+    </button>
+    <button
+      (click)="currentTab.set('history')"
+      [class]="
+        currentTab() === 'history'
+          ? 'border-b-2 border-violet-500 text-violet-400'
+          : 'text-slate-400 hover:text-white'
+      "
+      class="px-4 py-2.5 text-xs font-bold bg-transparent border-0 cursor-pointer transition outline-none whitespace-nowrap"
+    >
+      <i class="fi fi-rr-time-past text-xs mr-1.5"></i>Player History
+    </button>
+  </div>
+
+  @if (isLoading()) {
+    <div class="flex-1 flex items-center justify-center text-slate-400 text-xs">Loading…</div>
+  } @else if (error()) {
+    <div class="p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-xs">
+      {{ error() }}
+    </div>
+  } @else {
+    <div class="flex-1 overflow-y-auto pr-1">
+      <!-- ═════ REQUESTS ═════ -->
+      @if (currentTab() === 'requests') {
+        <div class="mb-3 flex items-center gap-2">
+          <select
+            [ngModel]="statusFilter()"
+            (ngModelChange)="statusFilter.set($event)"
+            class="bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-violet-500"
+          >
+            <option value="">All statuses</option>
+            <option value="pending">Pending</option>
+            <option value="approved">Approved</option>
+            <option value="completed">Completed</option>
+            <option value="rejected">Rejected</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+        <div class="bg-slate-900/40 border border-white/5 rounded-xl overflow-hidden">
+          <table class="w-full text-xs">
+            <thead class="bg-slate-950/60 text-[10px] uppercase tracking-wider text-slate-500">
+              <tr>
+                <th class="text-left px-3 py-2 font-black">Player</th>
+                <th class="text-left px-3 py-2 font-black">From</th>
+                <th class="text-left px-3 py-2 font-black">To</th>
+                <th class="text-left px-3 py-2 font-black">Type</th>
+                <th class="text-right px-3 py-2 font-black">Fee</th>
+                <th class="text-left px-3 py-2 font-black">Window</th>
+                <th class="text-left px-3 py-2 font-black">Status</th>
+                <th class="text-left px-3 py-2 font-black">Submitted</th>
+                <th class="text-right px-3 py-2 font-black">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @if (filteredRequests().length === 0) {
+                <tr>
+                  <td colspan="9" class="text-center text-[11px] text-slate-500 italic py-8">
+                    No transfer requests match this filter.
+                  </td>
+                </tr>
+              }
+              @for (r of filteredRequests(); track r.id) {
+                <tr class="border-t border-white/5 hover:bg-slate-950/40 align-top">
+                  <td class="px-3 py-2">
+                    <div class="text-white font-bold">
+                      {{ r.player?.user?.username || '—' }}
+                    </div>
+                    @if (r.player?.position) {
+                      <div class="text-[10px] text-slate-500">
+                        {{ r.player?.position }}
+                      </div>
+                    }
+                  </td>
+                  <td class="px-3 py-2 text-slate-400">{{ r.fromTeam?.name || '—' }}</td>
+                  <td class="px-3 py-2 text-slate-400">{{ r.toTeam?.name || '—' }}</td>
+                  <td class="px-3 py-2">
+                    <span
+                      class="px-1.5 py-0.5 text-[9px] font-bold rounded border uppercase"
+                      [class]="typeBadgeClass(r.transferType)"
+                    >
+                      {{ r.transferType }}
+                    </span>
+                    @if (r.transferType === 'loan' && r.loanEndDate) {
+                      <div class="text-[10px] text-slate-500 mt-1">
+                        until {{ r.loanEndDate | date: 'shortDate' }}
+                      </div>
+                    }
+                  </td>
+                  <td class="px-3 py-2 text-right text-white font-bold">
+                    {{ r.fee ? currencySymbol(r.currency) + formatAmount(r.fee) : '—' }}
+                  </td>
+                  <td class="px-3 py-2 text-slate-400">
+                    {{ r.window?.name || '—' }}
+                  </td>
+                  <td class="px-3 py-2">
+                    <span
+                      class="px-1.5 py-0.5 text-[9px] font-bold rounded border uppercase"
+                      [class]="statusBadgeClass(r.status)"
+                    >
+                      {{ r.status }}
+                    </span>
+                    @if (r.reviewedAt) {
+                      <div class="text-[10px] text-slate-500 mt-1">
+                        by {{ r.reviewedBy?.username || '—' }}
+                      </div>
+                    }
+                  </td>
+                  <td class="px-3 py-2">
+                    <div class="text-[11px] text-slate-300">
+                      {{ r.createdAt | date: 'short' }}
+                    </div>
+                    <div class="text-[10px] text-slate-500">
+                      {{ r.submittedBy?.username || '—' }}
+                    </div>
+                  </td>
+                  <td class="px-3 py-2 text-right">
+                    @if (r.status === 'pending') {
+                      <div class="flex gap-1 justify-end">
+                        <button
+                          (click)="openReviewModal(r, 'approve')"
+                          class="px-2 py-1 text-[10px] bg-emerald-600 hover:bg-emerald-500 text-white rounded border-0 cursor-pointer"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          (click)="openReviewModal(r, 'reject')"
+                          class="px-2 py-1 text-[10px] bg-red-600 hover:bg-red-500 text-white rounded border-0 cursor-pointer"
+                        >
+                          Reject
+                        </button>
+                        <button
+                          (click)="cancelRequest(r)"
+                          class="px-2 py-1 text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border-0 cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    }
+                    @if (r.status !== 'pending' && r.reviewNotes) {
+                      <div class="text-[10px] text-slate-400 italic max-w-[240px]">
+                        "{{ r.reviewNotes }}"
+                      </div>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+      <!-- ═════ WINDOWS ═════ -->
+      @if (currentTab() === 'windows') {
+        <div class="flex justify-end mb-3">
+          <button
+            (click)="openWindowModal()"
+            class="flex items-center gap-1.5 px-3 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-xl border-0 cursor-pointer"
+          >
+            <i class="fi fi-rr-plus text-xs"></i>New Window
+          </button>
+        </div>
+        @if (windows().length === 0) {
+          <div class="text-center text-[11px] text-slate-500 italic py-8">
+            No transfer windows configured. Create a window to control when transfers are allowed.
+          </div>
+        }
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          @for (w of windows(); track w.id) {
+            <div class="p-4 bg-slate-900/40 border border-white/5 rounded-xl">
+              <div class="flex items-start justify-between">
+                <div>
+                  <div class="flex items-center gap-2">
+                    <div class="text-sm font-bold text-white">{{ w.name }}</div>
+                    <span
+                      class="px-1.5 py-0.5 text-[9px] font-bold rounded border uppercase"
+                      [class]="
+                        isWindowOpen(w)
+                          ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                          : 'bg-slate-500/15 text-slate-400 border-slate-500/30'
+                      "
+                    >
+                      {{ windowStatusLabel(w) }}
+                    </span>
+                  </div>
+                  @if (w.description) {
+                    <div class="text-[10px] text-slate-400 mt-1">{{ w.description }}</div>
+                  }
+                  <div class="text-[10px] text-slate-500 mt-1">
+                    {{ w.startAt | date: 'medium' }} → {{ w.endAt | date: 'medium' }}
+                  </div>
+                </div>
+                <div class="flex gap-1">
+                  <button
+                    (click)="openWindowModal(w)"
+                    class="px-2 py-1 text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border-0 cursor-pointer"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    (click)="deleteWindow(w)"
+                    class="px-2 py-1 text-[10px] bg-slate-800 hover:bg-red-600 text-slate-400 hover:text-white rounded border-0 cursor-pointer"
+                  >
+                    <i class="fi fi-rr-trash"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="mt-3 flex flex-wrap gap-2">
+                @if (w.allowedTypes) {
+                  @for (t of w.allowedTypes; track t) {
+                    <span
+                      class="px-1.5 py-0.5 text-[9px] font-bold rounded border uppercase"
+                      [class]="typeBadgeClass(t)"
+                    >
+                      {{ t }}
+                    </span>
+                  }
+                } @else {
+                  <span class="text-[10px] text-slate-500 italic">All types allowed</span>
+                }
+                @if (w.maxTransfersPerTeam) {
+                  <span
+                    class="px-1.5 py-0.5 text-[9px] font-bold rounded bg-slate-800 text-slate-300"
+                  >
+                    Max {{ w.maxTransfersPerTeam }} / team
+                  </span>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- ═════ PLAYER HISTORY ═════ -->
+      @if (currentTab() === 'history') {
+        <div class="mb-3 text-xs text-slate-400">
+          Select a player to view their complete transfer history (historical moves + all request
+          records).
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
+          @for (p of players(); track p.id) {
+            <div
+              (click)="openHistoryModal(p.id, p.user.username)"
+              class="p-3 bg-slate-900/40 border border-white/5 rounded-xl hover:border-violet-500/40 cursor-pointer transition"
+            >
+              <div class="text-xs font-bold text-white">{{ p.user.username }}</div>
+              <div class="text-[10px] text-slate-400 mt-0.5">
+                {{ p.team?.name || '—' }}
+                @if (p.position) {
+                  · {{ p.position }}
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>
+
+<!-- ═════ SUBMIT MODAL ═════ -->
+@if (isSubmitModalOpen()) {
+  <div
+    class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-start justify-center overflow-y-auto p-4"
+    (click)="closeSubmitModal()"
+  >
+    <div
+      class="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-2xl p-6 my-8"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold text-white">Submit Transfer Request</h3>
+        <button
+          (click)="closeSubmitModal()"
+          class="text-slate-400 hover:text-white bg-transparent border-0 cursor-pointer"
+        >
+          <i class="fi fi-rr-cross text-sm"></i>
+        </button>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div class="md:col-span-2">
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Player</label>
+          <select
+            [ngModel]="submitForm().playerId"
+            (ngModelChange)="submitForm.set({ ...submitForm(), playerId: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          >
+            <option value="">— Select player —</option>
+            @for (p of players(); track p.id) {
+              <option [value]="p.id">
+                {{ p.user.username }} ({{ p.team?.name || 'no team' }})
+              </option>
+            }
+          </select>
+        </div>
+        <div class="md:col-span-2">
+          <label class="text-[10px] text-slate-400 uppercase font-bold"> Destination Team </label>
+          <select
+            [ngModel]="submitForm().toTeamId"
+            (ngModelChange)="submitForm.set({ ...submitForm(), toTeamId: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          >
+            <option value="">— Select team —</option>
+            @for (t of eligibleDestinationTeams(); track t.id) {
+              <option [value]="t.id">{{ t.name }}</option>
+            }
+          </select>
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold"> Transfer Type </label>
+          <select
+            [ngModel]="submitForm().transferType"
+            (ngModelChange)="submitForm.set({ ...submitForm(), transferType: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          >
+            <option value="permanent">Permanent</option>
+            <option value="loan">Loan</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">
+            Transfer Window (optional)
+          </label>
+          <select
+            [ngModel]="submitForm().windowId"
+            (ngModelChange)="submitForm.set({ ...submitForm(), windowId: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          >
+            <option value="">— Auto (any open) —</option>
+            @for (w of windows(); track w.id) {
+              <option [value]="w.id" [disabled]="!isWindowOpen(w)">
+                {{ w.name }}
+                @if (!isWindowOpen(w)) {
+                  ({{ windowStatusLabel(w) }})
+                }
+              </option>
+            }
+          </select>
+        </div>
+        @if (submitForm().transferType === 'loan') {
+          <div>
+            <label class="text-[10px] text-slate-400 uppercase font-bold"> Loan Start </label>
+            <input
+              type="date"
+              [ngModel]="submitForm().loanStartDate"
+              (ngModelChange)="submitForm.set({ ...submitForm(), loanStartDate: $event })"
+              class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+            />
+          </div>
+          <div>
+            <label class="text-[10px] text-slate-400 uppercase font-bold"> Loan End </label>
+            <input
+              type="date"
+              [ngModel]="submitForm().loanEndDate"
+              (ngModelChange)="submitForm.set({ ...submitForm(), loanEndDate: $event })"
+              class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+            />
+          </div>
+        }
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold"> Fee (optional) </label>
+          <input
+            type="number"
+            min="0"
+            [ngModel]="submitForm().fee"
+            (ngModelChange)="submitForm.set({ ...submitForm(), fee: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Currency</label>
+          <select
+            [ngModel]="submitForm().currency"
+            (ngModelChange)="submitForm.set({ ...submitForm(), currency: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          >
+            <option value="INR">INR (₹)</option>
+            <option value="USD">USD ($)</option>
+            <option value="EUR">EUR (€)</option>
+            <option value="GBP">GBP (£)</option>
+          </select>
+        </div>
+        <div class="md:col-span-2">
+          <label class="text-[10px] text-slate-400 uppercase font-bold"> Reason / Notes </label>
+          <textarea
+            rows="2"
+            [ngModel]="submitForm().reason"
+            (ngModelChange)="submitForm.set({ ...submitForm(), reason: $event })"
+            placeholder="Why is this transfer being requested?"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1 resize-none"
+          ></textarea>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 mt-5">
+        <button
+          (click)="closeSubmitModal()"
+          class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg border-0 cursor-pointer"
+        >
+          Cancel
+        </button>
+        <button
+          (click)="submitRequest()"
+          [disabled]="
+            !submitForm().playerId ||
+            !submitForm().toTeamId ||
+            (submitForm().transferType === 'loan' &&
+              (!submitForm().loanStartDate || !submitForm().loanEndDate))
+          "
+          [class.opacity-50]="
+            !submitForm().playerId ||
+            !submitForm().toTeamId ||
+            (submitForm().transferType === 'loan' &&
+              (!submitForm().loanStartDate || !submitForm().loanEndDate))
+          "
+          class="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-lg border-0 cursor-pointer"
+        >
+          Submit Request
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ═════ REVIEW MODAL ═════ -->
+@if (isReviewModalOpen()) {
+  <div
+    class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-start justify-center overflow-y-auto p-4"
+    (click)="closeReviewModal()"
+  >
+    <div
+      class="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-md p-6 my-8"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold text-white">
+          {{ reviewAction() === 'approve' ? 'Approve' : 'Reject' }} Transfer
+        </h3>
+        <button
+          (click)="closeReviewModal()"
+          class="text-slate-400 hover:text-white bg-transparent border-0 cursor-pointer"
+        >
+          <i class="fi fi-rr-cross text-sm"></i>
+        </button>
+      </div>
+      <div class="text-[11px] text-slate-400 mb-3">
+        @if (reviewAction() === 'approve') {
+          Approving this request will update the player's team roster
+          <span class="text-white font-bold">immediately</span>.
+        } @else {
+          The submitter will see your notes.
+        }
+      </div>
+      <label class="text-[10px] text-slate-400 uppercase font-bold">Review notes</label>
+      <textarea
+        rows="4"
+        [ngModel]="reviewNotes()"
+        (ngModelChange)="reviewNotes.set($event)"
+        placeholder="Optional review comments"
+        class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1 resize-none"
+      ></textarea>
+      <div class="flex justify-end gap-2 mt-5">
+        <button
+          (click)="closeReviewModal()"
+          class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg border-0 cursor-pointer"
+        >
+          Cancel
+        </button>
+        <button
+          (click)="submitReview()"
+          [class]="
+            reviewAction() === 'approve'
+              ? 'bg-emerald-600 hover:bg-emerald-500'
+              : 'bg-red-600 hover:bg-red-500'
+          "
+          class="px-4 py-2 text-white text-xs font-bold rounded-lg border-0 cursor-pointer"
+        >
+          {{ reviewAction() === 'approve' ? 'Approve & Move Player' : 'Reject Request' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ═════ WINDOW MODAL ═════ -->
+@if (isWindowModalOpen()) {
+  <div
+    class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-start justify-center overflow-y-auto p-4"
+    (click)="closeWindowModal()"
+  >
+    <div
+      class="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-lg p-6 my-8"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold text-white">
+          {{ editingWindowId() ? 'Update' : 'New' }} Transfer Window
+        </h3>
+        <button
+          (click)="closeWindowModal()"
+          class="text-slate-400 hover:text-white bg-transparent border-0 cursor-pointer"
+        >
+          <i class="fi fi-rr-cross text-sm"></i>
+        </button>
+      </div>
+      <div class="space-y-3">
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Name</label>
+          <input
+            type="text"
+            [ngModel]="windowForm().name"
+            (ngModelChange)="windowForm.set({ ...windowForm(), name: $event })"
+            placeholder="e.g. Winter 2026 Transfer Window"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Description</label>
+          <textarea
+            rows="2"
+            [ngModel]="windowForm().description"
+            (ngModelChange)="windowForm.set({ ...windowForm(), description: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1 resize-none"
+          ></textarea>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-[10px] text-slate-400 uppercase font-bold"> Opens </label>
+            <input
+              type="datetime-local"
+              [ngModel]="windowForm().startAt"
+              (ngModelChange)="windowForm.set({ ...windowForm(), startAt: $event })"
+              class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+            />
+          </div>
+          <div>
+            <label class="text-[10px] text-slate-400 uppercase font-bold">Closes</label>
+            <input
+              type="datetime-local"
+              [ngModel]="windowForm().endAt"
+              (ngModelChange)="windowForm.set({ ...windowForm(), endAt: $event })"
+              class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+            />
+          </div>
+        </div>
+        <div class="flex flex-wrap gap-3">
+          <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+            <input
+              type="checkbox"
+              [ngModel]="windowForm().isActive"
+              (ngModelChange)="windowForm.set({ ...windowForm(), isActive: $event })"
+            />
+            Active
+          </label>
+          <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+            <input
+              type="checkbox"
+              [ngModel]="windowForm().allowedPermanent"
+              (ngModelChange)="windowForm.set({ ...windowForm(), allowedPermanent: $event })"
+            />
+            Allow permanent
+          </label>
+          <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+            <input
+              type="checkbox"
+              [ngModel]="windowForm().allowedLoan"
+              (ngModelChange)="windowForm.set({ ...windowForm(), allowedLoan: $event })"
+            />
+            Allow loan
+          </label>
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">
+            Max transfers per team (optional)
+          </label>
+          <input
+            type="number"
+            min="0"
+            [ngModel]="windowForm().maxTransfersPerTeam"
+            (ngModelChange)="windowForm.set({ ...windowForm(), maxTransfersPerTeam: $event })"
+            placeholder="No limit"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 mt-5">
+        <button
+          (click)="closeWindowModal()"
+          class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg border-0 cursor-pointer"
+        >
+          Cancel
+        </button>
+        <button
+          (click)="saveWindow()"
+          [disabled]="!windowForm().name || !windowForm().startAt || !windowForm().endAt"
+          [class.opacity-50]="!windowForm().name || !windowForm().startAt || !windowForm().endAt"
+          class="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-lg border-0 cursor-pointer"
+        >
+          {{ editingWindowId() ? 'Update' : 'Create' }} Window
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ═════ HISTORY MODAL ═════ -->
+@if (isHistoryModalOpen()) {
+  <div
+    class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-start justify-center overflow-y-auto p-4"
+    (click)="closeHistoryModal()"
+  >
+    <div
+      class="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-2xl p-6 my-8"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold text-white">Transfer History — {{ historyPlayerName() }}</h3>
+        <button
+          (click)="closeHistoryModal()"
+          class="text-slate-400 hover:text-white bg-transparent border-0 cursor-pointer"
+        >
+          <i class="fi fi-rr-cross text-sm"></i>
+        </button>
+      </div>
+      @if (!history()) {
+        <div class="text-center text-[11px] text-slate-500 italic py-6">Loading history…</div>
+      } @else {
+        <div class="space-y-4">
+          <div>
+            <div class="text-[10px] text-slate-500 uppercase font-black mb-2">
+              Roster changes ({{ history()!.transfers.length }})
+            </div>
+            @if (history()!.transfers.length === 0) {
+              <div class="text-[10px] text-slate-500 italic">
+                No historical team changes recorded.
+              </div>
+            }
+            <div class="space-y-1">
+              @for (t of history()!.transfers; track t.id) {
+                <div
+                  class="flex items-center justify-between p-2 bg-slate-950/60 border border-white/5 rounded"
+                >
+                  <div class="text-xs text-white">
+                    {{ t.fromTeam?.name || '—' }}
+                    <span class="text-slate-500">→</span>
+                    <span class="font-bold">{{ t.toTeam?.name || '—' }}</span>
+                  </div>
+                  <div class="text-[10px] text-slate-500">
+                    {{ t.transferredAt | date: 'mediumDate' }}
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+          <div>
+            <div class="text-[10px] text-slate-500 uppercase font-black mb-2">
+              Requests ({{ history()!.requests.length }})
+            </div>
+            @if (history()!.requests.length === 0) {
+              <div class="text-[10px] text-slate-500 italic">
+                No requests filed for this player.
+              </div>
+            }
+            <div class="space-y-1">
+              @for (r of history()!.requests; track r.id) {
+                <div class="p-2 bg-slate-950/60 border border-white/5 rounded">
+                  <div class="flex items-start justify-between">
+                    <div>
+                      <div class="text-xs text-white">
+                        {{ r.fromTeam?.name || '—' }}
+                        <span class="text-slate-500">→</span>
+                        <span class="font-bold">{{ r.toTeam?.name || '—' }}</span>
+                      </div>
+                      <div class="text-[10px] text-slate-500 mt-0.5">
+                        {{ r.createdAt | date: 'short' }}
+                        · {{ r.transferType }}
+                        @if (r.fee) {
+                          · {{ currencySymbol(r.currency) }}{{ formatAmount(r.fee) }}
+                        }
+                      </div>
+                    </div>
+                    <span
+                      class="px-1.5 py-0.5 text-[9px] font-bold rounded border uppercase"
+                      [class]="statusBadgeClass(r.status)"
+                    >
+                      {{ r.status }}
+                    </span>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      }
+      <div class="flex justify-end mt-5">
+        <button
+          (click)="closeHistoryModal()"
+          class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg border-0 cursor-pointer"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+}

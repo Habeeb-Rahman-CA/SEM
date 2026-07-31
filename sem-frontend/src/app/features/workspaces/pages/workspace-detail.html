@@ -497,6 +497,14 @@
                 [workspaceId]="workspace()?.id || ''"
               ></app-auctions>
             }
+
+            <!-- ═══════════════ TRANSFERS TAB ═══════════════ -->
+            @if (activeTab() === 'transfers') {
+              <app-transfers
+                class="h-full block min-h-0"
+                [workspaceId]="workspace()?.id || ''"
+              ></app-transfers>
+            }
           </div>
         </main>
       </div>

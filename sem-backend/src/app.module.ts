@@ -40,6 +40,7 @@ import { AccreditationModule } from './modules/accreditation/accreditation.modul
 import { StreamingModule } from './modules/streaming/streaming.module';
 import { AutomationModule } from './modules/automation/automation.module';
 import { AuctionsModule } from './modules/auctions/auctions.module';
+import { TransfersModule } from './modules/transfers/transfers.module';
 
 @Module({
   imports: [
@@ -96,6 +97,7 @@ import { AuctionsModule } from './modules/auctions/auctions.module';
     StreamingModule,
     AutomationModule,
     AuctionsModule,
+    TransfersModule,
   ],
   controllers: [AppController],
   providers: [

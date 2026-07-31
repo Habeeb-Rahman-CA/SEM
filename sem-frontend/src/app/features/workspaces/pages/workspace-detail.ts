@@ -62,6 +62,7 @@ import { AccreditationComponent } from '../../accreditation/pages/accreditation'
 import { StreamingComponent } from '../../streaming/pages/streaming';
 import { AutomationComponent } from '../../automation/pages/automation';
 import { AuctionsComponent } from '../../auctions/pages/auctions';
+import { TransfersComponent } from '../../transfers/pages/transfers';
 import { RefereeDashboardComponent } from '../components/referee-dashboard/referee-dashboard';
 import { FootballConsoleComponent } from '../../competitions/consoles/football-console/football-console';
 import { CricketConsoleComponent } from '../../competitions/consoles/cricket-console/cricket-console';
@@ -112,6 +113,7 @@ declare const L: any;
     StreamingComponent,
     AutomationComponent,
     AuctionsComponent,
+    TransfersComponent,
   ],
   templateUrl: './workspace-detail.html',
   styleUrl: './workspace-detail.css',
@@ -224,6 +226,7 @@ export class WorkspaceDetailComponent implements OnInit {
     | 'streaming'
     | 'automation'
     | 'auctions'
+    | 'transfers'
   >('overview');
   isSidebarOpen = signal(true);
 
