@@ -1,0 +1,1080 @@
+<div class="h-full flex flex-col overflow-hidden w-full text-left animate-fadeIn">
+  <!-- Header -->
+  <div class="flex items-center justify-between border-b border-white/5 pb-4 flex-shrink-0">
+    <div>
+      <h2 class="text-xl font-bold text-white">Player Auction</h2>
+      <p class="text-xs text-slate-400 mt-1">
+        Create auction events, register players, run live bidding, and generate summaries.
+      </p>
+    </div>
+    <div class="flex items-center gap-2">
+      @if (selectedAuction()) {
+        <button
+          (click)="selectedAuction.set(null); currentTab.set('auctions')"
+          class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl border-0 outline-none cursor-pointer"
+        >
+          <i class="fi fi-rr-angle-left text-xs mr-1"></i>
+          Back to Auctions
+        </button>
+      }
+      <button
+        (click)="openAuctionModal()"
+        class="flex items-center gap-1.5 px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-violet-900/20 transition-all cursor-pointer border-0 outline-none"
+      >
+        <i class="fi fi-rr-plus text-xs"></i>
+        New Auction
+      </button>
+    </div>
+  </div>
+
+  <!-- Workspace KPIs (only when no auction selected) -->
+  @if (!selectedAuction() && workspaceSummary(); as s) {
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 my-4 flex-shrink-0">
+      <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+        <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">
+          Total Auctions
+        </div>
+        <div class="text-xl font-black text-white mt-1">{{ s.total }}</div>
+      </div>
+      <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+        <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">Live Now</div>
+        <div class="text-xl font-black text-red-400 mt-1 flex items-center gap-1.5">
+          @if (s.live > 0) {
+            <span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+          }
+          {{ s.live }}
+        </div>
+      </div>
+      <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+        <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">Draft</div>
+        <div class="text-xl font-black text-slate-300 mt-1">{{ s.draft }}</div>
+      </div>
+      <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+        <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">Completed</div>
+        <div class="text-xl font-black text-emerald-400 mt-1">{{ s.completed }}</div>
+      </div>
+    </div>
+  }
+
+  @if (isLoading()) {
+    <div class="flex-1 flex items-center justify-center text-slate-400 text-xs">Loading…</div>
+  } @else if (error()) {
+    <div class="p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-xs">
+      {{ error() }}
+    </div>
+  } @else if (!selectedAuction()) {
+    <!-- ═════ AUCTION LIST ═════ -->
+    <div class="flex-1 overflow-y-auto pr-1 mt-4">
+      @if (auctions().length === 0) {
+        <div class="p-6 text-center text-[11px] text-slate-500 italic">
+          No auctions yet. Create one to get started.
+        </div>
+      }
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+        @for (a of auctions(); track a.id) {
+          <div
+            (click)="selectAuction(a)"
+            class="p-4 bg-slate-900/40 border border-white/5 rounded-xl hover:border-violet-500/40 cursor-pointer transition"
+          >
+            <div class="flex items-start justify-between">
+              <div>
+                <div class="text-sm font-bold text-white">{{ a.name }}</div>
+                @if (a.event) {
+                  <div class="text-[10px] text-slate-400 mt-0.5">Event: {{ a.event.name }}</div>
+                } @else if (a.competition) {
+                  <div class="text-[10px] text-slate-400 mt-0.5">
+                    Competition: {{ a.competition.name }}
+                  </div>
+                }
+              </div>
+              <span
+                class="px-1.5 py-0.5 text-[9px] font-bold rounded border uppercase flex items-center gap-1"
+                [class]="statusBadgeClass(a.status)"
+              >
+                @if (a.status === 'live') {
+                  <span class="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></span>
+                }
+                {{ a.status }}
+              </span>
+            </div>
+            <div class="grid grid-cols-2 gap-2 mt-3 text-[10px] text-slate-400">
+              <div>
+                <div class="text-slate-500 uppercase font-black tracking-wider">Budget/Team</div>
+                <div class="text-white font-bold">
+                  {{ a.currency }} {{ formatAmount(a.budgetPerTeam) }}
+                </div>
+              </div>
+              <div>
+                <div class="text-slate-500 uppercase font-black tracking-wider">Bid Step</div>
+                <div class="text-white font-bold">
+                  {{ a.currency }} {{ formatAmount(a.bidIncrement) }}
+                </div>
+              </div>
+            </div>
+            @if (a.scheduledStart) {
+              <div class="text-[10px] text-slate-500 mt-2">
+                Scheduled {{ a.scheduledStart | date: 'medium' }}
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  } @else if (selectedAuction(); as a) {
+    <!-- ═════ AUCTION DETAIL ═════ -->
+    <div class="my-4 flex items-center justify-between flex-shrink-0">
+      <div>
+        <div class="flex items-center gap-2">
+          <div class="text-lg font-black text-white">{{ a.name }}</div>
+          <span
+            class="px-1.5 py-0.5 text-[9px] font-bold rounded border uppercase"
+            [class]="statusBadgeClass(a.status)"
+          >
+            {{ a.status }}
+          </span>
+        </div>
+        <div class="text-[11px] text-slate-400">
+          Budget/team: {{ currencySymbol() }}{{ formatAmount(a.budgetPerTeam) }} · Bid step:
+          {{ currencySymbol() }}{{ formatAmount(a.bidIncrement) }} · Round: {{ a.bidWindowSec }}s
+        </div>
+      </div>
+      <div class="flex gap-2 flex-wrap">
+        @if (a.status === 'draft') {
+          <button
+            (click)="changeAuctionStatus(a, 'scheduled')"
+            class="px-2.5 py-1.5 bg-sky-600 hover:bg-sky-500 text-white text-[10px] font-bold rounded border-0 cursor-pointer"
+          >
+            Schedule
+          </button>
+        }
+        @if (a.status !== 'live' && a.status !== 'completed' && a.status !== 'cancelled') {
+          <button
+            (click)="changeAuctionStatus(a, 'live')"
+            class="px-2.5 py-1.5 bg-red-600 hover:bg-red-500 text-white text-[10px] font-bold rounded border-0 cursor-pointer flex items-center gap-1"
+          >
+            <span class="w-1.5 h-1.5 bg-white rounded-full"></span>
+            Go Live
+          </button>
+        }
+        @if (a.status === 'live') {
+          <button
+            (click)="changeAuctionStatus(a, 'paused')"
+            class="px-2.5 py-1.5 bg-amber-600 hover:bg-amber-500 text-white text-[10px] font-bold rounded border-0 cursor-pointer"
+          >
+            Pause
+          </button>
+          <button
+            (click)="changeAuctionStatus(a, 'completed')"
+            class="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold rounded border-0 cursor-pointer"
+          >
+            Complete
+          </button>
+        }
+        <button
+          (click)="openAuctionModal(a)"
+          class="px-2.5 py-1.5 bg-violet-600/20 hover:bg-violet-600 text-violet-400 hover:text-white text-[10px] font-bold rounded border-0 cursor-pointer"
+        >
+          Edit
+        </button>
+        <button
+          (click)="deleteAuction(a)"
+          class="px-2.5 py-1.5 bg-slate-800 hover:bg-red-600 text-slate-400 hover:text-white text-[10px] font-bold rounded border-0 cursor-pointer"
+        >
+          <i class="fi fi-rr-trash"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Sub tabs -->
+    <div class="flex border-b border-white/5 mb-4 flex-shrink-0 overflow-x-auto">
+      @for (
+        t of [
+          { key: 'setup', label: 'Setup', icon: 'fi fi-rr-settings-sliders' },
+          { key: 'roster', label: 'Roster', icon: 'fi fi-rr-users' },
+          { key: 'bidding', label: 'Live Bidding', icon: 'fi fi-rr-gavel' },
+          { key: 'summary', label: 'Summary', icon: 'fi fi-rr-chart-histogram' },
+        ];
+        track t.key
+      ) {
+        <button
+          (click)="currentTab.set($any(t.key)); t.key === 'summary' && loadSummary()"
+          [class]="
+            currentTab() === t.key
+              ? 'border-b-2 border-violet-500 text-violet-400'
+              : 'text-slate-400 hover:text-white'
+          "
+          class="px-4 py-2.5 text-xs font-bold bg-transparent border-0 cursor-pointer transition outline-none whitespace-nowrap"
+        >
+          <i [class]="t.icon" class="text-xs mr-1.5"></i>{{ t.label }}
+        </button>
+      }
+    </div>
+
+    <div class="flex-1 overflow-y-auto pr-1">
+      <!-- ─── SETUP ─── -->
+      @if (currentTab() === 'setup') {
+        <div class="space-y-4">
+          <!-- Categories -->
+          <div class="bg-slate-900/40 border border-white/5 rounded-xl p-4">
+            <div class="flex items-center justify-between mb-3">
+              <div class="text-xs font-black text-white uppercase tracking-wider">
+                Player Categories ({{ a.categories?.length || 0 }})
+              </div>
+              <button
+                (click)="openCategoryModal()"
+                class="px-2.5 py-1.5 bg-violet-600 hover:bg-violet-500 text-white text-[10px] font-bold rounded border-0 cursor-pointer"
+              >
+                + New Category
+              </button>
+            </div>
+            @if (!a.categories?.length) {
+              <div class="text-[10px] text-slate-500 italic">
+                No categories yet. Define tiers with base prices (e.g. Marquee, A, B, C).
+              </div>
+            }
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
+              @for (cat of a.categories || []; track cat.id) {
+                <div
+                  class="p-3 bg-slate-950/60 rounded border border-white/5"
+                  [style.border-left]="'4px solid ' + (cat.color || '#8b5cf6')"
+                >
+                  <div class="flex items-start justify-between">
+                    <div>
+                      <div class="text-xs font-bold text-white">{{ cat.name }}</div>
+                      <div class="text-[10px] text-slate-400">
+                        Base: {{ currencySymbol() }}{{ formatAmount(cat.basePrice) }}
+                      </div>
+                    </div>
+                    <div class="flex gap-1">
+                      <button
+                        (click)="openCategoryModal(cat)"
+                        class="px-2 py-1 text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border-0 cursor-pointer"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        (click)="deleteCategory(cat)"
+                        class="px-2 py-1 text-[10px] bg-slate-800 hover:bg-red-600 text-slate-400 hover:text-white rounded border-0 cursor-pointer"
+                      >
+                        <i class="fi fi-rr-trash"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Team budgets -->
+          <div class="bg-slate-900/40 border border-white/5 rounded-xl p-4">
+            <div class="flex items-center justify-between mb-3">
+              <div class="text-xs font-black text-white uppercase tracking-wider">
+                Team Budgets ({{ a.teamBudgets?.length || 0 }})
+              </div>
+              <button
+                (click)="openBudgetModal()"
+                [disabled]="eligibleTeamsForBudget().length === 0"
+                [class.opacity-50]="eligibleTeamsForBudget().length === 0"
+                class="px-2.5 py-1.5 bg-violet-600 hover:bg-violet-500 text-white text-[10px] font-bold rounded border-0 cursor-pointer"
+              >
+                + Add Team
+              </button>
+            </div>
+            @if (!a.teamBudgets?.length) {
+              <div class="text-[10px] text-slate-500 italic">
+                No teams enrolled. Register teams with their auction budgets.
+              </div>
+            }
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
+              @for (b of a.teamBudgets || []; track b.id) {
+                <div class="p-3 bg-slate-950/60 rounded border border-white/5">
+                  <div class="flex items-start justify-between">
+                    <div>
+                      <div class="text-xs font-bold text-white">{{ b.team?.name }}</div>
+                      <div class="text-[10px] text-slate-400">
+                        Budget: {{ currencySymbol() }}{{ formatAmount(b.initialBudget) }}
+                      </div>
+                      <div class="text-[10px] text-slate-500">
+                        Spent {{ currencySymbol() }}{{ formatAmount(b.spent) }} ·
+                        {{ b.playersBought }} bought
+                      </div>
+                    </div>
+                    <button
+                      (click)="removeBudget(b.id)"
+                      class="px-2 py-1 text-[10px] bg-slate-800 hover:bg-red-600 text-slate-400 hover:text-white rounded border-0 cursor-pointer"
+                    >
+                      <i class="fi fi-rr-trash"></i>
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- ─── ROSTER ─── -->
+      @if (currentTab() === 'roster') {
+        <div class="flex items-center justify-between mb-3">
+          <div class="text-xs text-slate-400">
+            <span class="text-white font-bold">{{ a.players?.length || 0 }}</span>
+            players registered ({{ filteredAvailablePlayers().length }} available,
+            {{ soldPlayers().length }} sold, {{ unsoldPlayers().length }} unsold)
+          </div>
+          <button
+            (click)="openRegisterModal()"
+            [disabled]="eligiblePlayersForRegister().length === 0"
+            [class.opacity-50]="eligiblePlayersForRegister().length === 0"
+            class="px-2.5 py-1.5 bg-violet-600 hover:bg-violet-500 text-white text-[10px] font-bold rounded border-0 cursor-pointer"
+          >
+            + Register Players
+          </button>
+        </div>
+        <div class="bg-slate-900/40 border border-white/5 rounded-xl overflow-hidden">
+          <table class="w-full text-xs">
+            <thead class="bg-slate-950/60 text-[10px] uppercase tracking-wider text-slate-500">
+              <tr>
+                <th class="text-left px-3 py-2 font-black">#</th>
+                <th class="text-left px-3 py-2 font-black">Player</th>
+                <th class="text-left px-3 py-2 font-black">Team</th>
+                <th class="text-left px-3 py-2 font-black">Category</th>
+                <th class="text-right px-3 py-2 font-black">Base</th>
+                <th class="text-right px-3 py-2 font-black">Sold Price</th>
+                <th class="text-left px-3 py-2 font-black">Status</th>
+                <th class="text-left px-3 py-2 font-black">Sold To</th>
+                <th class="text-right px-3 py-2 font-black">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @if (!a.players?.length) {
+                <tr>
+                  <td colspan="9" class="text-center text-[11px] text-slate-500 italic py-8">
+                    No players registered yet.
+                  </td>
+                </tr>
+              }
+              @for (ap of a.players || []; track ap.id; let i = $index) {
+                <tr class="border-t border-white/5 hover:bg-slate-950/40">
+                  <td class="px-3 py-2 text-slate-500">{{ i + 1 }}</td>
+                  <td class="px-3 py-2 text-white font-bold">
+                    {{ ap.player?.user?.username || '—' }}
+                  </td>
+                  <td class="px-3 py-2 text-slate-400">
+                    {{ ap.player?.team?.name || '—' }}
+                  </td>
+                  <td class="px-3 py-2 text-slate-400">
+                    {{ ap.category?.name || '—' }}
+                  </td>
+                  <td class="px-3 py-2 text-right text-white">
+                    {{ currencySymbol() }}{{ formatAmount(playerBasePrice(ap)) }}
+                  </td>
+                  <td class="px-3 py-2 text-right text-emerald-400 font-bold">
+                    {{ ap.soldPrice ? currencySymbol() + formatAmount(ap.soldPrice) : '—' }}
+                  </td>
+                  <td class="px-3 py-2">
+                    <span
+                      class="px-1.5 py-0.5 text-[9px] font-bold rounded border uppercase"
+                      [class]="statusBadgeClass(ap.status)"
+                    >
+                      {{ ap.status }}
+                    </span>
+                  </td>
+                  <td class="px-3 py-2 text-slate-400">
+                    {{ ap.soldToTeam?.name || '—' }}
+                  </td>
+                  <td class="px-3 py-2 text-right">
+                    @if (ap.status === 'available' && a.status === 'live' && !a.currentPlayerId) {
+                      <button
+                        (click)="startBidding(ap)"
+                        class="px-2 py-1 text-[10px] bg-red-600 hover:bg-red-500 text-white rounded border-0 cursor-pointer"
+                      >
+                        Start Bidding
+                      </button>
+                    }
+                    @if (ap.status !== 'sold') {
+                      <button
+                        (click)="removeAuctionPlayer(ap)"
+                        class="px-2 py-1 text-[10px] bg-slate-800 hover:bg-red-600 text-slate-400 hover:text-white rounded border-0 cursor-pointer ml-1"
+                      >
+                        <i class="fi fi-rr-trash"></i>
+                      </button>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+      <!-- ─── LIVE BIDDING ─── -->
+      @if (currentTab() === 'bidding') {
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <!-- Left: current player + bid pad -->
+          <div class="lg:col-span-2 space-y-4">
+            @if (live()?.currentPlayer; as cp) {
+              <div class="bg-slate-900 border-2 border-red-500/40 rounded-xl p-6">
+                <div class="flex items-center justify-between mb-3">
+                  <div class="text-[10px] text-slate-500 uppercase font-black tracking-wider">
+                    Current Player · Round in progress
+                  </div>
+                  @if (countdown() !== null) {
+                    <div
+                      class="px-3 py-1 rounded-lg text-sm font-black"
+                      [class.bg-red-500\/20]="(countdown() ?? 0) < 10"
+                      [class.text-red-400]="(countdown() ?? 0) < 10"
+                      [class.bg-emerald-500\/15]="(countdown() ?? 0) >= 10"
+                      [class.text-emerald-400]="(countdown() ?? 0) >= 10"
+                    >
+                      {{ countdown() }}s
+                    </div>
+                  }
+                </div>
+                <div class="text-3xl font-black text-white">
+                  {{ cp.player?.user?.username || '—' }}
+                </div>
+                <div class="text-xs text-slate-400 mt-1">
+                  {{ cp.player?.team?.name }}
+                  @if (cp.category) {
+                    · Category
+                    <span class="text-white font-bold">{{ cp.category.name }}</span>
+                  }
+                </div>
+                <div class="text-[11px] text-slate-500 mt-1">
+                  Base price {{ currencySymbol() }}{{ formatAmount(playerBasePrice(cp)) }}
+                </div>
+
+                <!-- Bid pad -->
+                <div class="mt-5 grid grid-cols-1 md:grid-cols-3 gap-2">
+                  <select
+                    [ngModel]="bidTeamId()"
+                    (ngModelChange)="bidTeamId.set($event)"
+                    class="bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500"
+                  >
+                    <option value="">— Bidding team —</option>
+                    @for (b of live()?.teamBudgets || []; track b.teamId) {
+                      <option [value]="b.teamId">
+                        {{ b.teamName }} ({{ currencySymbol()
+                        }}{{ formatAmount(b.remaining) }} left)
+                      </option>
+                    }
+                  </select>
+                  <input
+                    type="number"
+                    [ngModel]="bidAmount()"
+                    (ngModelChange)="bidAmount.set($event)"
+                    [placeholder]="'Min ' + suggestedBid()"
+                    class="bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500"
+                  />
+                  <button
+                    (click)="placeBid()"
+                    [disabled]="!bidTeamId() || bidAmount() <= 0"
+                    [class.opacity-50]="!bidTeamId() || bidAmount() <= 0"
+                    class="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-lg border-0 cursor-pointer"
+                  >
+                    Place bid
+                  </button>
+                </div>
+
+                <div class="flex flex-wrap gap-1.5 mt-3">
+                  @for (b of live()?.teamBudgets || []; track b.teamId) {
+                    <button
+                      (click)="quickBid(b.teamId, suggestedBid())"
+                      class="px-2 py-1 text-[10px] bg-slate-800 hover:bg-violet-600 hover:text-white text-slate-300 rounded border-0 cursor-pointer"
+                    >
+                      {{ b.teamName }} → {{ currencySymbol() }}{{ formatAmount(suggestedBid()) }}
+                    </button>
+                  }
+                </div>
+
+                <div class="flex gap-2 mt-4 pt-4 border-t border-white/5">
+                  <button
+                    (click)="closeBidding()"
+                    class="flex-1 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg border-0 cursor-pointer"
+                  >
+                    Close & Assign to highest bidder
+                  </button>
+                  <button
+                    (click)="cancelRound()"
+                    class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg border-0 cursor-pointer"
+                  >
+                    Cancel round
+                  </button>
+                </div>
+              </div>
+            } @else {
+              <div
+                class="bg-slate-900/40 border border-white/5 rounded-xl p-6 text-center text-slate-500 text-xs"
+              >
+                No player is currently in bidding.
+                @if (a.status === 'live') {
+                  Go to the Roster tab and click "Start Bidding" on an available player.
+                } @else {
+                  Move the auction to <span class="text-white font-bold">live</span> status to begin
+                  bidding.
+                }
+              </div>
+            }
+
+            <!-- Bid history -->
+            @if (live()?.bids?.length) {
+              <div class="bg-slate-900/40 border border-white/5 rounded-xl p-4">
+                <div class="text-xs font-black text-white uppercase tracking-wider mb-2">
+                  Bid History
+                </div>
+                <div class="space-y-1 max-h-96 overflow-y-auto">
+                  @for (b of live()?.bids || []; track b.id) {
+                    <div
+                      class="flex items-center justify-between p-2 rounded"
+                      [class.bg-emerald-500\/10]="b.status === 'winning'"
+                      [class.bg-slate-950\/40]="b.status !== 'winning'"
+                    >
+                      <div class="flex items-center gap-2">
+                        <span
+                          class="px-1.5 py-0.5 text-[9px] font-bold rounded border uppercase"
+                          [class]="statusBadgeClass(b.status === 'winning' ? 'sold' : 'available')"
+                        >
+                          {{ b.status }}
+                        </span>
+                        <span class="text-xs text-white font-bold">
+                          {{ b.team?.name }}
+                        </span>
+                        <span class="text-[10px] text-slate-500">
+                          by {{ b.placedBy?.username || '—' }}
+                        </span>
+                      </div>
+                      <div class="text-xs font-black text-emerald-400">
+                        {{ currencySymbol() }}{{ formatAmount(b.amount) }}
+                      </div>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+
+          <!-- Right: budgets -->
+          <div class="space-y-3">
+            <div class="bg-slate-900/40 border border-white/5 rounded-xl p-4">
+              <div class="text-xs font-black text-white uppercase tracking-wider mb-3">
+                Team Budgets
+              </div>
+              @if (!live()?.teamBudgets?.length) {
+                <div class="text-[10px] text-slate-500 italic">
+                  No teams enrolled. Add teams in the Setup tab.
+                </div>
+              }
+              <div class="space-y-2">
+                @for (b of live()?.teamBudgets || []; track b.teamId) {
+                  <div class="p-3 bg-slate-950/60 rounded border border-white/5">
+                    <div class="flex items-center justify-between">
+                      <div class="text-xs font-bold text-white truncate">
+                        {{ b.teamName }}
+                      </div>
+                      <div class="text-[10px] text-emerald-400 font-bold">
+                        {{ currencySymbol() }}{{ formatAmount(b.remaining) }}
+                      </div>
+                    </div>
+                    <div class="text-[10px] text-slate-500 mt-1">
+                      Spent {{ currencySymbol() }}{{ formatAmount(b.spent) }} of
+                      {{ currencySymbol() }}{{ formatAmount(b.initialBudget) }} ·
+                      {{ b.playersBought }} bought
+                    </div>
+                    <div class="w-full h-1.5 bg-slate-800 rounded mt-2 overflow-hidden">
+                      <div
+                        class="h-full bg-violet-500 rounded"
+                        [style.width.%]="spentPercent(b.spent, b.initialBudget)"
+                      ></div>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- ─── SUMMARY ─── -->
+      @if (currentTab() === 'summary') {
+        @if (summary(); as s) {
+          <div class="space-y-4">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+                <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">
+                  Sold
+                </div>
+                <div class="text-xl font-black text-emerald-400 mt-1">
+                  {{ s.soldCount }}
+                </div>
+                <div class="text-[8px] text-slate-400 mt-0.5">of {{ s.totalPlayers }} players</div>
+              </div>
+              <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+                <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">
+                  Unsold
+                </div>
+                <div class="text-xl font-black text-slate-400 mt-1">
+                  {{ s.unsoldCount }}
+                </div>
+                <div class="text-[8px] text-slate-400 mt-0.5">{{ s.remainingCount }} remaining</div>
+              </div>
+              <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+                <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">
+                  Total Spend
+                </div>
+                <div class="text-xl font-black text-violet-400 mt-1">
+                  {{ currencySymbol() }}{{ formatAmount(s.totalSpend) }}
+                </div>
+                <div class="text-[8px] text-slate-400 mt-0.5">across all teams</div>
+              </div>
+              <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+                <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">
+                  Avg Price
+                </div>
+                <div class="text-xl font-black text-white mt-1">
+                  {{ currencySymbol() }}{{ formatAmount(s.avgPrice) }}
+                </div>
+                <div class="text-[8px] text-slate-400 mt-0.5">per player</div>
+              </div>
+            </div>
+
+            @if (s.topPlayer) {
+              <div class="bg-slate-900/40 border-2 border-amber-500/30 rounded-xl p-4">
+                <div class="text-[9px] text-amber-400 uppercase font-black tracking-wider">
+                  Highest Sale
+                </div>
+                <div class="text-lg font-black text-white mt-1">
+                  {{ s.topPlayer.playerName }}
+                </div>
+                <div class="text-[11px] text-slate-400">
+                  {{ s.topPlayer.soldToTeam }} —
+                  <span class="text-emerald-400 font-bold">
+                    {{ currencySymbol() }}{{ formatAmount(s.topPlayer.soldPrice) }}
+                  </span>
+                </div>
+              </div>
+            }
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="bg-slate-900/40 border border-white/5 rounded-xl p-4">
+                <div class="text-xs font-black text-white uppercase tracking-wider mb-3">
+                  Spend by Team
+                </div>
+                @if (!s.perTeam.length) {
+                  <div class="text-[10px] text-slate-500 italic">No sales recorded yet.</div>
+                }
+                <div class="space-y-2">
+                  @for (t of s.perTeam; track t.teamId) {
+                    <div>
+                      <div class="flex items-center justify-between text-xs">
+                        <span class="text-white font-bold">{{ t.teamName }}</span>
+                        <span class="text-emerald-400 font-bold">
+                          {{ currencySymbol() }}{{ formatAmount(t.spent) }}
+                          <span class="text-slate-500 font-normal">
+                            · {{ t.count }} player(s)
+                          </span>
+                        </span>
+                      </div>
+                      <div class="w-full h-1.5 bg-slate-800 rounded mt-1 overflow-hidden">
+                        <div
+                          class="h-full bg-violet-500 rounded"
+                          [style.width.%]="teamSpendPercent(t.spent, s.perTeam[0]?.spent || 1)"
+                        ></div>
+                      </div>
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <div class="bg-slate-900/40 border border-white/5 rounded-xl p-4">
+                <div class="text-xs font-black text-white uppercase tracking-wider mb-3">
+                  By Category
+                </div>
+                @if (!s.perCategory.length) {
+                  <div class="text-[10px] text-slate-500 italic">No categories defined yet.</div>
+                }
+                <div class="space-y-2">
+                  @for (c of s.perCategory; track c.categoryId) {
+                    <div class="p-2 bg-slate-950/60 rounded border border-white/5">
+                      <div class="flex items-center justify-between text-xs">
+                        <span class="text-white font-bold">{{ c.name }}</span>
+                        <span class="text-emerald-400 font-bold">
+                          {{ currencySymbol() }}{{ formatAmount(c.spent) }}
+                        </span>
+                      </div>
+                      <div class="text-[10px] text-slate-500 mt-0.5">
+                        {{ c.soldCount }} sold · {{ c.unsoldCount }} unsold
+                      </div>
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+        } @else {
+          <div class="text-center text-[11px] text-slate-500 italic py-8">Loading summary…</div>
+        }
+      }
+    </div>
+  }
+</div>
+
+<!-- ═════ AUCTION MODAL ═════ -->
+@if (isAuctionModalOpen()) {
+  <div
+    class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-start justify-center overflow-y-auto p-4"
+    (click)="closeAuctionModal()"
+  >
+    <div
+      class="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-2xl p-6 my-8"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold text-white">
+          {{ editingAuctionId() ? 'Update' : 'New' }} Auction
+        </h3>
+        <button
+          (click)="closeAuctionModal()"
+          class="text-slate-400 hover:text-white bg-transparent border-0 cursor-pointer"
+        >
+          <i class="fi fi-rr-cross text-sm"></i>
+        </button>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div class="md:col-span-2">
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Name</label>
+          <input
+            type="text"
+            [ngModel]="auctionForm().name"
+            (ngModelChange)="auctionForm.set({ ...auctionForm(), name: $event })"
+            placeholder="e.g. 2026 Season Player Auction"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div class="md:col-span-2">
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Description</label>
+          <textarea
+            rows="2"
+            [ngModel]="auctionForm().description"
+            (ngModelChange)="auctionForm.set({ ...auctionForm(), description: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1 resize-none"
+          ></textarea>
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Currency</label>
+          <select
+            [ngModel]="auctionForm().currency"
+            (ngModelChange)="auctionForm.set({ ...auctionForm(), currency: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          >
+            <option value="INR">INR (₹)</option>
+            <option value="USD">USD ($)</option>
+            <option value="EUR">EUR (€)</option>
+            <option value="GBP">GBP (£)</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Scheduled Start</label>
+          <input
+            type="datetime-local"
+            [ngModel]="auctionForm().scheduledStart"
+            (ngModelChange)="auctionForm.set({ ...auctionForm(), scheduledStart: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">
+            Budget per team (default)
+          </label>
+          <input
+            type="number"
+            min="0"
+            [ngModel]="auctionForm().budgetPerTeam"
+            (ngModelChange)="auctionForm.set({ ...auctionForm(), budgetPerTeam: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold"> Bid increment </label>
+          <input
+            type="number"
+            min="1"
+            [ngModel]="auctionForm().bidIncrement"
+            (ngModelChange)="auctionForm.set({ ...auctionForm(), bidIncrement: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">
+            Round timeout (seconds)
+          </label>
+          <input
+            type="number"
+            min="5"
+            [ngModel]="auctionForm().bidWindowSec"
+            (ngModelChange)="auctionForm.set({ ...auctionForm(), bidWindowSec: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 mt-5">
+        <button
+          (click)="closeAuctionModal()"
+          class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg border-0 cursor-pointer"
+        >
+          Cancel
+        </button>
+        <button
+          (click)="saveAuction()"
+          [disabled]="!auctionForm().name"
+          [class.opacity-50]="!auctionForm().name"
+          class="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-lg border-0 cursor-pointer"
+        >
+          {{ editingAuctionId() ? 'Update' : 'Create' }} Auction
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ═════ CATEGORY MODAL ═════ -->
+@if (isCategoryModalOpen()) {
+  <div
+    class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-start justify-center overflow-y-auto p-4"
+    (click)="closeCategoryModal()"
+  >
+    <div
+      class="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-lg p-6 my-8"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold text-white">
+          {{ editingCategoryId() ? 'Update' : 'New' }} Category
+        </h3>
+        <button
+          (click)="closeCategoryModal()"
+          class="text-slate-400 hover:text-white bg-transparent border-0 cursor-pointer"
+        >
+          <i class="fi fi-rr-cross text-sm"></i>
+        </button>
+      </div>
+      <div class="space-y-3">
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Name</label>
+          <input
+            type="text"
+            [ngModel]="categoryForm().name"
+            (ngModelChange)="categoryForm.set({ ...categoryForm(), name: $event })"
+            placeholder="e.g. Marquee, A, B, C"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Base Price</label>
+          <input
+            type="number"
+            min="0"
+            [ngModel]="categoryForm().basePrice"
+            (ngModelChange)="categoryForm.set({ ...categoryForm(), basePrice: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-[10px] text-slate-400 uppercase font-bold">Order</label>
+            <input
+              type="number"
+              [ngModel]="categoryForm().orderIndex"
+              (ngModelChange)="categoryForm.set({ ...categoryForm(), orderIndex: $event })"
+              class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+            />
+          </div>
+          <div>
+            <label class="text-[10px] text-slate-400 uppercase font-bold">Color</label>
+            <input
+              type="color"
+              [ngModel]="categoryForm().color"
+              (ngModelChange)="categoryForm.set({ ...categoryForm(), color: $event })"
+              class="w-full h-9 bg-slate-950 border border-white/10 rounded-lg mt-1 cursor-pointer"
+            />
+          </div>
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Description</label>
+          <textarea
+            rows="2"
+            [ngModel]="categoryForm().description"
+            (ngModelChange)="categoryForm.set({ ...categoryForm(), description: $event })"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1 resize-none"
+          ></textarea>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 mt-5">
+        <button
+          (click)="closeCategoryModal()"
+          class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg border-0 cursor-pointer"
+        >
+          Cancel
+        </button>
+        <button
+          (click)="saveCategory()"
+          [disabled]="!categoryForm().name"
+          [class.opacity-50]="!categoryForm().name"
+          class="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-lg border-0 cursor-pointer"
+        >
+          {{ editingCategoryId() ? 'Update' : 'Create' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ═════ REGISTER PLAYERS MODAL ═════ -->
+@if (isRegisterModalOpen()) {
+  <div
+    class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-start justify-center overflow-y-auto p-4"
+    (click)="closeRegisterModal()"
+  >
+    <div
+      class="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-2xl p-6 my-8"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold text-white">Register Players</h3>
+        <button
+          (click)="closeRegisterModal()"
+          class="text-slate-400 hover:text-white bg-transparent border-0 cursor-pointer"
+        >
+          <i class="fi fi-rr-cross text-sm"></i>
+        </button>
+      </div>
+      <div class="mb-3">
+        <label class="text-[10px] text-slate-400 uppercase font-bold">
+          Assign to Category (optional)
+        </label>
+        <select
+          [ngModel]="registerCategoryId()"
+          (ngModelChange)="registerCategoryId.set($event)"
+          class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+        >
+          <option value="">— No category —</option>
+          @for (c of selectedAuction()?.categories || []; track c.id) {
+            <option [value]="c.id">
+              {{ c.name }} ({{ currencySymbol() }}{{ formatAmount(c.basePrice) }})
+            </option>
+          }
+        </select>
+      </div>
+      <div class="text-[10px] text-slate-500 mb-2">
+        Select players ({{ selectedPlayerIds().length }} selected)
+      </div>
+      <div
+        class="max-h-96 overflow-y-auto space-y-1 border border-white/5 rounded-lg p-2 bg-slate-950/40"
+      >
+        @if (eligiblePlayersForRegister().length === 0) {
+          <div class="text-[11px] text-slate-500 italic p-2">
+            All players are already registered.
+          </div>
+        }
+        @for (p of eligiblePlayersForRegister(); track p.id) {
+          <label class="flex items-center gap-2 p-2 rounded hover:bg-slate-900 cursor-pointer">
+            <input
+              type="checkbox"
+              [checked]="selectedPlayerIds().includes(p.id)"
+              (change)="togglePlayerSelection(p.id)"
+              class="w-4 h-4"
+            />
+            <div class="flex-1 min-w-0">
+              <div class="text-xs text-white truncate">{{ p.user.username }}</div>
+              <div class="text-[10px] text-slate-400 truncate">
+                {{ p.team?.name }}
+                @if (p.position) {
+                  · {{ p.position }}
+                }
+              </div>
+            </div>
+          </label>
+        }
+      </div>
+      <div class="flex justify-end gap-2 mt-5">
+        <button
+          (click)="closeRegisterModal()"
+          class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg border-0 cursor-pointer"
+        >
+          Cancel
+        </button>
+        <button
+          (click)="registerSelectedPlayers()"
+          [disabled]="selectedPlayerIds().length === 0"
+          [class.opacity-50]="selectedPlayerIds().length === 0"
+          class="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-lg border-0 cursor-pointer"
+        >
+          Register {{ selectedPlayerIds().length }} player(s)
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ═════ TEAM BUDGET MODAL ═════ -->
+@if (isBudgetModalOpen()) {
+  <div
+    class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-start justify-center overflow-y-auto p-4"
+    (click)="closeBudgetModal()"
+  >
+    <div
+      class="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-md p-6 my-8"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold text-white">Add Team Budget</h3>
+        <button
+          (click)="closeBudgetModal()"
+          class="text-slate-400 hover:text-white bg-transparent border-0 cursor-pointer"
+        >
+          <i class="fi fi-rr-cross text-sm"></i>
+        </button>
+      </div>
+      <div class="space-y-3">
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Team</label>
+          <select
+            [ngModel]="budgetTeamId()"
+            (ngModelChange)="budgetTeamId.set($event)"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          >
+            <option value="">— Select team —</option>
+            @for (t of eligibleTeamsForBudget(); track t.id) {
+              <option [value]="t.id">{{ t.name }}</option>
+            }
+          </select>
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 uppercase font-bold">Budget</label>
+          <input
+            type="number"
+            min="0"
+            [ngModel]="budgetAmount()"
+            (ngModelChange)="budgetAmount.set($event)"
+            class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+          />
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 mt-5">
+        <button
+          (click)="closeBudgetModal()"
+          class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg border-0 cursor-pointer"
+        >
+          Cancel
+        </button>
+        <button
+          (click)="saveBudget()"
+          [disabled]="!budgetTeamId()"
+          [class.opacity-50]="!budgetTeamId()"
+          class="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-lg border-0 cursor-pointer"
+        >
+          Save Budget
+        </button>
+      </div>
+    </div>
+  </div>
+}

@@ -489,6 +489,14 @@
                 [workspaceId]="workspace()?.id || ''"
               ></app-automation>
             }
+
+            <!-- ═══════════════ AUCTIONS TAB ═══════════════ -->
+            @if (activeTab() === 'auctions') {
+              <app-auctions
+                class="h-full block min-h-0"
+                [workspaceId]="workspace()?.id || ''"
+              ></app-auctions>
+            }
           </div>
         </main>
       </div>

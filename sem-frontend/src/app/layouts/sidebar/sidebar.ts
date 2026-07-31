@@ -28,6 +28,7 @@ export class SidebarComponent {
     | 'accreditation'
     | 'streaming'
     | 'automation'
+    | 'auctions'
   >('overview');
   membersCount = input<number>(0);
   teamsCount = input<number>(0);

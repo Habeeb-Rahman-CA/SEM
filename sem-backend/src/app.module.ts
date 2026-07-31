@@ -39,6 +39,7 @@ import { MedicalModule } from './modules/medical/medical.module';
 import { AccreditationModule } from './modules/accreditation/accreditation.module';
 import { StreamingModule } from './modules/streaming/streaming.module';
 import { AutomationModule } from './modules/automation/automation.module';
+import { AuctionsModule } from './modules/auctions/auctions.module';
 
 @Module({
   imports: [
@@ -94,6 +95,7 @@ import { AutomationModule } from './modules/automation/automation.module';
     AccreditationModule,
     StreamingModule,
     AutomationModule,
+    AuctionsModule,
   ],
   controllers: [AppController],
   providers: [
