@@ -19,6 +19,7 @@ import {
   Sport,
 } from '../../workspaces/services/workspace.service';
 import { CompetitionService } from '../../competitions/services/competition.service';
+import { AnalyticsService } from '../services/analytics.service';
 
 @Component({
   selector: 'app-workspace-reports',
@@ -29,6 +30,7 @@ import { CompetitionService } from '../../competitions/services/competition.serv
 export class WorkspaceReportsComponent {
   private competitionService = inject(CompetitionService);
   private workspaceService = inject(WorkspaceService);
+  private analyticsService = inject(AnalyticsService);
 
   workspace = input.required<Workspace | null>();
   teams = input.required<Team[]>();
@@ -39,12 +41,29 @@ export class WorkspaceReportsComponent {
   roles = input.required<Role[]>();
 
   // State
-  reportType = signal<'workspace' | 'event' | 'competition' | 'team' | 'player'>('workspace');
+  reportType = signal<
+    | 'workspace'
+    | 'event'
+    | 'competition'
+    | 'team'
+    | 'player'
+    | 'event-dashboard'
+    | 'trends'
+    | 'historical'
+    | 'organizer'
+  >('workspace');
   selectedSport = signal<string>('');
   dateFrom = signal<string>('');
   dateTo = signal<string>('');
   selectedTeamId = signal<string>('');
   selectedPlayerId = signal<string>('');
+
+  // Analytics Data States
+  eventReportsData = signal<any>(null);
+  participationTrendsData = signal<any>(null);
+  historicalComparisonsData = signal<any>(null);
+  organizerInsightsData = signal<any>(null);
+  isLoadingAnalytics = signal<boolean>(false);
 
   sports = signal<Sport[]>([]);
 
@@ -67,6 +86,7 @@ export class WorkspaceReportsComponent {
   isGeneratingCompExcel = signal<boolean>(false);
   isGeneratingEventExcel = signal<boolean>(false);
   isGeneratingTeamExcel = signal<boolean>(false);
+  isGeneratingAnalyticsExcel = signal<boolean>(false);
 
   isGeneratingExcel = computed(() => {
     const type = this.reportType();
@@ -75,6 +95,8 @@ export class WorkspaceReportsComponent {
     if (type === 'competition') return this.isGeneratingCompExcel();
     if (type === 'team') return this.isGeneratingTeamExcel();
     if (type === 'player') return this.isGeneratingPlayerReport();
+    if (['event-dashboard', 'trends', 'historical', 'organizer'].includes(type))
+      return this.isGeneratingAnalyticsExcel();
     return false;
   });
 
@@ -85,6 +107,10 @@ export class WorkspaceReportsComponent {
     else if (type === 'competition') this.downloadCompetitionExcel();
     else if (type === 'team') this.downloadTeamExcel();
     else if (type === 'player') this.downloadPlayerExcel();
+    else if (type === 'event-dashboard') this.downloadEventDashboardExcel();
+    else if (type === 'trends') this.downloadParticipationTrendsExcel();
+    else if (type === 'historical') this.downloadHistoricalComparisonsExcel();
+    else if (type === 'organizer') this.downloadOrganizerInsightsExcel();
   }
 
   ngOnInit() {
@@ -1002,6 +1028,267 @@ export class WorkspaceReportsComponent {
     }
   }
 
+  selectReportType(
+    type:
+      | 'workspace'
+      | 'event'
+      | 'competition'
+      | 'team'
+      | 'player'
+      | 'event-dashboard'
+      | 'trends'
+      | 'historical'
+      | 'organizer',
+  ) {
+    this.reportType.set(type);
+    const wsId = this.workspace()?.id;
+    if (!wsId) return;
+
+    if (type === 'event-dashboard') {
+      this.isLoadingAnalytics.set(true);
+      this.analyticsService.getEventReports(wsId).subscribe({
+        next: (data) => {
+          this.eventReportsData.set(data);
+          this.isLoadingAnalytics.set(false);
+        },
+        error: (err) => {
+          console.error('Failed to load event reports', err);
+          this.isLoadingAnalytics.set(false);
+        },
+      });
+    } else if (type === 'trends') {
+      this.isLoadingAnalytics.set(true);
+      this.analyticsService.getParticipationTrends(wsId).subscribe({
+        next: (data) => {
+          this.participationTrendsData.set(data);
+          this.isLoadingAnalytics.set(false);
+        },
+        error: (err) => {
+          console.error('Failed to load trends data', err);
+          this.isLoadingAnalytics.set(false);
+        },
+      });
+    } else if (type === 'historical') {
+      this.isLoadingAnalytics.set(true);
+      this.analyticsService.getHistoricalComparisons(wsId).subscribe({
+        next: (data) => {
+          this.historicalComparisonsData.set(data);
+          this.isLoadingAnalytics.set(false);
+        },
+        error: (err) => {
+          console.error('Failed to load historical comparisons', err);
+          this.isLoadingAnalytics.set(false);
+        },
+      });
+    } else if (type === 'organizer') {
+      this.isLoadingAnalytics.set(true);
+      this.analyticsService.getOrganizerInsights(wsId).subscribe({
+        next: (data) => {
+          this.organizerInsightsData.set(data);
+          this.isLoadingAnalytics.set(false);
+        },
+        error: (err) => {
+          console.error('Failed to load organizer insights', err);
+          this.isLoadingAnalytics.set(false);
+        },
+      });
+    }
+  }
+
+  async downloadEventDashboardExcel() {
+    const data = this.eventReportsData();
+    if (!data) return;
+    this.isGeneratingAnalyticsExcel.set(true);
+    try {
+      const XLSX = (await import('xlsx-js-style')) as any;
+      const wb = XLSX.utils.book_new();
+
+      const kpis = data.kpis;
+      const wsKpiData = [
+        ['Metric', 'Value'],
+        ['Total Events', kpis.totalEvents],
+        ['Completed Events', kpis.completedEvents],
+        ['Ongoing Events', kpis.ongoingEvents],
+        ['Upcoming Events', kpis.upcomingEvents],
+        ['Event Completion Rate (%)', kpis.eventCompletionRate.toFixed(1)],
+        ['Total Matches', kpis.totalMatches],
+        ['Completed Matches', kpis.completedMatches],
+        ['Live Matches', kpis.liveMatches],
+        ['Scheduled Matches', kpis.scheduledMatches],
+        ['Match Completion Rate (%)', kpis.matchCompletionRate.toFixed(1)],
+        ['Total Registered Teams', kpis.totalRegisteredTeams],
+        ['Active Teams Count', kpis.activeTeamsCount],
+        ['Total Registered Players', kpis.totalRegisteredPlayers],
+        ['Active Players Count', kpis.activePlayersCount],
+        ['Total Venues', kpis.totalVenues],
+      ];
+      const wsKpis = XLSX.utils.aoa_to_sheet(wsKpiData);
+      XLSX.utils.book_append_sheet(wb, wsKpis, 'KPIs Summary');
+
+      const breakdowns = data.eventBreakdowns.map((eb: any) => ({
+        'Event Name': eb.name,
+        Status: eb.status,
+        Sport: eb.sport,
+        'Start Date': eb.startDate ? new Date(eb.startDate).toLocaleDateString() : 'N/A',
+        'End Date': eb.endDate ? new Date(eb.endDate).toLocaleDateString() : 'N/A',
+        'Teams Registered': eb.teamsRegistered,
+        'Competitions Count': eb.competitionsCount,
+        'Matches Count': eb.matchesCount,
+        'Matches Completed': eb.matchesCompleted,
+        'Progress (%)': eb.progress,
+      }));
+      const wsBreakdowns = XLSX.utils.json_to_sheet(breakdowns);
+      XLSX.utils.book_append_sheet(wb, wsBreakdowns, 'Event Breakdowns');
+
+      XLSX.writeFile(wb, `${this.workspace()?.slug}_event_reports_dashboard.xlsx`);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      this.isGeneratingAnalyticsExcel.set(false);
+    }
+  }
+
+  async downloadParticipationTrendsExcel() {
+    const data = this.participationTrendsData();
+    if (!data) return;
+    this.isGeneratingAnalyticsExcel.set(true);
+    try {
+      const XLSX = (await import('xlsx-js-style')) as any;
+      const wb = XLSX.utils.book_new();
+
+      const growth = data.growthTrend.map((gt: any) => ({
+        Month: gt.month,
+        'New Players': gt.newPlayers,
+        'New Teams': gt.newTeams,
+        'Total Cumulative Players': gt.totalPlayers,
+        'Total Cumulative Teams': gt.totalTeams,
+      }));
+      const wsGrowth = XLSX.utils.json_to_sheet(growth);
+      XLSX.utils.book_append_sheet(wb, wsGrowth, 'Growth Trend');
+
+      const sports = data.sportsData.map((sd: any) => ({
+        Sport: sd.sport,
+        Events: sd.events,
+        Competitions: sd.competitions,
+        'Participants (Estimate)': sd.participantsEstimate,
+      }));
+      const wsSports = XLSX.utils.json_to_sheet(sports);
+      XLSX.utils.book_append_sheet(wb, wsSports, 'Sports Distribution');
+
+      const age = data.ageGroupsData.map((ad: any) => ({
+        'Age Group': ad.group,
+        Count: ad.count,
+        'Percentage (%)': ad.percentage,
+      }));
+      const wsAge = XLSX.utils.json_to_sheet(age);
+      XLSX.utils.book_append_sheet(wb, wsAge, 'Age Demographics');
+
+      const seasonal = data.seasonalData.map((sd: any) => ({
+        Season: sd.season,
+        'Events Scheduled': sd.count,
+      }));
+      const wsSeasonal = XLSX.utils.json_to_sheet(seasonal);
+      XLSX.utils.book_append_sheet(wb, wsSeasonal, 'Seasonal Patterns');
+
+      XLSX.writeFile(wb, `${this.workspace()?.slug}_participation_trends.xlsx`);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      this.isGeneratingAnalyticsExcel.set(false);
+    }
+  }
+
+  async downloadHistoricalComparisonsExcel() {
+    const data = this.historicalComparisonsData();
+    if (!data) return;
+    this.isGeneratingAnalyticsExcel.set(true);
+    try {
+      const XLSX = (await import('xlsx-js-style')) as any;
+      const wb = XLSX.utils.book_new();
+
+      const yearly = data.yearlyData.map((yd: any) => ({
+        Year: yd.year,
+        'Total Events': yd.eventsCount,
+        'Completed Events': yd.completedEvents,
+        'Total Teams': yd.teamsCount,
+        'Players (Estimate)': yd.playersEstimatedCount,
+        Matches: yd.matchesCount,
+        'Avg Score Per Match': yd.avgScorePerMatch,
+        'Avg Duration (Days)': yd.avgDurationDays,
+      }));
+      const wsYearly = XLSX.utils.json_to_sheet(yearly);
+      XLSX.utils.book_append_sheet(wb, wsYearly, 'YoY Comparison');
+
+      const benchmarking: any[] = [];
+      data.benchmarking.forEach((bench: any) => {
+        bench.runs.forEach((run: any) => {
+          benchmarking.push({
+            'Tournament Series': bench.tournamentName,
+            'Specific Event': run.name,
+            Year: run.year,
+            'Teams Count': run.participants,
+            Matches: run.matches,
+            'Completion Rate (%)': run.progress,
+          });
+        });
+      });
+      const wsBench = XLSX.utils.json_to_sheet(benchmarking);
+      XLSX.utils.book_append_sheet(wb, wsBench, 'Tournament Benchmarks');
+
+      XLSX.writeFile(wb, `${this.workspace()?.slug}_historical_comparisons.xlsx`);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      this.isGeneratingAnalyticsExcel.set(false);
+    }
+  }
+
+  async downloadOrganizerInsightsExcel() {
+    const data = this.organizerInsightsData();
+    if (!data) return;
+    this.isGeneratingAnalyticsExcel.set(true);
+    try {
+      const XLSX = (await import('xlsx-js-style')) as any;
+      const wb = XLSX.utils.book_new();
+
+      const productivity = data.productivity.map((p: any) => ({
+        Organizer: p.name,
+        'Score Updates': p.scoreUpdates,
+        'Matches Created': p.matchesCreated,
+        'Total Activity Logs': p.totalActions,
+      }));
+      const wsProductivity = XLSX.utils.json_to_sheet(productivity);
+      XLSX.utils.book_append_sheet(wb, wsProductivity, 'Organizer Productivity');
+
+      const bottlenecks = [
+        ['Bottleneck Metric', 'Count / Value'],
+        ['Delayed Matches Count (2hr+ past schedule)', data.bottlenecks.delayedMatchesCount],
+        ['Venue Overlap Conflicts Count', data.bottlenecks.venueConflictsCount],
+      ];
+      const wsBottlenecks = XLSX.utils.aoa_to_sheet(bottlenecks);
+      XLSX.utils.book_append_sheet(wb, wsBottlenecks, 'Bottlenecks');
+
+      const ai = [
+        ['AI Operational Recommendations'],
+        ['Bottlenecks Identified'],
+        ...data.aiRecommendation.bottlenecksIdentified.map((bi: string) => [` - ${bi}`]),
+        [],
+        ['Actionable Recommendations'],
+        ...data.aiRecommendation.recommendations.map((rec: string) => [` - ${rec}`]),
+        [],
+        ['Predicted Efficiency Gain', data.aiRecommendation.predictedEfficiencyGain],
+      ];
+      const wsAi = XLSX.utils.aoa_to_sheet(ai);
+      XLSX.utils.book_append_sheet(wb, wsAi, 'AI Suggestions');
+
+      XLSX.writeFile(wb, `${this.workspace()?.slug}_organizer_insights.xlsx`);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      this.isGeneratingAnalyticsExcel.set(false);
+    }
+  }
+
   downloadCSV() {
     const type = this.reportType();
     if (type === 'workspace') {
@@ -1107,6 +1394,77 @@ export class WorkspaceReportsComponent {
         ['MVPs Won', mvpStats?.mvps || 0],
       ];
       this.exportToCSV(`${player.user.username}_profile.csv`, headers, rows);
+    } else if (type === 'event-dashboard') {
+      const data = this.eventReportsData();
+      if (!data) return;
+      const headers = [
+        'Event Name',
+        'Status',
+        'Sport',
+        'Teams',
+        'Competitions',
+        'Matches',
+        'Completed',
+        'Progress (%)',
+      ];
+      const rows = data.eventBreakdowns.map((eb: any) => [
+        eb.name,
+        eb.status,
+        eb.sport,
+        eb.teamsRegistered,
+        eb.competitionsCount,
+        eb.matchesCount,
+        eb.matchesCompleted,
+        eb.progress,
+      ]);
+      this.exportToCSV(`${this.workspace()?.slug}_event_reports_summary.csv`, headers, rows);
+    } else if (type === 'trends') {
+      const data = this.participationTrendsData();
+      if (!data) return;
+      const headers = ['Month', 'New Players', 'New Teams', 'Total Players', 'Total Teams'];
+      const rows = data.growthTrend.map((gt: any) => [
+        gt.month,
+        gt.newPlayers,
+        gt.newTeams,
+        gt.totalPlayers,
+        gt.totalTeams,
+      ]);
+      this.exportToCSV(`${this.workspace()?.slug}_participation_trends.csv`, headers, rows);
+    } else if (type === 'historical') {
+      const data = this.historicalComparisonsData();
+      if (!data) return;
+      const headers = [
+        'Year',
+        'Events Count',
+        'Completed Events',
+        'Teams Count',
+        'Players Estimate',
+        'Matches Count',
+        'Avg Score',
+        'Avg Duration (Days)',
+      ];
+      const rows = data.yearlyData.map((yd: any) => [
+        yd.year,
+        yd.eventsCount,
+        yd.completedEvents,
+        yd.teamsCount,
+        yd.playersEstimatedCount,
+        yd.matchesCount,
+        yd.avgScorePerMatch,
+        yd.avgDurationDays,
+      ]);
+      this.exportToCSV(`${this.workspace()?.slug}_historical_comparisons.csv`, headers, rows);
+    } else if (type === 'organizer') {
+      const data = this.organizerInsightsData();
+      if (!data) return;
+      const headers = ['Organizer Name', 'Score Updates', 'Matches Created', 'Total Actions'];
+      const rows = data.productivity.map((p: any) => [
+        p.name,
+        p.scoreUpdates,
+        p.matchesCreated,
+        p.totalActions,
+      ]);
+      this.exportToCSV(`${this.workspace()?.slug}_organizer_productivity.csv`, headers, rows);
     }
   }
 
@@ -1162,6 +1520,14 @@ export class WorkspaceReportsComponent {
     } else if (type === 'player') {
       const player = this.selectedPlayer();
       if (player) titleText = `Player Performance - ${player.user.username}`;
+    } else if (type === 'event-dashboard') {
+      titleText = `Event Reports Summary - ${ws.name}`;
+    } else if (type === 'trends') {
+      titleText = `Participation Trends - ${ws.name}`;
+    } else if (type === 'historical') {
+      titleText = `Historical comparisons - ${ws.name}`;
+    } else if (type === 'organizer') {
+      titleText = `Organizer Insights - ${ws.name}`;
     }
 
     let htmlContent = `
@@ -1719,6 +2085,153 @@ export class WorkspaceReportsComponent {
           </tbody>
         </table>
       `;
+    } else if (type === 'event-dashboard') {
+      const data = this.eventReportsData();
+      if (data) {
+        let rowsHtml = '';
+        data.eventBreakdowns.forEach((eb: any) => {
+          rowsHtml += `
+            <tr>
+              <td><b>${eb.name}</b></td>
+              <td><span>${eb.status}</span></td>
+              <td>${eb.sport}</td>
+              <td style="text-align: center;">${eb.teamsRegistered}</td>
+              <td style="text-align: center;">${eb.competitionsCount}</td>
+              <td style="text-align: center;">${eb.matchesCount}</td>
+              <td style="text-align: right;"><b>${eb.progress}%</b></td>
+            </tr>
+          `;
+        });
+        htmlContent += `
+          <h1 class="report-title">Advanced Event Reports Summary</h1>
+          <div class="meta-grid">
+            <div class="meta-item"><span class="meta-label">Completion Rate</span><span class="meta-value">${data.kpis.eventCompletionRate.toFixed(1)}%</span></div>
+            <div class="meta-item"><span class="meta-label">Total Matches</span><span class="meta-value">${data.kpis.totalMatches}</span></div>
+            <div class="meta-item"><span class="meta-label">Active Teams</span><span class="meta-value">${data.kpis.activeTeamsCount}</span></div>
+            <div class="meta-item"><span class="meta-label">Active Players</span><span class="meta-value">${data.kpis.activePlayersCount}</span></div>
+          </div>
+          <h2 class="section-title">Event Breakdowns</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Event Name</th>
+                <th>Status</th>
+                <th>Sport</th>
+                <th style="text-align: center;">Teams</th>
+                <th style="text-align: center;">Competitions</th>
+                <th style="text-align: center;">Matches</th>
+                <th style="text-align: right;">Progress</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+        `;
+      }
+    } else if (type === 'trends') {
+      const data = this.participationTrendsData();
+      if (data) {
+        let sportsHtml = '';
+        data.sportsData.forEach((sd: any) => {
+          sportsHtml += `<tr><td><b>${sd.sport}</b></td><td style="text-align: center;">${sd.events}</td><td style="text-align: center;">${sd.competitions}</td><td style="text-align: right;">${sd.participantsEstimate}</td></tr>`;
+        });
+        let ageHtml = '';
+        data.ageGroupsData.forEach((ad: any) => {
+          ageHtml += `<tr><td><b>${ad.group}</b></td><td style="text-align: center;">${ad.count}</td><td style="text-align: right;">${ad.percentage}%</td></tr>`;
+        });
+        htmlContent += `
+          <h1 class="report-title">Participation Trends & Demographics</h1>
+          <h2 class="section-title">Sports Distribution</h2>
+          <table>
+            <thead>
+              <tr><th>Sport Name</th><th style="text-align: center;">Events</th><th style="text-align: center;">Competitions</th><th style="text-align: right;">Estimated Participants</th></tr>
+            </thead>
+            <tbody>${sportsHtml}</tbody>
+          </table>
+
+          <h2 class="section-title">Age Demographics</h2>
+          <table>
+            <thead>
+              <tr><th>Age Group</th><th style="text-align: center;">Player Count</th><th style="text-align: right;">Percentage</th></tr>
+            </thead>
+            <tbody>${ageHtml}</tbody>
+          </table>
+        `;
+      }
+    } else if (type === 'historical') {
+      const data = this.historicalComparisonsData();
+      if (data) {
+        let yearlyHtml = '';
+        data.yearlyData.forEach((yd: any) => {
+          yearlyHtml += `
+            <tr>
+              <td><b>${yd.year}</b></td>
+              <td style="text-align: center;">${yd.eventsCount}</td>
+              <td style="text-align: center;">${yd.completedEvents}</td>
+              <td style="text-align: center;">${yd.teamsCount}</td>
+              <td style="text-align: center;">${yd.playersEstimatedCount}</td>
+              <td style="text-align: center;">${yd.matchesCount}</td>
+              <td style="text-align: center;">${yd.avgScorePerMatch}</td>
+              <td style="text-align: right;">${yd.avgDurationDays} days</td>
+            </tr>
+          `;
+        });
+        htmlContent += `
+          <h1 class="report-title">Historical YoY Comparative Analytics</h1>
+          <table>
+            <thead>
+              <tr>
+                <th>Year</th>
+                <th style="text-align: center;">Total Events</th>
+                <th style="text-align: center;">Completed Events</th>
+                <th style="text-align: center;">Teams Registered</th>
+                <th style="text-align: center;">Players (Est.)</th>
+                <th style="text-align: center;">Matches Played</th>
+                <th style="text-align: center;">Avg Score</th>
+                <th style="text-align: right;">Avg Duration</th>
+              </tr>
+            </thead>
+            <tbody>${yearlyHtml}</tbody>
+          </table>
+        `;
+      }
+    } else if (type === 'organizer') {
+      const data = this.organizerInsightsData();
+      if (data) {
+        let prodHtml = '';
+        data.productivity.forEach((p: any) => {
+          prodHtml += `<tr><td><b>${p.name}</b></td><td style="text-align: center;">${p.scoreUpdates}</td><td style="text-align: center;">${p.matchesCreated}</td><td style="text-align: right;">${p.totalActions}</td></tr>`;
+        });
+        let aiRecs = '';
+        data.aiRecommendation.recommendations.forEach((rec: string) => {
+          aiRecs += `<li>${rec}</li>`;
+        });
+        let aiBottles = '';
+        data.aiRecommendation.bottlenecksIdentified.forEach((bi: string) => {
+          aiBottles += `<li>${bi}</li>`;
+        });
+
+        htmlContent += `
+          <h1 class="report-title">Organizer Insights Hub</h1>
+          <h2 class="section-title">Organizer Activity & Productivity</h2>
+          <table>
+            <thead>
+              <tr><th>Name</th><th style="text-align: center;">Score Updates</th><th style="text-align: center;">Matches Created</th><th style="text-align: right;">Total Actions</th></tr>
+            </thead>
+            <tbody>${prodHtml}</tbody>
+          </table>
+
+          <div style="border: 1px dashed #4f46e5; background-color: #faf5ff; padding: 20px; border-radius: 8px; margin-top: 25px;">
+            <div style="font-weight: bold; color: #4f46e5; margin-bottom: 10px;">🤖 AI-Generated Recommendations</div>
+            <p><b>Identified Bottlenecks:</b></p>
+            <ul>${aiBottles}</ul>
+            <p><b>Suggested Actions:</b></p>
+            <ul>${aiRecs}</ul>
+            <p><b>Forecasted Impact:</b> ${data.aiRecommendation.predictedEfficiencyGain}</p>
+          </div>
+        `;
+      }
     }
 
     htmlContent += `

@@ -71,66 +71,120 @@
   <!-- Row 2: Report Selection and Filters -->
   <div class="bg-slate-900/60 border border-white/5 rounded-2xl p-6 backdrop-blur-md space-y-6">
     <!-- Report Type Tabs -->
-    <div class="space-y-2">
-      <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
-        >Select Report Focus</label
-      >
-      <div class="grid grid-cols-2 md:grid-cols-5 gap-2">
-        <button
-          (click)="reportType.set('workspace')"
-          [class]="
-            reportType() === 'workspace'
-              ? 'bg-violet-600 text-white font-extrabold shadow-lg shadow-violet-600/20 border border-violet-500/30'
-              : 'bg-slate-950/60 hover:bg-slate-950/90 text-slate-400 border border-white/5'
-          "
-          class="flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs transition-all cursor-pointer"
+    <div class="space-y-4">
+      <div>
+        <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-2"
+          >Core Data Previews</label
         >
-          <i class="fi fi-rr-apps text-sm"></i> Workspace Summary
-        </button>
-        <button
-          (click)="reportType.set('event')"
-          [class]="
-            reportType() === 'event'
-              ? 'bg-blue-600 text-white font-extrabold shadow-lg shadow-blue-600/20 border border-blue-500/30'
-              : 'bg-slate-950/60 hover:bg-slate-950/90 text-slate-400 border border-white/5'
-          "
-          class="flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs transition-all cursor-pointer"
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-2">
+          <button
+            (click)="selectReportType('workspace')"
+            [class]="
+              reportType() === 'workspace'
+                ? 'bg-violet-600 text-white font-extrabold shadow-lg shadow-violet-600/20 border border-violet-500/30'
+                : 'bg-slate-950/60 hover:bg-slate-950/90 text-slate-400 border border-white/5'
+            "
+            class="flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs transition-all cursor-pointer font-bold"
+          >
+            <i class="fi fi-rr-apps text-sm"></i> Workspace Summary
+          </button>
+          <button
+            (click)="selectReportType('event')"
+            [class]="
+              reportType() === 'event'
+                ? 'bg-blue-600 text-white font-extrabold shadow-lg shadow-blue-600/20 border border-blue-500/30'
+                : 'bg-slate-950/60 hover:bg-slate-950/90 text-slate-400 border border-white/5'
+            "
+            class="flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs transition-all cursor-pointer font-bold"
+          >
+            <i class="fi fi-rr-calendar text-sm"></i> Event Insights
+          </button>
+          <button
+            (click)="selectReportType('competition')"
+            [class]="
+              reportType() === 'competition'
+                ? 'bg-indigo-600 text-white font-extrabold shadow-lg shadow-indigo-600/20 border border-indigo-500/30'
+                : 'bg-slate-950/60 hover:bg-slate-950/90 text-slate-400 border border-white/5'
+            "
+            class="flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs transition-all cursor-pointer font-bold"
+          >
+            <i class="fi fi-rr-trophy text-sm"></i> Tournament Standings
+          </button>
+          <button
+            (click)="selectReportType('team')"
+            [class]="
+              reportType() === 'team'
+                ? 'bg-slate-700 text-white font-extrabold shadow-lg border border-slate-600'
+                : 'bg-slate-950/60 hover:bg-slate-950/90 text-slate-400 border border-white/5'
+            "
+            class="flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs transition-all cursor-pointer font-bold"
+          >
+            <i class="fi fi-rr-users text-sm"></i> Team Performance
+          </button>
+          <button
+            (click)="selectReportType('player')"
+            [class]="
+              reportType() === 'player'
+                ? 'bg-emerald-600 text-white font-extrabold shadow-lg shadow-emerald-600/20 border border-emerald-500/30'
+                : 'bg-slate-950/60 hover:bg-slate-950/90 text-slate-400 border border-white/5'
+            "
+            class="flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs transition-all cursor-pointer col-span-2 md:col-span-1 font-bold"
+          >
+            <i class="fi fi-rr-running text-sm"></i> Player Profile
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-2"
+          >Advanced Analytics Hub</label
         >
-          <i class="fi fi-rr-calendar text-sm"></i> Event Insights
-        </button>
-        <button
-          (click)="reportType.set('competition')"
-          [class]="
-            reportType() === 'competition'
-              ? 'bg-indigo-600 text-white font-extrabold shadow-lg shadow-indigo-600/20 border border-indigo-500/30'
-              : 'bg-slate-950/60 hover:bg-slate-950/90 text-slate-400 border border-white/5'
-          "
-          class="flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs transition-all cursor-pointer"
-        >
-          <i class="fi fi-rr-trophy text-sm"></i> Tournament Standings
-        </button>
-        <button
-          (click)="reportType.set('team')"
-          [class]="
-            reportType() === 'team'
-              ? 'bg-slate-700 text-white font-extrabold shadow-lg border border-slate-600'
-              : 'bg-slate-950/60 hover:bg-slate-950/90 text-slate-400 border border-white/5'
-          "
-          class="flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs transition-all cursor-pointer"
-        >
-          <i class="fi fi-rr-users text-sm"></i> Team Performance
-        </button>
-        <button
-          (click)="reportType.set('player')"
-          [class]="
-            reportType() === 'player'
-              ? 'bg-emerald-600 text-white font-extrabold shadow-lg shadow-emerald-600/20 border border-emerald-500/30'
-              : 'bg-slate-950/60 hover:bg-slate-950/90 text-slate-400 border border-white/5'
-          "
-          class="flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs transition-all cursor-pointer col-span-2 md:col-span-1"
-        >
-          <i class="fi fi-rr-running text-sm"></i> Player Profile
-        </button>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+          <button
+            (click)="selectReportType('event-dashboard')"
+            [class]="
+              reportType() === 'event-dashboard'
+                ? 'bg-fuchsia-600 text-white font-extrabold shadow-lg shadow-fuchsia-600/20 border border-fuchsia-500/30'
+                : 'bg-slate-950/60 hover:bg-slate-950/90 text-slate-400 border border-white/5'
+            "
+            class="flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs transition-all cursor-pointer font-bold"
+          >
+            <i class="fi fi-rr-chart-histogram text-sm"></i> Event Reports
+          </button>
+          <button
+            (click)="selectReportType('trends')"
+            [class]="
+              reportType() === 'trends'
+                ? 'bg-amber-600 text-white font-extrabold shadow-lg shadow-amber-600/20 border border-amber-500/30'
+                : 'bg-slate-950/60 hover:bg-slate-950/90 text-slate-400 border border-white/5'
+            "
+            class="flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs transition-all cursor-pointer font-bold"
+          >
+            <i class="fi fi-rr-chart-line-up text-sm"></i> Participation Trends
+          </button>
+          <button
+            (click)="selectReportType('historical')"
+            [class]="
+              reportType() === 'historical'
+                ? 'bg-cyan-600 text-white font-extrabold shadow-lg shadow-cyan-600/20 border border-cyan-500/30'
+                : 'bg-slate-950/60 hover:bg-slate-950/90 text-slate-400 border border-white/5'
+            "
+            class="flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs transition-all cursor-pointer font-bold"
+          >
+            <i class="fi fi-rr-time-past text-sm"></i> Historical Comparisons
+          </button>
+          <button
+            (click)="selectReportType('organizer')"
+            [class]="
+              reportType() === 'organizer'
+                ? 'bg-rose-600 text-white font-extrabold shadow-lg shadow-rose-600/20 border border-rose-500/30'
+                : 'bg-slate-950/60 hover:bg-slate-950/90 text-slate-400 border border-white/5'
+            "
+            class="flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs transition-all cursor-pointer font-bold"
+          >
+            <i class="fi fi-rr-bulb text-sm"></i> Organizer Insights
+          </button>
+        </div>
       </div>
     </div>
 
@@ -749,9 +803,7 @@
 
           <div class="space-y-2">
             <h3 class="text-xs font-extrabold text-white flex items-center gap-2">
-              <i class="fi fi-rr-users text-slate-400"></i> Active Roster ({{
-                teamRoster().length
-              }}
+              <i class="fi fi-rr-users text-slate-400"></i> Active Roster ({{ teamRoster().length }}
               players)
             </h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -801,6 +853,651 @@
                   Jersey Number: {{ selectedPlayer()?.jerseyNumber || 'N/A' }} &middot; Team:
                   {{ selectedPlayer()?.team?.name || 'N/A' }}
                 </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    }
+
+    <!-- Loading State for Analytics -->
+    @if (isLoadingAnalytics()) {
+      <div class="space-y-6 py-8">
+        <div class="h-12 bg-slate-950/40 animate-pulse border border-white/5 rounded-2xl"></div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div class="h-28 bg-slate-950/40 animate-pulse border border-white/5 rounded-2xl"></div>
+          <div class="h-28 bg-slate-950/40 animate-pulse border border-white/5 rounded-2xl"></div>
+          <div class="h-28 bg-slate-950/40 animate-pulse border border-white/5 rounded-2xl"></div>
+          <div class="h-28 bg-slate-950/40 animate-pulse border border-white/5 rounded-2xl"></div>
+        </div>
+        <div class="h-64 bg-slate-950/40 animate-pulse border border-white/5 rounded-2xl"></div>
+      </div>
+    }
+
+    <!-- 6. Event Reports Dashboard Preview -->
+    @if (reportType() === 'event-dashboard' && !isLoadingAnalytics()) {
+      @if (!eventReportsData()) {
+        <div
+          class="py-8 text-center text-slate-500 text-xs font-bold border border-dashed border-white/5 rounded-xl"
+        >
+          No event analytics data available.
+        </div>
+      } @else {
+        <div class="space-y-6">
+          <!-- KPIs -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div
+              class="bg-slate-950/40 border border-white/5 rounded-2xl p-5 relative overflow-hidden group animate-fade-in"
+            >
+              <div
+                class="absolute -right-4 -bottom-4 text-violet-500/10 text-6xl group-hover:scale-110 transition-all duration-300"
+              >
+                <i class="fi fi-rr-chart-histogram"></i>
+              </div>
+              <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                Completion Rate
+              </div>
+              <div class="text-2xl font-black text-white mt-2">
+                {{ eventReportsData()?.kpis?.eventCompletionRate | number: '1.1-1' }}%
+              </div>
+              <div class="w-full bg-slate-900 h-1.5 rounded-full mt-3 overflow-hidden">
+                <div
+                  class="bg-gradient-to-r from-violet-500 to-indigo-500 h-full rounded-full transition-all duration-1000"
+                  [style.width.%]="eventReportsData()?.kpis?.eventCompletionRate"
+                ></div>
+              </div>
+            </div>
+            <div
+              class="bg-slate-950/40 border border-white/5 rounded-2xl p-5 relative overflow-hidden group animate-fade-in"
+            >
+              <div
+                class="absolute -right-4 -bottom-4 text-emerald-500/10 text-6xl group-hover:scale-110 transition-all duration-300"
+              >
+                <i class="fi fi-rr-calendar"></i>
+              </div>
+              <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                Total Events
+              </div>
+              <div class="text-2xl font-black text-white mt-2">
+                {{ eventReportsData()?.kpis?.totalEvents }}
+              </div>
+              <div class="text-[9px] text-emerald-400 mt-2 font-bold flex items-center gap-1">
+                <span
+                  class="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse"
+                ></span>
+                {{ eventReportsData()?.kpis?.ongoingEvents }} Ongoing &middot;
+                {{ eventReportsData()?.kpis?.upcomingEvents }} Upcoming
+              </div>
+            </div>
+            <div
+              class="bg-slate-950/40 border border-white/5 rounded-2xl p-5 relative overflow-hidden group animate-fade-in"
+            >
+              <div
+                class="absolute -right-4 -bottom-4 text-amber-500/10 text-6xl group-hover:scale-110 transition-all duration-300"
+              >
+                <i class="fi fi-rr-trophy"></i>
+              </div>
+              <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                Total Matches
+              </div>
+              <div class="text-2xl font-black text-white mt-2">
+                {{ eventReportsData()?.kpis?.totalMatches }}
+              </div>
+              <div class="text-[9px] text-amber-400 mt-2 font-bold flex items-center gap-1">
+                <span
+                  class="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block animate-pulse"
+                ></span>
+                {{ eventReportsData()?.kpis?.completedMatches }} Completed &middot;
+                {{ eventReportsData()?.kpis?.liveMatches }} Live
+              </div>
+            </div>
+            <div
+              class="bg-slate-950/40 border border-white/5 rounded-2xl p-5 relative overflow-hidden group animate-fade-in"
+            >
+              <div
+                class="absolute -right-4 -bottom-4 text-cyan-500/10 text-6xl group-hover:scale-110 transition-all duration-300"
+              >
+                <i class="fi fi-rr-users"></i>
+              </div>
+              <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                Active Teams / Players
+              </div>
+              <div class="text-2xl font-black text-white mt-2">
+                {{ eventReportsData()?.kpis?.activeTeamsCount }} /
+                {{ eventReportsData()?.kpis?.activePlayersCount }}
+              </div>
+              <div class="text-[9px] text-slate-500 mt-2 font-bold">
+                From {{ eventReportsData()?.kpis?.totalRegisteredTeams }} registered teams
+              </div>
+            </div>
+          </div>
+
+          <!-- Event Breakdowns List -->
+          <div class="bg-slate-950/20 border border-white/5 rounded-2xl p-6 space-y-4">
+            <div class="flex items-center justify-between">
+              <h3
+                class="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2"
+              >
+                <i class="fi fi-rr-list text-violet-500"></i> Event Breakdowns
+              </h3>
+              <span
+                class="text-[9px] text-slate-400 font-bold bg-slate-900 border border-white/5 px-2 py-1 rounded-md"
+              >
+                {{ eventReportsData()?.eventBreakdowns?.length }} Events Total
+              </span>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr
+                    class="border-b border-white/5 text-slate-500 text-[10px] uppercase font-bold tracking-wider"
+                  >
+                    <th class="pb-3 pl-2">Event</th>
+                    <th class="pb-3">Status</th>
+                    <th class="pb-3">Sport</th>
+                    <th class="pb-3 text-center">Teams</th>
+                    <th class="pb-3 text-center">Competitions</th>
+                    <th class="pb-3 text-center">Matches</th>
+                    <th class="pb-3 text-right pr-2">Completion Progress</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5">
+                  @for (eb of eventReportsData()?.eventBreakdowns; track eb.name) {
+                    <tr class="hover:bg-white/[0.02] transition-colors">
+                      <td class="py-3.5 pl-2 font-bold text-white">{{ eb.name }}</td>
+                      <td class="py-3.5">
+                        <span
+                          [class]="
+                            eb.status === 'completed'
+                              ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                              : eb.status === 'ongoing'
+                                ? 'bg-amber-500/10 border-amber-500/20 text-amber-400 animate-pulse'
+                                : 'bg-slate-800/40 border-slate-700/40 text-slate-400'
+                          "
+                          class="px-2 py-0.5 border rounded-md text-[9px] uppercase font-bold"
+                        >
+                          {{ eb.status }}
+                        </span>
+                      </td>
+                      <td class="py-3.5 text-slate-400 capitalize">{{ eb.sport }}</td>
+                      <td class="py-3.5 text-center text-slate-300 font-medium">
+                        {{ eb.teamsRegistered }}
+                      </td>
+                      <td class="py-3.5 text-center text-slate-300 font-medium">
+                        {{ eb.competitionsCount }}
+                      </td>
+                      <td class="py-3.5 text-center text-slate-300 font-medium">
+                        {{ eb.matchesCount }}
+                      </td>
+                      <td class="py-3.5 text-right pr-2">
+                        <div class="flex items-center justify-end gap-2">
+                          <span class="font-extrabold text-white text-[10px]"
+                            >{{ eb.progress }}%</span
+                          >
+                          <div
+                            class="w-16 bg-slate-900 h-1.5 rounded-full overflow-hidden inline-block"
+                          >
+                            <div
+                              class="bg-gradient-to-r from-violet-500 to-indigo-500 h-full rounded-full"
+                              [style.width.%]="eb.progress"
+                            ></div>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      }
+    }
+
+    <!-- 7. Participation Trends Preview -->
+    @if (reportType() === 'trends' && !isLoadingAnalytics()) {
+      @if (!participationTrendsData()) {
+        <div
+          class="py-8 text-center text-slate-500 text-xs font-bold border border-dashed border-white/5 rounded-xl"
+        >
+          No trends data available.
+        </div>
+      } @else {
+        <div class="space-y-6 animate-fade-in">
+          <!-- Growth Trend SVG Line Chart -->
+          <div class="bg-slate-950/20 border border-white/5 rounded-2xl p-6 space-y-4">
+            <h3
+              class="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2"
+            >
+              <i class="fi fi-rr-chart-line-up text-amber-500"></i> Monthly Participation Growth
+            </h3>
+            <div
+              class="relative w-full h-48 bg-slate-950/40 rounded-xl p-4 flex flex-col justify-between"
+            >
+              <!-- SVG chart -->
+              <svg viewBox="0 0 500 150" class="w-full h-full overflow-visible">
+                <defs>
+                  <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.3" />
+                    <stop offset="100%" stop-color="#f59e0b" stop-opacity="0" />
+                  </linearGradient>
+                </defs>
+                <!-- Grid Lines -->
+                <line
+                  x1="0"
+                  y1="30"
+                  x2="500"
+                  y2="30"
+                  stroke="rgba(255,255,255,0.03)"
+                  stroke-width="1"
+                />
+                <line
+                  x1="0"
+                  y1="75"
+                  x2="500"
+                  y2="75"
+                  stroke="rgba(255,255,255,0.03)"
+                  stroke-width="1"
+                />
+                <line
+                  x1="0"
+                  y1="120"
+                  x2="500"
+                  y2="120"
+                  stroke="rgba(255,255,255,0.03)"
+                  stroke-width="1"
+                />
+                <!-- Area Path -->
+                <path d="M 0 150 Q 125 100 250 80 T 500 20 L 500 150 Z" fill="url(#chartGrad)" />
+                <!-- Line Path -->
+                <path
+                  d="M 0 150 Q 125 100 250 80 T 500 20"
+                  fill="none"
+                  stroke="#f59e0b"
+                  stroke-width="2.5"
+                />
+                <!-- Dots for major points -->
+                <circle cx="250" cy="80" r="4" fill="#f59e0b" stroke="#020617" stroke-width="2" />
+                <circle cx="500" cy="20" r="4" fill="#f59e0b" stroke="#020617" stroke-width="2" />
+              </svg>
+              <!-- X axis labels -->
+              <div
+                class="flex justify-between text-[8px] text-slate-500 font-extrabold uppercase mt-2"
+              >
+                @for (gt of participationTrendsData()?.growthTrend; track gt.month) {
+                  <span>{{ gt.month }}</span>
+                }
+              </div>
+            </div>
+            <div class="text-[9px] text-slate-400 font-bold">
+              Cumulative Growth: Total registered players reached
+              <span class="text-white font-extrabold">{{
+                participationTrendsData()?.growthTrend?.[
+                  participationTrendsData()?.growthTrend?.length - 1
+                ]?.totalPlayers
+              }}</span>
+              across all seasons.
+            </div>
+          </div>
+
+          <!-- Bottom Row: Sports Distribution & Age Demographics -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Sports Distribution -->
+            <div class="bg-slate-950/20 border border-white/5 rounded-2xl p-6 space-y-4">
+              <h3
+                class="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2"
+              >
+                <i class="fi fi-rr-trophy text-amber-500"></i> Popularity by Sport
+              </h3>
+              <div class="space-y-4">
+                @for (sd of participationTrendsData()?.sportsData; track sd.sport) {
+                  <div class="space-y-1.5">
+                    <div class="flex justify-between text-xs font-bold text-slate-300 capitalize">
+                      <span>{{ sd.sport }}</span>
+                      <span class="text-white text-[10px] font-black"
+                        >{{ sd.participantsEstimate }} Estimated Participants</span
+                      >
+                    </div>
+                    <div class="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden">
+                      <div
+                        class="bg-gradient-to-r from-amber-500 to-yellow-500 h-full rounded-full transition-all duration-1000"
+                        [style.width.%]="sd.events * 25"
+                      ></div>
+                    </div>
+                    <div class="text-[9px] text-slate-500 font-bold">
+                      {{ sd.events }} Events &middot; {{ sd.competitions }} Competitions scheduled
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- Age Demographics -->
+            <div class="bg-slate-950/20 border border-white/5 rounded-2xl p-6 space-y-4">
+              <h3
+                class="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2"
+              >
+                <i class="fi fi-rr-running text-amber-500"></i> Age-Group Demographics
+              </h3>
+              <div class="space-y-4">
+                @for (ad of participationTrendsData()?.ageGroupsData; track ad.group) {
+                  <div
+                    class="flex items-center justify-between border-b border-white/5 pb-2 last:border-0 last:pb-0"
+                  >
+                    <div class="flex items-center gap-3">
+                      <div
+                        class="w-6 h-6 rounded-md bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-[10px] text-amber-400 font-black animate-scale-up"
+                      >
+                        {{ ad.group }}
+                      </div>
+                      <span class="text-xs font-bold text-slate-300">Category / Group</span>
+                    </div>
+                    <div class="text-right">
+                      <div class="text-xs font-black text-white">{{ ad.count }} Players</div>
+                      <div class="text-[9px] text-amber-400 font-bold">
+                        {{ ad.percentage | number: '1.1-1' }}% Distribution
+                      </div>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    }
+
+    <!-- 8. Historical Comparisons Preview -->
+    @if (reportType() === 'historical' && !isLoadingAnalytics()) {
+      @if (!historicalComparisonsData()) {
+        <div
+          class="py-8 text-center text-slate-500 text-xs font-bold border border-dashed border-white/5 rounded-xl"
+        >
+          No historical comparisons available.
+        </div>
+      } @else {
+        <div class="space-y-6 animate-fade-in">
+          <!-- YoY Summary Table -->
+          <div class="bg-slate-950/20 border border-white/5 rounded-2xl p-6 space-y-4">
+            <h3
+              class="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2"
+            >
+              <i class="fi fi-rr-time-past text-cyan-500"></i> Year-Over-Year Progression
+            </h3>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr
+                    class="border-b border-white/5 text-slate-500 text-[10px] uppercase font-bold tracking-wider"
+                  >
+                    <th class="pb-3 pl-2">Year</th>
+                    <th class="pb-3 text-center">Total Events</th>
+                    <th class="pb-3 text-center">Completed Events</th>
+                    <th class="pb-3 text-center">Teams Count</th>
+                    <th class="pb-3 text-center">Players (Est.)</th>
+                    <th class="pb-3 text-center">Matches</th>
+                    <th class="pb-3 text-center">Avg Score/Match</th>
+                    <th class="pb-3 text-right pr-2">Avg Duration</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5">
+                  @for (yd of historicalComparisonsData()?.yearlyData; track yd.year) {
+                    <tr class="hover:bg-white/[0.02] transition-colors">
+                      <td class="py-3.5 pl-2 font-black text-white">{{ yd.year }}</td>
+                      <td class="py-3.5 text-center text-slate-300 font-bold">
+                        {{ yd.eventsCount }}
+                      </td>
+                      <td class="py-3.5 text-center text-slate-300 font-bold">
+                        {{ yd.completedEvents }}
+                      </td>
+                      <td class="py-3.5 text-center text-slate-300 font-bold">
+                        {{ yd.teamsCount }}
+                      </td>
+                      <td class="py-3.5 text-center text-slate-300 font-bold">
+                        {{ yd.playersEstimatedCount }}
+                      </td>
+                      <td class="py-3.5 text-center text-slate-300 font-bold">
+                        {{ yd.matchesCount }}
+                      </td>
+                      <td class="py-3.5 text-center text-cyan-400 font-extrabold">
+                        {{ yd.avgScorePerMatch | number: '1.1-1' }}
+                      </td>
+                      <td class="py-3.5 text-right pr-2 text-slate-400 font-medium">
+                        {{ yd.avgDurationDays | number: '1.0-1' }} Days
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Tournament Series Benchmarks -->
+          <div class="bg-slate-950/20 border border-white/5 rounded-2xl p-6 space-y-4">
+            <h3
+              class="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2"
+            >
+              <i class="fi fi-rr-trophy text-cyan-500"></i> Recurring Tournament Series Benchmarks
+            </h3>
+            <div class="space-y-6">
+              @for (
+                bench of historicalComparisonsData()?.benchmarking;
+                track bench.tournamentName
+              ) {
+                <div class="bg-slate-950/40 border border-white/5 rounded-xl p-5 space-y-3">
+                  <div class="flex items-center justify-between border-b border-white/5 pb-2">
+                    <span class="text-xs font-black text-white tracking-wide uppercase">{{
+                      bench.tournamentName
+                    }}</span>
+                    <span class="text-[9px] text-slate-500 font-bold">Recurring Series</span>
+                  </div>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    @for (run of bench.runs; track run.name) {
+                      <div class="bg-slate-950 border border-white/5 rounded-lg p-3 space-y-1">
+                        <div class="text-[9px] text-slate-400 font-bold">
+                          {{ run.name }} ({{ run.year }})
+                        </div>
+                        <div class="flex justify-between items-center mt-1">
+                          <span class="text-xs font-black text-white"
+                            >{{ run.participants }} Teams</span
+                          >
+                          <span class="text-[10px] text-cyan-400 font-extrabold"
+                            >{{ run.progress }}% Complete</span
+                          >
+                        </div>
+                        <div class="text-[9px] text-slate-500 font-bold">
+                          {{ run.matches }} Matches Played
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      }
+    }
+
+    <!-- 9. Organizer Insights Preview -->
+    @if (reportType() === 'organizer' && !isLoadingAnalytics()) {
+      @if (!organizerInsightsData()) {
+        <div
+          class="py-8 text-center text-slate-500 text-xs font-bold border border-dashed border-white/5 rounded-xl"
+        >
+          No organizer insights available.
+        </div>
+      } @else {
+        <div class="space-y-6 animate-fade-in">
+          <!-- Top Section: AI Recommendations -->
+          <div
+            class="relative overflow-hidden bg-gradient-to-br from-indigo-950/40 via-slate-900/60 to-rose-950/30 border border-violet-500/20 rounded-2xl p-6 backdrop-blur-md shadow-2xl shadow-violet-950/20 space-y-4"
+          >
+            <div
+              class="absolute -right-16 -top-16 w-32 h-32 bg-violet-600/10 rounded-full blur-3xl"
+            ></div>
+            <div
+              class="absolute -left-16 -bottom-16 w-32 h-32 bg-rose-600/10 rounded-full blur-3xl"
+            ></div>
+
+            <div class="flex items-center gap-3">
+              <div
+                class="w-10 h-10 rounded-xl bg-gradient-to-tr from-violet-500 to-rose-500 flex items-center justify-center text-white shadow-lg shadow-violet-500/25"
+              >
+                <i class="fi fi-rr-sparkles text-md"></i>
+              </div>
+              <div>
+                <h3 class="text-sm font-black text-white tracking-tight">
+                  AI-Driven Operational Recommendations
+                </h3>
+                <p class="text-[9px] text-slate-400 font-bold">
+                  Calculated from historical audit logs, venue metrics, and match schedules
+                </p>
+              </div>
+            </div>
+
+            <!-- Bottlenecks & Advice -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+              <div class="bg-slate-950/60 border border-white/5 rounded-xl p-4 space-y-2">
+                <h4
+                  class="text-[10px] font-black text-rose-400 uppercase tracking-wider flex items-center gap-1.5"
+                >
+                  <i class="fi fi-rr-exclamation text-xs"></i> Key Bottlenecks Identified
+                </h4>
+                <ul class="space-y-1.5">
+                  @for (
+                    bot of organizerInsightsData()?.aiRecommendation?.bottlenecksIdentified;
+                    track bot
+                  ) {
+                    <li class="text-[11px] text-slate-300 font-bold flex items-start gap-1.5">
+                      <span class="text-rose-500 mt-0.5">•</span>
+                      <span>{{ bot }}</span>
+                    </li>
+                  }
+                </ul>
+              </div>
+
+              <div class="bg-slate-950/60 border border-white/5 rounded-xl p-4 space-y-2">
+                <h4
+                  class="text-[10px] font-black text-violet-400 uppercase tracking-wider flex items-center gap-1.5"
+                >
+                  <i class="fi fi-rr-bulb text-xs"></i> Actionable Solutions
+                </h4>
+                <ul class="space-y-1.5">
+                  @for (
+                    rec of organizerInsightsData()?.aiRecommendation?.recommendations;
+                    track rec
+                  ) {
+                    <li class="text-[11px] text-slate-300 font-bold flex items-start gap-1.5">
+                      <span class="text-violet-400 mt-0.5">•</span>
+                      <span>{{ rec }}</span>
+                    </li>
+                  }
+                </ul>
+              </div>
+            </div>
+
+            <div
+              class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-white/5 text-xs"
+            >
+              <div class="text-[10px] text-slate-400 font-bold flex items-center gap-1">
+                Estimated Efficiency Score Gain:
+                <span class="text-emerald-400 font-black">{{
+                  organizerInsightsData()?.aiRecommendation?.predictedEfficiencyGain
+                }}</span>
+              </div>
+              <button
+                class="bg-white/5 hover:bg-white/10 border border-white/10 text-white hover:text-white px-4 py-2 rounded-xl text-[10px] font-black tracking-wider uppercase transition-all duration-300 flex items-center gap-1.5 active:scale-95"
+              >
+                Optimize Schedule Flow <i class="fi fi-rr-arrow-small-right"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Bottom: Leaderboards & Bottlenecks -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Organizer Activity Leaderboard -->
+            <div class="bg-slate-950/20 border border-white/5 rounded-2xl p-6 space-y-4">
+              <h3
+                class="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2"
+              >
+                <i class="fi fi-rr-users text-rose-500"></i> Organizer Activity & Productivity
+              </h3>
+              <div class="space-y-4">
+                @for (op of organizerInsightsData()?.productivity; track op.name) {
+                  <div class="space-y-1.5">
+                    <div class="flex justify-between text-xs font-bold text-slate-300 capitalize">
+                      <span>{{ op.name }}</span>
+                      <span class="text-white text-[10px] font-black"
+                        >{{ op.totalActions }} Actions</span
+                      >
+                    </div>
+                    <div class="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden">
+                      <div
+                        class="bg-gradient-to-r from-rose-500 to-orange-500 h-full rounded-full transition-all duration-1000"
+                        [style.width.%]="op.totalActions * 2"
+                      ></div>
+                    </div>
+                    <div class="text-[9px] text-slate-500 font-bold">
+                      {{ op.scoreUpdates }} Scores Updated &middot; {{ op.matchesCreated }} Matches
+                      Created
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- Bottleneck Counter -->
+            <div class="bg-slate-950/20 border border-white/5 rounded-2xl p-6 space-y-4">
+              <h3
+                class="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2"
+              >
+                <i class="fi fi-rr-exclamation text-rose-500"></i> Operational Warnings
+              </h3>
+              <div class="grid grid-cols-2 gap-4">
+                <div
+                  class="bg-slate-950 border border-white/5 rounded-xl p-4 flex flex-col justify-center items-center text-center space-y-2"
+                >
+                  <div
+                    class="w-8 h-8 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400"
+                  >
+                    <i class="fi fi-rr-clock text-sm"></i>
+                  </div>
+                  <div>
+                    <div class="text-xl font-black text-white">
+                      {{ organizerInsightsData()?.bottlenecks?.delayedMatchesCount }}
+                    </div>
+                    <div class="text-[9px] text-slate-500 uppercase font-bold mt-1">
+                      Delayed Matches
+                    </div>
+                  </div>
+                </div>
+                <div
+                  class="bg-slate-950 border border-white/5 rounded-xl p-4 flex flex-col justify-center items-center text-center space-y-2"
+                >
+                  <div
+                    class="w-8 h-8 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400"
+                  >
+                    <i class="fi fi-rr-marker text-sm"></i>
+                  </div>
+                  <div>
+                    <div class="text-xl font-black text-white">
+                      {{ organizerInsightsData()?.bottlenecks?.venueConflictsCount }}
+                    </div>
+                    <div class="text-[9px] text-slate-500 uppercase font-bold mt-1">
+                      Venue Conflicts
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div
+                class="bg-rose-500/5 border border-rose-500/10 rounded-xl p-3 text-[10px] text-rose-300 font-bold flex items-start gap-2"
+              >
+                <i class="fi fi-rr-info text-xs mt-0.5"></i>
+                <span
+                  >Delayed matches represent scheduled matches that remained unplayed more than 2
+                  hours after their kickoff time.</span
+                >
               </div>
             </div>
           </div>

@@ -29,6 +29,8 @@ import { WorkspacesController } from './workspaces.controller';
 import { SystemSettingsController } from './system-settings.controller';
 import { FilesController } from './files/files.controller';
 import { FilesService } from './files/files.service';
+import { AnalyticsController } from './analytics.controller';
+import { AnalyticsService } from './analytics.service';
 import { UsersModule } from '../users/users.module';
 import { UploadModule } from '../upload/upload.module';
 import { EventsGateway } from './events.gateway';
@@ -91,6 +93,7 @@ import { WorkspaceMembersService } from './members/members.service';
     WorkspacesController,
     SystemSettingsController,
     FilesController,
+    AnalyticsController,
   ],
   providers: [
     WorkspacesService,
@@ -102,6 +105,7 @@ import { WorkspaceMembersService } from './members/members.service';
     RolesPermissionsService,
     WorkspaceMembersService,
     FilesService,
+    AnalyticsService,
   ],
   exports: [
     WorkspacesService,
