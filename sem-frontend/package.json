@@ -8,8 +8,15 @@
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
+    "build:prod": "ng build --configuration production",
+    "build:dev": "ng build --configuration development",
+    "build:stats": "ng build --configuration stats --stats-json",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "analyze": "npm run build:stats && npx source-map-explorer 'dist/sem-frontend/browser/*.js'",
+    "analyze:report": "npm run build:stats && npx source-map-explorer 'dist/sem-frontend/browser/*.js' --html dist/bundle-report.html",
+    "depcheck": "npx depcheck --ignores=\"@types/*,@capacitor/*,postcss,@tailwindcss/postcss,tailwindcss,jsdom,@angular/build,@angular/compiler-cli,tslib\"",
+    "size": "npm run build:prod && node -e \"const fs=require('fs'),p=require('path'),d='dist/sem-frontend/browser';let t=0;for(const f of fs.readdirSync(d).filter(x=>x.endsWith('.js'))){const s=fs.statSync(p.join(d,f)).size;t+=s;console.log(f.padEnd(60),(s/1024).toFixed(1)+' KB')}console.log('TOTAL'.padEnd(60),(t/1024).toFixed(1)+' KB')\""
   },
   "private": true,
   "packageManager": "npm@11.11.0",
