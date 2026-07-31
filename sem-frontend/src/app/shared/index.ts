@@ -13,6 +13,8 @@ export { LoadingSpinnerComponent } from './components/loading-spinner/loading-sp
 export { PaginatorComponent } from './components/paginator/paginator';
 export { PhotoCaptureComponent } from './components/photo-capture/photo-capture';
 export { QrScannerComponent } from './components/qr-scanner/qr-scanner';
+export { SkeletonComponent } from './components/skeleton/skeleton';
+export type { SkeletonVariant } from './components/skeleton/skeleton';
 
 // ── Type re-exports ───────────────────────────────────────────────────────────
 export type { ButtonVariant, ButtonSize } from './components/button/button';
@@ -26,11 +28,14 @@ export type { PhotoUploadType, PhotoShape } from './components/photo-capture/pho
 // ── Shared Directives ─────────────────────────────────────────────────────────
 export { PullToRefreshDirective } from './directives/pull-to-refresh.directive';
 export { LazyImgDirective } from './directives/lazy-img.directive';
+export { DebounceDirective } from './directives/debounce.directive';
+export { DeferVisibleDirective } from './directives/defer-visible.directive';
 
 // ── Shared Pipes ──────────────────────────────────────────────────────────────
 export { InitialsPipe } from './pipes/initials.pipe';
 export { AvatarColorPipe } from './pipes/avatar-color.pipe';
 export { RatingColorPipe } from './pipes/rating-color.pipe';
+export { PickImageSrcPipe } from './pipes/pick-image-src.pipe';
 
 // ── Shared Utils ──────────────────────────────────────────────────────────────
 export {
@@ -39,3 +44,4 @@ export {
   formatMatchStatusDetail,
   roleBadgeClass,
 } from './utils/ui-helpers';
+export { byId, byIndex, byField, byComposite } from './utils/track-by';
