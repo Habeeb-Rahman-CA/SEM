@@ -1,0 +1,18 @@
+#!/usr/bin/env sh
+# Enforces Conventional Commits so `standard-version` can generate the
+# CHANGELOG cleanly. Bypass with `git commit --no-verify` for WIP
+# commits on personal branches.
+. "$(dirname -- "$0")/_/husky.sh"
+
+MSG=$(head -n1 "$1")
+# Accept: feat, fix, chore, docs, style, refactor, perf, test, ci, build, revert
+# Optional scope: (foo)
+# Optional breaking marker: !
+if ! echo "$MSG" | grep -qE '^(feat|fix|chore|docs|style|refactor|perf|test|ci|build|revert)(\([^)]+\))?!?: .+'; then
+  echo "❌ Commit message does not follow Conventional Commits."
+  echo "   Expected:  <type>(optional scope): <subject>"
+  echo "   Examples:  feat(auctions): add live bidding console"
+  echo "              fix(cache): invalidate on member role change"
+  echo "              perf(db): add index on player_transfers.userId"
+  exit 1
+fi

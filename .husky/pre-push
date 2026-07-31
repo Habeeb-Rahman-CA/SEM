@@ -1,0 +1,25 @@
+#!/usr/bin/env sh
+# Pre-push — heavier checks that cover the whole tree before public
+# history exists. Bypass with `git push --no-verify` in emergencies
+# only (the CI still runs everything, but you buy latency).
+. "$(dirname -- "$0")/_/husky.sh"
+
+set -e
+
+echo "→ Backend typecheck"
+(cd sem-backend && npx tsc --noEmit -p tsconfig.json)
+
+echo "→ Frontend typecheck"
+(cd sem-frontend && npx tsc --noEmit -p tsconfig.app.json)
+
+echo "→ Migration-check (static, destructive scan)"
+(cd sem-backend && node scripts/migration-check.js --check-destructive)
+
+# Skip full test runs by default because they can be slow — enable per
+# repo by setting SEM_PREPUSH_TESTS=1 in the env.
+if [ "$SEM_PREPUSH_TESTS" = "1" ]; then
+  echo "→ Backend tests"
+  (cd sem-backend && npm test -- --passWithNoTests)
+  echo "→ Frontend tests"
+  (cd sem-frontend && npm test -- --run --passWithNoTests)
+fi

@@ -12,9 +12,20 @@
     "start:all": "./run-app.sh",
     "infra:up": "docker-compose up -d",
     "infra:down": "docker-compose down",
+    "infra:up:prod": "docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d",
     "prepare": "husky",
     "commit": "cz",
-    "release": "standard-version"
+    "release": "standard-version",
+    "lint": "npm --prefix sem-backend run lint && npx prettier --check \"sem-frontend/src/**/*.{ts,html,css}\"",
+    "typecheck": "npm --prefix sem-backend run build --if-present && npx tsc --noEmit -p sem-frontend/tsconfig.app.json",
+    "test": "npm --prefix sem-backend test -- --passWithNoTests && npm --prefix sem-frontend test -- --run --passWithNoTests",
+    "test:backend": "npm --prefix sem-backend test",
+    "test:frontend": "npm --prefix sem-frontend test -- --run",
+    "test:e2e": "npm --prefix sem-backend run test:e2e --if-present",
+    "loadtest:baseline": "k6 run loadtest/baseline.js",
+    "loadtest:bidding": "k6 run loadtest/auction-bidding.js",
+    "loadtest:spectator": "k6 run loadtest/public-spectator.js",
+    "migration:check": "node sem-backend/scripts/migration-check.js --check-destructive"
   },
   "config": {
     "commitizen": {
