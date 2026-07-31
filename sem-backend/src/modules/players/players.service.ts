@@ -6,6 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { Player } from './entities/player.entity';
+import { PlayerTransfer } from './entities/player-transfer.entity';
 import { Team } from '../teams/entities/team.entity';
 import { MatchPlayer } from './entities/match-player.entity';
 import { WorkspaceMember } from '../workspaces/entities/workspace-member.entity';
@@ -28,6 +29,8 @@ export class PlayersService {
     private readonly teamRepo: Repository<Team>,
     @InjectRepository(MatchPlayer)
     private readonly matchPlayerRepo: Repository<MatchPlayer>,
+    @InjectRepository(PlayerTransfer)
+    private readonly playerTransferRepo: Repository<PlayerTransfer>,
     @InjectRepository(WorkspaceMember)
     private readonly memberRepo: Repository<WorkspaceMember>,
     @InjectRepository(Match)
@@ -88,6 +91,15 @@ export class PlayersService {
       achievements: dto.achievements ?? null,
     });
     const saved = await this.playerRepo.save(player);
+
+    // Record initial transfer in history
+    const initialTransfer = this.playerTransferRepo.create({
+      userId: dto.userId,
+      fromTeamId: null,
+      toTeamId: dto.teamId,
+    });
+    await this.playerTransferRepo.save(initialTransfer);
+
     saved.team = team;
     saved.user = user;
     await this.searchService.indexPlayer(saved);
@@ -127,6 +139,7 @@ export class PlayersService {
     }
 
     const oldTeamName = player.team?.name;
+    const oldTeamId = player.teamId;
     const isTransfer = dto.teamId !== undefined && dto.teamId !== player.teamId;
 
     if (dto.teamId !== undefined) {
@@ -161,6 +174,13 @@ export class PlayersService {
     await this.searchService.indexPlayer(saved);
 
     if (isTransfer) {
+      const transfer = this.playerTransferRepo.create({
+        userId: player.userId,
+        fromTeamId: oldTeamId,
+        toTeamId: dto.teamId,
+      });
+      await this.playerTransferRepo.save(transfer);
+
       await this.workspacesService.sendNotification(
         player.userId,
         NotificationType.PLAYER_TRANSFERRED,
@@ -315,9 +335,16 @@ export class PlayersService {
   }
 
   private async buildPlayerProfile(player: Player) {
-    // 1. Find all competitions this team is registered in
+    // 1. Fetch all registrations (player records) matching the userId to support cross-event aggregation
+    const allPlayerRegistrations = await this.playerRepo.find({
+      where: { userId: player.userId },
+    });
+    const playerIds = allPlayerRegistrations.map((p) => p.id);
+    const teamIds = allPlayerRegistrations.map((p) => p.teamId);
+
+    // Find all competitions these teams are registered in
     const compTeams = await this.memberRepo.manager.find(CompetitionTeam, {
-      where: { teamId: player.teamId },
+      where: { teamId: In(teamIds) },
       relations: {
         competition: {
           sport: true,
@@ -327,10 +354,10 @@ export class PlayersService {
 
     const competitionIds = compTeams.map((ct) => ct.competitionId);
 
-    // 2. Fetch all completed match-player entries for this player
+    // 2. Fetch all completed match-player entries for this player across all registrations
     const completedMatchPlayers = await this.matchPlayerRepo.find({
       where: {
-        playerId: player.id,
+        playerId: In(playerIds),
         isPlaying: true,
         match: { status: 'completed' },
       },
@@ -718,6 +745,12 @@ export class PlayersService {
       });
     }
 
+    const transfers = await this.playerTransferRepo.find({
+      where: { userId: player.userId },
+      relations: { fromTeam: true, toTeam: true },
+      order: { transferredAt: 'ASC' },
+    });
+
     return {
       player: {
         id: player.id,
@@ -764,6 +797,14 @@ export class PlayersService {
         avgRating: allTimeAvgRating,
       },
       competitions: competitionsStatsList,
+      transfers: transfers.map((t) => ({
+        id: t.id,
+        fromTeam: t.fromTeam
+          ? { id: t.fromTeam.id, name: t.fromTeam.name }
+          : null,
+        toTeam: { id: t.toTeam.id, name: t.toTeam.name },
+        transferredAt: t.transferredAt,
+      })),
     };
   }
 }
