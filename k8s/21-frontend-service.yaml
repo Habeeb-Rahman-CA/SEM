@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: sem-frontend
+  labels:
+    app.kubernetes.io/name: sem-frontend
+    app.kubernetes.io/part-of: sem
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: sem-frontend
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: http

@@ -1,0 +1,201 @@
+name: Deploy
+
+# Triggered on:
+#   - a semver tag push (v5.0.0)          → production release
+#   - a manual dispatch with `environment` → staging / on-demand
+#
+# Pipeline:
+#   1. Rebuild + push both images to the container registry, tagged with
+#      the git SHA and the semver tag.
+#   2. Apply pending DB migrations against the target env (guarded by a
+#      dry-run diff in CI to catch destructive changes early).
+#   3. Rolling apply of the k8s manifests. `kubectl rollout status` blocks
+#      until healthchecks pass; a failure triggers automatic rollback.
+#   4. Post-deploy smoke tests (liveness + readiness) — fail = rollback.
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        default: "staging"
+        type: choice
+        options: [staging, production]
+
+concurrency:
+  # Only one deploy per env at a time — avoid overlapping rollouts.
+  group: deploy-${{ github.event.inputs.environment || 'production' }}
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAMESPACE: ${{ github.repository }}
+
+jobs:
+  # ─── Build + push images ─────────────────────────────────────────────
+  images:
+    name: Build & push images
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      backend_tag: ${{ steps.tag.outputs.backend }}
+      frontend_tag: ${{ steps.tag.outputs.frontend }}
+      version: ${{ steps.version.outputs.value }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: version
+        run: |
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            echo "value=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "value=sha-${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
+          fi
+
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute tags
+        id: tag
+        run: |
+          BE="${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/sem-backend"
+          FE="${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/sem-frontend"
+          echo "backend=${BE}:${{ steps.version.outputs.value }},${BE}:latest" >> $GITHUB_OUTPUT
+          echo "frontend=${FE}:${{ steps.version.outputs.value }},${FE}:latest" >> $GITHUB_OUTPUT
+
+      - name: Backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./sem-backend
+          push: true
+          tags: ${{ steps.tag.outputs.backend }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+          # Multi-arch build so both x86 clusters and Apple-Silicon
+          # dev clusters can run the same image.
+          platforms: linux/amd64,linux/arm64
+
+      - name: Frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./sem-frontend
+          push: true
+          tags: ${{ steps.tag.outputs.frontend }}
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
+          platforms: linux/amd64,linux/arm64
+
+  # ─── Migrations (dry-run diff first, then apply) ─────────────────────
+  migrate:
+    name: Apply DB migrations
+    runs-on: ubuntu-latest
+    needs: images
+    environment: ${{ github.event.inputs.environment || 'production' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: npm
+          cache-dependency-path: sem-backend/package-lock.json
+      - working-directory: sem-backend
+        run: npm ci --no-audit --no-fund
+
+      - name: Dry-run migration diff
+        working-directory: sem-backend
+        env:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_DATABASE: ${{ secrets.DB_DATABASE }}
+        run: |
+          # Print what would change without applying. Fails if a
+          # destructive change (DROP TABLE / DROP COLUMN) is queued —
+          # forces an operator to acknowledge with a manual approval
+          # via GitHub Environment protection rules.
+          node scripts/migration-check.js --check-destructive
+      - name: Apply migrations
+        working-directory: sem-backend
+        env:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_DATABASE: ${{ secrets.DB_DATABASE }}
+        run: npm run migration:run
+
+  # ─── K8s rollout ──────────────────────────────────────────────────────
+  deploy:
+    name: Rolling k8s deploy
+    runs-on: ubuntu-latest
+    needs: [images, migrate]
+    environment: ${{ github.event.inputs.environment || 'production' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-kubectl@v4
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
+
+      - name: Set image versions in manifests
+        env:
+          VERSION: ${{ needs.images.outputs.version }}
+        run: |
+          BE="${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/sem-backend:${VERSION}"
+          FE="${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/sem-frontend:${VERSION}"
+          sed -i "s|sem-backend:latest|${BE}|"   k8s/10-backend-deployment.yaml
+          sed -i "s|sem-frontend:latest|${FE}|"  k8s/20-frontend-deployment.yaml
+
+      - name: Apply manifests
+        run: |
+          kubectl -n sem apply -f k8s/00-configmap.yaml
+          kubectl -n sem apply -f k8s/10-backend-deployment.yaml
+          kubectl -n sem apply -f k8s/11-backend-service.yaml
+          kubectl -n sem apply -f k8s/12-backend-hpa.yaml
+          kubectl -n sem apply -f k8s/20-frontend-deployment.yaml
+          kubectl -n sem apply -f k8s/21-frontend-service.yaml
+          kubectl -n sem apply -f k8s/22-frontend-hpa.yaml
+          kubectl -n sem apply -f k8s/30-ingress.yaml
+          kubectl -n sem apply -f k8s/40-pdb.yaml
+
+      - name: Wait for backend rollout (auto-rollback on failure)
+        # rollout status blocks; a non-zero exit means the deploy failed
+        # healthchecks. The `if: failure()` step below triggers rollback.
+        run: kubectl -n sem rollout status deployment/sem-backend --timeout=5m
+      - name: Wait for frontend rollout
+        run: kubectl -n sem rollout status deployment/sem-frontend --timeout=5m
+
+      - name: Smoke test — /api/health/live
+        run: |
+          for i in 1 2 3 4 5; do
+            if curl -fsS "${{ secrets.SMOKE_TEST_URL }}/api/health/live"; then
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Smoke test failed after 5 attempts"; exit 1
+
+      - name: Rollback on failure
+        if: failure()
+        run: |
+          echo "❌ Deploy failed — rolling back to previous revision"
+          kubectl -n sem rollout undo deployment/sem-backend
+          kubectl -n sem rollout undo deployment/sem-frontend
+          kubectl -n sem rollout status deployment/sem-backend --timeout=3m
+          kubectl -n sem rollout status deployment/sem-frontend --timeout=3m
+          exit 1

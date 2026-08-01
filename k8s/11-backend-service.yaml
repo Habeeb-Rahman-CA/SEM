@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: sem-backend
+  labels:
+    app.kubernetes.io/name: sem-backend
+    app.kubernetes.io/part-of: sem
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: sem-backend
+  ports:
+    - name: http
+      protocol: TCP
+      port: 3001
+      targetPort: http
+  # Give sessions a chance to reuse the same backend when helpful — the
+  # WebSocket socket.io Redis adapter still works without stickiness,
+  # but sticky sessions cut down on connect churn on cold clients.
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 3600

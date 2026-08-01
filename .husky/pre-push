@@ -1,0 +1,31 @@
+# pre-push — cheap safety net. Anything expensive lives in CI.
+#
+# Runs by default:
+#   - migration static check (destructive scan + down() presence)
+#
+# Opt-in (set the env var to 1 before `git push`):
+#   SEM_PREPUSH_TYPECHECK=1   → backend + frontend tsc
+#   SEM_PREPUSH_TESTS=1       → backend + frontend unit tests
+#
+# Typecheck is off by default because it fails on missing peer deps
+# (e.g. teammate hasn't run `npm install` after a package.json change).
+# The full-tree typecheck runs on every CI job, so keeping the hook
+# green + fast preserves push velocity without losing safety.
+set -e
+
+echo "→ Migration static check"
+(cd sem-backend && node scripts/migration-check.js --check-destructive)
+
+if [ "$SEM_PREPUSH_TYPECHECK" = "1" ]; then
+  echo "→ Backend typecheck"
+  (cd sem-backend && npx tsc --noEmit -p tsconfig.json)
+  echo "→ Frontend typecheck"
+  (cd sem-frontend && npx tsc --noEmit -p tsconfig.app.json)
+fi
+
+if [ "$SEM_PREPUSH_TESTS" = "1" ]; then
+  echo "→ Backend tests"
+  (cd sem-backend && npm test -- --passWithNoTests)
+  echo "→ Frontend tests"
+  (cd sem-frontend && npm test -- --run --passWithNoTests)
+fi

@@ -1,0 +1,519 @@
+<div class="h-full flex flex-col overflow-hidden w-full text-left animate-fadeIn">
+  <!-- Header -->
+  <div class="flex items-center justify-between border-b border-white/5 pb-4 flex-shrink-0">
+    <div>
+      <h2 class="text-xl font-bold text-white">Rules & Alerts</h2>
+      <p class="text-xs text-slate-400 mt-1">
+        Auction, transfer, and roster policies; workspace validation runner; team notifications and
+        broadcast.
+      </p>
+    </div>
+    <div class="flex items-center gap-3">
+      <button
+        (click)="runScan()"
+        class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl border-0 outline-none cursor-pointer"
+      >
+        <i class="fi fi-rr-search text-xs mr-1"></i>
+        Scan
+      </button>
+      <button
+        (click)="currentTab.set('broadcast')"
+        class="flex items-center gap-1.5 px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-violet-900/20 transition-all cursor-pointer border-0 outline-none"
+      >
+        <i class="fi fi-rr-bell text-xs"></i>
+        Broadcast Alert
+      </button>
+    </div>
+  </div>
+
+  <!-- KPI cards -->
+  @if (alertsSummary(); as s) {
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 my-4 flex-shrink-0">
+      <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+        <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">
+          Unread Alerts
+        </div>
+        <div class="text-xl font-black text-violet-400 mt-1">{{ s.unread }}</div>
+        <div class="text-[8px] text-slate-400 mt-0.5">{{ s.total }} total</div>
+      </div>
+      <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+        <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">Critical</div>
+        <div class="text-xl font-black text-red-400 mt-1">{{ s.critical }}</div>
+        <div class="text-[8px] text-slate-400 mt-0.5">Needs attention</div>
+      </div>
+      <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+        <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">
+          Pending Transfers
+        </div>
+        <div class="text-xl font-black text-amber-400 mt-1">
+          {{ s.pendingTransfers }}
+        </div>
+        <div class="text-[8px] text-slate-400 mt-0.5">Awaiting review</div>
+      </div>
+      <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+        <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">
+          Categories Active
+        </div>
+        <div class="text-xl font-black text-white mt-1">
+          {{ s.byCategory.length }}
+        </div>
+        <div class="text-[8px] text-slate-400 mt-0.5">Distinct alert types</div>
+      </div>
+    </div>
+  }
+
+  <!-- Tabs -->
+  <div class="flex border-b border-white/5 mb-4 flex-shrink-0 overflow-x-auto">
+    @for (
+      t of [
+        { key: 'alerts', label: 'Alerts Feed', icon: 'fi fi-rr-bell' },
+        { key: 'policies', label: 'Policies', icon: 'fi fi-rr-shield-check' },
+        { key: 'validate', label: 'Validation Report', icon: 'fi fi-rr-check-circle' },
+        { key: 'preferences', label: 'Preferences', icon: 'fi fi-rr-settings-sliders' },
+        { key: 'broadcast', label: 'Broadcast', icon: 'fi fi-rr-megaphone' },
+      ];
+      track t.key
+    ) {
+      <button
+        (click)="currentTab.set($any(t.key))"
+        [class]="
+          currentTab() === t.key
+            ? 'border-b-2 border-violet-500 text-violet-400'
+            : 'text-slate-400 hover:text-white'
+        "
+        class="px-4 py-2.5 text-xs font-bold bg-transparent border-0 cursor-pointer transition outline-none whitespace-nowrap"
+      >
+        <i [class]="t.icon" class="text-xs mr-1.5"></i>{{ t.label }}
+      </button>
+    }
+  </div>
+
+  @if (isLoading()) {
+    <div class="flex-1 flex items-center justify-center text-slate-400 text-xs">Loading…</div>
+  } @else if (error()) {
+    <div class="p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-xs">
+      {{ error() }}
+    </div>
+  } @else {
+    <div class="flex-1 overflow-y-auto pr-1">
+      <!-- ═════ ALERTS FEED ═════ -->
+      @if (currentTab() === 'alerts') {
+        <div class="mb-3 flex items-center gap-2 flex-wrap">
+          <select
+            [ngModel]="alertTeamFilter()"
+            (ngModelChange)="alertTeamFilter.set($event)"
+            class="bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-violet-500"
+          >
+            <option value="">All teams</option>
+            @for (t of teams(); track t.id) {
+              <option [value]="t.id">{{ t.name }}</option>
+            }
+          </select>
+          <select
+            [ngModel]="alertCategoryFilter()"
+            (ngModelChange)="alertCategoryFilter.set($event)"
+            class="bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-violet-500"
+          >
+            <option value="">All categories</option>
+            @for (c of allCategories; track c) {
+              <option [value]="c">{{ labelFor(c) }}</option>
+            }
+          </select>
+          <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+            <input
+              type="checkbox"
+              [ngModel]="alertUnreadFilter()"
+              (ngModelChange)="alertUnreadFilter.set($event)"
+            />
+            Unread only
+          </label>
+          <div class="flex-1"></div>
+          <button
+            (click)="markAllRead()"
+            class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl border-0 cursor-pointer"
+          >
+            Mark all read
+          </button>
+        </div>
+        <div class="space-y-2">
+          @if (filteredAlerts().length === 0) {
+            <div class="text-center text-[11px] text-slate-500 italic py-8">
+              No alerts match this filter.
+            </div>
+          }
+          @for (a of filteredAlerts(); track a.id) {
+            <div
+              class="p-4 bg-slate-900/40 border border-white/5 rounded-xl"
+              [class.opacity-60]="a.isRead"
+            >
+              <div class="flex items-start gap-3">
+                <span
+                  class="px-1.5 py-0.5 text-[9px] font-bold rounded border uppercase"
+                  [class]="severityBadgeClass(a.severity)"
+                >
+                  {{ a.severity }}
+                </span>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2">
+                    <span
+                      class="px-1.5 py-0.5 text-[9px] font-bold rounded border uppercase"
+                      [class]="categoryBadgeClass(a.category)"
+                    >
+                      {{ labelFor(a.category) }}
+                    </span>
+                    <span class="text-xs text-white font-bold">
+                      {{ a.title }}
+                    </span>
+                    @if (!a.isRead) {
+                      <span class="w-1.5 h-1.5 bg-violet-400 rounded-full" title="Unread"></span>
+                    }
+                  </div>
+                  <div class="text-[11px] text-slate-300 mt-1">
+                    {{ a.message }}
+                  </div>
+                  <div class="text-[10px] text-slate-500 mt-1">
+                    Team: {{ a.team?.name || '—' }} · {{ a.createdAt | date: 'short' }}
+                    @if (a.acknowledgedBy) {
+                      · Ack by {{ a.acknowledgedBy.username }}
+                    }
+                  </div>
+                </div>
+                <div class="flex gap-1">
+                  @if (!a.isRead) {
+                    <button
+                      (click)="markRead(a)"
+                      class="px-2 py-1 text-[10px] bg-violet-600/20 hover:bg-violet-600 text-violet-400 hover:text-white rounded border-0 cursor-pointer"
+                    >
+                      Mark read
+                    </button>
+                  }
+                  <button
+                    (click)="deleteAlert(a)"
+                    class="px-2 py-1 text-[10px] bg-slate-800 hover:bg-red-600 text-slate-400 hover:text-white rounded border-0 cursor-pointer"
+                  >
+                    <i class="fi fi-rr-trash"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- ═════ POLICIES ═════ -->
+      @if (currentTab() === 'policies') {
+        @if (policy(); as p) {
+          <div class="bg-slate-900/40 border border-white/5 rounded-xl p-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              @for (opt of policyBoolKeys; track opt.key) {
+                <label
+                  class="flex items-start gap-3 p-3 bg-slate-950/60 border border-white/5 rounded-lg cursor-pointer hover:bg-slate-900"
+                >
+                  <input
+                    type="checkbox"
+                    [checked]="$any(policyDraft())[opt.key]"
+                    (change)="toggleBool(opt.key)"
+                    class="w-4 h-4 mt-0.5"
+                  />
+                  <div class="flex-1 min-w-0">
+                    <div class="text-xs font-bold text-white">{{ opt.label }}</div>
+                    <div class="text-[10px] text-slate-400 mt-0.5">{{ opt.hint }}</div>
+                  </div>
+                </label>
+              }
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+              <div>
+                <label class="text-[10px] text-slate-400 uppercase font-bold">
+                  Budget alert threshold (%)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  [ngModel]="policyDraft().budgetAlertThresholdPct"
+                  (ngModelChange)="updateNumber('budgetAlertThresholdPct', $event)"
+                  class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+                />
+              </div>
+              <div>
+                <label class="text-[10px] text-slate-400 uppercase font-bold">
+                  Min transfer notice (days)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  [ngModel]="policyDraft().minTransferNoticeDays"
+                  (ngModelChange)="updateNumber('minTransferNoticeDays', $event)"
+                  class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+                />
+              </div>
+            </div>
+            <div class="flex justify-end mt-4">
+              <button
+                (click)="savePolicy()"
+                class="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-lg border-0 cursor-pointer"
+              >
+                Save Policies
+              </button>
+            </div>
+          </div>
+        }
+      }
+
+      <!-- ═════ VALIDATION REPORT ═════ -->
+      @if (currentTab() === 'validate') {
+        <div class="flex items-center gap-2 mb-3">
+          <input
+            type="text"
+            [ngModel]="validationSeason()"
+            (ngModelChange)="validationSeason.set($event)"
+            placeholder="Season (optional, e.g. 2025-26)"
+            class="flex-1 bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 outline-none focus:border-violet-500"
+          />
+          <button
+            (click)="runValidation()"
+            [disabled]="validationRunning()"
+            [class.opacity-50]="validationRunning()"
+            class="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-lg border-0 cursor-pointer"
+          >
+            {{ validationRunning() ? 'Running…' : 'Run Validation' }}
+          </button>
+        </div>
+        @if (validationReport(); as r) {
+          <div class="grid grid-cols-3 gap-3 mb-4">
+            <div class="p-3 bg-slate-900/40 border border-red-500/30 rounded-xl">
+              <div class="text-[9px] text-slate-500 uppercase font-black">Critical</div>
+              <div class="text-2xl font-black text-red-400 mt-1">
+                {{ r.counts.critical }}
+              </div>
+            </div>
+            <div class="p-3 bg-slate-900/40 border border-amber-500/30 rounded-xl">
+              <div class="text-[9px] text-slate-500 uppercase font-black">Warnings</div>
+              <div class="text-2xl font-black text-amber-400 mt-1">
+                {{ r.counts.warning }}
+              </div>
+            </div>
+            <div class="p-3 bg-slate-900/40 border border-sky-500/30 rounded-xl">
+              <div class="text-[9px] text-slate-500 uppercase font-black">Info</div>
+              <div class="text-2xl font-black text-sky-400 mt-1">
+                {{ r.counts.info }}
+              </div>
+            </div>
+          </div>
+          <div class="bg-slate-900/40 border border-white/5 rounded-xl overflow-hidden">
+            <table class="w-full text-xs">
+              <thead class="bg-slate-950/60 text-[10px] uppercase tracking-wider text-slate-500">
+                <tr>
+                  <th class="text-left px-3 py-2 font-black">Severity</th>
+                  <th class="text-left px-3 py-2 font-black">Rule</th>
+                  <th class="text-left px-3 py-2 font-black">Message</th>
+                  <th class="text-left px-3 py-2 font-black">Entity</th>
+                </tr>
+              </thead>
+              <tbody>
+                @if (r.violations.length === 0) {
+                  <tr>
+                    <td colspan="4" class="text-center text-emerald-400 py-8">
+                      ✓ No violations detected. All policies pass.
+                    </td>
+                  </tr>
+                }
+                @for (v of r.violations; track $index) {
+                  <tr class="border-t border-white/5 align-top">
+                    <td class="px-3 py-2">
+                      <span
+                        class="px-1.5 py-0.5 text-[9px] font-bold rounded border uppercase"
+                        [class]="severityBadgeClass(v.severity)"
+                      >
+                        {{ v.severity }}
+                      </span>
+                    </td>
+                    <td class="px-3 py-2 font-mono text-slate-300">
+                      {{ v.rule }}
+                    </td>
+                    <td class="px-3 py-2 text-slate-300 max-w-[400px]">
+                      {{ v.message }}
+                    </td>
+                    <td class="px-3 py-2 text-[10px] text-slate-500">
+                      {{ v.entityType || '—' }}
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <div class="text-[10px] text-slate-500 mt-2">
+            Generated {{ r.generatedAt | date: 'medium' }}
+          </div>
+        } @else {
+          <div class="text-center text-[11px] text-slate-500 italic py-8">
+            Click "Run Validation" to scan the workspace for policy violations.
+          </div>
+        }
+      }
+
+      <!-- ═════ PREFERENCES ═════ -->
+      @if (currentTab() === 'preferences') {
+        <div class="bg-slate-900/40 border border-white/5 rounded-xl overflow-hidden">
+          <table class="w-full text-xs">
+            <thead class="bg-slate-950/60 text-[10px] uppercase tracking-wider text-slate-500">
+              <tr>
+                <th class="text-left px-3 py-2 font-black">Team</th>
+                <th class="text-center px-3 py-2 font-black">Auction events</th>
+                <th class="text-center px-3 py-2 font-black">Bids</th>
+                <th class="text-center px-3 py-2 font-black">Purchases</th>
+                <th class="text-center px-3 py-2 font-black">Transfers</th>
+                <th class="text-center px-3 py-2 font-black">Budget</th>
+                <th class="text-center px-3 py-2 font-black">Deadlines</th>
+                <th class="text-center px-3 py-2 font-black">Contracts</th>
+              </tr>
+            </thead>
+            <tbody>
+              @if (teams().length === 0) {
+                <tr>
+                  <td colspan="8" class="text-center text-[11px] text-slate-500 italic py-8">
+                    No teams to configure.
+                  </td>
+                </tr>
+              }
+              @for (t of teams(); track t.id) {
+                <tr class="border-t border-white/5 hover:bg-slate-950/40">
+                  <td class="px-3 py-2 text-white font-bold">{{ t.name }}</td>
+                  @for (
+                    key of [
+                      'auctionEvents',
+                      'auctionBids',
+                      'auctionPurchases',
+                      'transferUpdates',
+                      'budgetAlerts',
+                      'deadlineAlerts',
+                      'contractExpiryAlerts',
+                    ];
+                    track key
+                  ) {
+                    <td class="px-3 py-2 text-center">
+                      <input
+                        type="checkbox"
+                        [checked]="$any(preferenceFor(t.id) || {})[key] ?? true"
+                        (change)="togglePreference(preferenceFor(t.id), t.id, $any(key))"
+                        class="w-4 h-4"
+                      />
+                    </td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+      <!-- ═════ BROADCAST ═════ -->
+      @if (currentTab() === 'broadcast') {
+        <div class="bg-slate-900/40 border border-white/5 rounded-xl p-4 space-y-3">
+          <div>
+            <label class="text-[10px] text-slate-400 uppercase font-bold"> Recipient Teams </label>
+            <div class="flex flex-wrap gap-1.5 mt-2">
+              @if (teams().length === 0) {
+                <span class="text-[10px] text-slate-500 italic">No teams.</span>
+              }
+              @for (t of teams(); track t.id) {
+                <button
+                  type="button"
+                  (click)="toggleBroadcastTeam(t.id)"
+                  [class]="
+                    broadcastForm().teamIds.includes(t.id)
+                      ? 'bg-violet-600 text-white'
+                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                  "
+                  class="px-2.5 py-1 text-[10px] font-bold rounded border-0 cursor-pointer"
+                >
+                  {{ t.name }}
+                </button>
+              }
+            </div>
+            <div class="text-[10px] text-slate-500 mt-1">
+              {{ broadcastForm().teamIds.length }} team(s) selected. Muted categories will be
+              skipped automatically.
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label class="text-[10px] text-slate-400 uppercase font-bold">Category</label>
+              <select
+                [ngModel]="broadcastForm().category"
+                (ngModelChange)="broadcastForm.set({ ...broadcastForm(), category: $event })"
+                class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+              >
+                @for (c of allCategories; track c) {
+                  <option [value]="c">{{ labelFor(c) }}</option>
+                }
+              </select>
+            </div>
+            <div>
+              <label class="text-[10px] text-slate-400 uppercase font-bold">Severity</label>
+              <select
+                [ngModel]="broadcastForm().severity"
+                (ngModelChange)="broadcastForm.set({ ...broadcastForm(), severity: $event })"
+                class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+              >
+                <option value="info">Info</option>
+                <option value="success">Success</option>
+                <option value="warning">Warning</option>
+                <option value="critical">Critical</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label class="text-[10px] text-slate-400 uppercase font-bold">Title</label>
+            <input
+              type="text"
+              [ngModel]="broadcastForm().title"
+              (ngModelChange)="broadcastForm.set({ ...broadcastForm(), title: $event })"
+              class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+            />
+          </div>
+          <div>
+            <label class="text-[10px] text-slate-400 uppercase font-bold">Message</label>
+            <textarea
+              rows="4"
+              [ngModel]="broadcastForm().message"
+              (ngModelChange)="broadcastForm.set({ ...broadcastForm(), message: $event })"
+              class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1 resize-none"
+            ></textarea>
+          </div>
+          <div>
+            <label class="text-[10px] text-slate-400 uppercase font-bold">
+              Action URL (optional)
+            </label>
+            <input
+              type="text"
+              [ngModel]="broadcastForm().actionUrl"
+              (ngModelChange)="broadcastForm.set({ ...broadcastForm(), actionUrl: $event })"
+              placeholder="e.g. /workspaces/.../auctions"
+              class="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-violet-500 mt-1"
+            />
+          </div>
+          <div class="flex justify-end">
+            <button
+              (click)="broadcast()"
+              [disabled]="
+                broadcastForm().teamIds.length === 0 ||
+                !broadcastForm().title ||
+                !broadcastForm().message
+              "
+              [class.opacity-50]="
+                broadcastForm().teamIds.length === 0 ||
+                !broadcastForm().title ||
+                !broadcastForm().message
+              "
+              class="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-lg border-0 cursor-pointer"
+            >
+              Send to {{ broadcastForm().teamIds.length }} team(s)
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

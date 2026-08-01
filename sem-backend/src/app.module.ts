@@ -39,6 +39,15 @@ import { MedicalModule } from './modules/medical/medical.module';
 import { AccreditationModule } from './modules/accreditation/accreditation.module';
 import { StreamingModule } from './modules/streaming/streaming.module';
 import { AutomationModule } from './modules/automation/automation.module';
+import { AuctionsModule } from './modules/auctions/auctions.module';
+import { TransfersModule } from './modules/transfers/transfers.module';
+import { RostersModule } from './modules/rosters/rosters.module';
+import { FinanceModule } from './modules/finance/finance.module';
+import { PoliciesModule } from './modules/policies/policies.module';
+import { TeamAlertsModule } from './modules/team-alerts/team-alerts.module';
+import { BootstrapModule } from './modules/bootstrap/bootstrap.module';
+import { CacheModule } from './common/cache/cache.module';
+import { RealtimeModule } from './common/realtime/realtime.module';
 
 @Module({
   imports: [
@@ -49,16 +58,53 @@ import { AutomationModule } from './modules/automation/automation.module';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        host: configService.get<string>('DB_HOST', 'localhost'),
-        port: configService.get<number>('DB_PORT', 5432),
-        username: configService.get<string>('DB_USERNAME', 'postgres'),
-        password: configService.get<string>('DB_PASSWORD', 'postgres'),
-        database: configService.get<string>('DB_DATABASE', 'sem_db'),
-        autoLoadEntities: true,
-        synchronize: configService.get<boolean>('DB_SYNCHRONIZE', true),
-      }),
+      useFactory: (configService: ConfigService) => {
+        const slowMs = configService.get<number>('DB_SLOW_QUERY_MS', 500);
+        // Lazy-load so unit tests without the file still boot cleanly
+
+        const { SlowQueryLogger } = require('./common/db/slow-query.logger');
+        return {
+          type: 'postgres',
+          host: configService.get<string>('DB_HOST', 'localhost'),
+          port: configService.get<number>('DB_PORT', 5432),
+          username: configService.get<string>('DB_USERNAME', 'postgres'),
+          password: configService.get<string>('DB_PASSWORD', 'postgres'),
+          database: configService.get<string>('DB_DATABASE', 'sem_db'),
+          autoLoadEntities: true,
+          synchronize: configService.get<boolean>('DB_SYNCHRONIZE', true),
+          // ── Slow-query logging ────────────────────────────────────
+          // TypeORM emits a warn to `logger` for any query exceeding
+          // maxQueryExecutionTime. Our custom logger formats it and
+          // stays silent otherwise, keeping log volume manageable.
+          maxQueryExecutionTime: slowMs,
+          logger: new SlowQueryLogger(
+            slowMs,
+            configService.get<boolean>('DB_VERBOSE_LOG', false),
+          ),
+          logging: ['error', 'schema', 'warn', 'migration'],
+          // ── Connection pool tuning ────────────────────────────────
+          // pg driver defaults are conservative (max 10). Bump to match
+          // typical Nest worker concurrency; idleTimeout closes cold
+          // sockets and connectionTimeout fast-fails when the pool is
+          // exhausted so callers get a real error rather than hanging.
+          extra: {
+            max: configService.get<number>('DB_POOL_MAX', 20),
+            min: configService.get<number>('DB_POOL_MIN', 2),
+            idleTimeoutMillis: configService.get<number>(
+              'DB_POOL_IDLE_MS',
+              30_000,
+            ),
+            connectionTimeoutMillis: configService.get<number>(
+              'DB_POOL_CONNECTION_TIMEOUT_MS',
+              10_000,
+            ),
+            statement_timeout: configService.get<number>(
+              'DB_STATEMENT_TIMEOUT_MS',
+              30_000,
+            ),
+          },
+        };
+      },
     }),
     ScheduleModule.forRoot(),
     TerminusModule,
@@ -94,6 +140,15 @@ import { AutomationModule } from './modules/automation/automation.module';
     AccreditationModule,
     StreamingModule,
     AutomationModule,
+    AuctionsModule,
+    TransfersModule,
+    RostersModule,
+    FinanceModule,
+    PoliciesModule,
+    TeamAlertsModule,
+    BootstrapModule,
+    CacheModule,
+    RealtimeModule,
   ],
   controllers: [AppController],
   providers: [

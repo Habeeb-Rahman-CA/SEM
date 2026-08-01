@@ -1,0 +1,225 @@
+name: CI
+
+# Runs on every PR and every push to main. Fast-fail order:
+#   1. Format / lint            — trivial, catches style regressions first
+#   2. Typecheck                — cheap, catches most breakage
+#   3. Unit tests               — moderate cost
+#   4. Build (backend + front)  — expensive but proves the artefact
+#   5. Docker build smoke test  — proves the Dockerfile still works
+#
+# Runs backend + frontend jobs in parallel; a failure in one won't cancel
+# the other so devs see everything wrong in a single run.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  # Cancel superseded runs on the same PR (or branch) to save minutes.
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ─── Backend ──────────────────────────────────────────────────────────
+  backend:
+    name: Backend (lint + typecheck + test + build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sem-backend
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: sem_ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: npm
+          cache-dependency-path: sem-backend/package-lock.json
+      - run: npm ci --no-audit --no-fund
+
+      # Fast-fail order — style/lint first, then heavier steps
+      - name: Prettier check
+        run: npx prettier --check "src/**/*.ts"
+      - name: ESLint
+        run: npx eslint "src/**/*.ts"
+      - name: Type-check
+        run: npx tsc --noEmit -p tsconfig.json
+      - name: Unit tests
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USERNAME: postgres
+          DB_PASSWORD: postgres
+          DB_DATABASE: sem_ci
+          REDIS_HOST: localhost
+          JWT_SECRET: ci-secret
+        run: npm test -- --passWithNoTests
+      - name: Build
+        run: npm run build
+
+  # ─── Frontend ─────────────────────────────────────────────────────────
+  frontend:
+    name: Frontend (lint + typecheck + build + budgets)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sem-frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: npm
+          cache-dependency-path: sem-frontend/package-lock.json
+      - run: npm ci --no-audit --no-fund
+
+      - name: Prettier check
+        run: npx prettier --check "src/**/*.{ts,html,css}"
+      - name: Type-check
+        run: npx tsc --noEmit -p tsconfig.app.json
+      - name: Unit tests
+        run: npm test -- --run --passWithNoTests
+      - name: Production build (enforces bundle budgets)
+        run: npm run build:prod
+      - name: Bundle size summary
+        run: |
+          echo "### Bundle sizes" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          find dist/sem-frontend/browser -maxdepth 1 -name '*.js' -printf '%f %s\n' \
+            | sort -k2 -nr \
+            | awk '{ printf "%-60s %10.1f KB\n", $1, $2/1024 }' \
+            >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+  # ─── Docker build smoke test ─────────────────────────────────────────
+  docker:
+    name: Docker build smoke test
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    outputs:
+      backend-image: ${{ steps.meta.outputs.backend-image }}
+      frontend-image: ${{ steps.meta.outputs.frontend-image }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - id: meta
+        run: |
+          echo "backend-image=sem-backend:ci-${{ github.sha }}" >> $GITHUB_OUTPUT
+          echo "frontend-image=sem-frontend:ci-${{ github.sha }}" >> $GITHUB_OUTPUT
+      - name: Backend image build (no push, load locally for scan)
+        uses: docker/build-push-action@v5
+        with:
+          context: ./sem-backend
+          push: false
+          load: true
+          tags: sem-backend:ci-${{ github.sha }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+      - name: Frontend image build (no push, load locally for scan)
+        uses: docker/build-push-action@v5
+        with:
+          context: ./sem-frontend
+          push: false
+          load: true
+          tags: sem-frontend:ci-${{ github.sha }}
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
+
+  # ─── Security scan ───────────────────────────────────────────────────
+  # Dependency + image scan. Runs after the build so we scan what we
+  # actually ship. HIGH/CRITICAL fail the job; MEDIUM/LOW warn only so
+  # merges aren't blocked by transitive noise.
+  security:
+    name: Security scan (npm audit + Trivy)
+    runs-on: ubuntu-latest
+    needs: [docker]
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+
+      - name: npm audit (backend, prod deps, high+)
+        working-directory: sem-backend
+        run: npm audit --omit=dev --audit-level=high
+      - name: npm audit (frontend, prod deps, high+)
+        working-directory: sem-frontend
+        run: npm audit --omit=dev --audit-level=high
+
+      # Rebuild locally-tagged images so scan gets the exact artefact.
+      # (Uses the same GHA cache — near-zero cost.)
+      - uses: docker/setup-buildx-action@v3
+      - name: Rebuild backend image for scan
+        uses: docker/build-push-action@v5
+        with:
+          context: ./sem-backend
+          push: false
+          load: true
+          tags: sem-backend:scan
+          cache-from: type=gha,scope=backend
+      - name: Rebuild frontend image for scan
+        uses: docker/build-push-action@v5
+        with:
+          context: ./sem-frontend
+          push: false
+          load: true
+          tags: sem-frontend:scan
+          cache-from: type=gha,scope=frontend
+
+      - name: Trivy — backend image
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: sem-backend:scan
+          severity: CRITICAL,HIGH
+          exit-code: 1
+          ignore-unfixed: true
+          format: sarif
+          output: trivy-backend.sarif
+      - name: Trivy — frontend image
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: sem-frontend:scan
+          severity: CRITICAL,HIGH
+          exit-code: 1
+          ignore-unfixed: true
+          format: sarif
+          output: trivy-frontend.sarif
+
+      - name: Upload SARIF (backend) to code scanning
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-backend.sarif
+          category: trivy-backend
+      - name: Upload SARIF (frontend) to code scanning
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-frontend.sarif
+          category: trivy-frontend

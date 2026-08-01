@@ -47,6 +47,11 @@ export class WorkspaceSettingsComponent {
     | 'accreditation'
     | 'streaming'
     | 'automation'
+    | 'auctions'
+    | 'transfers'
+    | 'rosters'
+    | 'finance'
+    | 'governance'
   >();
 
   // Settings form states

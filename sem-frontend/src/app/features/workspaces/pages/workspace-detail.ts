@@ -61,6 +61,11 @@ import { MedicalComponent } from '../../medical/pages/medical';
 import { AccreditationComponent } from '../../accreditation/pages/accreditation';
 import { StreamingComponent } from '../../streaming/pages/streaming';
 import { AutomationComponent } from '../../automation/pages/automation';
+import { AuctionsComponent } from '../../auctions/pages/auctions';
+import { TransfersComponent } from '../../transfers/pages/transfers';
+import { RostersComponent } from '../../rosters/pages/rosters';
+import { FinanceComponent } from '../../finance/pages/finance';
+import { GovernanceComponent } from '../../governance/pages/governance';
 import { RefereeDashboardComponent } from '../components/referee-dashboard/referee-dashboard';
 import { FootballConsoleComponent } from '../../competitions/consoles/football-console/football-console';
 import { CricketConsoleComponent } from '../../competitions/consoles/cricket-console/cricket-console';
@@ -110,6 +115,11 @@ declare const L: any;
     AccreditationComponent,
     StreamingComponent,
     AutomationComponent,
+    AuctionsComponent,
+    TransfersComponent,
+    RostersComponent,
+    FinanceComponent,
+    GovernanceComponent,
   ],
   templateUrl: './workspace-detail.html',
   styleUrl: './workspace-detail.css',
@@ -221,6 +231,11 @@ export class WorkspaceDetailComponent implements OnInit {
     | 'accreditation'
     | 'streaming'
     | 'automation'
+    | 'auctions'
+    | 'transfers'
+    | 'rosters'
+    | 'finance'
+    | 'governance'
   >('overview');
   isSidebarOpen = signal(true);
 

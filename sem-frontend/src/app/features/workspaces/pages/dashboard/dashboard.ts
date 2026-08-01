@@ -27,6 +27,11 @@ export class WorkspaceDashboardComponent {
     | 'accreditation'
     | 'streaming'
     | 'automation'
+    | 'auctions'
+    | 'transfers'
+    | 'rosters'
+    | 'finance'
+    | 'governance'
   >();
 
   liveMatches = input<any[]>([]);

@@ -5,11 +5,16 @@ import {
   CreateDateColumn,
   ManyToOne,
   JoinColumn,
+  Index,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Team } from '../../teams/entities/team.entity';
 
 @Entity('player_transfers')
+@Index('idx_player_transfer_user_id', ['userId'])
+@Index('idx_player_transfer_from_team_id', ['fromTeamId'])
+@Index('idx_player_transfer_to_team_id', ['toTeamId'])
+@Index('idx_player_transfer_transferred_at', ['transferredAt'])
 export class PlayerTransfer {
   @PrimaryGeneratedColumn('uuid')
   id: string;
