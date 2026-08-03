@@ -1,0 +1,167 @@
+@switch (activeTab()) {
+  @case ('overview') {
+    <app-workspace-overview-panel
+      [workspace]="workspace()"
+      [activeTab]="activeTab()"
+      (activeTabChange)="activeTabChange.emit($event)"
+      [liveMatches]="liveMatches()"
+      [upcomingMatches]="upcomingMatches()"
+      [completedMatches]="completedMatches()"
+      [runningCompetitions]="runningCompetitions()"
+      [topScorers]="topScorers()"
+      [topRatedPlayers]="topRatedPlayers()"
+      [teams]="teams()"
+      [players]="players()"
+      [events]="events()"
+      [venues]="venues()"
+      [members]="members()"
+      [notifications]="notifications()"
+      [isOverviewLoading]="isOverviewLoading()"
+      [canCreateEvent]="canCreateEvent()"
+      [canManageTeams]="canManageTeams()"
+      [canManagePlayers]="canManagePlayers()"
+      [canManageVenues]="canManageVenues()"
+      [selectedOverviewCompId]="selectedOverviewCompId()"
+      (selectedOverviewCompIdChange)="selectedOverviewCompIdChange.emit($event)"
+      [selectedOverviewComp]="selectedOverviewComp()"
+      (selectedOverviewCompChange)="selectedOverviewCompChange.emit($event)"
+      (enterLiveMatch)="enterLiveMatch.emit($event)"
+    />
+  }
+  @case ('members') {
+    <app-workspace-members-panel
+      [workspace]="workspace()"
+      [members]="members()"
+      (membersChange)="membersChange.emit($event)"
+      [assignableRoles]="assignableRoles()"
+      [canInvite]="canInviteMember()"
+      [canUpdate]="canUpdateMember()"
+      [canRemove]="canRemoveMember()"
+    />
+  }
+  @case ('settings') {
+    <app-workspace-settings-panel
+      [workspace]="workspace()"
+      (workspaceChange)="workspaceChange.emit($event)"
+      [activeTab]="activeTab()"
+      (activeTabChange)="activeTabChange.emit($event)"
+    />
+  }
+  @case ('reports') {
+    <app-workspace-reports-panel
+      [workspace]="workspace()"
+      [teams]="teams()"
+      [players]="players()"
+      [events]="events()"
+      [venues]="venues()"
+      [members]="members()"
+      [roles]="roles()"
+    />
+  }
+  @case ('files') {
+    <app-workspace-files-panel [workspace]="workspace()" [selectedFileId]="selectedFileId()" />
+  }
+  @case ('teams') {
+    <app-workspace-teams-panel
+      [workspaceId]="workspaceId()"
+      [teams]="teams()"
+      [canUpdate]="canManageTeams()"
+      [selectedTeamId]="selectedTeamId()"
+      (selectedTeamIdChange)="selectedTeamIdChange.emit($event)"
+      (add)="addTeam.emit()"
+      (edit)="editTeam.emit($event)"
+      (delete)="deleteTeam.emit($event)"
+      (teamsImported)="teamsImported.emit($event)"
+    />
+  }
+  @case ('players') {
+    <app-workspace-players-panel
+      [workspaceId]="workspaceId()"
+      [players]="players()"
+      [members]="members()"
+      [teams]="teams()"
+      [canUpdate]="canManagePlayers()"
+      [selectedPlayerId]="selectedPlayerId()"
+      (selectedPlayerIdChange)="selectedPlayerIdChange.emit($event)"
+      (add)="addPlayer.emit()"
+      (edit)="editPlayer.emit($event)"
+      (delete)="deletePlayer.emit($event)"
+      (playersImported)="playersImported.emit($event)"
+    />
+  }
+  @case ('venues') {
+    <app-workspace-venues-panel
+      [venues]="venues()"
+      [canUpdate]="canManageVenues()"
+      (add)="addVenue.emit()"
+      (edit)="editVenue.emit($event)"
+      (delete)="deleteVenue.emit($event)"
+    />
+  }
+  @case ('events') {
+    <app-workspace-events-panel
+      [workspace]="workspace()"
+      [players]="players()"
+      [teams]="teams()"
+      [venues]="venues()"
+      [members]="members()"
+      [events]="events()"
+      (eventsChange)="eventsChange.emit($event)"
+      [selectedEvent]="selectedEvent()"
+      (selectedEventChange)="selectedEventChange.emit($event)"
+      [competitions]="competitions()"
+      (competitionsChange)="competitionsChange.emit($event)"
+      [selectedCompetition]="selectedCompetition()"
+      (selectedCompetitionChange)="selectedCompetitionChange.emit($event)"
+      [stages]="stages()"
+      (stagesChange)="stagesChange.emit($event)"
+      [selectedStage]="selectedStage()"
+      (selectedStageChange)="selectedStageChange.emit($event)"
+      [selectedMatch]="selectedMatch()"
+      (selectedMatchChange)="selectedMatchChange.emit($event)"
+      [matches]="matches()"
+      (matchesChange)="matchesChange.emit($event)"
+      [matchLineup]="matchLineup()"
+      (matchLineupChange)="matchLineupChange.emit($event)"
+      [activeCompetitionTab]="activeCompetitionTab()"
+      (activeCompetitionTabChange)="activeCompetitionTabChange.emit($event)"
+    />
+  }
+  @case ('volunteers') {
+    <app-volunteers
+      class="h-full block min-h-0"
+      [workspaceId]="workspaceId()"
+      [members]="members()"
+    />
+  }
+  @case ('equipment') {
+    <app-equipment class="h-full block min-h-0" [workspaceId]="workspaceId()" [events]="events()" />
+  }
+  @case ('medical') {
+    <app-medical class="h-full block min-h-0" [workspaceId]="workspaceId()" />
+  }
+  @case ('accreditation') {
+    <app-accreditation class="h-full block min-h-0" [workspaceId]="workspaceId()" />
+  }
+  @case ('streaming') {
+    <app-streaming class="h-full block min-h-0" [workspaceId]="workspaceId()" />
+  }
+  @case ('automation') {
+    <app-automation class="h-full block min-h-0" [workspaceId]="workspaceId()" />
+  }
+  @case ('auctions') {
+    <app-auctions class="h-full block min-h-0" [workspaceId]="workspaceId()" />
+  }
+  @case ('transfers') {
+    <app-transfers class="h-full block min-h-0" [workspaceId]="workspaceId()" />
+  }
+  @case ('rosters') {
+    <app-rosters class="h-full block min-h-0" [workspaceId]="workspaceId()" />
+  }
+  @case ('finance') {
+    <app-finance class="h-full block min-h-0" [workspaceId]="workspaceId()" />
+  }
+  @case ('governance') {
+    <app-governance class="h-full block min-h-0" [workspaceId]="workspaceId()" />
+  }
+}

@@ -1,0 +1,119 @@
+@if (open()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+    <div
+      class="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col text-left"
+    >
+      <div class="p-6 border-b border-white/5 flex justify-between items-center">
+        <h3 class="text-sm font-bold text-white uppercase tracking-widest">
+          Schedule Maintenance Task
+        </h3>
+        <button
+          (click)="close.emit()"
+          class="text-slate-400 hover:text-white bg-transparent border-0 cursor-pointer"
+        >
+          <i class="fi fi-rr-cross text-xs"></i>
+        </button>
+      </div>
+      <div class="p-6 space-y-4">
+        <div>
+          <label class="text-[10px] text-slate-500 uppercase font-black tracking-wider block mb-1"
+            >Target Equipment *</label
+          >
+          <select
+            [(ngModel)]="f.equipmentId"
+            class="w-full bg-slate-950 border border-white/10 focus:border-violet-500 rounded-xl px-3 py-2 text-xs text-white outline-none cursor-pointer"
+          >
+            <option value="">Select Equipment Item</option>
+            @for (item of equipmentOptions(); track item.id) {
+              <option [value]="item.id">{{ item.name }} ({{ item.sku }})</option>
+            }
+          </select>
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-500 uppercase font-black tracking-wider block mb-1"
+            >Maintenance Title *</label
+          >
+          <input
+            type="text"
+            [(ngModel)]="f.title"
+            placeholder="e.g. Inspect stitching, Clean grips"
+            class="w-full bg-slate-950 border border-white/10 focus:border-violet-500 rounded-xl px-3 py-2 text-xs text-white outline-none"
+          />
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="text-[10px] text-slate-500 uppercase font-black tracking-wider block mb-1"
+              >Task Type</label
+            >
+            <select
+              [(ngModel)]="f.maintenanceType"
+              class="w-full bg-slate-950 border border-white/10 focus:border-violet-500 rounded-xl px-3 py-2 text-xs text-white outline-none"
+            >
+              <option value="routine">Routine</option>
+              <option value="repair">Repair</option>
+              <option value="inspection">Inspection</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-[10px] text-slate-500 uppercase font-black tracking-wider block mb-1"
+              >Scheduled Date *</label
+            >
+            <input
+              type="date"
+              [(ngModel)]="f.scheduledDate"
+              class="w-full bg-slate-950 border border-white/10 focus:border-violet-500 rounded-xl px-3 py-2 text-xs text-white outline-none"
+            />
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="text-[10px] text-slate-500 uppercase font-black tracking-wider block mb-1"
+              >Estimated Cost (USD)</label
+            >
+            <input
+              type="number"
+              [(ngModel)]="f.cost"
+              placeholder="e.g. 15"
+              class="w-full bg-slate-950 border border-white/10 focus:border-violet-500 rounded-xl px-3 py-2 text-xs text-white outline-none"
+            />
+          </div>
+          <div>
+            <label class="text-[10px] text-slate-500 uppercase font-black tracking-wider block mb-1"
+              >Performed By</label
+            >
+            <input
+              type="text"
+              [(ngModel)]="f.performedBy"
+              placeholder="e.g. John Doe, Vendor"
+              class="w-full bg-slate-950 border border-white/10 focus:border-violet-500 rounded-xl px-3 py-2 text-xs text-white outline-none"
+            />
+          </div>
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-500 uppercase font-black tracking-wider block mb-1"
+            >Description / Notes</label
+          >
+          <textarea
+            [(ngModel)]="f.description"
+            rows="2"
+            class="w-full bg-slate-950 border border-white/10 focus:border-violet-500 rounded-xl px-3 py-2 text-xs text-white outline-none resize-none"
+          ></textarea>
+        </div>
+      </div>
+      <div class="p-6 border-t border-white/5 flex justify-end gap-2 bg-slate-950/20">
+        <button
+          (click)="close.emit()"
+          class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold border-0 cursor-pointer transition"
+        >
+          Cancel
+        </button>
+        <button
+          (click)="save.emit()"
+          class="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-xl text-xs font-bold border-0 cursor-pointer transition"
+        >
+          Schedule
+        </button>
+      </div>
+    </div>
+  </div>
+}

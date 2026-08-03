@@ -1,0 +1,57 @@
+<div class="flex items-center justify-between border-b border-white/5 pb-4">
+  <div class="flex flex-col gap-0.5">
+    <h4 class="text-sm font-bold text-white uppercase tracking-wider">Football Live Console</h4>
+    <span class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
+      Status: {{ periodStatus() }}
+    </span>
+  </div>
+  @if (isHalfTime()) {
+    <button
+      (click)="startSecondHalf.emit()"
+      class="px-4 py-2 text-xs font-bold bg-violet-600 hover:bg-violet-500 text-white rounded-xl transition-all cursor-pointer flex items-center gap-2"
+    >
+      <i class="fi fi-rr-play"></i> Start 2nd Half
+    </button>
+  } @else if (isExtra1Pending()) {
+    <button
+      (click)="startFirstExtraHalf.emit()"
+      class="px-4 py-2 text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white rounded-xl transition-all cursor-pointer flex items-center gap-2"
+    >
+      <i class="fi fi-rr-play"></i> Start 1st Extra Half
+    </button>
+  } @else if (match().liveData?.currentHalf === 3 && !match().liveData?.timerRunning) {
+    <button
+      (click)="startSecondExtraHalf.emit()"
+      class="px-4 py-2 text-xs font-bold bg-violet-600 hover:bg-violet-500 text-white rounded-xl transition-all cursor-pointer flex items-center gap-2"
+    >
+      <i class="fi fi-rr-play"></i> Start 2nd Extra Half
+    </button>
+  } @else if (isShootoutPending()) {
+    <button
+      (click)="startPenaltyShootout.emit()"
+      class="px-4 py-2 text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white rounded-xl transition-all cursor-pointer flex items-center gap-2"
+    >
+      <i class="fi fi-rr-play"></i> Start Penalty Shootout
+    </button>
+  } @else if (match().liveData?.currentHalf === 5) {
+    <span class="text-xs text-violet-400 font-bold uppercase tracking-wider">Shootout Active</span>
+  } @else if (isFullTime()) {
+    <span class="text-xs text-rose-400 font-bold uppercase tracking-wider">Full Time reached</span>
+  } @else {
+    <button
+      (click)="toggleTimer.emit()"
+      class="px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-2"
+      [class]="
+        match().liveData?.timerRunning
+          ? 'bg-amber-600 hover:bg-amber-500 text-white'
+          : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+      "
+    >
+      @if (match().liveData?.timerRunning) {
+        <i class="fi fi-rr-pause"></i> Pause Match
+      } @else {
+        <i class="fi fi-rr-play"></i> Resume Match
+      }
+    </button>
+  }
+</div>

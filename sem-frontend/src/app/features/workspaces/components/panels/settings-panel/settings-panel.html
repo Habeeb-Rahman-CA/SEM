@@ -1,0 +1,8 @@
+<div class="h-full overflow-y-auto min-h-0 pr-1">
+  <app-workspace-settings
+    [workspace]="workspace()"
+    (workspaceChange)="workspaceChange.emit($event)"
+    [activeTab]="activeTab()"
+    (activeTabChange)="activeTabChange.emit($event)"
+  />
+</div>

@@ -24,6 +24,7 @@ Thumbs.db
 # IDEs and editors
 .idea/
 .vscode/
+.claude/settings.local.json
 *.suo
 *.ntvs*
 *.njsproj

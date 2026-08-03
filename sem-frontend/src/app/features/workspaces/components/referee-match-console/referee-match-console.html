@@ -1,0 +1,84 @@
+@let sport = competition()?.sport?.code;
+
+<div class="h-screen w-full bg-slate-950 overflow-auto p-4 z-50">
+  <div class="max-w-4xl mx-auto">
+    <button
+      (click)="back.emit()"
+      class="mb-4 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer border border-white/5"
+    >
+      <i class="fi fi-rr-arrow-small-left text-sm"></i> Back to Referee Center
+    </button>
+
+    @switch (sport) {
+      @case ('football') {
+        <app-football-console
+          [workspaceId]="workspace()!.id"
+          [eventId]="event()!.id"
+          [competitionId]="competition()!.id"
+          [stageId]="stage()!.id"
+          [stage]="stage()"
+          [match]="match()!"
+          [players]="players()"
+          [teams]="teams()"
+          [matchLineup]="matchLineup()"
+          [canScore]="canScore()"
+          (matchCompleted)="matchCompleted.emit()"
+          (matchUpdated)="matchUpdated.emit($event)"
+          (openLineupModal)="openLineupModal.emit()"
+        />
+      }
+      @case ('cricket') {
+        <app-cricket-console
+          [workspaceId]="workspace()!.id"
+          [eventId]="event()!.id"
+          [competitionId]="competition()!.id"
+          [stageId]="stage()!.id"
+          [stage]="stage()"
+          [match]="match()!"
+          [players]="players()"
+          [teams]="teams()"
+          [matchLineup]="matchLineup()"
+          [canScore]="canScore()"
+          (matchCompleted)="matchCompleted.emit()"
+          (matchUpdated)="matchUpdated.emit($event)"
+          (openLineupModal)="openLineupModal.emit()"
+        />
+      }
+      @case ('badminton') {
+        <app-badminton-console
+          [workspaceId]="workspace()!.id"
+          [eventId]="event()!.id"
+          [competitionId]="competition()!.id"
+          [stageId]="stage()!.id"
+          [stage]="stage()"
+          [match]="match()!"
+          [players]="players()"
+          [teams]="teams()"
+          [matchLineup]="matchLineup()"
+          [canScore]="canScore()"
+          (matchCompleted)="matchCompleted.emit()"
+          (matchUpdated)="matchUpdated.emit($event)"
+          (openLineupModal)="openLineupModal.emit()"
+        />
+      }
+      @default {
+        <app-generic-console
+          [workspaceId]="workspace()!.id"
+          [eventId]="event()!.id"
+          [competitionId]="competition()!.id"
+          [stageId]="stage()!.id"
+          [stage]="stage()"
+          [match]="match()!"
+          [players]="players()"
+          [teams]="teams()"
+          [matchLineup]="matchLineup()"
+          [canScore]="canScore()"
+          [sport]="competition()?.sport"
+          (matchCompleted)="matchCompleted.emit()"
+          (matchUpdated)="matchUpdated.emit($event)"
+          (openLineupModal)="openLineupModal.emit()"
+        />
+      }
+    }
+  </div>
+</div>

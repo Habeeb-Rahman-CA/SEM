@@ -1,0 +1,14 @@
+<app-player-list
+  class="h-full block min-h-0"
+  [workspaceId]="workspaceId()"
+  [players]="players()"
+  [members]="members()"
+  [teams]="teams()"
+  [canUpdate]="canUpdate()"
+  [selectedPlayerId]="selectedPlayerId()"
+  (selectedPlayerIdChange)="selectedPlayerIdChange.emit($event)"
+  (add)="add.emit()"
+  (edit)="edit.emit($event)"
+  (delete)="delete.emit($event)"
+  (playersImported)="playersImported.emit($event)"
+/>

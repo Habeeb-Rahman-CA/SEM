@@ -1,0 +1,101 @@
+<div class="bg-slate-900 border border-white/10 rounded-2xl p-6 shadow-xl flex flex-col gap-4">
+  <div class="flex items-center justify-between border-b border-white/5 pb-3">
+    <h3 class="text-sm font-bold text-white flex items-center gap-2">
+      <i class="fi fi-rr-trophy text-amber-400 text-lg"></i>
+      Overall Leaderboard
+    </h3>
+    <span
+      class="text-[9px] bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-full px-2 py-0.5 font-bold uppercase tracking-wider"
+    >
+      Standings
+    </span>
+  </div>
+
+  @if (standings().length === 0) {
+    <div class="text-xs text-slate-500 text-center py-8">No teams mapped to this event yet.</div>
+  } @else {
+    @let leader = standings()[0];
+    <div
+      class="bg-gradient-to-r from-amber-500/20 via-yellow-500/10 to-transparent border border-amber-500/30 rounded-2xl p-4 flex items-center justify-between shadow-lg shadow-amber-500/5 mb-1"
+    >
+      <div class="flex items-center gap-3 text-left min-w-0">
+        <i class="fi fi-rr-crown text-2xl text-amber-400 flex-shrink-0"></i>
+        <div class="min-w-0">
+          <div class="text-[9px] uppercase font-black tracking-widest text-amber-400">
+            Current Leader
+          </div>
+          <div class="text-sm font-black text-white mt-0.5 truncate">{{ leader.teamName }}</div>
+          <div class="text-[10px] text-slate-400 mt-0.5">
+            <span class="text-amber-400 font-bold">{{ leader.points }} points</span>
+          </div>
+        </div>
+      </div>
+      <app-avatar
+        [name]="leader.teamName"
+        [logoUrl]="leader.teamLogoUrl"
+        customClass="w-10 h-10 rounded-lg flex-shrink-0 border border-amber-500/20"
+        textClass="text-xs font-extrabold text-white"
+      />
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full border-collapse text-left">
+        <thead>
+          <tr
+            class="border-b border-white/5 text-[9px] uppercase font-bold text-slate-400 tracking-wider"
+          >
+            <th class="py-2.5 px-2 w-8 text-center">#</th>
+            <th class="py-2.5 px-2">Team</th>
+            <th class="py-2.5 px-2 text-right pr-3">Pts</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-white/5 text-xs text-slate-300">
+          @for (row of standings(); track row.teamId; let idx = $index) {
+            @let medal = idx | rankMedal;
+            <tr class="hover:bg-white/5 transition-all">
+              <td class="py-3 px-2 text-center font-bold">
+                @if (medal.circleClass) {
+                  <span [class]="medal.circleClass">{{ medal.text }}</span>
+                } @else {
+                  <span class="text-slate-500">{{ medal.text }}</span>
+                }
+              </td>
+              <td class="py-3 px-2 min-w-0">
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <app-avatar
+                    [name]="row.teamName"
+                    [logoUrl]="row.teamLogoUrl"
+                    customClass="w-6 h-6 rounded-md flex-shrink-0"
+                    textClass="text-[8px] font-black text-white"
+                  />
+                  <div class="flex flex-col min-w-0 text-left">
+                    <span class="font-bold text-white text-xs truncate">{{ row.teamName }}</span>
+                    @if (row.points > 0) {
+                      <div class="flex flex-wrap gap-1 mt-0.5">
+                        @for (b of row.breakdown; track b.competitionId) {
+                          @if (b.points > 0) {
+                            <span
+                              class="inline-flex items-center text-[8px] bg-violet-500/10 border border-violet-500/20 text-violet-300 rounded px-1 py-0.2"
+                              [title]="b.competitionName + ' - Rank #' + b.position"
+                            >
+                              {{ b.competitionName | initials }}: {{ b.points }}p
+                            </span>
+                          }
+                        }
+                      </div>
+                    } @else {
+                      <span class="text-[9px] text-slate-500 italic mt-0.5">No points earned</span>
+                    }
+                  </div>
+                </div>
+              </td>
+              <td class="py-3 px-2 text-right font-extrabold text-white text-sm pr-3">
+                {{ row.points }}
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

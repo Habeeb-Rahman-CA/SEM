@@ -32,18 +32,6 @@
       "path": "./node_modules/cz-conventional-changelog"
     }
   },
-  "lint-staged": {
-    "sem-backend/**/*.ts": [
-      "eslint --fix",
-      "prettier --write"
-    ],
-    "sem-frontend/**/*.ts": [
-      "prettier --write"
-    ],
-    "**/*.{json,md,html,css}": [
-      "prettier --write"
-    ]
-  },
   "devDependencies": {
     "commitizen": "^4.3.2",
     "cz-conventional-changelog": "^3.3.0",

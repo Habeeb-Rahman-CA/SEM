@@ -1,0 +1,24 @@
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 my-4 flex-shrink-0">
+  <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+    <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">Total Assets</div>
+    <div class="text-xl font-black text-white mt-1">{{ total() }}</div>
+    <div class="text-[8px] text-slate-400 mt-0.5">Registered items</div>
+  </div>
+  <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+    <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">Available Now</div>
+    <div class="text-xl font-black text-emerald-400 mt-1">{{ available() }}</div>
+    <div class="text-[8px] text-slate-400 mt-0.5">Ready for booking</div>
+  </div>
+  <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+    <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">Active Bookings</div>
+    <div class="text-xl font-black text-violet-400 mt-1">{{ booked() }}</div>
+    <div class="text-[8px] text-slate-400 mt-0.5">Assigned to events</div>
+  </div>
+  <div class="bg-slate-900/40 p-4 border border-white/5 rounded-xl">
+    <div class="text-[9px] text-slate-500 uppercase font-black tracking-wider">
+      Under Maintenance
+    </div>
+    <div class="text-xl font-black text-amber-400 mt-1">{{ maintenance() }}</div>
+    <div class="text-[8px] text-slate-400 mt-0.5">Inspections & repairs</div>
+  </div>
+</div>

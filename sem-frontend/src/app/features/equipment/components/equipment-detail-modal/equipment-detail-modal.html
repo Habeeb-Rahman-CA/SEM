@@ -1,0 +1,103 @@
+@if (open() && equipment(); as eq) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+    <div
+      class="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col text-left"
+    >
+      <div class="p-6 border-b border-white/5 flex justify-between items-center">
+        <div>
+          <h3 class="text-sm font-bold text-white uppercase tracking-widest">
+            Asset Profile: {{ eq.name }}
+          </h3>
+          <p class="text-[10px] text-slate-500 mt-1 font-mono">ID: {{ eq.id }}</p>
+        </div>
+        <button
+          (click)="close.emit()"
+          class="text-slate-400 hover:text-white bg-transparent border-0 cursor-pointer"
+        >
+          <i class="fi fi-rr-cross text-xs"></i>
+        </button>
+      </div>
+      <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 overflow-y-auto max-h-[65vh]">
+        <div class="space-y-4">
+          <div class="bg-slate-950/40 p-4 border border-white/5 rounded-xl space-y-2.5">
+            <h4 class="text-[10px] text-slate-500 uppercase font-black tracking-wider">
+              Specifications
+            </h4>
+            <div class="flex justify-between text-xs">
+              <span class="text-slate-400">Barcode/SKU</span>
+              <span class="font-mono text-white font-bold">{{ eq.sku || 'N/A' }}</span>
+            </div>
+            <div class="flex justify-between text-xs">
+              <span class="text-slate-400">Category</span>
+              <span class="text-white capitalize font-semibold">{{ eq.category }}</span>
+            </div>
+            <div class="flex justify-between text-xs">
+              <span class="text-slate-400">Condition</span>
+              <span class="text-white capitalize font-semibold">{{ eq.condition }}</span>
+            </div>
+            <div class="flex justify-between text-xs">
+              <span class="text-slate-400">Location</span>
+              <span class="text-white font-semibold">{{ eq.location || 'Unassigned' }}</span>
+            </div>
+            <div class="flex justify-between text-xs">
+              <span class="text-slate-400">Purchase Cost</span>
+              <span class="text-white font-semibold">{{ eq.cost | centsToDollars }}</span>
+            </div>
+          </div>
+
+          <div>
+            <label class="text-[10px] text-slate-500 uppercase font-black tracking-wider block mb-1"
+              >Description</label
+            >
+            <p
+              class="text-xs text-slate-300 bg-slate-950/20 p-3 border border-white/5 rounded-xl min-h-[60px]"
+            >
+              {{ eq.description || 'No description available for this gear item.' }}
+            </p>
+          </div>
+        </div>
+
+        <div class="flex flex-col min-h-0">
+          <h4 class="text-[10px] text-slate-500 uppercase font-black tracking-wider mb-3">
+            Asset Lifecycle Log
+          </h4>
+          <div
+            class="flex-1 overflow-y-auto max-h-[300px] border border-white/5 bg-slate-950/30 rounded-xl p-4 space-y-4"
+          >
+            @if (!eq.history || eq.history.length === 0) {
+              <div class="text-center py-10 text-xs text-slate-500">
+                No asset history entries logged.
+              </div>
+            } @else {
+              <div class="relative border-l border-white/10 pl-4 space-y-4">
+                @for (log of eq.history; track log.id) {
+                  <div class="relative">
+                    <span
+                      class="absolute -left-[21px] top-0.5 w-2 h-2 rounded-full bg-violet-500 border border-slate-900"
+                    ></span>
+                    <div class="text-xs font-bold text-white capitalize">
+                      {{ log.action | humanizeAction }}
+                    </div>
+                    <p class="text-[10px] text-slate-400 mt-0.5">{{ log.notes }}</p>
+                    <div class="text-[9px] text-slate-500 mt-1 flex justify-between">
+                      <span>By: {{ log.performedBy?.username || 'System' }}</span>
+                      <span>{{ log.createdAt | date: 'MMM d, y, h:mm a' }}</span>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+      <div class="p-6 border-t border-white/5 flex justify-end bg-slate-950/20">
+        <button
+          (click)="close.emit()"
+          class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold border-0 cursor-pointer transition"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+}

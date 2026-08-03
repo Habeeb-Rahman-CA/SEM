@@ -1,0 +1,59 @@
+<div
+  class="bg-slate-900 border border-white/10 hover:border-violet-500/30 rounded-2xl p-5 flex flex-col justify-between gap-4 group transition shadow-xl"
+>
+  <div>
+    <div class="flex justify-between items-start">
+      <span
+        class="text-[9px] bg-slate-800 border border-white/10 px-2 py-0.5 rounded text-slate-400 font-bold uppercase tracking-wider"
+      >
+        {{ item().category }}
+      </span>
+      <span
+        [class]="item().status | equipmentStatusColor"
+        class="text-[9px] font-black uppercase tracking-wider"
+      >
+        ● {{ item().status }}
+      </span>
+    </div>
+    <h3 class="text-sm font-bold text-white mt-2.5 truncate" [title]="item().name">
+      {{ item().name }}
+    </h3>
+    <div class="flex items-center gap-1.5 mt-2">
+      <i class="fi fi-rr-barcode text-[10px] text-slate-500"></i>
+      <span class="text-xs text-slate-400 font-mono">{{ item().sku || 'No Barcode' }}</span>
+    </div>
+    <p class="text-xs text-slate-500 mt-2 line-clamp-2">
+      {{ item().description || 'No description provided.' }}
+    </p>
+  </div>
+
+  <div class="border-t border-white/5 pt-3.5 flex items-center justify-between">
+    <span class="text-[10px] text-slate-400 flex items-center gap-1">
+      Condition:
+      <strong class="capitalize" [class]="item().condition | conditionColor">
+        {{ item().condition }}
+      </strong>
+    </span>
+    <div class="flex items-center gap-2">
+      <button
+        (click)="viewLog.emit(item())"
+        class="px-2.5 py-1.5 text-[10px] font-bold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg cursor-pointer transition border-0"
+      >
+        View Log
+      </button>
+      <button
+        (click)="book.emit(item())"
+        [disabled]="item().status === 'retired'"
+        class="px-2.5 py-1.5 text-[10px] font-bold bg-violet-600/20 hover:bg-violet-600 text-violet-400 hover:text-white rounded-lg cursor-pointer transition border-0 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        Book
+      </button>
+      <button
+        (click)="edit.emit(item())"
+        class="p-1.5 text-[11px] font-bold text-slate-400 hover:text-white bg-transparent rounded-lg cursor-pointer transition border-0"
+      >
+        <i class="fi fi-rr-edit"></i>
+      </button>
+    </div>
+  </div>
+</div>
