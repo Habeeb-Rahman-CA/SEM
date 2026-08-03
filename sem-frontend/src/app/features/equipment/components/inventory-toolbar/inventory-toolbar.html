@@ -1,0 +1,35 @@
+<div
+  class="flex-shrink-0 flex items-center justify-between gap-4 bg-slate-900/20 border border-white/5 p-4 rounded-xl mb-4"
+>
+  <div class="text-xs text-slate-400 font-medium">
+    Showing {{ filteredCount() }} of {{ totalCount() }} equipment items
+  </div>
+  <div class="flex items-center gap-3">
+    <select
+      [ngModel]="filterCategory()"
+      (ngModelChange)="filterCategoryChange.emit($event)"
+      class="bg-slate-950 border border-white/10 focus:border-violet-500 rounded-xl px-3 py-1.5 text-xs text-white outline-none cursor-pointer"
+    >
+      <option value="">All Categories</option>
+      @for (cat of categories(); track cat) {
+        <option [value]="cat">{{ cat }}</option>
+      }
+    </select>
+    <select
+      [ngModel]="filterStatus()"
+      (ngModelChange)="filterStatusChange.emit($event)"
+      class="bg-slate-950 border border-white/10 focus:border-violet-500 rounded-xl px-3 py-1.5 text-xs text-white outline-none cursor-pointer"
+    >
+      <option value="">All Statuses</option>
+      <option value="available">Available</option>
+      <option value="booked">Booked</option>
+      <option value="maintenance">Maintenance</option>
+      <option value="retired">Retired</option>
+    </select>
+    <app-search-input
+      [value]="searchQuery()"
+      placeholder="Search by name, SKU/barcode..."
+      (valueChange)="searchQueryChange.emit($event)"
+    />
+  </div>
+</div>

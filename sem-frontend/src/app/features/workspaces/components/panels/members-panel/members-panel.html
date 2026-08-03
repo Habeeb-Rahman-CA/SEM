@@ -1,0 +1,10 @@
+<app-workspace-members
+  class="h-full block min-h-0"
+  [workspace]="workspace()"
+  [members]="members()"
+  (membersChange)="membersChange.emit($event)"
+  [assignableRoles]="assignableRoles()"
+  [canInvite]="canInvite()"
+  [canUpdate]="canUpdate()"
+  [canRemove]="canRemove()"
+/>

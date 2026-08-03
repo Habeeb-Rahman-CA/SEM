@@ -1,0 +1,92 @@
+@let comp = competition();
+@let badge = comp.status | competitionStatusBadge;
+<div
+  class="bg-slate-900 border border-white/10 hover:border-violet-500/30 rounded-2xl p-5 flex flex-col justify-between gap-4 group transition-all duration-300"
+>
+  <div class="flex flex-col gap-2">
+    <div class="flex items-center justify-between gap-2">
+      <span
+        class="text-[10px] font-bold px-2 py-0.5 bg-violet-500/10 text-violet-300 rounded-md border border-violet-500/20 uppercase tracking-wider"
+      >
+        {{ comp.sport?.name || 'Sport' }}
+      </span>
+      <span [class]="badge.class">{{ badge.label }}</span>
+    </div>
+
+    <h4
+      class="text-base font-extrabold text-white group-hover:text-violet-400 transition-colors mt-1"
+    >
+      {{ comp.name }}
+    </h4>
+
+    @if (winner(); as result) {
+      <div
+        class="mt-2 bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-transparent border border-amber-500/30 rounded-xl p-2.5 flex items-center justify-between shadow-lg shadow-amber-500/5"
+      >
+        <div class="flex items-center gap-2">
+          <i class="fi fi-rr-trophy text-amber-400 text-base"></i>
+          <div class="text-left">
+            <div class="text-[9px] uppercase font-black tracking-widest text-amber-400">
+              CHAMPIONS
+            </div>
+            <div class="text-xs font-black text-white">{{ result.winner }}</div>
+          </div>
+        </div>
+        @if (result.runnerUp) {
+          <div class="text-right border-l border-white/10 pl-3">
+            <div class="text-[9px] uppercase font-bold tracking-widest text-slate-400">
+              RUNNER-UP
+            </div>
+            <div class="text-[11px] font-bold text-white/90">{{ result.runnerUp }}</div>
+          </div>
+        }
+      </div>
+    }
+
+    @if (comp.pointsConfig && comp.pointsConfig.length > 0) {
+      <div class="flex flex-wrap gap-1.5 mt-2">
+        @for (pt of comp.pointsConfig.slice(0, 4); track pt.position) {
+          <div
+            class="flex items-center gap-1 text-[10px] bg-amber-500/10 border border-amber-500/20 text-amber-300 rounded-md px-2 py-0.5 font-bold"
+          >
+            <span class="text-amber-500">#{{ pt.position }}</span>
+            <span>{{ pt.label }}</span>
+            <span class="text-slate-400">·</span>
+            <span>{{ pt.points }}pts</span>
+          </div>
+        }
+        @if (comp.pointsConfig.length > 4) {
+          <span class="text-[10px] text-slate-500 px-1.5 py-0.5 self-center"
+            >+{{ comp.pointsConfig.length - 4 }} more</span
+          >
+        }
+      </div>
+    }
+
+    <button
+      (click)="select.emit(comp)"
+      class="w-full py-2 bg-violet-600/10 hover:bg-violet-600 text-violet-300 hover:text-white border border-violet-500/20 hover:border-transparent text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 mt-2"
+    >
+      Manage Stages &amp; Matches →
+    </button>
+  </div>
+
+  @if (canManage()) {
+    <div
+      class="flex items-center justify-end gap-2 pt-3 border-t border-white/5 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity"
+    >
+      <button
+        (click)="edit.emit(comp)"
+        class="px-2.5 py-1.5 text-[11px] font-bold text-violet-400 hover:text-white hover:bg-violet-600/20 border border-violet-500/10 hover:border-violet-500/30 rounded-lg transition-all cursor-pointer"
+      >
+        Edit
+      </button>
+      <button
+        (click)="remove.emit(comp)"
+        class="px-2.5 py-1.5 text-[11px] font-bold text-rose-400 hover:text-white hover:bg-rose-600/20 border border-rose-500/10 hover:border-rose-500/30 rounded-lg transition-all cursor-pointer"
+      >
+        Delete
+      </button>
+    </div>
+  }
+</div>

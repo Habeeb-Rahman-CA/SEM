@@ -1,0 +1,92 @@
+<div class="h-full flex flex-col overflow-hidden w-full text-left animate-fadeIn">
+  <app-equipment-header
+    [scanQuery]="scanSkuQuery()"
+    (scanQueryChange)="scanSkuQuery.set($event)"
+    (scan)="simulateBarcodeScan()"
+    (addClick)="openAddModal()"
+  />
+
+  <app-equipment-kpi-cards
+    [total]="equipmentList().length"
+    [available]="availableCount()"
+    [booked]="bookedCount()"
+    [maintenance]="maintenanceCount()"
+  />
+
+  <app-equipment-tabs [activeTab]="currentTab()" (tabChange)="currentTab.set($event)" />
+
+  <div class="flex-1 overflow-hidden min-h-0 flex flex-col">
+    @switch (currentTab()) {
+      @case ('inventory') {
+        <app-inventory-toolbar
+          [filteredCount]="filteredEquipment().length"
+          [totalCount]="equipmentList().length"
+          [categories]="categories()"
+          [filterCategory]="filterCategory()"
+          [filterStatus]="filterStatus()"
+          [searchQuery]="searchQuery()"
+          (filterCategoryChange)="filterCategory.set($event)"
+          (filterStatusChange)="filterStatus.set($event)"
+          (searchQueryChange)="searchQuery.set($event)"
+        />
+
+        <div class="flex-1 overflow-y-auto min-h-0 pr-1">
+          <app-inventory-grid
+            [items]="filteredEquipment()"
+            (viewLog)="openDetailModal($event)"
+            (book)="openBookModal($event)"
+            (edit)="openEditModal($event)"
+          />
+        </div>
+      }
+
+      @case ('bookings') {
+        <app-bookings-table
+          [bookings]="bookingsList()"
+          (statusChange)="updateBookingStatus($event.id, $event.status)"
+        />
+      }
+
+      @case ('maintenance') {
+        <app-maintenance-table
+          [records]="maintenanceList()"
+          (scheduleClick)="openMaintenanceModal()"
+          (statusChange)="updateMaintenanceStatus($event.id, $event.status)"
+        />
+      }
+    }
+  </div>
+</div>
+
+<app-equipment-form-modal
+  [open]="isModalOpen()"
+  [form]="itemForm"
+  [isEditing]="!!editingItem()"
+  (close)="closeModal()"
+  (save)="saveEquipment()"
+  (delete)="deleteEquipment(editingItem()!.id)"
+  (generateSku)="generateMockSku()"
+/>
+
+<app-booking-form-modal
+  [open]="isBookModalOpen()"
+  [form]="bookingForm"
+  [equipmentName]="selectedEquipment()?.name ?? null"
+  [events]="events()"
+  (close)="closeBookModal()"
+  (save)="saveBooking()"
+/>
+
+<app-maintenance-form-modal
+  [open]="isMaintenanceModalOpen()"
+  [form]="maintenanceForm"
+  [equipmentOptions]="equipmentList()"
+  (close)="closeMaintenanceModal()"
+  (save)="saveMaintenance()"
+/>
+
+<app-equipment-detail-modal
+  [open]="isDetailModalOpen()"
+  [equipment]="selectedEquipment()"
+  (close)="closeDetailModal()"
+/>

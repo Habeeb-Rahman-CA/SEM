@@ -10,7 +10,6 @@ import {
   input,
   ChangeDetectionStrategy,
 } from '@angular/core';
-import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom, Subscription } from 'rxjs';
 import {
@@ -23,9 +22,7 @@ import {
   Sport,
   Competition,
   CompetitionStage,
-  CompetitionTeam,
   Match,
-  PointsConfigEntry,
   MatchPlayer,
   CompetitionStats,
 } from '../../workspaces/services/workspace.service';
@@ -34,14 +31,8 @@ import { AuthService } from '../../auth/services/auth.service';
 import { UiService } from '../../../core/services/ui.service';
 import { SocketService } from '../../../core/services/socket.service';
 import { EventService } from '../services/event.service';
+import { EventFilterService } from '../services/event-filter.service';
 import { CompetitionService } from '../../competitions/services/competition.service';
-import { FootballConsoleComponent } from '../../competitions/consoles/football-console/football-console';
-import { CricketConsoleComponent } from '../../competitions/consoles/cricket-console/cricket-console';
-import { BadmintonConsoleComponent } from '../../competitions/consoles/badminton-console/badminton-console';
-import { GenericConsoleComponent } from '../../competitions/consoles/generic-console/generic-console';
-import { AvatarComponent } from '../../../shared/components/avatar/avatar';
-import { InitialsPipe } from '../../../shared/pipes/initials.pipe';
-import { getSportBadgeClass, getSportIconClass, formatMatchStatusDetail } from '../../../shared';
 
 import { EventModalComponent } from '../components/event-modal';
 import { CompetitionModalComponent } from '../../competitions/components/competition-modal';
@@ -53,18 +44,41 @@ import { DoubleEliminationBracketComponent } from '../../competitions/components
 import { QualificationPreviewModalComponent } from '../../competitions/components/qualification-preview-modal';
 import { EventTemplatesModalComponent } from '../components/event-templates-modal';
 
+import { EventsListHeaderComponent } from '../components/events-list-header/events-list-header';
+import { EventsFilterBarComponent } from '../components/events-filter-bar/events-filter-bar';
+import { EventCardComponent } from '../components/event-card/event-card';
+import { CompetitionCardComponent } from '../components/competition-card/competition-card';
+import { EventStandingsPanelComponent } from '../components/event-standings-panel/event-standings-panel';
+import { AttendanceForecastPanelComponent } from '../components/attendance-forecast-panel/attendance-forecast-panel';
+import { MatchCardComponent } from '../components/match-card/match-card';
+import { PointsTablePanelComponent } from '../components/points-table-panel/points-table-panel';
+import { KnockoutBracketPanelComponent } from '../components/knockout-bracket-panel/knockout-bracket-panel';
+import { CompetitionStatsPanelComponent } from '../components/competition-stats-panel/competition-stats-panel';
+import { CompetitionPredictionsPanelComponent } from '../components/competition-predictions-panel/competition-predictions-panel';
+import { MatchConsoleHostComponent } from '../components/match-console-host/match-console-host';
+
+import {
+  AttendanceForecast,
+  CompetitionTab,
+  EventFilterCriteria,
+  EventStandingRow,
+  EventView,
+  PredictionsData,
+  SavedEventFilter,
+  StageWinnerResult,
+} from '../models/event.interface';
+import {
+  availableGroups as availableGroupsFn,
+  computeLeagueTable,
+  isStageCompleted as isStageCompletedFn,
+  stageWinnerAndRunnerUp,
+} from '../utils/league-table.util';
+
 @Component({
   selector: 'app-workspace-events',
   standalone: true,
   imports: [
-    DatePipe,
     FormsModule,
-    FootballConsoleComponent,
-    CricketConsoleComponent,
-    BadmintonConsoleComponent,
-    GenericConsoleComponent,
-    AvatarComponent,
-    InitialsPipe,
     EventModalComponent,
     CompetitionModalComponent,
     FixturesModalComponent,
@@ -74,6 +88,18 @@ import { EventTemplatesModalComponent } from '../components/event-templates-moda
     DoubleEliminationBracketComponent,
     QualificationPreviewModalComponent,
     EventTemplatesModalComponent,
+    EventsListHeaderComponent,
+    EventsFilterBarComponent,
+    EventCardComponent,
+    CompetitionCardComponent,
+    EventStandingsPanelComponent,
+    AttendanceForecastPanelComponent,
+    MatchCardComponent,
+    PointsTablePanelComponent,
+    KnockoutBracketPanelComponent,
+    CompetitionStatsPanelComponent,
+    CompetitionPredictionsPanelComponent,
+    MatchConsoleHostComponent,
   ],
   templateUrl: './events.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -87,6 +113,7 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
   private socketService = inject(SocketService);
   private eventService = inject(EventService);
   private competitionService = inject(CompetitionService);
+  private eventFilterService = inject(EventFilterService);
   private matchUpdatedSub: Subscription | null = null;
 
   // INPUTS & MODELS (Bound to parent state for deep linking & sync)
@@ -105,14 +132,14 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
   selectedMatch = model<Match | null>(null);
   matches = model<Match[]>([]);
   matchLineup = model<MatchPlayer[]>([]);
-  activeCompetitionTab = model<'matches' | 'stats' | 'predictions'>('matches');
+  activeCompetitionTab = model<CompetitionTab>('matches');
 
   // LOCAL STATE SIGNALS
   sports = signal<Sport[]>([]);
-  eventStandings = signal<any[]>([]);
+  eventStandings = signal<EventStandingRow[]>([]);
   competitionStats = signal<CompetitionStats | null>(null);
-  predictionsData = signal<any | null>(null);
-  attendanceForecast = signal<any | null>(null);
+  predictionsData = signal<PredictionsData | null>(null);
+  attendanceForecast = signal<AttendanceForecast | null>(null);
 
   isLoadingCompetitions = signal(false);
   isLoadingStages = signal(false);
@@ -124,28 +151,18 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
 
   // Archive & View
   archivedEvents = signal<WorkspaceEvent[]>([]);
-  activeEventView = signal<'active' | 'archived'>('active');
+  activeEventView = signal<EventView>('active');
 
   eventSearchQuery = signal('');
 
-  // Advanced Search Signals
+  // Advanced Search
   isAdvancedSearchOpen = signal(false);
   searchActive = signal(false);
   searchResults = signal<WorkspaceEvent[]>([]);
-
-  searchSport = signal('');
-  searchOrganizer = signal('');
-  searchWorkspaceId = signal('');
-  searchStatus = signal('');
-  searchVenue = signal('');
-  searchStartDate = signal('');
-  searchEndDate = signal('');
-  searchCompetitionName = signal('');
-  searchSortBy = signal('name');
-  searchSortOrder = signal('ASC');
+  searchCriteria = signal<EventFilterCriteria>(this.eventFilterService.emptyCriteria());
 
   userWorkspaces = signal<Workspace[]>([]);
-  savedFilters = signal<Array<{ name: string; filters: any }>>([]);
+  savedFilters = signal<SavedEventFilter[]>([]);
   newFilterName = signal('');
 
   // Standalone Modal States
@@ -174,7 +191,6 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
   private currentSubscribedMatchId: string | null = null;
 
   constructor() {
-    // Automatically manage match socket subscription and lineup load when selectedMatch changes
     effect(
       () => {
         const match = this.selectedMatch();
@@ -193,7 +209,6 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
       { allowSignalWrites: true },
     );
 
-    // Load competitions and standings when selectedEvent changes
     effect(
       () => {
         const event = this.selectedEvent();
@@ -206,7 +221,6 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
       { allowSignalWrites: true },
     );
 
-    // Load stages and teams when selectedCompetition changes
     effect(
       () => {
         const comp = this.selectedCompetition();
@@ -224,7 +238,6 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
       { allowSignalWrites: true },
     );
 
-    // Load predictions when selectedCompetition or tab changes
     effect(
       () => {
         const comp = this.selectedCompetition();
@@ -236,7 +249,6 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
       { allowSignalWrites: true },
     );
 
-    // Re-trigger advanced search if query changes while advanced search is active
     effect(
       () => {
         const query = this.eventSearchQuery();
@@ -254,14 +266,7 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
     this.workspaceService.getAll().subscribe((list) => {
       this.userWorkspaces.set(list);
     });
-    const saved = localStorage.getItem('sem_saved_event_filters');
-    if (saved) {
-      try {
-        this.savedFilters.set(JSON.parse(saved));
-      } catch (e) {
-        console.error('Failed to parse saved filters', e);
-      }
-    }
+    this.savedFilters.set(this.eventFilterService.loadSavedFilters());
     this.matchUpdatedSub = this.socketService.matchUpdated$.subscribe((updatedMatch) => {
       if (updatedMatch) {
         this.matches.update((prev) =>
@@ -290,406 +295,62 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
   }
 
   // COMPUTED SIGNALS
-  filteredEvents = computed(() => {
-    const query = this.eventSearchQuery().toLowerCase().trim();
-    const list = this.events();
-    if (!query) return list;
-    return list.filter(
-      (e) =>
-        e.name.toLowerCase().includes(query) ||
-        e.status.toLowerCase().includes(query) ||
-        (e.description && e.description.toLowerCase().includes(query)),
-    );
+  filteredEvents = computed(() =>
+    this.eventFilterService.quickFilter(this.events(), this.eventSearchQuery()),
+  );
+
+  filteredArchivedEvents = computed(() =>
+    this.eventFilterService.quickFilter(this.archivedEvents(), this.eventSearchQuery()),
+  );
+
+  targetEvents = computed(() => {
+    if (this.searchActive()) return this.searchResults();
+    return this.activeEventView() === 'active'
+      ? this.filteredEvents()
+      : this.filteredArchivedEvents();
   });
 
-  filteredArchivedEvents = computed(() => {
-    const query = this.eventSearchQuery().toLowerCase().trim();
-    const list = this.archivedEvents();
-    if (!query) return list;
-    return list.filter(
-      (e) =>
-        e.name.toLowerCase().includes(query) ||
-        e.status.toLowerCase().includes(query) ||
-        (e.description && e.description.toLowerCase().includes(query)),
-    );
-  });
+  isStageCompleted = computed(() =>
+    isStageCompletedFn(
+      this.selectedStage(),
+      this.matches(),
+      this.selectedPointsTableGroup(),
+      this.teams().length,
+    ),
+  );
 
-  isStageCompleted = computed(() => {
-    const stage = this.selectedStage();
-    if (!stage) return false;
-    const matchesList = this.matches();
-    if (matchesList.length === 0) return false;
+  availableGroups = computed(() => availableGroupsFn(this.selectedStage()));
 
-    if (stage.type === 'league') {
-      return matchesList.every((m) => m.status === 'completed');
+  leagueTable = computed(() =>
+    computeLeagueTable(
+      this.selectedStage(),
+      this.matches(),
+      this.teams(),
+      this.selectedPointsTableGroup(),
+    ),
+  );
+
+  stageWinnerResult = computed<StageWinnerResult | null>(() =>
+    stageWinnerAndRunnerUp(this.selectedStage(), this.matches(), this.leagueTable()),
+  );
+
+  statusLine = computed(() => {
+    if (this.searchActive()) {
+      const n = this.searchResults().length;
+      return `Found ${n} event${n !== 1 ? 's' : ''} matching filters`;
     }
-    if (stage.type === 'group' || stage.type === 'group_knockout') {
-      const currentGroup = this.selectedPointsTableGroup();
-      const isMultipleGroups =
-        stage.type === 'group_knockout' && stage.config?.groupKnockoutSubtype === 'multiple_groups';
-
-      const targetMatches = isMultipleGroups
-        ? matchesList.filter((m) => m.config?.round === currentGroup)
-        : matchesList.filter(
-            (m) =>
-              !m.config?.round ||
-              m.config.round.toLowerCase().includes('group') ||
-              m.config.round.toLowerCase().includes('stage'),
-          );
-
-      if (targetMatches.length === 0) return false;
-      return targetMatches.every((m) => m.status === 'completed');
+    if (this.activeEventView() === 'active') {
+      if (this.eventSearchQuery()) {
+        return `Showing ${this.filteredEvents().length} of ${this.events().length} events`;
+      }
+      const n = this.events().length;
+      return `${n} event${n !== 1 ? 's' : ''} registered`;
     }
-    if (stage.type === 'knockout') {
-      return matchesList.every((m) => m.status === 'completed');
+    if (this.eventSearchQuery()) {
+      return `Showing ${this.filteredArchivedEvents().length} of ${this.archivedEvents().length} archived events`;
     }
-    if (stage.type === 'swiss') {
-      const maxRounds = stage.config?.roundsCount || Math.ceil(Math.log2(this.teams().length || 2));
-      const maxMatchRound = Math.max(...matchesList.map((m) => m.config?.swissRound ?? 0), 0);
-      return maxMatchRound >= maxRounds && matchesList.every((m) => m.status === 'completed');
-    }
-    return false;
-  });
-
-  availableGroups = computed(() => {
-    const stage = this.selectedStage();
-    if (!stage) return [];
-    if (
-      stage.type === 'group_knockout' &&
-      stage.config?.groupKnockoutSubtype === 'multiple_groups'
-    ) {
-      const groupsCount = stage.config?.groupsCount ?? 2;
-      return Array.from({ length: groupsCount }, (_, i) => `Group ${String.fromCharCode(65 + i)}`);
-    }
-    return [];
-  });
-
-  leagueTable = computed(() => {
-    const stage = this.selectedStage();
-    if (!stage) return [];
-    if (
-      stage.type !== 'league' &&
-      stage.type !== 'group' &&
-      stage.type !== 'group_knockout' &&
-      stage.type !== 'swiss'
-    ) {
-      return [];
-    }
-
-    const matchesList = this.matches();
-    const enrolledTeams = this.teams(); // Using workspace teams enrolled or stages team mappings
-    const currentGroup = this.selectedPointsTableGroup();
-    const isMultipleGroups =
-      stage.type === 'group_knockout' && stage.config?.groupKnockoutSubtype === 'multiple_groups';
-
-    const groupTeamIds = new Set<string>();
-    if (isMultipleGroups) {
-      for (const m of matchesList) {
-        if (m.config?.round === currentGroup) {
-          if (m.homeTeamId) groupTeamIds.add(m.homeTeamId);
-          if (m.awayTeamId) groupTeamIds.add(m.awayTeamId);
-        }
-      }
-    }
-
-    const statsMap = new Map<
-      string,
-      {
-        teamId: string;
-        teamName: string;
-        teamLogoUrl?: string | null;
-        played: number;
-        won: number;
-        drawn: number;
-        lost: number;
-        gf: number;
-        ga: number;
-        gd: number;
-        pts: number;
-      }
-    >();
-
-    for (const t of enrolledTeams) {
-      if (isMultipleGroups && !groupTeamIds.has(t.id)) {
-        continue;
-      }
-      statsMap.set(t.id, {
-        teamId: t.id,
-        teamName: t.name,
-        teamLogoUrl: t.logoUrl,
-        played: 0,
-        won: 0,
-        drawn: 0,
-        lost: 0,
-        gf: 0,
-        ga: 0,
-        gd: 0,
-        pts: 0,
-      });
-    }
-
-    const winPts = stage.config?.winPoint ?? 3;
-    const drawPts = stage.config?.drawPoint ?? 1;
-
-    for (const match of matchesList) {
-      if (match.config?.isBye) {
-        const teamId = match.homeTeamId;
-        if (teamId) {
-          if (!statsMap.has(teamId) && match.homeTeam) {
-            statsMap.set(teamId, {
-              teamId,
-              teamName: match.homeTeam.name,
-              teamLogoUrl: match.homeTeam.logoUrl,
-              played: 0,
-              won: 0,
-              drawn: 0,
-              lost: 0,
-              gf: 0,
-              ga: 0,
-              gd: 0,
-              pts: 0,
-            });
-          }
-          const stats = statsMap.get(teamId);
-          if (stats) {
-            stats.played++;
-            stats.won++;
-            stats.gf += 1;
-            stats.gd += 1;
-            stats.pts += winPts;
-          }
-        }
-        continue;
-      }
-
-      const isGroupMatch =
-        !match.config?.round ||
-        match.config.round.toLowerCase().includes('group') ||
-        match.config.round.toLowerCase().includes('stage');
-      if (stage.type === 'group_knockout' && !isGroupMatch) {
-        continue;
-      }
-
-      if (isMultipleGroups && match.config?.round !== currentGroup) {
-        continue;
-      }
-
-      if (match.status !== 'completed') continue;
-      if (!match.homeTeamId || !match.awayTeamId) continue;
-
-      const home = statsMap.get(match.homeTeamId);
-      const away = statsMap.get(match.awayTeamId);
-
-      if (!home && match.homeTeam) {
-        statsMap.set(match.homeTeamId, {
-          teamId: match.homeTeamId,
-          teamName: match.homeTeam.name,
-          teamLogoUrl: match.homeTeam.logoUrl,
-          played: 0,
-          won: 0,
-          drawn: 0,
-          lost: 0,
-          gf: 0,
-          ga: 0,
-          gd: 0,
-          pts: 0,
-        });
-      }
-      if (!away && match.awayTeam) {
-        statsMap.set(match.awayTeamId, {
-          teamId: match.awayTeamId,
-          teamName: match.awayTeam.name,
-          teamLogoUrl: match.awayTeam.logoUrl,
-          played: 0,
-          won: 0,
-          drawn: 0,
-          lost: 0,
-          gf: 0,
-          ga: 0,
-          gd: 0,
-          pts: 0,
-        });
-      }
-
-      const hStats = statsMap.get(match.homeTeamId);
-      const aStats = statsMap.get(match.awayTeamId);
-      if (!hStats || !aStats) continue;
-
-      hStats.played++;
-      aStats.played++;
-
-      const homeScore = match.homeScore ?? 0;
-      const awayScore = match.awayScore ?? 0;
-
-      hStats.gf += homeScore;
-      hStats.ga += awayScore;
-      aStats.gf += awayScore;
-      aStats.ga += homeScore;
-
-      if (homeScore > awayScore) {
-        hStats.won++;
-        hStats.pts += winPts;
-        aStats.lost++;
-      } else if (homeScore < awayScore) {
-        aStats.won++;
-        aStats.pts += winPts;
-        hStats.lost++;
-      } else {
-        hStats.drawn++;
-        hStats.pts += drawPts;
-        aStats.drawn++;
-        aStats.pts += drawPts;
-      }
-
-      hStats.gd = hStats.gf - hStats.ga;
-      aStats.gd = aStats.gf - aStats.ga;
-    }
-
-    if (stage.type === 'swiss') {
-      const teamIds = Array.from(statsMap.keys());
-      const tieBreakScores = new Map<
-        string,
-        {
-          buchholz: number;
-          median_buchholz: number;
-          sonneborn_berger: number;
-          cumulative: number;
-        }
-      >();
-
-      const completedMatches = matchesList.filter((m) => m.status === 'completed');
-      completedMatches.sort((a, b) => (a.config?.swissRound ?? 0) - (b.config?.swissRound ?? 0));
-      const maxSwissRound = Math.max(...completedMatches.map((m) => m.config?.swissRound ?? 0), 1);
-
-      const runningPoints = new Map<string, number>();
-      const opponentsMap = new Map<string, string[]>();
-      const resultsMap = new Map<
-        string,
-        { opponentId: string; outcome: 'win' | 'draw' | 'loss' }[]
-      >();
-      const roundPointsMap = new Map<string, number[]>();
-
-      for (const tId of teamIds) {
-        runningPoints.set(tId, 0);
-        opponentsMap.set(tId, []);
-        resultsMap.set(tId, []);
-        roundPointsMap.set(tId, []);
-      }
-
-      for (let r = 1; r <= maxSwissRound; r++) {
-        const roundMatches = completedMatches.filter((m) => m.config?.swissRound === r);
-        for (const m of roundMatches) {
-          if (m.config?.isBye) {
-            const teamId = m.homeTeamId;
-            if (teamId && runningPoints.has(teamId)) {
-              runningPoints.set(teamId, runningPoints.get(teamId)! + winPts);
-            }
-            continue;
-          }
-
-          if (!m.homeTeamId || !m.awayTeamId) continue;
-          opponentsMap.get(m.homeTeamId)?.push(m.awayTeamId);
-          opponentsMap.get(m.awayTeamId)?.push(m.homeTeamId);
-
-          const hScore = m.homeScore ?? 0;
-          const aScore = m.awayScore ?? 0;
-
-          if (hScore > aScore) {
-            resultsMap.get(m.homeTeamId)?.push({ opponentId: m.awayTeamId, outcome: 'win' });
-            resultsMap.get(m.awayTeamId)?.push({ opponentId: m.homeTeamId, outcome: 'loss' });
-            runningPoints.set(m.homeTeamId, runningPoints.get(m.homeTeamId)! + winPts);
-          } else if (aScore > hScore) {
-            resultsMap.get(m.awayTeamId)?.push({ opponentId: m.homeTeamId, outcome: 'win' });
-            resultsMap.get(m.homeTeamId)?.push({ opponentId: m.awayTeamId, outcome: 'loss' });
-            runningPoints.set(m.awayTeamId, runningPoints.get(m.awayTeamId)! + winPts);
-          } else {
-            resultsMap.get(m.homeTeamId)?.push({ opponentId: m.awayTeamId, outcome: 'draw' });
-            resultsMap.get(m.awayTeamId)?.push({ opponentId: m.homeTeamId, outcome: 'draw' });
-            runningPoints.set(m.homeTeamId, runningPoints.get(m.homeTeamId)! + drawPts);
-            runningPoints.set(m.awayTeamId, runningPoints.get(m.awayTeamId)! + drawPts);
-          }
-        }
-
-        for (const tId of teamIds) {
-          roundPointsMap.get(tId)?.push(runningPoints.get(tId)!);
-        }
-      }
-
-      for (const tId of teamIds) {
-        const opps = opponentsMap.get(tId) || [];
-        let buchholz = 0;
-        const opponentPoints: number[] = [];
-        for (const oppId of opps) {
-          const oppPts = statsMap.get(oppId)?.pts ?? 0;
-          buchholz += oppPts;
-          opponentPoints.push(oppPts);
-        }
-
-        let median_buchholz = buchholz;
-        if (opponentPoints.length >= 3) {
-          opponentPoints.sort((a, b) => a - b);
-          median_buchholz = opponentPoints.slice(1, -1).reduce((sum, val) => sum + val, 0);
-        }
-
-        let sonneborn_berger = 0;
-        const results = resultsMap.get(tId) || [];
-        for (const res of results) {
-          const oppPts = statsMap.get(res.opponentId)?.pts ?? 0;
-          if (res.outcome === 'win') {
-            sonneborn_berger += oppPts;
-          } else if (res.outcome === 'draw') {
-            sonneborn_berger += oppPts * 0.5;
-          }
-        }
-
-        const cumulative = (roundPointsMap.get(tId) || []).reduce((sum, val) => sum + val, 0);
-
-        tieBreakScores.set(tId, {
-          buchholz,
-          median_buchholz,
-          sonneborn_berger,
-          cumulative,
-        });
-      }
-
-      const tieBreaks = stage.config?.tieBreaks || ['buchholz', 'sonneborn_berger', 'cumulative'];
-
-      return Array.from(statsMap.values()).sort((a, b) => {
-        if (b.pts !== a.pts) return b.pts - a.pts;
-
-        const tbA = tieBreakScores.get(a.teamId)!;
-        const tbB = tieBreakScores.get(b.teamId)!;
-
-        for (const rule of tieBreaks) {
-          if (rule === 'buchholz') {
-            if (tbB.buchholz !== tbA.buchholz) return tbB.buchholz - tbA.buchholz;
-          } else if (rule === 'median_buchholz') {
-            if (tbB.median_buchholz !== tbA.median_buchholz)
-              return tbB.median_buchholz - tbA.median_buchholz;
-          } else if (rule === 'sonneborn_berger') {
-            if (tbB.sonneborn_berger !== tbA.sonneborn_berger)
-              return tbB.sonneborn_berger - tbA.sonneborn_berger;
-          } else if (rule === 'cumulative') {
-            if (tbB.cumulative !== tbA.cumulative) return tbB.cumulative - tbA.cumulative;
-          } else if (rule === 'gd') {
-            if (b.gd !== a.gd) return b.gd - a.gd;
-          } else if (rule === 'gf') {
-            if (b.gf !== a.gf) return b.gf - a.gf;
-          }
-        }
-
-        if (!tieBreaks.includes('gd') && b.gd !== a.gd) return b.gd - a.gd;
-        if (!tieBreaks.includes('gf') && b.gf !== a.gf) return b.gf - a.gf;
-
-        return 0;
-      });
-    }
-
-    return Array.from(statsMap.values()).sort((a, b) => {
-      if (b.pts !== a.pts) return b.pts - a.pts;
-      if (b.gd !== a.gd) return b.gd - a.gd;
-      return b.gf - a.gf;
-    });
+    const n = this.archivedEvents().length;
+    return `${n} archived event${n !== 1 ? 's' : ''}`;
   });
 
   // HELPER METHODS
@@ -699,25 +360,6 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
     if (!member || !member.role) return false;
     if (member.role.slug === 'owner') return true;
     return member.role.permissions?.some((p) => p.slug === permission) ?? false;
-  }
-
-  showDatePicker(event: any) {
-    if (event.target && typeof event.target.showPicker === 'function') {
-      try {
-        event.target.showPicker();
-      } catch (e) {
-        console.warn('showPicker is not supported or blocked:', e);
-      }
-    }
-  }
-
-  private formatToLocalDatetime(dateStr: string | null | undefined): string {
-    if (!dateStr) return '';
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return '';
-    const offset = date.getTimezoneOffset();
-    const localDate = new Date(date.getTime() - offset * 60 * 1000);
-    return localDate.toISOString().substring(0, 16);
   }
 
   // SPORTS
@@ -762,7 +404,7 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
     if (!ws) return;
     this.eventService.getEventStandings(ws.id, eventId).subscribe({
       next: (data) => {
-        this.eventStandings.set(data);
+        this.eventStandings.set(data as EventStandingRow[]);
       },
       error: (err) => {
         console.error('Failed to load event standings', err);
@@ -776,7 +418,7 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
     this.isLoadingAttendanceForecast.set(true);
     this.eventService.getAttendanceForecast(ws.id, eventId).subscribe({
       next: (data) => {
-        this.attendanceForecast.set(data);
+        this.attendanceForecast.set(data as AttendanceForecast);
         this.isLoadingAttendanceForecast.set(false);
       },
       error: (err) => {
@@ -793,7 +435,7 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
     this.isLoadingPredictions.set(true);
     this.competitionService.getPredictions(ws.id, event.id, compId).subscribe({
       next: (data) => {
-        this.predictionsData.set(data);
+        this.predictionsData.set(data as PredictionsData);
         this.isLoadingPredictions.set(false);
       },
       error: (err) => {
@@ -817,7 +459,6 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
     const isEdit = !!this.editingEvent();
     if (isEdit) {
       if (saved.isArchived) {
-        // If the status became completed, it might have been archived
         this.events.update((prev) => prev.filter((e) => e.id !== saved.id));
         this.archivedEvents.update((prev) => {
           const exists = prev.some((e) => e.id === saved.id);
@@ -884,7 +525,6 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
     const originalEvents = this.events();
     const originalArchivedEvents = this.archivedEvents();
 
-    // Optimistic Update
     this.events.update((prev) => prev.filter((e) => e.id !== event.id));
     this.archivedEvents.update((prev) => prev.filter((e) => e.id !== event.id));
     if (this.selectedEvent()?.id === event.id) {
@@ -897,7 +537,6 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
         this.uiService.success(`Event "${event.name}" deleted successfully.`);
       },
       error: (err) => {
-        // Rollback
         this.events.set(originalEvents);
         this.archivedEvents.set(originalArchivedEvents);
         this.uiService.error(err.error?.message ?? 'Failed to delete event.');
@@ -928,7 +567,6 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
     this.eventService.archiveEvent(ws.id, event.id).subscribe({
       next: (updatedEvent) => {
         this.uiService.success(`Event "${event.name}" archived successfully.`);
-        // Remove from active events, add to archived
         this.events.update((prev) => prev.filter((e) => e.id !== event.id));
         this.archivedEvents.update((prev) => {
           const exists = prev.some((e) => e.id === updatedEvent.id);
@@ -957,7 +595,6 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
     this.eventService.restoreEvent(ws.id, event.id).subscribe({
       next: (updatedEvent) => {
         this.uiService.success(`Event "${event.name}" restored successfully.`);
-        // Remove from archived, add to active
         this.archivedEvents.update((prev) => prev.filter((e) => e.id !== event.id));
         this.events.update((prev) => {
           const exists = prev.some((e) => e.id === updatedEvent.id);
@@ -1031,7 +668,6 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
 
     const originalCompetitions = this.competitions();
 
-    // Optimistic Update
     this.competitions.update((prev) => prev.filter((c) => c.id !== comp.id));
     if (this.selectedCompetition()?.id === comp.id) {
       this.selectedCompetition.set(null);
@@ -1044,144 +680,14 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
         this.uiService.success(`Competition "${comp.name}" deleted successfully.`);
       },
       error: (err) => {
-        // Rollback
         this.competitions.set(originalCompetitions);
         this.uiService.error(err.error?.message ?? 'Failed to delete competition.');
       },
     });
   }
 
-  getCompetitionWinnerAndRunnerUp(
-    comp: Competition,
-  ): { winner?: string; runnerUp?: string } | null {
-    if (!comp.stages || comp.stages.length === 0) return null;
-
-    const sortedStages = [...comp.stages].sort((a, b) => a.sequence - b.sequence);
-    const lastStage = sortedStages[sortedStages.length - 1];
-
-    if (!lastStage.matches || lastStage.matches.length === 0) return null;
-
-    const allMatchesCompleted = lastStage.matches.every((m: any) => m.status === 'completed');
-    if (!allMatchesCompleted) return null;
-
-    if (lastStage.type === 'knockout' || lastStage.type === 'group_knockout') {
-      const finalMatch = lastStage.matches.find((m: any) => m.config?.round === 'Final');
-      if (finalMatch && finalMatch.status === 'completed') {
-        const homeScore = finalMatch.homeScore ?? 0;
-        const awayScore = finalMatch.awayScore ?? 0;
-        if (homeScore > awayScore) {
-          return {
-            winner: finalMatch.homeTeam?.name || 'Home Team',
-            runnerUp: finalMatch.awayTeam?.name || 'Away Team',
-          };
-        } else if (awayScore > homeScore) {
-          return {
-            winner: finalMatch.awayTeam?.name || 'Away Team',
-            runnerUp: finalMatch.homeTeam?.name || 'Home Team',
-          };
-        }
-      }
-    } else if (lastStage.type === 'league' || lastStage.type === 'group') {
-      const winPts = lastStage.config?.winPoint ?? 3;
-      const drawPts = lastStage.config?.drawPoint ?? 1;
-
-      const statsMap = new Map<
-        string,
-        { teamName: string; pts: number; gd: number; gf: number; ga: number }
-      >();
-
-      for (const m of lastStage.matches) {
-        if (!m.homeTeamId || !m.awayTeamId) continue;
-        if (m.status !== 'completed') continue;
-
-        if (!statsMap.has(m.homeTeamId) && m.homeTeam) {
-          statsMap.set(m.homeTeamId, { teamName: m.homeTeam.name, pts: 0, gd: 0, gf: 0, ga: 0 });
-        }
-        if (!statsMap.has(m.awayTeamId) && m.awayTeam) {
-          statsMap.set(m.awayTeamId, { teamName: m.awayTeam.name, pts: 0, gd: 0, gf: 0, ga: 0 });
-        }
-
-        const h = statsMap.get(m.homeTeamId);
-        const a = statsMap.get(m.awayTeamId);
-        if (!h || !a) continue;
-
-        const homeScore = m.homeScore ?? 0;
-        const awayScore = m.awayScore ?? 0;
-
-        h.gf += homeScore;
-        h.ga += awayScore;
-        a.gf += awayScore;
-        a.ga += homeScore;
-
-        if (homeScore > awayScore) {
-          h.pts += winPts;
-        } else if (awayScore > homeScore) {
-          a.pts += winPts;
-        } else {
-          h.pts += drawPts;
-          a.pts += drawPts;
-        }
-        h.gd = h.gf - h.ga;
-        a.gd = a.gf - a.ga;
-      }
-
-      const table = Array.from(statsMap.values()).sort((a, b) => {
-        if (b.pts !== a.pts) return b.pts - a.pts;
-        if (b.gd !== a.gd) return b.gd - a.gd;
-        return b.gf - a.gf;
-      });
-
-      if (table.length > 0) {
-        return {
-          winner: table[0].teamName,
-          runnerUp: table[1]?.teamName,
-        };
-      }
-    }
-
-    return null;
-  }
-
-  getStageWinnerAndRunnerUp(): { winner?: string; runnerUp?: string } | null {
-    const stage = this.selectedStage();
-    if (!stage) return null;
-    const matchesList = this.matches();
-    if (matchesList.length === 0) return null;
-
-    const allCompleted = matchesList.every((m) => m.status === 'completed');
-    if (!allCompleted) return null;
-
-    if (stage.type === 'knockout' || stage.type === 'group_knockout') {
-      const finalMatch = matchesList.find((m) => m.config?.round === 'Final');
-      if (finalMatch && finalMatch.status === 'completed') {
-        const homeScore = finalMatch.homeScore ?? 0;
-        const awayScore = finalMatch.awayScore ?? 0;
-        if (homeScore > awayScore) {
-          return {
-            winner: finalMatch.homeTeam?.name || 'Home Team',
-            runnerUp: finalMatch.awayTeam?.name || 'Away Team',
-          };
-        } else if (awayScore > homeScore) {
-          return {
-            winner: finalMatch.awayTeam?.name || 'Away Team',
-            runnerUp: finalMatch.homeTeam?.name || 'Home Team',
-          };
-        }
-      }
-    } else if (stage.type === 'league' || stage.type === 'group') {
-      const table = this.leagueTable();
-      if (table && table.length > 0) {
-        return {
-          winner: table[0].teamName,
-          runnerUp: table[1]?.teamName,
-        };
-      }
-    }
-    return null;
-  }
-
   // STAGE & STATS HANDLERS
-  setCompetitionTab(tab: 'matches' | 'stats' | 'predictions') {
+  setCompetitionTab(tab: CompetitionTab) {
     this.activeCompetitionTab.set(tab);
     if (tab === 'stats') {
       this.loadCompetitionStats();
@@ -1200,7 +706,7 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
         this.competitionStats.set(stats);
         this.isLoadingStats.set(false);
       },
-      error: (err) => {
+      error: () => {
         this.isLoadingStats.set(false);
         this.uiService.error('Failed to load competition statistics.');
       },
@@ -1233,8 +739,7 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
     if (!ws || !event) return;
     this.isLoadingCompetitionTeams.set(true);
     this.competitionService.getCompetitionTeams(ws.id, event.id, competitionId).subscribe({
-      next: (ct) => {
-        // Here we can load or store competition team mappings if needed
+      next: () => {
         this.isLoadingCompetitionTeams.set(false);
       },
       error: (err) => {
@@ -1469,52 +974,6 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
     this.matchLineup.set(updatedLineup);
   }
 
-  getKnockoutRounds(): string[] {
-    const list = this.matches();
-    const stage = this.selectedStage();
-    if (!stage) return [];
-
-    const roundsSet = new Set<string>();
-    for (const m of list) {
-      const round = m.config?.round;
-      if (round) {
-        const isGroup =
-          round.toLowerCase().includes('group') || round.toLowerCase().includes('stage');
-        if (stage.type === 'group_knockout' && isGroup) {
-          continue;
-        }
-        roundsSet.add(round);
-      }
-    }
-
-    const roundOrder = [
-      'round of 32',
-      'round of 16',
-      'round of 8',
-      'quarter-final',
-      'semi-final',
-      'final',
-      'third place match',
-      '3rd place match',
-    ];
-    return Array.from(roundsSet).sort((a, b) => {
-      const aLower = a.toLowerCase();
-      const bLower = b.toLowerCase();
-      const idxA = roundOrder.findIndex((o) => aLower.includes(o));
-      const idxB = roundOrder.findIndex((o) => bLower.includes(o));
-      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-      if (idxA !== -1) return -1;
-      if (idxB !== -1) return 1;
-      return a.localeCompare(b);
-    });
-  }
-
-  getMatchesForRound(roundName: string): Match[] {
-    return this.matches().filter(
-      (m) => m.config?.round === roundName && (m.config?.leg === undefined || m.config?.leg === 1),
-    );
-  }
-
   onOpenScheduleModal(match: Match) {
     this.selectedMatchToSchedule.set(match);
     this.isScheduleMatchModalOpen.set(true);
@@ -1532,60 +991,31 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
     window.open(url, '_blank');
   }
 
-  applySavedFilter(filters: any) {
-    this.searchSport.set(filters.sport || '');
-    this.searchOrganizer.set(filters.organizer || '');
-    this.searchWorkspaceId.set(filters.workspaceIdFilter || '');
-    this.searchStatus.set(filters.status || '');
-    this.searchVenue.set(filters.venue || '');
-    this.searchStartDate.set(filters.startDate || '');
-    this.searchEndDate.set(filters.endDate || '');
-    this.searchCompetitionName.set(filters.competitionName || '');
-    this.searchSortBy.set(filters.sortBy || 'name');
-    this.searchSortOrder.set(filters.sortOrder || 'ASC');
+  applySavedFilter(filters: EventFilterCriteria) {
+    this.searchCriteria.set({ ...this.eventFilterService.emptyCriteria(), ...filters });
     this.triggerAdvancedSearch();
   }
 
   saveCurrentFilter() {
     const name = this.newFilterName().trim();
     if (!name) return;
-    const filters = {
-      sport: this.searchSport(),
-      organizer: this.searchOrganizer(),
-      workspaceIdFilter: this.searchWorkspaceId(),
-      status: this.searchStatus(),
-      venue: this.searchVenue(),
-      startDate: this.searchStartDate(),
-      endDate: this.searchEndDate(),
-      competitionName: this.searchCompetitionName(),
-      sortBy: this.searchSortBy(),
-      sortOrder: this.searchSortOrder(),
-    };
+    const filters = { ...this.searchCriteria() };
     const current = this.savedFilters();
     const updated = current.filter((sf) => sf.name.toLowerCase() !== name.toLowerCase());
     updated.push({ name, filters });
     this.savedFilters.set(updated);
-    localStorage.setItem('sem_saved_event_filters', JSON.stringify(updated));
+    this.eventFilterService.persistSavedFilters(updated);
     this.newFilterName.set('');
   }
 
   deleteSavedFilter(name: string) {
     const updated = this.savedFilters().filter((sf) => sf.name !== name);
     this.savedFilters.set(updated);
-    localStorage.setItem('sem_saved_event_filters', JSON.stringify(updated));
+    this.eventFilterService.persistSavedFilters(updated);
   }
 
   resetAdvancedSearch() {
-    this.searchSport.set('');
-    this.searchOrganizer.set('');
-    this.searchWorkspaceId.set('');
-    this.searchStatus.set('');
-    this.searchVenue.set('');
-    this.searchStartDate.set('');
-    this.searchEndDate.set('');
-    this.searchCompetitionName.set('');
-    this.searchSortBy.set('name');
-    this.searchSortOrder.set('ASC');
+    this.searchCriteria.set(this.eventFilterService.emptyCriteria());
     this.searchActive.set(false);
     this.searchResults.set([]);
   }
@@ -1594,18 +1024,10 @@ export class WorkspaceEventsComponent implements OnInit, OnDestroy {
     const ws = this.workspace();
     if (!ws) return;
     this.searchActive.set(true);
+    const criteria = this.searchCriteria();
     const params = {
       query: this.eventSearchQuery(),
-      sport: this.searchSport(),
-      organizer: this.searchOrganizer(),
-      status: this.searchStatus(),
-      venue: this.searchVenue(),
-      startDate: this.searchStartDate(),
-      endDate: this.searchEndDate(),
-      competitionName: this.searchCompetitionName(),
-      workspaceIdFilter: this.searchWorkspaceId(),
-      sortBy: this.searchSortBy(),
-      sortOrder: this.searchSortOrder(),
+      ...criteria,
     };
     this.eventService.searchEvents(ws.id, params).subscribe({
       next: (results) => {

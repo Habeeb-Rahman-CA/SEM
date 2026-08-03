@@ -1,0 +1,227 @@
+<div class="flex flex-col gap-4 p-4 rounded-xl bg-slate-950 border border-white/5">
+  <h5 class="text-xs font-bold text-violet-400 uppercase tracking-wider">
+    {{ teamName() }} Events
+  </h5>
+
+  <!-- Goal log -->
+  <div class="flex flex-col gap-2">
+    <label class="text-[10px] font-bold text-slate-400 uppercase">Log Goal</label>
+    <div class="flex flex-col gap-2 bg-slate-900/40 p-2.5 rounded-xl border border-white/5">
+      <div class="flex gap-2">
+        <select
+          #goalTypeSel
+          class="flex-1 bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white outline-none"
+        >
+          <option value="normal">Normal Goal</option>
+          <option value="penalty">Penalty Goal</option>
+          <option value="free_kick">Free Kick Goal</option>
+          <option value="header">Header</option>
+          <option value="volley">Volley</option>
+          <option value="long_shot">Long Shot</option>
+          <option value="own_goal">Own Goal</option>
+        </select>
+      </div>
+      <div class="flex gap-2">
+        <select
+          #scorerSel
+          class="flex-1 bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white outline-none"
+          (change)="scorerCustom.value = ''"
+        >
+          <option value="">Select Scorer</option>
+          <option value="unregistered">Unregistered Player</option>
+          @for (p of players(); track p.id) {
+            <option [value]="p.userId">{{ p.user.username || p.id }}</option>
+          }
+        </select>
+        <input
+          #scorerCustom
+          type="text"
+          placeholder="Scorer Name"
+          [class.hidden]="scorerSel.value !== 'unregistered'"
+          class="flex-1 bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white outline-none"
+        />
+      </div>
+      <div class="flex gap-2" [class.hidden]="goalTypeSel.value === 'own_goal'">
+        <select
+          #assistSel
+          class="flex-1 bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white outline-none"
+          (change)="assistCustom.value = ''"
+        >
+          <option value="">Select Assist (Opt)</option>
+          <option value="unregistered">Unregistered Player</option>
+          @for (p of players(); track p.id) {
+            <option [value]="p.userId">{{ p.user.username || p.id }}</option>
+          }
+        </select>
+        <input
+          #assistCustom
+          type="text"
+          placeholder="Assist Name"
+          [class.hidden]="assistSel.value !== 'unregistered'"
+          class="flex-1 bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white outline-none"
+        />
+      </div>
+      <div class="flex justify-end mt-1">
+        <button
+          (click)="
+            recordGoal.emit({
+              teamId: teamId(),
+              goalType: goalTypeSel.value,
+              scorerId: scorerSel.value,
+              scorerCustomName: scorerSel.value === 'unregistered' ? scorerCustom.value : '',
+              assistId: goalTypeSel.value !== 'own_goal' ? assistSel.value : '',
+              assistCustomName:
+                goalTypeSel.value !== 'own_goal' && assistSel.value === 'unregistered'
+                  ? assistCustom.value
+                  : '',
+            });
+            scorerSel.value = '';
+            scorerCustom.value = '';
+            assistSel.value = '';
+            assistCustom.value = '';
+            goalTypeSel.value = 'normal'
+          "
+          [disabled]="
+            goalTypeSel.value !== 'own_goal' &&
+            (!scorerSel.value || (scorerSel.value === 'unregistered' && !scorerCustom.value))
+          "
+          class="px-3.5 py-1.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl cursor-pointer"
+        >
+          Goal
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Card log -->
+  <div class="flex flex-col gap-2 pt-2 border-t border-white/5">
+    <label class="text-[10px] font-bold text-slate-400 uppercase">Log Card</label>
+    <div class="flex gap-2">
+      <select
+        #cardPlayerSel
+        class="flex-1 bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white outline-none"
+      >
+        <option value="">Select Player</option>
+        @for (p of players(); track p.id) {
+          <option [value]="p.userId">{{ p.user.username || p.id }}</option>
+        }
+      </select>
+      <select
+        #cardTypeSel
+        class="bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white outline-none"
+      >
+        <option value="yellow">Yellow</option>
+        <option value="red">Red</option>
+      </select>
+      <button
+        (click)="
+          recordCard.emit({
+            teamId: teamId(),
+            playerId: cardPlayerSel.value,
+            cardType: cardTypeSel.value === 'red' ? 'red' : 'yellow',
+          });
+          cardPlayerSel.value = ''
+        "
+        [disabled]="!cardPlayerSel.value"
+        class="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl cursor-pointer"
+      >
+        Card
+      </button>
+    </div>
+  </div>
+
+  <!-- Penalty log -->
+  <div class="flex flex-col gap-2 pt-2 border-t border-white/5">
+    <label class="text-[10px] font-bold text-slate-400 uppercase">Log Penalty</label>
+    <div class="flex gap-2">
+      <select
+        #penaltyPlayerSel
+        class="flex-1 bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white outline-none"
+      >
+        <option value="">Select Kicker</option>
+        @for (p of players(); track p.id) {
+          <option [value]="p.userId">{{ p.user.username || p.id }}</option>
+        }
+      </select>
+      <select
+        #penaltyOutcomeSel
+        class="bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white outline-none"
+      >
+        <option value="scored">Scored</option>
+        <option value="missed">Missed</option>
+        <option value="saved">Saved</option>
+        <option value="hit_post">Hit Post</option>
+      </select>
+      <button
+        (click)="
+          recordPenalty.emit({
+            teamId: teamId(),
+            kickerId: penaltyPlayerSel.value,
+            outcome: $any(penaltyOutcomeSel.value),
+          });
+          penaltyPlayerSel.value = ''
+        "
+        [disabled]="!penaltyPlayerSel.value"
+        class="px-3 py-1.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl cursor-pointer"
+      >
+        Penalty
+      </button>
+    </div>
+  </div>
+
+  <!-- Substitution log -->
+  <div class="flex flex-col gap-2 pt-2 border-t border-white/5">
+    <label class="text-[10px] font-bold text-slate-400 uppercase">Log Substitution</label>
+    <div class="flex flex-col gap-2 bg-slate-900/40 p-2.5 rounded-xl border border-white/5">
+      <div class="flex gap-2">
+        <select
+          #subOutSel
+          class="flex-1 bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white outline-none"
+        >
+          <option value="">Player Out</option>
+          @for (p of players(); track p.id) {
+            <option [value]="p.userId">{{ p.user.username || p.id }}</option>
+          }
+        </select>
+        <select
+          #subInSel
+          class="flex-1 bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white outline-none"
+        >
+          <option value="">Player In</option>
+          @for (p of benchPlayers(); track p.id) {
+            <option [value]="p.userId" [class.hidden]="p.userId === subOutSel.value">
+              {{ p.user.username || p.id }}
+            </option>
+          }
+        </select>
+      </div>
+      <div class="flex gap-2">
+        <select
+          #subReasonSel
+          class="flex-1 bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white outline-none"
+        >
+          <option value="Tactical">Tactical</option>
+          <option value="Injury">Injury</option>
+          <option value="Red Card">Red Card</option>
+          <option value="Fatigue">Fatigue</option>
+        </select>
+        <button
+          (click)="
+            recordSubstitution.emit({
+              teamId: teamId(),
+              playerOutId: subOutSel.value,
+              playerInId: subInSel.value,
+              reason: subReasonSel.value,
+            });
+            subOutSel.value = '';
+            subInSel.value = ''
+          "
+          [disabled]="!subOutSel.value || !subInSel.value"
+          class="px-3 py-1.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl cursor-pointer"
+        >
+          Substitute
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

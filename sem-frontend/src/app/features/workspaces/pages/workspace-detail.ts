@@ -5,14 +5,12 @@ import {
   inject,
   computed,
   effect,
-  HostListener,
   DestroyRef,
   ChangeDetectionStrategy,
 } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { firstValueFrom } from 'rxjs';
-import { FormsModule } from '@angular/forms';
-import { QuicklinkDirective } from 'ngx-quicklink';
+import { ActivatedRoute, Router } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+
 import {
   WorkspaceService,
   Workspace,
@@ -22,14 +20,10 @@ import {
   Team,
   Player,
   WorkspaceEvent,
-  Sport,
   Competition,
   CompetitionStage,
-  CompetitionTeam,
   Match,
-  PointsConfigEntry,
   MatchPlayer,
-  CompetitionStats,
   WorkspaceFile,
 } from '../services/workspace.service';
 import { VenueService, Venue } from '../../venues/services/venue.service';
@@ -37,89 +31,68 @@ import { AuthService } from '../../auth/services/auth.service';
 import { UiService } from '../../../core/services/ui.service';
 import { SocketService } from '../../../core/services/socket.service';
 import { StorageService } from '../../../core/services/storage.service';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { VenueListComponent } from '../../venues/pages/venue-list';
-import { VenueModalComponent } from '../../venues/components/venue-modal';
 import { TeamService } from '../../teams/services/team.service';
-import { TeamListComponent } from '../../teams/pages/team-list';
 import { PlayerService } from '../../players/services/player.service';
-import { PlayerListComponent } from '../../players/pages/player-list';
-import { PlayerModalComponent } from '../../players/components/player-modal';
 import { EventService } from '../../events/services/event.service';
 import { CompetitionService } from '../../competitions/services/competition.service';
-import { WorkspaceEventsComponent } from '../../events/pages/events';
+import { MatchLockService } from '../services/match-lock.service';
+import { WorkspaceCrudService } from '../services/workspace-crud.service';
+
+import { PlayerModalComponent } from '../../players/components/player-modal';
+import { VenueModalComponent } from '../../venues/components/venue-modal';
+import { LineupModalComponent } from '../../competitions/components/lineup-modal';
 import { SidebarComponent } from '../../../layouts/sidebar/sidebar';
 import { TopbarComponent } from '../../../layouts/topbar/topbar';
-import { WorkspaceDashboardComponent } from './dashboard/dashboard';
-import { WorkspaceMembersComponent } from './members/members';
-import { WorkspaceSettingsComponent } from './settings/settings';
-import { WorkspaceReportsComponent } from '../../reports/pages/reports';
-import { WorkspaceFilesComponent } from './files/files';
-import { VolunteersComponent } from '../../volunteers/pages/volunteers';
-import { EquipmentComponent } from '../../equipment/pages/equipment';
-import { MedicalComponent } from '../../medical/pages/medical';
-import { AccreditationComponent } from '../../accreditation/pages/accreditation';
-import { StreamingComponent } from '../../streaming/pages/streaming';
-import { AutomationComponent } from '../../automation/pages/automation';
-import { AuctionsComponent } from '../../auctions/pages/auctions';
-import { TransfersComponent } from '../../transfers/pages/transfers';
-import { RostersComponent } from '../../rosters/pages/rosters';
-import { FinanceComponent } from '../../finance/pages/finance';
-import { GovernanceComponent } from '../../governance/pages/governance';
-import { RefereeDashboardComponent } from '../components/referee-dashboard/referee-dashboard';
-import { FootballConsoleComponent } from '../../competitions/consoles/football-console/football-console';
-import { CricketConsoleComponent } from '../../competitions/consoles/cricket-console/cricket-console';
-import { BadmintonConsoleComponent } from '../../competitions/consoles/badminton-console/badminton-console';
-import { GenericConsoleComponent } from '../../competitions/consoles/generic-console/generic-console';
-import { LineupModalComponent } from '../../competitions/components/lineup-modal';
 import { BottomNavComponent, BottomNavTab } from '../../../layouts/bottom-nav/bottom-nav';
-import {
-  getSportBadgeClass,
-  getSportIconClass,
-  formatMatchStatusDetail,
-  roleBadgeClass,
-} from '../../../shared';
+import { RefereeDashboardComponent } from '../components/referee-dashboard/referee-dashboard';
+import { RefereeMatchConsoleComponent } from '../components/referee-match-console/referee-match-console';
+import { WorkspaceDetailSkeletonComponent } from '../components/workspace-detail-skeleton/workspace-detail-skeleton';
+import { WorkspaceDetailErrorComponent } from '../components/workspace-detail-error/workspace-detail-error';
+import { WorkspaceTabsOutletComponent } from '../components/workspace-tabs-outlet/workspace-tabs-outlet';
+import { GlobalSearchHotkeyDirective } from '../directives/global-search-hotkey.directive';
 
-declare const L: any;
+import {
+  WorkspaceTab,
+  ServerSearchResults,
+  GlobalSearchResults,
+  EMPTY_SERVER_SEARCH,
+} from '../models/workspace-tab.type';
+import {
+  DashboardMatch,
+  DashboardCompetition,
+  DashboardScorer,
+  DashboardRatedPlayer,
+  DashboardOverviewResponse,
+  DeepLinkParams,
+} from '../models/dashboard.interface';
+import { filterDashboardForWorkspace } from '../utils/dashboard-filter.util';
+import {
+  memberHasPermission,
+  findMemberRoleSlug,
+  isWorkspaceOwner,
+  canManageMembersForSlug,
+  assignableRolesFor,
+} from '../utils/permission.util';
+import { mapTabToBottomNav } from '../utils/tab-mapping.util';
+import { computeGlobalSearchResults } from '../utils/global-search.util';
+import { extractMatchIds } from '../utils/match-context.util';
 
 @Component({
   selector: 'app-workspace-detail',
   standalone: true,
   imports: [
-    RouterLink,
-    FormsModule,
-    VenueListComponent,
-    VenueModalComponent,
-    TeamListComponent,
-    PlayerListComponent,
-    PlayerModalComponent,
-    WorkspaceEventsComponent,
     SidebarComponent,
     TopbarComponent,
-    WorkspaceDashboardComponent,
-    WorkspaceMembersComponent,
-    WorkspaceSettingsComponent,
-    WorkspaceReportsComponent,
-    WorkspaceFilesComponent,
-    QuicklinkDirective,
-    RefereeDashboardComponent,
-    FootballConsoleComponent,
-    CricketConsoleComponent,
-    BadmintonConsoleComponent,
-    GenericConsoleComponent,
-    LineupModalComponent,
     BottomNavComponent,
-    VolunteersComponent,
-    EquipmentComponent,
-    MedicalComponent,
-    AccreditationComponent,
-    StreamingComponent,
-    AutomationComponent,
-    AuctionsComponent,
-    TransfersComponent,
-    RostersComponent,
-    FinanceComponent,
-    GovernanceComponent,
+    RefereeDashboardComponent,
+    RefereeMatchConsoleComponent,
+    WorkspaceDetailSkeletonComponent,
+    WorkspaceDetailErrorComponent,
+    WorkspaceTabsOutletComponent,
+    GlobalSearchHotkeyDirective,
+    PlayerModalComponent,
+    VenueModalComponent,
+    LineupModalComponent,
   ],
   templateUrl: './workspace-detail.html',
   styleUrl: './workspace-detail.css',
@@ -139,13 +112,99 @@ export class WorkspaceDetailComponent implements OnInit {
   private eventService = inject(EventService);
   private competitionService = inject(CompetitionService);
   private storage = inject(StorageService);
+  private matchLock = inject(MatchLockService);
+  private crud = inject(WorkspaceCrudService);
 
+  // ── Core workspace state ───────────────────────────────────────────────────
+  workspace = signal<Workspace | null>(null);
+  allWorkspaces = signal<Workspace[]>([]);
+  members = signal<WorkspaceMember[]>([]);
+  roles = signal<Role[]>([]);
+  isLoading = signal(true);
+  error = signal('');
+  activeTab = signal<WorkspaceTab>('overview');
+  isSidebarOpen = signal(true);
+
+  // ── Selection state ────────────────────────────────────────────────────────
   selectedPlayerId = signal<string | null>(null);
   selectedTeamId = signal<string | null>(null);
+  selectedFileId = signal<string | null>(null);
+
+  // ── Overview dashboard signals ─────────────────────────────────────────────
+  overviewLiveMatches = signal<DashboardMatch[]>([]);
+  overviewUpcomingMatches = signal<DashboardMatch[]>([]);
+  overviewCompletedMatches = signal<DashboardMatch[]>([]);
+  overviewRunningCompetitions = signal<DashboardCompetition[]>([]);
+  overviewTopScorers = signal<DashboardScorer[]>([]);
+  overviewTopRatedPlayers = signal<DashboardRatedPlayer[]>([]);
+  selectedOverviewCompId = signal<string>('');
+  selectedOverviewComp = signal<DashboardCompetition | null>(null);
+  isOverviewLoading = signal<boolean>(false);
+
+  allWorkspaceMatches = computed<DashboardMatch[]>(() => [
+    ...this.overviewLiveMatches(),
+    ...this.overviewUpcomingMatches(),
+    ...this.overviewCompletedMatches(),
+  ]);
+
+  // ── Global Search State ────────────────────────────────────────────────────
+  globalSearchQuery = signal<string>('');
+  showGlobalSearchResults = signal<boolean>(false);
+  allCompetitions = signal<Competition[]>([]);
+  serverSearchResults = signal<ServerSearchResults>(EMPTY_SERVER_SEARCH);
+
+  globalSearchResults = computed<GlobalSearchResults>(() =>
+    computeGlobalSearchResults({
+      query: this.globalSearchQuery(),
+      events: this.events(),
+      competitions: this.allCompetitions(),
+      venues: this.venues(),
+      members: this.members(),
+      serverResults: this.serverSearchResults(),
+    }),
+  );
+
+  // ── Invitation & notification state ────────────────────────────────────────
+  pendingInvitations = signal<WorkspaceMember[]>([]);
+  notifications = signal<AppNotification[]>([]);
+  isNotificationOpen = signal(false);
+  isProcessingInvitation = signal(false);
+  unreadNotificationsCount = computed(() => this.notifications().filter((n) => !n.isRead).length);
+
+  // ── Image upload state ─────────────────────────────────────────────────────
+  isUploadingAvatar = signal(false);
+
+  // ── Domain data signals ────────────────────────────────────────────────────
+  teams = signal<Team[]>([]);
+  players = signal<Player[]>([]);
+  events = signal<WorkspaceEvent[]>([]);
+  venues = signal<Venue[]>([]);
+
+  // ── Events + competitions traversal state (shared with events child) ───────
+  selectedEvent = signal<WorkspaceEvent | null>(null);
+  competitions = signal<Competition[]>([]);
+  selectedCompetition = signal<Competition | null>(null);
+  stages = signal<CompetitionStage[]>([]);
+  selectedStage = signal<CompetitionStage | null>(null);
+  matches = signal<Match[]>([]);
+  selectedMatch = signal<Match | null>(null);
+  matchLineup = signal<MatchPlayer[]>([]);
+  activeCompetitionTab = signal<'matches' | 'stats' | 'predictions'>('matches');
+
+  // ── Modal state ────────────────────────────────────────────────────────────
+  isPlayerModalOpen = signal(false);
+  editingPlayer = signal<Player | null>(null);
+  isVenueModalOpen = signal(false);
+  editingVenue = signal<Venue | null>(null);
+  isUserDropdownOpen = signal(false);
+  isLineupModalOpen = signal(false);
+
+  private currentSubscribedWorkspaceId: string | null = null;
 
   constructor() {
+    // When the top-level tab changes, clear any deep selections that only
+    // make sense inside their own tab (team detail, player detail, file).
     effect(() => {
-      // Clear team/player/file details when main tab changes
       this.activeTab();
       this.selectedTeamId.set(null);
       this.selectedPlayerId.set(null);
@@ -156,370 +215,41 @@ export class WorkspaceDetailComponent implements OnInit {
       () => {
         const query = this.globalSearchQuery().trim();
         const workspaceId = this.workspace()?.id;
-        if (query && workspaceId) {
-          this.workspaceService.globalSearch(workspaceId, query).subscribe({
-            next: (res) => {
-              this.serverSearchResults.set({
-                files: res.files || [],
-                teams: res.teams || [],
-                players: res.players || [],
-              });
-            },
-            error: (err) => {
-              console.error('Server global search failed:', err);
-              // Fallback: search locally
-              const queryLower = query.toLowerCase();
-              const matchedTeams = this.teams().filter(
-                (t) =>
-                  t.name.toLowerCase().includes(queryLower) ||
-                  (t.code && t.code.toLowerCase().includes(queryLower)),
-              );
-              const matchedPlayers = this.players().filter(
-                (p) =>
-                  p.user.username.toLowerCase().includes(queryLower) ||
-                  p.team.name.toLowerCase().includes(queryLower),
-              );
-              this.serverSearchResults.set({
-                files: [],
-                teams: matchedTeams,
-                players: matchedPlayers,
-              });
-            },
-          });
-        } else {
-          this.serverSearchResults.set({ files: [], teams: [], players: [] });
+        if (!query || !workspaceId) {
+          this.serverSearchResults.set(EMPTY_SERVER_SEARCH);
+          return;
         }
+        this.workspaceService.globalSearch(workspaceId, query).subscribe({
+          next: (res) => {
+            this.serverSearchResults.set({
+              files: res.files || [],
+              teams: res.teams || [],
+              players: res.players || [],
+            });
+          },
+          error: (err) => {
+            console.error('Server global search failed:', err);
+            const queryLower = query.toLowerCase();
+            const matchedTeams = this.teams().filter(
+              (t) =>
+                t.name.toLowerCase().includes(queryLower) ||
+                (t.code && t.code.toLowerCase().includes(queryLower)),
+            );
+            const matchedPlayers = this.players().filter(
+              (p) =>
+                p.user.username.toLowerCase().includes(queryLower) ||
+                p.team.name.toLowerCase().includes(queryLower),
+            );
+            this.serverSearchResults.set({
+              files: [],
+              teams: matchedTeams,
+              players: matchedPlayers,
+            });
+          },
+        });
       },
       { allowSignalWrites: true },
     );
-  }
-
-  @HostListener('document:keydown', ['$event'])
-  handleKeyboardEvent(event: KeyboardEvent) {
-    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
-      event.preventDefault();
-      const el = document.getElementById('globalSearchInput');
-      if (el) {
-        el.focus();
-        this.showGlobalSearchResults.set(true);
-      }
-    }
-  }
-
-  map: any = null;
-  marker: any = null;
-
-  workspace = signal<Workspace | null>(null);
-  allWorkspaces = signal<Workspace[]>([]);
-  members = signal<WorkspaceMember[]>([]);
-  roles = signal<Role[]>([]);
-  isLoading = signal(true);
-  error = signal('');
-  activeTab = signal<
-    | 'overview'
-    | 'members'
-    | 'settings'
-    | 'teams'
-    | 'players'
-    | 'events'
-    | 'venues'
-    | 'reports'
-    | 'files'
-    | 'volunteers'
-    | 'equipment'
-    | 'medical'
-    | 'accreditation'
-    | 'streaming'
-    | 'automation'
-    | 'auctions'
-    | 'transfers'
-    | 'rosters'
-    | 'finance'
-    | 'governance'
-  >('overview');
-  isSidebarOpen = signal(true);
-
-  // ── Workspace Dashboard Overview Signals ─────────────────────────────────────
-  overviewLiveMatches = signal<any[]>([]);
-  overviewUpcomingMatches = signal<any[]>([]);
-  overviewCompletedMatches = signal<any[]>([]);
-  allWorkspaceMatches = computed(() => {
-    return [
-      ...this.overviewLiveMatches(),
-      ...this.overviewUpcomingMatches(),
-      ...this.overviewCompletedMatches(),
-    ];
-  });
-  overviewRunningCompetitions = signal<any[]>([]);
-  overviewTopScorers = signal<any[]>([]);
-  overviewTopRatedPlayers = signal<any[]>([]);
-  selectedOverviewCompId = signal<string>('');
-  selectedOverviewComp = signal<any | null>(null);
-  isOverviewLoading = signal<boolean>(false);
-
-  // ── Global Search State ──────────────────────────────────────────────────────
-  globalSearchQuery = signal<string>('');
-  showGlobalSearchResults = signal<boolean>(false);
-  allCompetitions = signal<Competition[]>([]);
-  serverSearchResults = signal<{ files: any[]; teams: any[]; players: any[] }>({
-    files: [],
-    teams: [],
-    players: [],
-  });
-  selectedFileId = signal<string | null>(null);
-
-  // ── Search State & Filtered Computed Listings ────────────────────────────────
-  memberSearchQuery = signal<string>('');
-  teamSearchQuery = signal<string>('');
-  playerSearchQuery = signal<string>('');
-  eventSearchQuery = signal<string>('');
-  venueSearchQuery = signal<string>('');
-
-  filteredMembers = computed(() => {
-    const query = this.memberSearchQuery().toLowerCase().trim();
-    const list = this.members();
-    if (!query) return list;
-    return list.filter(
-      (m) =>
-        m.user.username.toLowerCase().includes(query) || m.role.name.toLowerCase().includes(query),
-    );
-  });
-
-  filteredTeams = computed(() => {
-    const query = this.teamSearchQuery().toLowerCase().trim();
-    const list = this.teams();
-    if (!query) return list;
-    return list.filter(
-      (t) =>
-        t.name.toLowerCase().includes(query) ||
-        (t.code && t.code.toLowerCase().includes(query)) ||
-        (t.description && t.description.toLowerCase().includes(query)),
-    );
-  });
-
-  filteredPlayers = computed(() => {
-    const query = this.playerSearchQuery().toLowerCase().trim();
-    const list = this.players();
-    if (!query) return list;
-    return list.filter(
-      (p) =>
-        p.user.username.toLowerCase().includes(query) ||
-        p.team.name.toLowerCase().includes(query) ||
-        (p.jerseyNumber && String(p.jerseyNumber).toLowerCase().includes(query)),
-    );
-  });
-
-  filteredEvents = computed(() => {
-    const query = this.eventSearchQuery().toLowerCase().trim();
-    const list = this.events();
-    if (!query) return list;
-    return list.filter(
-      (e) =>
-        e.name.toLowerCase().includes(query) ||
-        e.status.toLowerCase().includes(query) ||
-        (e.description && e.description.toLowerCase().includes(query)),
-    );
-  });
-
-  filteredVenues = computed(() => {
-    const query = this.venueSearchQuery().toLowerCase().trim();
-    const list = this.venues();
-    if (!query) return list;
-    return list.filter(
-      (v) =>
-        v.name.toLowerCase().includes(query) ||
-        (v.location && v.location.toLowerCase().includes(query)),
-    );
-  });
-
-  globalSearchResults = computed(() => {
-    const query = this.globalSearchQuery().toLowerCase().trim();
-    if (!query) {
-      return {
-        teams: [],
-        players: [],
-        events: [],
-        competitions: [],
-        venues: [],
-        members: [],
-        files: [],
-        totalCount: 0,
-      };
-    }
-
-    const matchedEvents = this.events().filter(
-      (e) =>
-        e.name.toLowerCase().includes(query) ||
-        e.status.toLowerCase().includes(query) ||
-        (e.description && e.description.toLowerCase().includes(query)),
-    );
-
-    const matchedCompetitions = this.allCompetitions().filter(
-      (c) =>
-        c.name.toLowerCase().includes(query) ||
-        c.status.toLowerCase().includes(query) ||
-        (c.sport?.name && c.sport.name.toLowerCase().includes(query)),
-    );
-
-    const matchedVenues = this.venues().filter(
-      (v) =>
-        v.name.toLowerCase().includes(query) ||
-        (v.location && v.location.toLowerCase().includes(query)),
-    );
-
-    const matchedMembers = this.members().filter(
-      (m) =>
-        m.user.username.toLowerCase().includes(query) || m.role.name.toLowerCase().includes(query),
-    );
-
-    // Merge server-side search results (Elasticsearch / OpenSearch)
-    const serverResults = this.serverSearchResults();
-    const matchedTeams = serverResults.teams;
-    const matchedPlayers = serverResults.players;
-    const matchedFiles = serverResults.files;
-
-    const totalCount =
-      matchedTeams.length +
-      matchedPlayers.length +
-      matchedEvents.length +
-      matchedCompetitions.length +
-      matchedVenues.length +
-      matchedMembers.length +
-      matchedFiles.length;
-
-    return {
-      teams: matchedTeams,
-      players: matchedPlayers,
-      events: matchedEvents,
-      competitions: matchedCompetitions,
-      venues: matchedVenues,
-      members: matchedMembers,
-      files: matchedFiles,
-      totalCount,
-    };
-  });
-
-  selectGlobalTeam(team: Team) {
-    this.activeTab.set('teams');
-    this.selectedTeamId.set(team.id);
-    this.clearGlobalSearch();
-  }
-
-  selectGlobalPlayer(player: Player) {
-    this.activeTab.set('players');
-    this.selectedPlayerId.set(player.id);
-    this.clearGlobalSearch();
-  }
-
-  selectGlobalEvent(event: WorkspaceEvent) {
-    this.activeTab.set('events');
-    this.selectedEvent.set(event);
-    this.clearGlobalSearch();
-  }
-
-  selectGlobalCompetition(comp: Competition) {
-    this.activeTab.set('events');
-    const parentEvent = this.events().find((e) => e.id === comp.eventId);
-    if (parentEvent) {
-      this.selectedEvent.set(parentEvent);
-      this.selectedCompetition.set(comp);
-    }
-    this.clearGlobalSearch();
-  }
-
-  selectGlobalVenue(venue: Venue) {
-    this.activeTab.set('venues');
-    this.clearGlobalSearch();
-  }
-
-  selectGlobalMember(member: WorkspaceMember) {
-    this.activeTab.set('members');
-    this.clearGlobalSearch();
-  }
-
-  selectGlobalFile(file: WorkspaceFile) {
-    this.activeTab.set('files');
-    this.selectedFileId.set(file.id);
-    this.clearGlobalSearch();
-  }
-
-  clearGlobalSearch() {
-    this.globalSearchQuery.set('');
-    this.showGlobalSearchResults.set(false);
-  }
-
-  // Invitation & Notification signals
-  pendingInvitations = signal<WorkspaceMember[]>([]);
-  notifications = signal<AppNotification[]>([]);
-  isNotificationOpen = signal(false);
-  isProcessingInvitation = signal(false);
-
-  unreadNotificationsCount = computed(() => this.notifications().filter((n) => !n.isRead).length);
-  totalBadgeCount = computed(
-    () => this.pendingInvitations().length + this.unreadNotificationsCount(),
-  );
-  enableExtraTime = signal(false);
-  enablePenaltyShootout = signal(false);
-  extraTimeHalfDuration = signal(15);
-
-  // Image Upload Loading States
-  isUploadingAvatar = signal(false);
-  isUploadingWorkspaceLogo = signal(false);
-
-  isUploadingEventLogo = signal(false);
-
-  // ── Teams State ────────────────────────────────────────────────────────────
-  teams = signal<Team[]>([]);
-  isTeamModalOpen = signal(false);
-  editingTeam = signal<Team | null>(null);
-
-  // ── Players State ──────────────────────────────────────────────────────────
-  players = signal<Player[]>([]);
-  isPlayerModalOpen = signal(false);
-  editingPlayer = signal<Player | null>(null);
-
-  // ── Events State ────────────────────────────────────────────────────────────
-  events = signal<WorkspaceEvent[]>([]);
-  // ── Events & Competitions State (Shared with child component) ───────────────
-  selectedEvent = signal<WorkspaceEvent | null>(null);
-  competitions = signal<Competition[]>([]);
-  selectedCompetition = signal<Competition | null>(null);
-  stages = signal<CompetitionStage[]>([]);
-  selectedStage = signal<CompetitionStage | null>(null);
-  matches = signal<Match[]>([]);
-  selectedMatch = signal<Match | null>(null);
-  matchLineup = signal<MatchPlayer[]>([]);
-  activeCompetitionTab = signal<'matches' | 'stats'>('matches');
-
-  // ── Venues State ───────────────────────────────────────────────────────────
-  venues = signal<Venue[]>([]);
-  isVenueModalOpen = signal(false);
-  editingVenue = signal<Venue | null>(null);
-  isUserDropdownOpen = signal(false);
-
-  // ── Member Invite State ────────────────────────────────────────────────────
-  inviteUsername = signal('');
-  inviteRole = signal<string>('viewer');
-  isInviting = signal(false);
-  inviteError = signal('');
-  inviteSuccess = signal('');
-
-  // ── Role Create State ──────────────────────────────────────────────────────
-  newRoleName = signal('');
-  newRoleDescription = signal('');
-  isCreatingRole = signal(false);
-  roleCreateError = signal('');
-  roleCreateSuccess = signal('');
-
-  // ── Assignable roles for invite/member dropdown (non-owner) ───────────────
-  get assignableRoles(): Role[] {
-    return this.roles().filter((r) => r.slug !== 'owner');
-  }
-
-  closeSidebarOnMobile() {
-    if (window.innerWidth < 1024) {
-      this.isSidebarOpen.set(false);
-    }
   }
 
   ngOnInit() {
@@ -536,27 +266,7 @@ export class WorkspaceDetailComponent implements OnInit {
     this.socketService.matchUpdated$
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((updatedMatch) => {
-        // 1. Update in the matches list signal
-        this.matches.update((prev) =>
-          prev.map((m) => (m.id === updatedMatch.id ? updatedMatch : m)),
-        );
-
-        // 2. Update in overviewLiveMatches
-        this.overviewLiveMatches.update((prev) =>
-          prev.map((m) => (m.id === updatedMatch.id ? updatedMatch : m)),
-        );
-
-        // 3. Update in overviewUpcomingMatches
-        this.overviewUpcomingMatches.update((prev) =>
-          prev.map((m) => (m.id === updatedMatch.id ? updatedMatch : m)),
-        );
-
-        // Update in overviewCompletedMatches
-        this.overviewCompletedMatches.update((prev) =>
-          prev.map((m) => (m.id === updatedMatch.id ? updatedMatch : m)),
-        );
-
-        // 4. Update selectedMatch if currently viewing this match in live console
+        this.mergeMatchUpdate(updatedMatch);
         if (this.selectedMatch()?.id === updatedMatch.id) {
           this.selectedMatch.set(updatedMatch);
         }
@@ -574,18 +284,26 @@ export class WorkspaceDetailComponent implements OnInit {
 
     this.route.paramMap.subscribe((params) => {
       const id = params.get('id');
-      if (id) {
-        this.loadWorkspaceDetails(id);
-      }
+      if (id) this.loadWorkspaceDetails(id);
     });
 
     this.route.queryParams.subscribe((params) => {
       if (params['matchId'] || params['eventId']) {
-        this.handleDeepLink(params);
+        this.handleDeepLink({
+          eventId: params['eventId'],
+          competitionId: params['competitionId'],
+          stageId: params['stageId'],
+          matchId: params['matchId'],
+        });
       }
     });
   }
 
+  onGlobalSearchHotkey(): void {
+    this.showGlobalSearchResults.set(true);
+  }
+
+  // ── Workspace loading ──────────────────────────────────────────────────────
   loadAllWorkspaces() {
     this.workspaceService.getAll().subscribe({
       next: (data) => this.allWorkspaces.set(data),
@@ -598,8 +316,6 @@ export class WorkspaceDetailComponent implements OnInit {
       this.router.navigate(['/workspaces', wsId]);
     }
   }
-
-  private currentSubscribedWorkspaceId: string | null = null;
 
   loadWorkspaceDetails(id: string) {
     this.isLoading.set(true);
@@ -635,17 +351,14 @@ export class WorkspaceDetailComponent implements OnInit {
   loadWorkspaceDashboard(workspaceId: string) {
     if (this.uiService.isOffline()) {
       this.storage.getItem(`cached_dashboard_${workspaceId}`).then((cached) => {
-        if (cached) {
-          const data = JSON.parse(cached);
-          this.applyDashboardData(data, workspaceId);
-        }
+        if (cached) this.applyDashboardData(JSON.parse(cached), workspaceId);
       });
       return;
     }
 
     this.isOverviewLoading.set(true);
     this.workspaceService.getDashboardOverview().subscribe({
-      next: (data) => {
+      next: (data: DashboardOverviewResponse) => {
         this.storage.setItem(`cached_dashboard_${workspaceId}`, JSON.stringify(data));
         this.applyDashboardData(data, workspaceId);
         this.isOverviewLoading.set(false);
@@ -657,91 +370,34 @@ export class WorkspaceDetailComponent implements OnInit {
     });
   }
 
-  private applyDashboardData(data: any, workspaceId: string) {
-    const live = (data.liveMatches || []).filter(
-      (m: any) =>
-        m.workspaceId === workspaceId || m.stage?.competition?.event?.workspaceId === workspaceId,
-    );
-    this.overviewLiveMatches.set(live);
-
-    const upcoming = (data.upcomingMatches || []).filter(
-      (m: any) =>
-        m.workspaceId === workspaceId || m.stage?.competition?.event?.workspaceId === workspaceId,
-    );
-    this.overviewUpcomingMatches.set(upcoming);
-
-    const completed = (data.completedMatches || []).filter(
-      (m: any) =>
-        m.workspaceId === workspaceId || m.stage?.competition?.event?.workspaceId === workspaceId,
-    );
-    this.overviewCompletedMatches.set(completed);
-
-    const runningComps = (data.runningCompetitions || []).filter(
-      (c: any) => c.event?.workspaceId === workspaceId || c.workspaceId === workspaceId,
-    );
-    this.overviewRunningCompetitions.set(runningComps);
-    if (runningComps.length > 0) {
-      this.selectedOverviewCompId.set(runningComps[0].id);
-      this.selectedOverviewComp.set(runningComps[0]);
+  private applyDashboardData(data: DashboardOverviewResponse, workspaceId: string) {
+    const filtered = filterDashboardForWorkspace(data, workspaceId);
+    this.overviewLiveMatches.set(filtered.live);
+    this.overviewUpcomingMatches.set(filtered.upcoming);
+    this.overviewCompletedMatches.set(filtered.completed);
+    this.overviewRunningCompetitions.set(filtered.runningCompetitions);
+    if (filtered.runningCompetitions.length > 0) {
+      this.selectedOverviewCompId.set(filtered.runningCompetitions[0].id);
+      this.selectedOverviewComp.set(filtered.runningCompetitions[0]);
     }
-
-    this.overviewTopScorers.set(data.topScorers || []);
-    this.overviewTopRatedPlayers.set(data.topRatedPlayers || []);
+    this.overviewTopScorers.set(filtered.topScorers);
+    this.overviewTopRatedPlayers.set(filtered.topRatedPlayers);
   }
 
-  onSelectOverviewCompetition(comp: any) {
-    this.selectedOverviewCompId.set(comp.id);
-    this.selectedOverviewComp.set(comp);
-  }
-
-  onEnterLiveMatchFromOverview(match: any) {
-    const eventId = match.stage?.competition?.eventId || match.eventId;
-    const competitionId = match.stage?.competitionId || match.competitionId;
-    const stageId = match.stageId;
-    const matchId = match.id;
-
+  onEnterLiveMatchFromOverview(match: DashboardMatch) {
+    const { eventId, competitionId, stageId } = extractMatchIds(match as never);
     if (eventId) {
-      this.handleDeepLink({ eventId, competitionId, stageId, matchId });
+      this.handleDeepLink({
+        eventId,
+        competitionId: competitionId ?? undefined,
+        stageId: stageId ?? undefined,
+        matchId: match.id,
+      });
     }
   }
 
-  getSportBadgeClass = getSportBadgeClass;
-  getSportIconClass = getSportIconClass;
-
-  openEventModal() {
-    this.activeTab.set('events');
-  }
-
-  openTeamModal() {
-    this.activeTab.set('teams');
-  }
-
-  openPlayerModal() {
-    this.activeTab.set('players');
-  }
-
-  openVenueModal() {
-    this.activeTab.set('venues');
-  }
-
-  formatMatchStatusDetail = formatMatchStatusDetail;
-
-  // Map the sidebar's fine-grained activeTab down to the four visible
-  // destinations rendered in the mobile bottom nav.
-  bottomNavKey = computed<BottomNavTab>(() => {
-    const tab = this.activeTab();
-    if (
-      tab === 'events' ||
-      tab === 'venues' ||
-      tab === 'reports' ||
-      tab === 'settings' ||
-      tab === 'files'
-    ) {
-      return tab === 'events' ? 'events' : 'overview';
-    }
-    if (tab === 'players' || tab === 'teams') return 'players';
-    return 'overview';
-  });
+  // ── Bottom navigation ──────────────────────────────────────────────────────
+  bottomNavKey = computed<BottomNavTab>(() => mapTabToBottomNav(this.activeTab()));
 
   onBottomNavTab(
     tab: 'overview' | 'events' | 'players' | 'venues' | 'reports' | 'settings' | 'files',
@@ -749,12 +405,12 @@ export class WorkspaceDetailComponent implements OnInit {
     this.activeTab.set(tab);
   }
 
-  /** Referee dashboard pull-to-refresh: reload workspace dashboard data. */
+  // ── Referee dashboard refresh ──────────────────────────────────────────────
   onRefereeDashboardRefresh(done: () => void) {
     const ws = this.workspace();
     if (!ws) return done();
     this.workspaceService.getDashboardOverview().subscribe({
-      next: (data) => {
+      next: (data: DashboardOverviewResponse) => {
         this.storage.setItem(`cached_dashboard_${ws.id}`, JSON.stringify(data));
         this.applyDashboardData(data, ws.id);
         done();
@@ -763,7 +419,8 @@ export class WorkspaceDetailComponent implements OnInit {
     });
   }
 
-  handleDeepLink(params: any) {
+  // ── Deep link navigation ───────────────────────────────────────────────────
+  handleDeepLink(params: DeepLinkParams) {
     const { eventId, competitionId, stageId, matchId } = params;
     const ws = this.workspace();
     if (!ws || !eventId) return;
@@ -799,9 +456,7 @@ export class WorkspaceDetailComponent implements OnInit {
                     next: (matches) => {
                       this.matches.set(matches);
                       const m = matches.find((match) => match.id === matchId);
-                      if (m) {
-                        this.selectedMatch.set(m);
-                      }
+                      if (m) this.selectedMatch.set(m);
                     },
                   });
               },
@@ -812,6 +467,7 @@ export class WorkspaceDetailComponent implements OnInit {
     });
   }
 
+  // ── Members ────────────────────────────────────────────────────────────────
   loadMembers(workspaceId: string) {
     this.workspaceService.getMembers(workspaceId).subscribe({
       next: (members) => {
@@ -829,26 +485,24 @@ export class WorkspaceDetailComponent implements OnInit {
     });
   }
 
+  get assignableRoles(): Role[] {
+    return assignableRolesFor(this.roles());
+  }
+
   isOwner(): boolean {
-    return this.workspace()?.ownerId === this.authService.currentUser()?.id;
+    return isWorkspaceOwner(this.workspace(), this.authService.currentUser()?.id);
   }
 
   getCurrentUserRoleSlug(): string {
-    const userId = this.authService.currentUser()?.id;
-    return this.members().find((m) => m.userId === userId)?.role?.slug ?? 'viewer';
+    return findMemberRoleSlug(this.members(), this.authService.currentUser()?.id);
   }
 
   canManageMembers(): boolean {
-    const slug = this.getCurrentUserRoleSlug();
-    return slug === 'owner' || slug === 'administrator';
+    return canManageMembersForSlug(this.getCurrentUserRoleSlug());
   }
 
   hasPermission(permission: string): boolean {
-    const userId = this.authService.currentUser()?.id;
-    const member = this.members().find((m) => m.userId === userId);
-    if (!member || !member.role) return false;
-    if (member.role.slug === 'owner') return true;
-    return member.role.permissions?.some((p) => p.slug === permission) ?? false;
+    return memberHasPermission(this.members(), this.authService.currentUser()?.id, permission);
   }
 
   onSignOut(): void {
@@ -856,180 +510,57 @@ export class WorkspaceDetailComponent implements OnInit {
     this.router.navigate(['/login']);
   }
 
-  isCopied = signal(false);
-
-  getInviteLink(): string {
-    return `${window.location.origin}/workspaces/join?id=${this.workspace()?.id}`;
+  // ── Global search click handlers ───────────────────────────────────────────
+  selectGlobalTeam(team: Team) {
+    this.activeTab.set('teams');
+    this.selectedTeamId.set(team.id);
+    this.clearGlobalSearch();
   }
 
-  getQrCodeUrl(): string {
-    return `https://api.qrserver.com/v1/create-qr-code/?size=150x150&color=222831&bgcolor=EEEEEE&data=${encodeURIComponent(this.getInviteLink())}`;
+  selectGlobalPlayer(player: Player) {
+    this.activeTab.set('players');
+    this.selectedPlayerId.set(player.id);
+    this.clearGlobalSearch();
   }
 
-  copyInviteLink() {
-    navigator.clipboard.writeText(this.getInviteLink());
-    this.isCopied.set(true);
-    setTimeout(() => this.isCopied.set(false), 2000);
+  selectGlobalEvent(event: WorkspaceEvent) {
+    this.activeTab.set('events');
+    this.selectedEvent.set(event);
+    this.clearGlobalSearch();
   }
 
-  // ── Role Helpers ────────────────────────────────────────────────────────────
-
-  roleBadgeClass = roleBadgeClass;
-
-  memberCountForRole(roleId: string): number {
-    return this.members().filter((m) => m.role?.id === roleId).length;
+  selectGlobalCompetition(comp: Competition) {
+    this.activeTab.set('events');
+    const parentEvent = this.events().find((e) => e.id === comp.eventId);
+    if (parentEvent) {
+      this.selectedEvent.set(parentEvent);
+      this.selectedCompetition.set(comp);
+    }
+    this.clearGlobalSearch();
   }
 
-  // ── Invite Member ──────────────────────────────────────────────────────────
-
-  onInvite() {
-    const username = this.inviteUsername().trim();
-    const roleSlug = this.inviteRole();
-    const ws = this.workspace();
-    if (!ws || !username) return;
-
-    this.isInviting.set(true);
-    this.inviteError.set('');
-    this.inviteSuccess.set('');
-
-    this.workspaceService.inviteMember(ws.id, username, roleSlug).subscribe({
-      next: (newMember) => {
-        this.isInviting.set(false);
-        this.inviteSuccess.set(`${username} has been invited successfully!`);
-        this.inviteUsername.set('');
-      },
-      error: (err) => {
-        this.isInviting.set(false);
-        this.inviteError.set(err.error?.message ?? 'Failed to invite user.');
-      },
-    });
+  selectGlobalVenue(_venue: Venue) {
+    this.activeTab.set('venues');
+    this.clearGlobalSearch();
   }
 
-  // ── Update Member Role ─────────────────────────────────────────────────────
-
-  onUpdateRole(member: WorkspaceMember, event: Event) {
-    const select = event.target as HTMLSelectElement;
-    const newRoleSlug = select.value;
-    const ws = this.workspace();
-    if (!ws) return;
-
-    const newRole = this.roles().find((r) => r.slug === newRoleSlug);
-    if (!newRole) return;
-
-    const originalRole = member.role;
-
-    // Optimistic Update
-    this.members.update((prev) =>
-      prev.map((m) => (m.id === member.id ? { ...m, role: newRole } : m)),
-    );
-
-    this.workspaceService.updateMemberRole(ws.id, member.userId, newRoleSlug).subscribe({
-      next: (updated) => {
-        this.members.update((prev) =>
-          prev.map((m) => (m.id === member.id ? { ...m, role: updated.role } : m)),
-        );
-        this.uiService.success(`Role for ${member.user.username} updated to ${updated.role.name}.`);
-      },
-      error: (err) => {
-        // Rollback
-        this.members.update((prev) =>
-          prev.map((m) => (m.id === member.id ? { ...m, role: originalRole } : m)),
-        );
-        select.value = originalRole?.slug ?? '';
-        this.uiService.error(err.error?.message ?? 'Failed to update member role.');
-      },
-    });
+  selectGlobalMember(_member: WorkspaceMember) {
+    this.activeTab.set('members');
+    this.clearGlobalSearch();
   }
 
-  // ── Remove Member ──────────────────────────────────────────────────────────
-
-  async onRemoveMember(member: WorkspaceMember) {
-    const ws = this.workspace();
-    if (!ws) return;
-    const confirmed = await this.uiService.confirm({
-      title: 'Remove Member',
-      message: `Remove "${member.user.username}" from this workspace?`,
-      confirmText: 'Remove',
-      type: 'danger',
-    });
-    if (!confirmed) return;
-
-    const originalMembers = this.members();
-
-    // Optimistic Update
-    this.members.update((prev) => prev.filter((m) => m.userId !== member.userId));
-
-    this.workspaceService.removeMember(ws.id, member.userId).subscribe({
-      next: () => {
-        this.uiService.success(`Removed "${member.user.username}" from workspace.`);
-      },
-      error: (err) => {
-        // Rollback
-        this.members.set(originalMembers);
-        this.uiService.error(err.error?.message ?? 'Failed to remove member.');
-      },
-    });
+  selectGlobalFile(file: WorkspaceFile) {
+    this.activeTab.set('files');
+    this.selectedFileId.set(file.id);
+    this.clearGlobalSearch();
   }
 
-  // ── Create Custom Role ─────────────────────────────────────────────────────
-
-  onCreateRole() {
-    const name = this.newRoleName().trim();
-    const description = this.newRoleDescription().trim();
-    const ws = this.workspace();
-    if (!ws || !name) return;
-
-    this.isCreatingRole.set(true);
-    this.roleCreateError.set('');
-    this.roleCreateSuccess.set('');
-
-    this.workspaceService.createRole(ws.id, name, description || undefined).subscribe({
-      next: (role) => {
-        this.isCreatingRole.set(false);
-        this.roleCreateSuccess.set(`Role "${role.name}" created!`);
-        this.newRoleName.set('');
-        this.newRoleDescription.set('');
-        this.roles.update((prev) => [...prev, role]);
-      },
-      error: (err) => {
-        this.isCreatingRole.set(false);
-        this.roleCreateError.set(err.error?.message ?? 'Failed to create role.');
-      },
-    });
-  }
-
-  // ── Delete Custom Role ─────────────────────────────────────────────────────
-
-  async onDeleteRole(role: Role) {
-    const ws = this.workspace();
-    if (!ws) return;
-    const confirmed = await this.uiService.confirm({
-      title: 'Delete Custom Role',
-      message: `Delete the role "${role.name}"? This cannot be undone.`,
-      confirmText: 'Delete',
-      type: 'danger',
-    });
-    if (!confirmed) return;
-
-    const originalRoles = this.roles();
-
-    // Optimistic Update
-    this.roles.update((prev) => prev.filter((r) => r.id !== role.id));
-
-    this.workspaceService.removeRole(ws.id, role.id).subscribe({
-      next: () => {
-        this.uiService.success(`Role "${role.name}" deleted successfully.`);
-      },
-      error: (err) => {
-        // Rollback
-        this.roles.set(originalRoles);
-        this.uiService.error(err.error?.message ?? 'Failed to delete role.');
-      },
-    });
+  clearGlobalSearch() {
+    this.globalSearchQuery.set('');
+    this.showGlobalSearchResults.set(false);
   }
 
   // ── Venues CRUD ────────────────────────────────────────────────────────────
-
   loadVenues(workspaceId: string) {
     this.venueService.getVenues(workspaceId).subscribe({
       next: (venues) => this.venues.set(venues),
@@ -1053,52 +584,21 @@ export class WorkspaceDetailComponent implements OnInit {
   }
 
   onVenueSaved(savedVenue: Venue) {
-    const isEdit = this.venues().some((v) => v.id === savedVenue.id);
-    if (isEdit) {
-      this.venues.update((prev) => prev.map((v) => (v.id === savedVenue.id ? savedVenue : v)));
-      this.matches.update((prevMatches) =>
-        prevMatches.map((m) => (m.venueId === savedVenue.id ? { ...m, venue: savedVenue } : m)),
-      );
-    } else {
-      this.venues.update((prev) => [...prev, savedVenue]);
-    }
+    this.crud.mergeSavedVenue(savedVenue, this.venues, this.matches);
   }
 
-  async onDeleteVenue(venue: Venue) {
+  onDeleteVenue(venue: Venue) {
     const ws = this.workspace();
     if (!ws) return;
-    const confirmed = await this.uiService.confirm({
-      title: 'Delete Venue',
-      message: `Delete venue "${venue.name}"? This cannot be undone.`,
-      confirmText: 'Delete',
-      type: 'danger',
-    });
-    if (!confirmed) return;
-
-    const originalVenues = this.venues();
-    const originalMatches = this.matches();
-
-    // Optimistic Update
-    this.venues.update((prev) => prev.filter((v) => v.id !== venue.id));
-    this.matches.update((prevMatches) =>
-      prevMatches.map((m) => (m.venueId === venue.id ? { ...m, venueId: null, venue: null } : m)),
-    );
-
-    this.venueService.removeVenue(ws.id, venue.id).subscribe({
-      next: () => {
-        this.uiService.success(`Venue "${venue.name}" deleted successfully.`);
-      },
-      error: (err) => {
-        // Rollback
-        this.venues.set(originalVenues);
-        this.matches.set(originalMatches);
-        this.uiService.error(err.error?.message ?? 'Failed to delete venue.');
-      },
+    this.crud.deleteVenue({
+      workspaceId: ws.id,
+      venue,
+      venues: this.venues,
+      matches: this.matches,
     });
   }
 
   // ── Teams CRUD ─────────────────────────────────────────────────────────────
-
   loadTeams(workspaceId: string) {
     this.teamService.getTeams(workspaceId).subscribe({
       next: (teams) => this.teams.set(teams),
@@ -1107,91 +607,30 @@ export class WorkspaceDetailComponent implements OnInit {
   }
 
   onAddTeam() {
-    this.editingTeam.set(null);
-    this.isTeamModalOpen.set(true);
+    // Team add/edit is handled by the child TeamList component; kept as no-op
+    // for parity with historical wiring — the child triggers its own modal.
   }
 
-  onEditTeam(team: Team) {
-    this.editingTeam.set(team);
-    this.isTeamModalOpen.set(true);
-  }
-
-  closeTeamModal() {
-    this.isTeamModalOpen.set(false);
-    this.editingTeam.set(null);
-  }
-
-  onTeamSaved(savedTeam: Team) {
-    const isEdit = this.teams().some((t) => t.id === savedTeam.id);
-    if (isEdit) {
-      this.teams.update((prev) => prev.map((t) => (t.id === savedTeam.id ? savedTeam : t)));
-      this.matches.update((prevMatches) =>
-        prevMatches.map((m) => {
-          let updated = { ...m };
-          if (m.homeTeamId === savedTeam.id) {
-            updated.homeTeam = savedTeam;
-          }
-          if (m.awayTeamId === savedTeam.id) {
-            updated.awayTeam = savedTeam;
-          }
-          return updated;
-        }),
-      );
-    } else {
-      this.teams.update((prev) => [...prev, savedTeam]);
-    }
+  onEditTeam(_team: Team) {
+    // See onAddTeam.
   }
 
   onTeamsImported(importedList: Team[]) {
     this.teams.update((prev) => [...prev, ...importedList]);
   }
 
-  async onDeleteTeam(team: Team) {
+  onDeleteTeam(team: Team) {
     const ws = this.workspace();
     if (!ws) return;
-    const confirmed = await this.uiService.confirm({
-      title: 'Delete Team',
-      message: `Delete team "${team.name}"? This cannot be undone.`,
-      confirmText: 'Delete',
-      type: 'danger',
-    });
-    if (!confirmed) return;
-
-    const originalTeams = this.teams();
-    const originalMatches = this.matches();
-
-    // Optimistic Update
-    this.teams.update((prev) => prev.filter((t) => t.id !== team.id));
-    this.matches.update((prevMatches) =>
-      prevMatches.map((m) => {
-        let updated = { ...m };
-        if (m.homeTeamId === team.id) {
-          updated.homeTeamId = null;
-          updated.homeTeam = null;
-        }
-        if (m.awayTeamId === team.id) {
-          updated.awayTeamId = null;
-          updated.awayTeam = null;
-        }
-        return updated;
-      }),
-    );
-
-    this.teamService.removeTeam(ws.id, team.id).subscribe({
-      next: () => {
-        this.uiService.success(`Team "${team.name}" deleted successfully.`);
-      },
-      error: (err) => {
-        // Rollback
-        this.teams.set(originalTeams);
-        this.matches.set(originalMatches);
-        this.uiService.error(err.error?.message ?? 'Failed to delete team.');
-      },
+    this.crud.deleteTeam({
+      workspaceId: ws.id,
+      team,
+      teams: this.teams,
+      matches: this.matches,
     });
   }
 
   // ── Players CRUD ───────────────────────────────────────────────────────────
-
   loadPlayers(workspaceId: string) {
     this.playerService.getPlayers(workspaceId).subscribe({
       next: (players) => this.players.set(players),
@@ -1215,58 +654,24 @@ export class WorkspaceDetailComponent implements OnInit {
   }
 
   onPlayerSaved(player: Player) {
-    const exists = this.players().some((p) => p.id === player.id);
-    if (exists) {
-      this.players.update((prev) => prev.map((p) => (p.id === player.id ? player : p)));
-    } else {
-      this.players.update((prev) => [...prev, player]);
-    }
+    this.crud.mergeSavedPlayer(player, this.players);
   }
 
   onPlayersImported(importedList: Player[]) {
-    if (importedList && importedList.length > 0) {
-      this.players.update((prev) => {
-        const list = [...prev];
-        importedList.forEach((p) => {
-          if (!list.some((x) => x.id === p.id)) {
-            list.push(p);
-          }
-        });
-        return list;
-      });
-    }
+    this.crud.mergeImportedPlayers(importedList, this.players);
   }
 
-  async onDeletePlayer(player: Player) {
+  onDeletePlayer(player: Player) {
     const ws = this.workspace();
     if (!ws) return;
-    const confirmed = await this.uiService.confirm({
-      title: 'Delete Player',
-      message: `Delete player "${player.user.username}"? This cannot be undone.`,
-      confirmText: 'Delete',
-      type: 'danger',
-    });
-    if (!confirmed) return;
-
-    const originalPlayers = this.players();
-
-    // Optimistic Update
-    this.players.update((prev) => prev.filter((p) => p.id !== player.id));
-
-    this.playerService.removePlayer(ws.id, player.id).subscribe({
-      next: () => {
-        this.uiService.success(`Player "${player.user.username}" deleted successfully.`);
-      },
-      error: (err) => {
-        // Rollback
-        this.players.set(originalPlayers);
-        this.uiService.error(err.error?.message ?? 'Failed to delete player.');
-      },
+    this.crud.deletePlayer({
+      workspaceId: ws.id,
+      player,
+      players: this.players,
     });
   }
 
-  // ── Events CRUD ────────────────────────────────────────────────────────────
-
+  // ── Events + competitions loading ──────────────────────────────────────────
   loadEvents(workspaceId: string) {
     this.eventService.getEvents(workspaceId).subscribe({
       next: (events) => {
@@ -1284,8 +689,8 @@ export class WorkspaceDetailComponent implements OnInit {
         next: (comps) => {
           this.allCompetitions.update((prev) => {
             const ids = new Set(prev.map((c) => c.id));
-            const newComps = comps.filter((c) => !ids.has(c.id));
-            return [...prev, ...newComps];
+            const additions = comps.filter((c) => !ids.has(c.id));
+            return [...prev, ...additions];
           });
         },
         error: (err) => console.error(`Failed to load competitions for event ${event.id}`, err),
@@ -1293,23 +698,16 @@ export class WorkspaceDetailComponent implements OnInit {
     }
   }
 
+  // ── Invitations + notifications ────────────────────────────────────────────
   loadInvitationsAndNotifications() {
     this.workspaceService.getPendingInvitations().subscribe({
-      next: (data) => {
-        this.pendingInvitations.set(data);
-      },
-      error: (err) => {
-        console.error('Failed to load invitations', err);
-      },
+      next: (data) => this.pendingInvitations.set(data),
+      error: (err) => console.error('Failed to load invitations', err),
     });
 
     this.workspaceService.getNotifications().subscribe({
-      next: (data) => {
-        this.notifications.set(data);
-      },
-      error: (err) => {
-        console.error('Failed to load notifications', err);
-      },
+      next: (data) => this.notifications.set(data),
+      error: (err) => console.error('Failed to load notifications', err),
     });
   }
 
@@ -1350,17 +748,14 @@ export class WorkspaceDetailComponent implements OnInit {
   markNotificationsAsRead() {
     if (this.unreadNotificationsCount() === 0) return;
     this.workspaceService.markNotificationsRead().subscribe({
-      next: () => {
-        this.loadInvitationsAndNotifications();
-      },
-      error: (err) => {
-        console.error('Failed to mark notifications as read', err);
-      },
+      next: () => this.loadInvitationsAndNotifications(),
+      error: (err) => console.error('Failed to mark notifications as read', err),
     });
   }
 
-  onAvatarUpload(event: any) {
-    const file = event.target.files?.[0];
+  onAvatarUpload(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
     if (!file) return;
 
     this.isUploadingAvatar.set(true);
@@ -1386,14 +781,10 @@ export class WorkspaceDetailComponent implements OnInit {
     });
   }
 
-  isLineupModalOpen = signal(false);
-  private lockInterval: any = null;
-
-  onSelectMatch(match: any) {
+  // ── Match selection / scoring lock lifecycle ──────────────────────────────
+  onSelectMatch(match: Match | null) {
     const previousMatch = this.selectedMatch();
-    if (previousMatch) {
-      this.releaseActiveLock(previousMatch);
-    }
+    if (previousMatch) this.releaseActiveLock(previousMatch);
 
     if (!match) {
       this.selectedMatch.set(null);
@@ -1401,17 +792,15 @@ export class WorkspaceDetailComponent implements OnInit {
       return;
     }
 
-    const canScoreValue = this.hasPermission('match.score');
-    if (match.status === 'completed' || !canScoreValue) {
+    const canScore = this.hasPermission('match.score');
+    if (match.status === 'completed' || !canScore) {
       this.selectedMatch.set(match);
       this.matchLineup.set([]);
       return;
     }
 
     const ws = this.workspace();
-    const eventId = match.stage?.competition?.eventId || match.eventId;
-    const competitionId = match.stage?.competitionId || match.competitionId;
-    const stageId = match.stageId;
+    const { eventId, competitionId, stageId } = extractMatchIds(match as never);
 
     if (!ws || !eventId || !competitionId || !stageId) {
       this.selectedMatch.set(match);
@@ -1419,13 +808,15 @@ export class WorkspaceDetailComponent implements OnInit {
       return;
     }
 
-    // Set selected Event/Competition/Stage to ensure matching console parameters are fed properly
+    // Populate the currently selected event/competition/stage so the console
+    // renders with the correct context.
     const ev = this.events().find((e) => e.id === eventId);
     if (ev) this.selectedEvent.set(ev);
     const comp = this.allCompetitions().find((c) => c.id === competitionId);
     if (comp) this.selectedCompetition.set(comp);
     const stage =
-      this.stages().find((s) => s.id === stageId) || ({ id: stageId, name: 'Stage' } as any);
+      this.stages().find((s) => s.id === stageId) ||
+      ({ id: stageId, name: 'Stage' } as unknown as CompetitionStage);
     this.selectedStage.set(stage);
 
     if (this.uiService.isOffline()) {
@@ -1435,98 +826,45 @@ export class WorkspaceDetailComponent implements OnInit {
       return;
     }
 
-    this.competitionService
-      .acquireMatchLock(ws.id, eventId, competitionId, stageId, match.id)
-      .subscribe({
-        next: (res) => {
-          if (res.success) {
-            this.selectedMatch.set(match);
-            this.matchLineup.set([]);
-            this.startLockHeartbeat(match);
-            this.loadMatchLineup(match.id);
-          } else {
-            this.uiService.error(
-              `This match is currently locked/being edited by ${res.lockedBy || 'another official'}.`,
-            );
-          }
-        },
-        error: (err) => {
-          this.uiService.error(
-            err.error?.message ||
-              'Failed to acquire edit lock. The match may be currently edited by another official.',
-          );
-        },
-      });
-  }
-
-  startLockHeartbeat(match: any) {
-    this.stopLockHeartbeat();
-    const ws = this.workspace();
-    const eventId = match.stage?.competition?.eventId || match.eventId;
-    const competitionId = match.stage?.competitionId || match.competitionId;
-    const stageId = match.stageId;
-    if (!ws || !eventId || !competitionId || !stageId) return;
-
-    this.lockInterval = setInterval(() => {
-      this.competitionService
-        .acquireMatchLock(ws.id, eventId, competitionId, stageId, match.id)
-        .subscribe({
-          error: (err) => {
-            console.warn('Failed to renew match lock', err);
-            this.uiService.error(
-              err.error?.message || 'Lock expired or lost. Another official may have taken over.',
-            );
-            this.stopLockHeartbeat();
-            this.selectedMatch.set(null);
-            this.matchLineup.set([]);
-          },
+    this.matchLock.acquire({ workspaceId: ws.id, match }).then((res) => {
+      if (res.success) {
+        this.selectedMatch.set(match);
+        this.matchLineup.set([]);
+        this.matchLock.startHeartbeat({ workspaceId: ws.id, match }, () => {
+          this.selectedMatch.set(null);
+          this.matchLineup.set([]);
         });
-    }, 20000);
+        this.loadMatchLineup(match.id);
+      } else if (res.lockedBy) {
+        this.uiService.error(`This match is currently locked/being edited by ${res.lockedBy}.`);
+      }
+    });
   }
 
-  stopLockHeartbeat() {
-    if (this.lockInterval) {
-      clearInterval(this.lockInterval);
-      this.lockInterval = null;
-    }
-  }
-
-  releaseActiveLock(match: any) {
-    this.stopLockHeartbeat();
-    if (this.uiService.isOffline()) return;
+  releaseActiveLock(match: Match) {
     const ws = this.workspace();
-    const eventId = match.stage?.competition?.eventId || match.eventId;
-    const competitionId = match.stage?.competitionId || match.competitionId;
-    const stageId = match.stageId;
-    if (!ws || !eventId || !competitionId || !stageId) return;
-
-    const canScoreValue = this.hasPermission('match.score');
-    if (match.status !== 'completed' && canScoreValue) {
-      this.competitionService
-        .releaseMatchLock(ws.id, eventId, competitionId, stageId, match.id)
-        .subscribe({
-          error: (err) => console.warn('Failed to release match lock', err),
-        });
+    if (!ws) return;
+    const canScore = this.hasPermission('match.score');
+    if (match.status === 'completed' || !canScore) {
+      this.matchLock.stopHeartbeat();
+      return;
     }
+    this.matchLock.release({ workspaceId: ws.id, match });
   }
 
   loadMatchLineup(matchId: string) {
     const ws = this.workspace();
-    const match: any =
+    const match =
       this.selectedMatch() ||
       this.overviewLiveMatches().find((m) => m.id === matchId) ||
       this.overviewUpcomingMatches().find((m) => m.id === matchId);
     if (!match) return;
-    const eventId = match.stage?.competition?.eventId || match.eventId;
-    const competitionId = match.stage?.competitionId || match.competitionId;
-    const stageId = match.stageId;
+    const { eventId, competitionId, stageId } = extractMatchIds(match as never);
     if (!ws || !eventId || !competitionId || !stageId) return;
 
     if (this.uiService.isOffline()) {
       this.storage.getItem(`cached_lineup_${matchId}`).then((cached) => {
-        if (cached) {
-          this.matchLineup.set(JSON.parse(cached));
-        }
+        if (cached) this.matchLineup.set(JSON.parse(cached));
       });
       return;
     }
@@ -1543,26 +881,27 @@ export class WorkspaceDetailComponent implements OnInit {
     this.isLineupModalOpen.set(true);
   }
 
-  onLineupSaved(updatedLineup: any[]) {
+  onLineupSaved(updatedLineup: MatchPlayer[]) {
     this.matchLineup.set(updatedLineup);
   }
 
-  onMatchUpdated(updated: any) {
+  onMatchUpdated(updated: Match) {
     this.selectedMatch.set(updated);
-    this.matches.update((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
-    this.overviewLiveMatches.update((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
-    this.overviewUpcomingMatches.update((prev) =>
-      prev.map((m) => (m.id === updated.id ? updated : m)),
-    );
-    this.overviewCompletedMatches.update((prev) =>
-      prev.map((m) => (m.id === updated.id ? updated : m)),
-    );
+    this.mergeMatchUpdate(updated);
   }
 
   onMatchCompleted() {
     const ws = this.workspace();
-    if (ws) {
-      this.loadWorkspaceDashboard(ws.id);
-    }
+    if (ws) this.loadWorkspaceDashboard(ws.id);
+  }
+
+  private mergeMatchUpdate(updated: Match | DashboardMatch): void {
+    const id = (updated as { id: string }).id;
+    const patch = <T extends { id: string }>(list: T[]) =>
+      list.map((m) => (m.id === id ? ({ ...m, ...(updated as object) } as T) : m));
+    this.matches.update(patch);
+    this.overviewLiveMatches.update(patch);
+    this.overviewUpcomingMatches.update(patch);
+    this.overviewCompletedMatches.update(patch);
   }
 }

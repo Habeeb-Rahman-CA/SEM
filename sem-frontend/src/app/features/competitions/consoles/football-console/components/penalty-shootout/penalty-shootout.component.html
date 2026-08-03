@@ -1,0 +1,113 @@
+<div class="bg-slate-950 p-6 rounded-2xl border border-violet-500/20 flex flex-col gap-6">
+  <div class="flex items-center justify-between border-b border-white/10 pb-4">
+    <div class="flex flex-col">
+      <h4 class="text-base font-bold text-white uppercase tracking-wider flex items-center gap-2">
+        <i class="fi fi-rr-referee text-violet-400"></i> Penalty Shootout
+      </h4>
+      <span class="text-xs text-slate-400">Record shootout penalties alternately</span>
+    </div>
+    <div class="flex items-center gap-4 bg-slate-900 px-4 py-2 rounded-xl border border-white/5">
+      <div class="text-center">
+        <span class="text-[9px] font-bold text-slate-400 block uppercase">{{
+          match().homeTeam?.name
+        }}</span>
+        <span class="text-lg font-extrabold text-white">{{
+          match().liveData?.shootoutHomeScore || 0
+        }}</span>
+      </div>
+      <div class="text-slate-600 font-bold text-xs">PK</div>
+      <div class="text-center">
+        <span class="text-[9px] font-bold text-slate-400 block uppercase">{{
+          match().awayTeam?.name
+        }}</span>
+        <span class="text-lg font-extrabold text-white">{{
+          match().liveData?.shootoutAwayScore || 0
+        }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <!-- Home Team PK -->
+    <div class="bg-slate-900/40 p-4 rounded-xl border border-white/5 flex flex-col gap-3">
+      <h5 class="text-xs font-bold text-violet-400 uppercase tracking-wider">
+        {{ match().homeTeam?.name }} Penalty
+      </h5>
+      <div class="flex flex-col gap-2">
+        <select
+          #homePKPlayer
+          class="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none"
+        >
+          <option value="">Select Kicker</option>
+          @for (p of homePlayers(); track p.id) {
+            <option [value]="p.userId">{{ p.user.username || p.id }}</option>
+          }
+        </select>
+        <select
+          #homePKOutcome
+          class="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none"
+        >
+          <option value="scored">Scored</option>
+          <option value="missed">Missed</option>
+          <option value="saved">Saved</option>
+          <option value="hit_post">Hit Post</option>
+        </select>
+        <button
+          (click)="
+            recordShootoutPenalty.emit({
+              teamId: match().homeTeamId!,
+              playerUserId: homePKPlayer.value,
+              outcome: $any(homePKOutcome.value),
+            });
+            homePKPlayer.value = ''
+          "
+          [disabled]="!homePKPlayer.value"
+          class="w-full py-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl cursor-pointer"
+        >
+          Log Penalty
+        </button>
+      </div>
+    </div>
+
+    <!-- Away Team PK -->
+    <div class="bg-slate-900/40 p-4 rounded-xl border border-white/5 flex flex-col gap-3">
+      <h5 class="text-xs font-bold text-violet-400 uppercase tracking-wider">
+        {{ match().awayTeam?.name }} Penalty
+      </h5>
+      <div class="flex flex-col gap-2">
+        <select
+          #awayPKPlayer
+          class="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none"
+        >
+          <option value="">Select Kicker</option>
+          @for (p of awayPlayers(); track p.id) {
+            <option [value]="p.userId">{{ p.user.username || p.id }}</option>
+          }
+        </select>
+        <select
+          #awayPKOutcome
+          class="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none"
+        >
+          <option value="scored">Scored</option>
+          <option value="missed">Missed</option>
+          <option value="saved">Saved</option>
+          <option value="hit_post">Hit Post</option>
+        </select>
+        <button
+          (click)="
+            recordShootoutPenalty.emit({
+              teamId: match().awayTeamId!,
+              playerUserId: awayPKPlayer.value,
+              outcome: $any(awayPKOutcome.value),
+            });
+            awayPKPlayer.value = ''
+          "
+          [disabled]="!awayPKPlayer.value"
+          class="w-full py-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl cursor-pointer"
+        >
+          Log Penalty
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

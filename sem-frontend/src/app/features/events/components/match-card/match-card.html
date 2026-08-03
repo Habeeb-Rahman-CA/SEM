@@ -1,0 +1,102 @@
+@let m = match();
+@let statusBadge = m.status | matchStatusBadge;
+<div
+  class="bg-slate-900 border border-white/10 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-6 group transition-all duration-300"
+>
+  <div class="flex-1 flex flex-col items-center">
+    <div class="flex items-center justify-center gap-6 w-full">
+      <div class="flex-1 text-right flex items-center justify-end gap-3">
+        <span class="text-sm font-bold text-white">{{ m.homeTeam?.name || 'Home' }}</span>
+        <app-avatar
+          [name]="m.homeTeam?.name || 'HM'"
+          [logoUrl]="m.homeTeam?.logoUrl"
+          customClass="w-6 h-6 rounded-md flex-shrink-0"
+          textClass="text-[9px] font-bold text-white"
+        />
+      </div>
+
+      <div
+        class="px-5 py-2 bg-slate-950 border border-white/10 rounded-2xl flex items-center justify-center gap-4 min-w-[100px] relative"
+      >
+        @if (m.status === 'live') {
+          <span class="absolute -top-1 -right-1 flex h-3.5 w-3.5">
+            <span
+              class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"
+            ></span>
+            <span
+              class="relative inline-flex rounded-full h-3.5 w-3.5 bg-rose-500 border border-slate-950"
+            ></span>
+          </span>
+        }
+        <span class="text-xl font-extrabold text-white">{{ m.homeScore }}</span>
+        <span class="text-xs text-slate-600 font-bold">VS</span>
+        <span class="text-xl font-extrabold text-white">{{ m.awayScore }}</span>
+      </div>
+
+      <div class="flex-1 text-left flex items-center justify-start gap-3">
+        <app-avatar
+          [name]="m.awayTeam?.name || 'AW'"
+          [logoUrl]="m.awayTeam?.logoUrl"
+          customClass="w-6 h-6 rounded-md flex-shrink-0"
+          textClass="text-[9px] font-bold text-white"
+        />
+        <span class="text-sm font-bold text-white">{{ m.awayTeam?.name || 'Away' }}</span>
+      </div>
+    </div>
+    <div class="flex flex-wrap items-center justify-center gap-3 mt-2.5 text-[10px] text-slate-400">
+      @if (m.scheduledAt) {
+        <div class="flex items-center gap-1">
+          <i class="fi fi-rr-calendar text-violet-400"></i>
+          <span>{{ m.scheduledAt | date: 'medium' }}</span>
+        </div>
+      }
+      @if (m.venue) {
+        <div class="flex items-center gap-1">
+          <i class="fi fi-rr-marker text-violet-400"></i>
+          <span>{{ m.venue.name }}</span>
+          @if (m.venue.location) {
+            <span class="text-slate-500">({{ m.venue.location }})</span>
+          }
+        </div>
+      }
+    </div>
+    @if (m.mvp) {
+      <div class="text-[10px] text-amber-400 flex items-center gap-1 mt-2">
+        <i class="fi fi-rr-trophy text-amber-500"></i>
+        <span
+          >MVP: <strong>{{ m.mvp.playerName }}</strong> ({{ m.mvp.rating.toFixed(2) }})</span
+        >
+      </div>
+    }
+  </div>
+
+  <div class="flex items-center justify-end gap-3 font-semibold">
+    @if (m.config.round) {
+      <span
+        class="text-[9px] font-extrabold px-2 py-1 bg-violet-600/10 text-violet-400 rounded-lg border border-violet-500/20 uppercase tracking-wider"
+      >
+        {{ m.config.round }}
+        @if (m.config.leg) {
+          - Leg {{ m.config.leg }}
+        }
+      </span>
+    }
+    <span [class]="statusBadge.class">{{ statusBadge.label }}</span>
+
+    @if (m.status !== 'completed' && canManage()) {
+      <button
+        (click)="schedule.emit(m)"
+        class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 hover:text-white border border-white/5 hover:border-white/10 text-slate-300 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1"
+      >
+        <i class="fi fi-rr-calendar"></i> Schedule
+      </button>
+    }
+
+    <button
+      (click)="select.emit(m)"
+      class="px-3 py-1.5 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-lg transition-all cursor-pointer"
+    >
+      {{ m.status === 'completed' ? 'View Details' : 'Live Console' }}
+    </button>
+  </div>
+</div>
