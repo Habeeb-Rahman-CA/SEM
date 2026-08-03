@@ -23,7 +23,7 @@ import { UpdateCredentialDto } from './dto/update-credential.dto';
 import { CreateZoneDto, UpdateZoneDto } from './dto/create-zone.dto';
 import { ScanCredentialDto } from './dto/scan-credential.dto';
 
-interface ScanOutcome {
+export interface ScanOutcome {
   result: AttendanceResult;
   direction: AttendanceDirection;
   credential: AccreditationCredential | null;

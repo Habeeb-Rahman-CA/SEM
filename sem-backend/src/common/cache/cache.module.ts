@@ -1,8 +1,11 @@
 import { Global, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { CacheService } from './cache.service';
 import { CacheInvalidator } from './cache.invalidator';
 import { CacheAdminController } from './cache-admin.controller';
+import { CacheConfigService } from './cache-config.service';
+import { CacheConfigEntity } from './entities/cache-config.entity';
 
 /**
  * @Global so any provider can inject CacheService / CacheInvalidator
@@ -11,9 +14,9 @@ import { CacheAdminController } from './cache-admin.controller';
  */
 @Global()
 @Module({
-  imports: [ConfigModule],
+  imports: [ConfigModule, TypeOrmModule.forFeature([CacheConfigEntity])],
   controllers: [CacheAdminController],
-  providers: [CacheService, CacheInvalidator],
-  exports: [CacheService, CacheInvalidator],
+  providers: [CacheService, CacheInvalidator, CacheConfigService],
+  exports: [CacheService, CacheInvalidator, CacheConfigService],
 })
 export class CacheModule {}
