@@ -3,19 +3,11 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { Workspace, WorkspaceService } from '../../services/workspace.service';
+import { WorkspaceTab } from '../../models/workspace-tab.type';
 import { UiService } from '../../../../core/services/ui.service';
 import { AuthService } from '../../../auth/services/auth.service';
 import { FeatureCode, LicensingService } from '../../../subscriptions/services/licensing.service';
-
-interface ExtensionTile {
-  key: 'billing' | 'branding' | 'sponsors' | 'ads';
-  title: string;
-  description: string;
-  icon: string;
-  route: (workspaceId: string) => (string | undefined)[];
-  featureCode: FeatureCode | null;
-  upgradeHint: string;
-}
+import { ExtensionTile } from './settings.interface';
 
 @Component({
   selector: 'app-workspace-settings',
@@ -31,28 +23,7 @@ export class WorkspaceSettingsComponent {
   private licensing = inject(LicensingService);
 
   workspace = model.required<Workspace | null>();
-  activeTab = model<
-    | 'overview'
-    | 'members'
-    | 'settings'
-    | 'teams'
-    | 'players'
-    | 'events'
-    | 'venues'
-    | 'reports'
-    | 'files'
-    | 'volunteers'
-    | 'equipment'
-    | 'medical'
-    | 'accreditation'
-    | 'streaming'
-    | 'automation'
-    | 'auctions'
-    | 'transfers'
-    | 'rosters'
-    | 'finance'
-    | 'governance'
-  >();
+  activeTab = model<WorkspaceTab>('overview');
 
   // Settings form states
   editName = signal('');

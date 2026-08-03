@@ -1,0 +1,255 @@
+<div
+  class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/20 border border-white/5 p-4 rounded-2xl mb-4"
+>
+  <div class="text-xs text-slate-400 font-medium">{{ statusLine() }}</div>
+  <div class="flex items-center gap-2 w-full sm:w-auto">
+    <div class="relative w-full sm:w-72">
+      <span
+        class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500"
+      >
+        <i class="fi fi-rr-search text-xs"></i>
+      </span>
+      <input
+        type="text"
+        [ngModel]="eventSearchQuery()"
+        (ngModelChange)="eventSearchQuery.set($event)"
+        placeholder="Search events by name, status, or desc..."
+        class="w-full bg-slate-950/40 border border-white/10 focus:border-violet-500/50 rounded-xl pl-9 pr-8 py-2 text-xs text-slate-200 placeholder-slate-500 outline-none transition-all"
+      />
+      @if (eventSearchQuery()) {
+        <button
+          (click)="eventSearchQuery.set('')"
+          class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-slate-300 cursor-pointer bg-transparent border-0"
+        >
+          <i class="fi fi-rr-cross text-[10px]"></i>
+        </button>
+      }
+    </div>
+    <button
+      (click)="isAdvancedSearchOpen.set(!isAdvancedSearchOpen())"
+      class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer border border-white/5"
+    >
+      <i class="fi fi-rr-filter"></i>
+      <span>Filters</span>
+      @if (searchActive()) {
+        <span class="w-1.5 h-1.5 rounded-full bg-violet-500"></span>
+      }
+    </button>
+  </div>
+</div>
+
+@if (isAdvancedSearchOpen()) {
+  @let c = criteria();
+  <div
+    class="bg-slate-900/40 border border-white/5 p-5 rounded-2xl mb-4 text-left flex flex-col gap-4 transition-all duration-300"
+  >
+    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+      <i class="fi fi-rr-settings-sliders text-violet-400"></i>
+      <span>Advanced Event Filters</span>
+    </h4>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sport</label>
+        <input
+          type="text"
+          placeholder="e.g. Football"
+          class="bg-slate-950 border border-white/10 focus:border-violet-500/50 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 outline-none transition-all"
+          [ngModel]="c.sport"
+          (ngModelChange)="patch({ sport: $event })"
+        />
+      </div>
+
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+          >Organizer</label
+        >
+        <input
+          type="text"
+          placeholder="e.g. City League"
+          class="bg-slate-950 border border-white/10 focus:border-violet-500/50 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 outline-none transition-all"
+          [ngModel]="c.organizer"
+          (ngModelChange)="patch({ organizer: $event })"
+        />
+      </div>
+
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Status</label>
+        <select
+          class="bg-slate-950 border border-white/10 focus:border-violet-500/50 rounded-xl px-3 py-2 text-xs text-white outline-none transition-all cursor-pointer"
+          [ngModel]="c.status"
+          (ngModelChange)="patch({ status: $event })"
+        >
+          <option value="">All Statuses</option>
+          <option value="upcoming">Upcoming</option>
+          <option value="ongoing">Ongoing</option>
+          <option value="completed">Completed</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+      </div>
+
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Venue</label>
+        <input
+          type="text"
+          placeholder="e.g. Main Stadium"
+          class="bg-slate-950 border border-white/10 focus:border-violet-500/50 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 outline-none transition-all"
+          [ngModel]="c.venue"
+          (ngModelChange)="patch({ venue: $event })"
+        />
+      </div>
+
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+          >Date From</label
+        >
+        <input
+          type="date"
+          class="bg-slate-950 border border-white/10 focus:border-violet-500/50 rounded-xl px-3 py-2 text-xs text-white outline-none transition-all"
+          [ngModel]="c.startDate"
+          (ngModelChange)="patch({ startDate: $event })"
+        />
+      </div>
+
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Date To</label>
+        <input
+          type="date"
+          class="bg-slate-950 border border-white/10 focus:border-violet-500/50 rounded-xl px-3 py-2 text-xs text-white outline-none transition-all"
+          [ngModel]="c.endDate"
+          (ngModelChange)="patch({ endDate: $event })"
+        />
+      </div>
+
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+          >Competition</label
+        >
+        <input
+          type="text"
+          placeholder="e.g. Premier Cup"
+          class="bg-slate-950 border border-white/10 focus:border-violet-500/50 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 outline-none transition-all"
+          [ngModel]="c.competitionName"
+          (ngModelChange)="patch({ competitionName: $event })"
+        />
+      </div>
+
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+          >Workspace scope</label
+        >
+        <select
+          class="bg-slate-950 border border-white/10 focus:border-violet-500/50 rounded-xl px-3 py-2 text-xs text-white outline-none transition-all cursor-pointer"
+          [ngModel]="c.workspaceIdFilter"
+          (ngModelChange)="patch({ workspaceIdFilter: $event })"
+        >
+          <option value="">Current Workspace Only</option>
+          <option value="all">All My Workspaces</option>
+          @for (ws of userWorkspaces(); track ws.id) {
+            @if (ws.id !== workspace()?.id) {
+              <option [value]="ws.id">{{ ws.name }}</option>
+            }
+          }
+        </select>
+      </div>
+
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sort By</label>
+        <select
+          class="bg-slate-950 border border-white/10 focus:border-violet-500/50 rounded-xl px-3 py-2 text-xs text-white outline-none transition-all cursor-pointer"
+          [ngModel]="c.sortBy"
+          (ngModelChange)="patch({ sortBy: $event })"
+        >
+          <option value="name">Event Name</option>
+          <option value="startDate">Start Date</option>
+          <option value="endDate">End Date</option>
+          <option value="status">Status</option>
+          <option value="sport">Sport</option>
+          <option value="venue">Venue</option>
+        </select>
+      </div>
+
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+          >Sort Order</label
+        >
+        <select
+          class="bg-slate-950 border border-white/10 focus:border-violet-500/50 rounded-xl px-3 py-2 text-xs text-white outline-none transition-all cursor-pointer"
+          [ngModel]="c.sortOrder"
+          (ngModelChange)="patch({ sortOrder: $event })"
+        >
+          <option value="ASC">Ascending</option>
+          <option value="DESC">Descending</option>
+        </select>
+      </div>
+    </div>
+
+    <div
+      class="border-t border-white/5 pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+    >
+      <div class="flex flex-wrap items-center gap-2">
+        <span
+          class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1"
+        >
+          <i class="fi fi-rr-bookmark text-violet-400"></i>
+          <span>Saved Filters:</span>
+        </span>
+        @if (savedFilters().length === 0) {
+          <span class="text-[11px] text-slate-650">No saved filters yet</span>
+        } @else {
+          @for (sf of savedFilters(); track sf.name) {
+            <span
+              class="inline-flex items-center gap-1.5 bg-slate-950 border border-white/5 rounded-full px-2.5 py-0.5 text-[11px] text-slate-350"
+            >
+              <button
+                (click)="applyFilter.emit(sf.filters)"
+                class="hover:text-violet-400 cursor-pointer font-medium bg-transparent border-0"
+              >
+                {{ sf.name }}
+              </button>
+              <button
+                (click)="deleteFilter.emit(sf.name)"
+                class="text-slate-500 hover:text-rose-450 cursor-pointer bg-transparent border-0"
+              >
+                <i class="fi fi-rr-cross-small text-[10px]"></i>
+              </button>
+            </span>
+          }
+        }
+      </div>
+
+      <div class="flex items-center gap-2">
+        <input
+          type="text"
+          placeholder="Filter Name..."
+          class="bg-slate-950 border border-white/10 focus:border-violet-500/50 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-650 outline-none transition-all w-36"
+          [ngModel]="newFilterName()"
+          (ngModelChange)="newFilterName.set($event)"
+        />
+        <button
+          (click)="saveFilter.emit()"
+          [disabled]="!newFilterName().trim()"
+          class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-xs font-semibold transition cursor-pointer"
+        >
+          Save
+        </button>
+      </div>
+    </div>
+
+    <div class="flex justify-end gap-3 border-t border-white/5 pt-4">
+      <button
+        (click)="resetFilters.emit()"
+        class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white hover:text-slate-950 rounded-xl text-xs font-semibold transition cursor-pointer"
+      >
+        Reset Filters
+      </button>
+      <button
+        (click)="triggerSearch.emit()"
+        class="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-xl text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer"
+      >
+        <i class="fi fi-rr-search"></i>
+        <span>Apply Filters</span>
+      </button>
+    </div>
+  </div>
+}

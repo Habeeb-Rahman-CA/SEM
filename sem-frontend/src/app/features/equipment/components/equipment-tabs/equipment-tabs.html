@@ -1,0 +1,35 @@
+<div class="flex border-b border-white/5 mb-4 flex-shrink-0">
+  <button
+    (click)="tabChange.emit('inventory')"
+    [class]="
+      activeTab() === 'inventory'
+        ? 'border-b-2 border-violet-500 text-violet-400'
+        : 'text-slate-400 hover:text-white'
+    "
+    class="px-4 py-2.5 text-xs font-bold bg-transparent border-0 cursor-pointer transition outline-none"
+  >
+    <i class="fi fi-rr-box mr-1.5"></i>Inventory Roster
+  </button>
+  <button
+    (click)="tabChange.emit('bookings')"
+    [class]="
+      activeTab() === 'bookings'
+        ? 'border-b-2 border-violet-500 text-violet-400'
+        : 'text-slate-400 hover:text-white'
+    "
+    class="px-4 py-2.5 text-xs font-bold bg-transparent border-0 cursor-pointer transition outline-none"
+  >
+    <i class="fi fi-rr-calendar mr-1.5"></i>Bookings & Checkouts
+  </button>
+  <button
+    (click)="tabChange.emit('maintenance')"
+    [class]="
+      activeTab() === 'maintenance'
+        ? 'border-b-2 border-violet-500 text-violet-400'
+        : 'text-slate-400 hover:text-white'
+    "
+    class="px-4 py-2.5 text-xs font-bold bg-transparent border-0 cursor-pointer transition outline-none"
+  >
+    <i class="fi fi-rr-wrench mr-1.5"></i>Maintenance Queue
+  </button>
+</div>

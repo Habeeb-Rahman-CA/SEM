@@ -1,0 +1,96 @@
+@if (winner(); as result) {
+  <div
+    class="bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-transparent border border-amber-500/30 rounded-2xl p-5 flex items-center justify-between shadow-lg shadow-amber-500/5 mb-6 animate-pulse"
+  >
+    <div class="flex items-center gap-3">
+      <div
+        class="h-11 w-11 rounded-xl bg-amber-500/25 border border-amber-500/30 flex items-center justify-center text-xl shadow-inner text-amber-400"
+      >
+        <i class="fi fi-rr-trophy"></i>
+      </div>
+      <div class="text-left">
+        <div class="text-[9px] uppercase font-black tracking-widest text-amber-400">CHAMPIONS</div>
+        <h4 class="text-base font-black text-white leading-tight mt-0.5">{{ result.winner }}</h4>
+      </div>
+    </div>
+    @if (result.runnerUp) {
+      <div class="text-right border-l border-white/10 pl-5">
+        <div class="text-[9px] uppercase font-bold tracking-widest text-slate-400">RUNNER-UP</div>
+        <div
+          class="text-xs font-black text-white/90 leading-tight mt-0.5 flex items-center justify-end gap-1"
+        >
+          <i class="fi fi-rr-medal text-slate-400"></i> {{ result.runnerUp }}
+        </div>
+      </div>
+    }
+  </div>
+}
+
+<div class="bg-slate-900 border border-white/10 rounded-2xl p-6 shadow-xl flex flex-col gap-4">
+  <h3 class="text-sm font-bold text-white flex items-center gap-2 border-b border-white/5 pb-3">
+    <i class="fi fi-rr-diagram-project text-violet-400"></i> Tournament Bracket
+  </h3>
+
+  <div class="flex flex-col gap-5">
+    @for (roundName of rounds(); track roundName) {
+      <div class="flex flex-col gap-2">
+        <div
+          class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2"
+        >
+          <span class="w-1.5 h-1.5 rounded-full bg-violet-500"></span>
+          {{ roundName }}
+        </div>
+        <div class="flex flex-col gap-2 bg-slate-950/40 p-2.5 border border-white/5 rounded-xl">
+          @for (m of matchesFor(roundName); track m.id) {
+            <div
+              class="flex flex-col gap-1 w-full text-xs py-2 border-b border-white/5 last:border-b-0"
+            >
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-1.5">
+                  <app-avatar
+                    [name]="m.homeTeam?.name || 'TBD'"
+                    [logoUrl]="m.homeTeam?.logoUrl"
+                    customClass="w-4 h-4 rounded flex-shrink-0"
+                    textClass="text-[7px] font-bold text-white"
+                  />
+                  <span
+                    class="font-medium truncate max-w-[120px]"
+                    [class.text-slate-500]="!m.homeTeam"
+                    [class.text-white]="m.homeTeam"
+                  >
+                    {{ m.homeTeam?.name || 'TBD' }}
+                  </span>
+                </div>
+                @if (m.status === 'completed') {
+                  <span class="font-bold text-white pr-1">{{ m.homeScore }}</span>
+                }
+              </div>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-1.5">
+                  <app-avatar
+                    [name]="m.awayTeam?.name || 'TBD'"
+                    [logoUrl]="m.awayTeam?.logoUrl"
+                    customClass="w-4 h-4 rounded flex-shrink-0"
+                    textClass="text-[7px] font-bold text-white"
+                  />
+                  <span
+                    class="font-medium truncate max-w-[120px]"
+                    [class.text-slate-500]="!m.awayTeam"
+                    [class.text-white]="m.awayTeam"
+                  >
+                    {{ m.awayTeam?.name || 'TBD' }}
+                  </span>
+                </div>
+                @if (m.status === 'completed') {
+                  <span class="font-bold text-white pr-1">{{ m.awayScore }}</span>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    } @empty {
+      <div class="text-center text-xs text-slate-500 py-6">No knockout matches generated yet.</div>
+    }
+  </div>
+</div>

@@ -1,0 +1,132 @@
+@let e = event();
+@let badge = e.status | eventStatusBadge;
+<div
+  class="bg-slate-900 border border-white/10 hover:border-violet-500/30 rounded-2xl p-5 flex flex-col justify-between gap-4 group transition-all duration-300 text-left"
+>
+  <div class="flex flex-col gap-2">
+    <div class="flex items-center justify-between gap-2">
+      <div class="flex items-center gap-3">
+        <div
+          class="w-10 h-10 rounded-xl bg-slate-800 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0"
+        >
+          @if (e.logoUrl) {
+            <img [src]="e.logoUrl" alt="Event Logo" class="w-full h-full object-cover" />
+          } @else {
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="w-5 h-5 text-violet-400"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+            >
+              <path
+                d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94A5.006 5.006 0 0 0 11 15.9V19H9v2h6v-2h-2v-3.1a5.006 5.006 0 0 0 3.61-2.96C19.08 10.63 21 8.55 21 8V7c0-1.1-.9-2-2-2zM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8zm14 0c0 1.3-.84 2.4-2 2.82V7h2v1z"
+              />
+            </svg>
+          }
+        </div>
+      </div>
+      <div class="flex items-center gap-1.5">
+        @if (e.isPublic) {
+          <span
+            class="text-[10px] font-extrabold px-2 py-0.5 bg-violet-600/10 text-violet-400 rounded-md border border-violet-500/20 flex items-center gap-1"
+          >
+            <i class="fi fi-sr-eye text-[9px]"></i> Public
+          </span>
+        }
+        <span [class]="badge.class">{{ badge.label }}</span>
+      </div>
+    </div>
+
+    <h4
+      class="text-base font-extrabold text-white group-hover:text-violet-400 transition-colors mt-1"
+    >
+      {{ e.name }}
+    </h4>
+
+    @if (e.description) {
+      <p class="text-xs text-slate-400 line-clamp-2 mt-1">{{ e.description }}</p>
+    } @else {
+      <p class="text-xs text-slate-600 italic mt-1">No description provided</p>
+    }
+  </div>
+
+  <div class="flex flex-col gap-2 pt-3 border-t border-white/5 text-xs text-slate-400">
+    @if (e.startDate) {
+      <div class="flex justify-between items-center">
+        <span class="text-slate-500">Starts:</span>
+        <span class="text-white font-medium">{{ e.startDate | date: 'MMM d, y, h:mm a' }}</span>
+      </div>
+    }
+    @if (e.endDate) {
+      <div class="flex justify-between items-center">
+        <span class="text-slate-500">Ends:</span>
+        <span class="text-white font-medium">{{ e.endDate | date: 'MMM d, y, h:mm a' }}</span>
+      </div>
+    }
+  </div>
+
+  <div class="flex items-center justify-between gap-2 pt-3 border-t border-white/5">
+    <div class="flex items-center gap-2">
+      <button
+        (click)="select.emit(e)"
+        class="px-2.5 py-1.5 text-[11px] font-bold text-violet-400 hover:text-white hover:bg-violet-600/20 border border-violet-500/10 hover:border-violet-500/30 rounded-lg transition-all cursor-pointer"
+      >
+        View Competitions
+      </button>
+      @if (e.isPublic) {
+        <button
+          (click)="openPublic.emit(e); $event.stopPropagation()"
+          title="Open Public Event Page"
+          class="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 border border-white/10 rounded-lg transition-all cursor-pointer flex items-center justify-center"
+        >
+          <i class="fi fi-rr-share text-xs"></i>
+        </button>
+      }
+    </div>
+    @if (canManage()) {
+      <div
+        class="flex items-center gap-2 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity"
+      >
+        @if (view() === 'active') {
+          <button
+            (click)="archive.emit(e)"
+            class="px-2 py-1 text-[10px] font-bold text-amber-400 hover:text-white hover:bg-amber-600/20 border border-amber-500/10 hover:border-amber-500/30 rounded-md transition-all cursor-pointer"
+          >
+            Archive
+          </button>
+          <button
+            (click)="duplicate.emit(e)"
+            class="px-2 py-1 text-[10px] font-bold text-violet-400 hover:text-white hover:bg-violet-600/20 border border-violet-500/10 hover:border-violet-500/30 rounded-md transition-all cursor-pointer"
+          >
+            Duplicate
+          </button>
+          <button
+            (click)="edit.emit(e)"
+            class="px-2 py-1 text-[10px] font-bold text-slate-400 hover:text-white hover:bg-slate-800 border border-white/10 rounded-md transition-all cursor-pointer"
+          >
+            Edit
+          </button>
+          <button
+            (click)="remove.emit(e)"
+            class="px-2 py-1 text-[10px] font-bold text-rose-400 hover:text-white hover:bg-rose-600/20 border border-rose-500/10 hover:border-rose-500/30 rounded-md transition-all cursor-pointer"
+          >
+            Delete
+          </button>
+        } @else {
+          <button
+            (click)="restore.emit(e)"
+            class="px-2 py-1 text-[10px] font-bold text-emerald-400 hover:text-white hover:bg-emerald-600/20 border border-emerald-500/10 hover:border-emerald-500/30 rounded-md transition-all cursor-pointer"
+          >
+            Restore
+          </button>
+          <button
+            (click)="remove.emit(e)"
+            class="px-2 py-1 text-[10px] font-bold text-rose-400 hover:text-white hover:bg-rose-600/20 border border-rose-500/10 hover:border-rose-500/30 rounded-md transition-all cursor-pointer"
+          >
+            Delete
+          </button>
+        }
+      </div>
+    }
+  </div>
+</div>

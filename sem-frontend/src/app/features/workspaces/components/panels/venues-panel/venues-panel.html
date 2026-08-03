@@ -1,0 +1,8 @@
+<app-venue-list
+  class="h-full block min-h-0"
+  [venues]="venues()"
+  [canUpdate]="canUpdate()"
+  (add)="add.emit()"
+  (edit)="edit.emit($event)"
+  (delete)="delete.emit($event)"
+/>

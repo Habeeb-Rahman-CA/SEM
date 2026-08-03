@@ -1,0 +1,101 @@
+<div
+  class="flex-shrink-0 flex items-center justify-between gap-4 bg-slate-900/20 border border-white/5 p-4 rounded-xl mb-4"
+>
+  <div class="text-xs text-slate-400 font-medium">Equipment Reservations & Checkout History</div>
+</div>
+
+<div class="flex-1 overflow-y-auto min-h-0 pr-1">
+  @if (bookings().length === 0) {
+    <div
+      class="flex flex-col items-center justify-center py-20 text-center bg-slate-900/40 border border-white/10 rounded-2xl"
+    >
+      <i class="fi fi-rr-calendar text-slate-600 text-3xl mb-3"></i>
+      <h3 class="text-sm font-bold text-white mb-1">No bookings found</h3>
+      <p class="text-xs text-slate-500">
+        Book equipment from the Inventory tab to schedule checkouts.
+      </p>
+    </div>
+  } @else {
+    <div class="bg-slate-900/20 border border-white/5 rounded-2xl p-5 shadow-xl">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse text-xs">
+          <thead>
+            <tr
+              class="border-b border-white/10 text-slate-500 font-bold uppercase tracking-wider text-[10px]"
+            >
+              <th class="py-2.5">Equipment</th>
+              <th class="py-2.5">Booked By</th>
+              <th class="py-2.5">Linked Event</th>
+              <th class="py-2.5">Date Period</th>
+              <th class="py-2.5">Status</th>
+              <th class="py-2.5 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-white/5 text-slate-300">
+            @for (booking of bookings(); track booking.id) {
+              <tr>
+                <td class="py-3.5">
+                  <div class="font-bold text-white">{{ booking.equipment?.name }}</div>
+                  <div class="text-[9px] text-slate-500 font-mono mt-0.5">
+                    {{ booking.equipment?.sku }}
+                  </div>
+                </td>
+                <td class="py-3.5">{{ booking.bookedBy?.username }}</td>
+                <td class="py-3.5 text-slate-400">
+                  {{ booking.event?.title || 'None' }}
+                </td>
+                <td class="py-3.5">
+                  {{ booking.startAt | date: 'MMM d' }} -
+                  {{ booking.endAt | date: 'MMM d, y' }}
+                </td>
+                <td class="py-3.5 uppercase text-[9px] font-black">
+                  <span [class]="booking.status | bookingStatusColor">
+                    {{ booking.status }}
+                  </span>
+                </td>
+                <td class="py-3.5 text-right">
+                  <div class="flex justify-end gap-1.5">
+                    @switch (booking.status) {
+                      @case ('pending') {
+                        <button
+                          (click)="statusChange.emit({ id: booking.id, status: 'approved' })"
+                          class="px-2 py-1 bg-emerald-600/20 hover:bg-emerald-600 text-emerald-400 hover:text-white rounded text-[10px] font-bold cursor-pointer transition border-0"
+                        >
+                          Approve
+                        </button>
+                      }
+                      @case ('approved') {
+                        <button
+                          (click)="statusChange.emit({ id: booking.id, status: 'active' })"
+                          class="px-2 py-1 bg-violet-600 hover:bg-violet-500 text-white rounded text-[10px] font-bold cursor-pointer transition border-0"
+                        >
+                          Check Out
+                        </button>
+                      }
+                      @case ('active') {
+                        <button
+                          (click)="statusChange.emit({ id: booking.id, status: 'returned' })"
+                          class="px-2 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-[10px] font-bold cursor-pointer transition border-0"
+                        >
+                          Return Gear
+                        </button>
+                      }
+                    }
+                    @if (booking.status !== 'returned' && booking.status !== 'cancelled') {
+                      <button
+                        (click)="statusChange.emit({ id: booking.id, status: 'cancelled' })"
+                        class="p-1 text-rose-400 hover:text-white bg-transparent rounded cursor-pointer transition border-0"
+                      >
+                        <i class="fi fi-rr-cross-circle"></i>
+                      </button>
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+</div>

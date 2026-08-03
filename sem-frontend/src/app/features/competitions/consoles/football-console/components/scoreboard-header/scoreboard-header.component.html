@@ -1,0 +1,164 @@
+<div
+  class="bg-slate-900 border border-white/10 rounded-2xl p-6 shadow-xl flex flex-col items-center justify-center gap-4 relative overflow-hidden"
+>
+  @if (match().status === 'live') {
+    <div class="absolute inset-0 bg-violet-500/5 animate-pulse pointer-events-none"></div>
+  }
+
+  <div class="flex items-center justify-center gap-6 w-full relative z-10">
+    <!-- Home Team name -->
+    <div class="flex-1 flex items-center justify-end gap-3 text-right">
+      <div class="min-w-0">
+        <h3 class="text-lg font-black text-white uppercase tracking-wide truncate">
+          {{ match().homeTeam?.name || 'Home' }}
+        </h3>
+        <div class="text-[10px] text-slate-400 mt-1 flex flex-col items-end">
+          @for (ev of events(); track ev) {
+            @if (ev.type === 'goal') {
+              @let isHomeGoal =
+                ev.goalType === 'own_goal'
+                  ? ev.teamId === match().awayTeamId
+                  : ev.teamId === match().homeTeamId;
+              @if (isHomeGoal) {
+                <span>
+                  <i class="fi fi-rr-football text-violet-400"></i> {{ ev.minute }}'
+                  @if (ev.goalType === 'own_goal') {
+                    (OG -
+                    {{
+                      ev.playerName ||
+                        playerNameFor(match().awayTeamId, ev.playerUserId, 'Opponent')
+                    }})
+                  } @else {
+                    {{
+                      ev.playerName || playerNameFor(match().homeTeamId, ev.playerUserId, 'Player')
+                    }}
+                  }
+                </span>
+              }
+            }
+          }
+        </div>
+      </div>
+      <app-avatar
+        [name]="match().homeTeam ? match().homeTeam!.name : 'HM'"
+        [logoUrl]="match().homeTeam?.logoUrl"
+        customClass="w-10 h-10 rounded-xl flex-shrink-0"
+        textClass="text-xs font-bold text-white"
+      />
+    </div>
+
+    <!-- Live Score Card -->
+    <div
+      class="px-6 py-3 bg-slate-950 border border-violet-500/20 rounded-2xl flex flex-col items-center justify-center gap-2 min-w-[120px]"
+    >
+      <div class="flex items-center gap-4">
+        <span class="text-3xl font-black text-white tracking-wider">{{ match().homeScore }}</span>
+        <span class="text-sm font-bold text-slate-500">:</span>
+        <span class="text-3xl font-black text-white tracking-wider">{{ match().awayScore }}</span>
+      </div>
+      @if (consoleMode() === 'statistician' && hasUnpublishedEvents()) {
+        <div
+          class="text-[9px] font-extrabold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/25"
+        >
+          Draft: {{ draftHomeScore() }} - {{ draftAwayScore() }}
+        </div>
+      }
+      @if (
+        match().liveData?.shootoutHomeScore ||
+        match().liveData?.shootoutAwayScore ||
+        match().liveData?.currentHalf === 5
+      ) {
+        <span
+          class="text-[10px] font-extrabold text-violet-400 uppercase tracking-widest bg-violet-500/10 px-2 py-0.5 rounded-md border border-violet-500/20"
+        >
+          Pen: {{ match().liveData?.shootoutHomeScore || 0 }} -
+          {{ match().liveData?.shootoutAwayScore || 0 }}
+        </span>
+      }
+
+      <span class="text-xs font-mono font-bold text-emerald-400 tracking-wider">
+        {{ elapsedSeconds() | matchClock }}
+      </span>
+      @if (match().liveData?.started) {
+        <span class="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider mt-0.5">
+          {{ periodStatus() }}
+        </span>
+      }
+    </div>
+
+    <!-- Away Team name -->
+    <div class="flex-1 flex items-center justify-start gap-3 text-left">
+      <app-avatar
+        [name]="match().awayTeam ? match().awayTeam!.name : 'AW'"
+        [logoUrl]="match().awayTeam?.logoUrl"
+        customClass="w-10 h-10 rounded-xl flex-shrink-0"
+        textClass="text-xs font-bold text-white"
+      />
+      <div class="min-w-0">
+        <h3 class="text-lg font-black text-white uppercase tracking-wide truncate">
+          {{ match().awayTeam?.name || 'Away' }}
+        </h3>
+        <div class="text-[10px] text-slate-400 mt-1 flex flex-col items-start">
+          @for (ev of events(); track ev) {
+            @if (ev.type === 'goal') {
+              @let isAwayGoal =
+                ev.goalType === 'own_goal'
+                  ? ev.teamId === match().homeTeamId
+                  : ev.teamId === match().awayTeamId;
+              @if (isAwayGoal) {
+                <span>
+                  <i class="fi fi-rr-football text-violet-400"></i> {{ ev.minute }}'
+                  @if (ev.goalType === 'own_goal') {
+                    (OG -
+                    {{
+                      ev.playerName ||
+                        playerNameFor(match().homeTeamId, ev.playerUserId, 'Opponent')
+                    }})
+                  } @else {
+                    {{
+                      ev.playerName || playerNameFor(match().awayTeamId, ev.playerUserId, 'Player')
+                    }}
+                  }
+                </span>
+              }
+            }
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+
+  @if (match().venue) {
+    <div class="text-xs text-slate-400 flex items-center gap-1.5 mt-1 relative z-10">
+      <i class="fi fi-rr-marker text-violet-400"></i>
+      <span>{{ match().venue?.name }}</span>
+      @if (match().venue?.location) {
+        <span class="text-slate-500">({{ match().venue?.location }})</span>
+      }
+    </div>
+  }
+
+  @switch (match().status) {
+    @case ('scheduled') {
+      <span
+        class="text-[10px] font-bold px-3 py-1 bg-slate-800 text-slate-300 rounded-full border border-white/10 uppercase tracking-widest mt-2"
+      >
+        Upcoming Match
+      </span>
+    }
+    @case ('live') {
+      <span
+        class="text-[10px] font-bold px-3 py-1 bg-rose-500/10 text-rose-400 rounded-full border border-rose-500/20 uppercase tracking-widest mt-2 flex items-center gap-1.5"
+      >
+        <span class="h-2 w-2 rounded-full bg-rose-500 animate-ping"></span> Live Match
+      </span>
+    }
+    @default {
+      <span
+        class="text-[10px] font-bold px-3 py-1 bg-emerald-500/10 text-emerald-400 rounded-full border border-emerald-500/20 uppercase tracking-widest mt-2"
+      >
+        Completed
+      </span>
+    }
+  }
+</div>

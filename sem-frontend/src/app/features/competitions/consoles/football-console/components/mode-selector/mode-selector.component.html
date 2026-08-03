@@ -1,0 +1,39 @@
+<div
+  class="flex flex-col sm:flex-row items-center justify-between bg-slate-900 border border-white/10 rounded-2xl p-4 gap-4 shadow-xl"
+>
+  <div class="flex items-center gap-3">
+    <span class="text-xs font-black text-white uppercase tracking-wider">Console Mode:</span>
+    <div class="flex items-center gap-1.5 p-1 bg-slate-950/60 border border-white/5 rounded-xl">
+      <button
+        (click)="modeChange.emit('referee')"
+        class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[10px] font-extrabold uppercase tracking-wider transition-all cursor-pointer border-0"
+        [class]="
+          mode() === 'referee'
+            ? 'bg-violet-600 text-white shadow-md shadow-violet-650/20'
+            : 'text-slate-400 hover:text-white hover:bg-white/5'
+        "
+      >
+        <i class="fi fi-rr-referee"></i> Referee Mode
+      </button>
+      <button
+        (click)="modeChange.emit('statistician')"
+        class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[10px] font-extrabold uppercase tracking-wider transition-all cursor-pointer border-0"
+        [class]="
+          mode() === 'statistician'
+            ? 'bg-violet-600 text-white shadow-md shadow-violet-650/20'
+            : 'text-slate-400 hover:text-white hover:bg-white/5'
+        "
+      >
+        <i class="fi fi-rr-chart-bar"></i> Statistician Mode
+      </button>
+    </div>
+  </div>
+  @if (showPublish()) {
+    <button
+      (click)="publish.emit()"
+      class="w-full sm:w-auto px-5 py-2.5 bg-emerald-600 hover:bg-emerald-550 text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-emerald-650/20 border-0"
+    >
+      <i class="fi fi-rr-checkbox"></i> Validate & Publish Stats
+    </button>
+  }
+</div>

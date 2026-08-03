@@ -1,0 +1,128 @@
+<div class="bg-slate-900 border border-white/10 rounded-2xl p-6 shadow-xl flex flex-col gap-4 mt-6">
+  <div class="flex items-center justify-between border-b border-white/5 pb-3">
+    <h3 class="text-sm font-bold text-white flex items-center gap-2">
+      <i class="fi fi-rr-sparkles text-violet-400"></i>
+      Attendance Forecast
+    </h3>
+    <span
+      class="text-[9px] bg-violet-500/10 border border-violet-500/20 text-violet-400 rounded-full px-2 py-0.5 font-bold uppercase tracking-wider"
+    >
+      AI Insight
+    </span>
+  </div>
+
+  @if (isLoading()) {
+    <div class="flex items-center justify-center py-8">
+      <svg class="animate-spin w-5 h-5 text-violet-500" fill="none" viewBox="0 0 24 24">
+        <circle
+          class="opacity-25"
+          cx="12"
+          cy="12"
+          r="10"
+          stroke="currentColor"
+          stroke-width="4"
+        ></circle>
+        <path
+          class="opacity-75"
+          fill="currentColor"
+          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+        ></path>
+      </svg>
+    </div>
+  } @else if (forecast(); as f) {
+    @if (f.warning) {
+      <div
+        class="p-3 rounded-xl border text-[11px] font-medium leading-relaxed"
+        [class]="
+          f.warning.level === 'danger'
+            ? 'bg-rose-500/10 border-rose-500/20 text-rose-400'
+            : f.warning.level === 'warning'
+              ? 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+              : 'bg-slate-950/40 border-white/5 text-slate-300'
+        "
+      >
+        <div class="flex gap-2">
+          <i
+            class="fi text-xs mt-0.5"
+            [class]="f.warning.level === 'danger' ? 'fi-rr-shield-exclamation' : 'fi-rr-info'"
+          ></i>
+          <p>{{ f.warning.message }}</p>
+        </div>
+      </div>
+    }
+
+    <div class="grid grid-cols-2 gap-3">
+      <div class="bg-slate-950/40 border border-white/5 rounded-xl p-3 text-left">
+        <span class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">Spectators</span>
+        <p class="text-lg font-black text-white mt-1">{{ f.forecastedSpectators }}</p>
+      </div>
+      <div class="bg-slate-950/40 border border-white/5 rounded-xl p-3 text-left">
+        <span class="text-[9px] text-slate-500 uppercase font-bold tracking-wider"
+          >Participants</span
+        >
+        <p class="text-lg font-black text-white mt-1">{{ f.forecastedParticipants }}</p>
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-1 text-left">
+      <div class="flex justify-between text-[10px] font-bold">
+        <span class="text-slate-400">Venue Capacity ({{ f.venueCapacity }})</span>
+        <span [class]="f.capacityUtilization > 85 ? 'text-rose-400' : 'text-slate-300'">
+          {{ f.capacityUtilization }}%
+        </span>
+      </div>
+      <div class="w-full bg-slate-800 rounded-full h-1.5 mt-1">
+        <div
+          class="rounded-full h-1.5 transition-all duration-500"
+          [class]="f.capacityUtilization > 85 ? 'bg-rose-500' : 'bg-violet-500'"
+          [style.width.%]="f.capacityUtilization"
+        ></div>
+      </div>
+    </div>
+
+    <div class="border-t border-white/5 pt-3">
+      <h4 class="text-xs font-bold text-white text-left mb-2.5">Organiser Resources</h4>
+      <div class="grid grid-cols-2 gap-2 text-left">
+        <div class="flex items-center gap-2 text-[11px] text-slate-300">
+          <i class="fi fi-rr-users text-slate-400"></i>
+          <span
+            >Staff:
+            <strong class="text-white">{{ f.resourceEstimates?.staffRequired }}</strong></span
+          >
+        </div>
+        <div class="flex items-center gap-2 text-[11px] text-slate-300">
+          <i class="fi fi-rr-shield text-slate-400"></i>
+          <span
+            >Security:
+            <strong class="text-white">{{ f.resourceEstimates?.securityGuards }}</strong></span
+          >
+        </div>
+        <div class="flex items-center gap-2 text-[11px] text-slate-300">
+          <i class="fi fi-rr-heart text-slate-400"></i>
+          <span
+            >First Aid:
+            <strong class="text-white">{{ f.resourceEstimates?.firstAidResponders }}</strong></span
+          >
+        </div>
+        <div class="flex items-center gap-2 text-[11px] text-slate-300">
+          <i class="fi fi-rr-shop text-slate-400"></i>
+          <span
+            >Concessions:
+            <strong class="text-white">{{ f.resourceEstimates?.concessionStands }}</strong></span
+          >
+        </div>
+      </div>
+    </div>
+
+    <div class="border-t border-white/5 pt-3 text-left">
+      <span class="text-[9px] text-slate-500 uppercase font-black tracking-widest"
+        >Trend Report</span
+      >
+      <p class="text-[11px] text-slate-400 mt-1 leading-relaxed">
+        {{ f.trendReport?.summary }}
+      </p>
+    </div>
+  } @else {
+    <div class="text-xs text-slate-500 text-center py-4">Could not fetch forecast.</div>
+  }
+</div>

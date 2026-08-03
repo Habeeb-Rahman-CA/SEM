@@ -1,0 +1,12 @@
+<app-team-list
+  class="h-full block min-h-0"
+  [workspaceId]="workspaceId()"
+  [teams]="teams()"
+  [canUpdate]="canUpdate()"
+  [selectedTeamId]="selectedTeamId()"
+  (selectedTeamIdChange)="selectedTeamIdChange.emit($event)"
+  (add)="add.emit()"
+  (edit)="edit.emit($event)"
+  (delete)="delete.emit($event)"
+  (teamsImported)="teamsImported.emit($event)"
+/>

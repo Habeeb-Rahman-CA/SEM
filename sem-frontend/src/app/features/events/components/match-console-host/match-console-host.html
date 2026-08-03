@@ -1,0 +1,71 @@
+@switch (sportCode()) {
+  @case ('football') {
+    <app-football-console
+      [workspaceId]="workspaceId()"
+      [eventId]="eventId()"
+      [competitionId]="competitionId()"
+      [stageId]="stageId()"
+      [stage]="stage()"
+      [match]="match()"
+      [players]="players()"
+      [teams]="teams()"
+      [matchLineup]="matchLineup()"
+      [canScore]="canScore()"
+      (matchCompleted)="matchCompleted.emit()"
+      (matchUpdated)="matchUpdated.emit($event)"
+      (openLineupModal)="openLineupModal.emit()"
+    />
+  }
+  @case ('cricket') {
+    <app-cricket-console
+      [workspaceId]="workspaceId()"
+      [eventId]="eventId()"
+      [competitionId]="competitionId()"
+      [stageId]="stageId()"
+      [stage]="stage()"
+      [match]="match()"
+      [players]="players()"
+      [teams]="teams()"
+      [matchLineup]="matchLineup()"
+      [canScore]="canScore()"
+      (matchCompleted)="matchCompleted.emit()"
+      (matchUpdated)="matchUpdated.emit($event)"
+      (openLineupModal)="openLineupModal.emit()"
+    />
+  }
+  @case ('badminton') {
+    <app-badminton-console
+      [workspaceId]="workspaceId()"
+      [eventId]="eventId()"
+      [competitionId]="competitionId()"
+      [stageId]="stageId()"
+      [stage]="stage()"
+      [match]="match()"
+      [players]="players()"
+      [teams]="teams()"
+      [matchLineup]="matchLineup()"
+      [canScore]="canScore()"
+      (matchCompleted)="matchCompleted.emit()"
+      (matchUpdated)="matchUpdated.emit($event)"
+      (openLineupModal)="openLineupModal.emit()"
+    />
+  }
+  @default {
+    <app-generic-console
+      [workspaceId]="workspaceId()"
+      [eventId]="eventId()"
+      [competitionId]="competitionId()"
+      [stageId]="stageId()"
+      [stage]="stage()"
+      [match]="match()"
+      [players]="players()"
+      [teams]="teams()"
+      [matchLineup]="matchLineup()"
+      [canScore]="canScore()"
+      [sport]="sport()"
+      (matchCompleted)="matchCompleted.emit()"
+      (matchUpdated)="matchUpdated.emit($event)"
+      (openLineupModal)="openLineupModal.emit()"
+    />
+  }
+}
