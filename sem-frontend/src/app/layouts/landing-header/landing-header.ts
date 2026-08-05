@@ -1,11 +1,12 @@
 import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { LanguageSelectorComponent } from '../../shared/components/language-selector/language-selector';
 
 @Component({
   selector: 'app-landing-header',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive],
+  imports: [CommonModule, RouterLink, RouterLinkActive, LanguageSelectorComponent],
   templateUrl: './landing-header.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
