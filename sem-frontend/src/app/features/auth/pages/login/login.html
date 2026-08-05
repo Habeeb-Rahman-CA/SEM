@@ -100,10 +100,6 @@
           </span>
           <span>SEM</span>
         </a>
-        <a routerLink="/register" queryParamsHandling="preserve" class="auth-secondary-link">
-          <i class="fi fi-rr-user-add"></i>
-          Sign Up
-        </a>
       </header>
 
       <div class="auth-form-wrap">
@@ -207,10 +203,141 @@
       <footer class="auth-right-footer">
         <span>© 2005–2026 SEM Inc.</span>
         <div class="auth-right-footer-links">
-          <a href="#">Contact Us</a>
-          <a href="#">English <i class="fi fi-rr-angle-small-down text-[10px]"></i></a>
+          <button
+            type="button"
+            (click)="openContactModal($event)"
+            class="hover:text-white transition cursor-pointer bg-transparent border-0 text-slate-500 text-xs p-0"
+          >
+            Contact Us
+          </button>
+          <app-language-selector />
         </div>
       </footer>
     </section>
   </div>
 </div>
+
+<!-- Contact Support Modal -->
+<app-modal
+  [open]="isContactModalOpen()"
+  title="Contact Support & Helpdesk"
+  subtitle="Having trouble signing in or need assistance? Our support team is here to help."
+  iconClass="fi-rr-headset"
+  size="md"
+  (closed)="closeContactModal()"
+>
+  @if (contactSuccess()) {
+    <div
+      class="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 flex items-start gap-3 text-sm"
+    >
+      <i class="fi fi-rr-check-circle text-lg shrink-0 mt-0.5"></i>
+      <div>
+        <div class="font-bold text-white mb-1">Ticket Submitted</div>
+        <p class="text-xs leading-relaxed text-emerald-200/90">{{ contactSuccess() }}</p>
+      </div>
+    </div>
+  } @else {
+    <!-- Quick Contact Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2">
+      <div class="p-3 rounded-xl bg-white/5 border border-white/5 flex items-center gap-3">
+        <div
+          class="w-9 h-9 rounded-lg bg-violet-500/15 border border-violet-500/30 flex items-center justify-center text-violet-300 shrink-0"
+        >
+          <i class="fi fi-rr-envelope text-base"></i>
+        </div>
+        <div class="min-w-0">
+          <div class="text-[10px] uppercase font-bold text-slate-400">Direct Email</div>
+          <a
+            href="mailto:support@sem.app"
+            class="text-xs font-semibold text-white hover:text-violet-300 transition truncate block"
+            >support&#64;sem.app</a
+          >
+        </div>
+      </div>
+      <div class="p-3 rounded-xl bg-white/5 border border-white/5 flex items-center gap-3">
+        <div
+          class="w-9 h-9 rounded-lg bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-300 shrink-0"
+        >
+          <i class="fi fi-rr-clock text-base"></i>
+        </div>
+        <div>
+          <div class="text-[10px] uppercase font-bold text-slate-400">Response SLA</div>
+          <div class="text-xs font-semibold text-white">Under 2 hours · 24/7</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contact Form -->
+    <form (submit)="sendContactRequest(); $event.preventDefault()" class="flex flex-col gap-3">
+      <div>
+        <label class="block text-xs font-semibold text-slate-300 mb-1">Contact Email</label>
+        <input
+          type="email"
+          required
+          placeholder="your.email@example.com"
+          class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/60 border border-white/10 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-violet-500 transition"
+          [ngModel]="contactEmail()"
+          (ngModelChange)="contactEmail.set($event)"
+          name="contactEmail"
+        />
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-300 mb-1">Topic</label>
+        <select
+          class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/10 text-white text-xs focus:outline-none focus:border-violet-500 transition"
+          [ngModel]="contactTopic()"
+          (ngModelChange)="contactTopic.set($event)"
+          name="contactTopic"
+        >
+          <option value="Login / Password Issue" class="bg-slate-900 text-white">
+            Login / Password Issue
+          </option>
+          <option value="Account Access & Recovery" class="bg-slate-900 text-white">
+            Account Access & Recovery
+          </option>
+          <option value="Technical / Scoring Support" class="bg-slate-900 text-white">
+            Technical / Scoring Support
+          </option>
+          <option value="General Inquiry" class="bg-slate-900 text-white">General Inquiry</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-300 mb-1">Message</label>
+        <textarea
+          required
+          rows="3"
+          placeholder="Describe what you need help with..."
+          class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/60 border border-white/10 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-violet-500 transition resize-none"
+          [ngModel]="contactMessage()"
+          (ngModelChange)="contactMessage.set($event)"
+          name="contactMessage"
+        ></textarea>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-2">
+        <button
+          type="button"
+          (click)="closeContactModal()"
+          class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition cursor-pointer"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          [disabled]="isSendingContact() || !contactEmail().trim() || !contactMessage().trim()"
+          class="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
+        >
+          @if (isSendingContact()) {
+            <i class="fi fi-rr-spinner animate-spin text-sm"></i>
+            Sending...
+          } @else {
+            <i class="fi fi-rr-paper-plane text-xs"></i>
+            Send Ticket
+          }
+        </button>
+      </div>
+    </form>
+  }
+</app-modal>

@@ -25,19 +25,23 @@ import { Component, input, output, effect, ElementRef, HostListener, inject } fr
         role="dialog"
         aria-modal="true"
         [attr.aria-labelledby]="title() ? titleId : null"
-        [attr.aria-describedby]="subtitle() ? descId : null">
-
+        [attr.aria-describedby]="subtitle() ? descId : null"
+      >
         <!-- Panel -->
         <div
-          class="bg-slate-900 border border-white/10 rounded-2xl w-full flex flex-col shadow-2xl relative overflow-hidden"
+          class="bg-slate-900 text-slate-100 border border-white/10 rounded-2xl w-full flex flex-col shadow-2xl relative overflow-hidden"
           [class]="panelSizeClass()"
-          (click)="$event.stopPropagation()">
-
+          (click)="$event.stopPropagation()"
+        >
           <!-- Accent gradient top line -->
-          <div class="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-violet-500 to-indigo-500"></div>
+          <div
+            class="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-violet-500 to-indigo-500"
+          ></div>
 
           <!-- Header -->
-          <div class="px-6 pt-7 pb-5 border-b border-white/5 flex items-start justify-between gap-4 shrink-0">
+          <div
+            class="px-6 pt-7 pb-5 border-b border-white/5 flex items-start justify-between gap-4 shrink-0"
+          >
             <div class="min-w-0">
               @if (title()) {
                 <h3 [id]="titleId" class="text-base font-bold text-white flex items-center gap-2.5">
@@ -55,7 +59,8 @@ import { Component, input, output, effect, ElementRef, HostListener, inject } fr
             <button
               class="shrink-0 p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-all cursor-pointer border-0 bg-transparent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500"
               (click)="closed.emit()"
-              aria-label="Close modal">
+              aria-label="Close modal"
+            >
               <i class="fi fi-rr-cross text-xs"></i>
             </button>
           </div>
@@ -66,7 +71,9 @@ import { Component, input, output, effect, ElementRef, HostListener, inject } fr
           </div>
 
           <!-- Footer (projected slot) -->
-          <div class="px-6 pb-5 pt-4 border-t border-white/5 flex items-center justify-end gap-3 shrink-0 flex-wrap">
+          <div
+            class="px-6 pb-5 pt-4 border-t border-white/5 flex items-center justify-end gap-3 shrink-0 flex-wrap"
+          >
             <ng-content select="[slot=footer]" />
           </div>
         </div>
@@ -75,12 +82,12 @@ import { Component, input, output, effect, ElementRef, HostListener, inject } fr
   `,
 })
 export class ModalComponent {
-  open       = input<boolean>(false);
-  title      = input<string | null>(null);
-  subtitle   = input<string | null>(null);
-  iconClass  = input<string | null>(null);
+  open = input<boolean>(false);
+  title = input<string | null>(null);
+  subtitle = input<string | null>(null);
+  iconClass = input<string | null>(null);
   /** 'sm' | 'md' | 'lg' | 'xl' | 'full' */
-  size       = input<'sm' | 'md' | 'lg' | 'xl' | 'full'>('md');
+  size = input<'sm' | 'md' | 'lg' | 'xl' | 'full'>('md');
   /** Whether clicking the backdrop closes the modal */
   closeOnBackdrop = input<boolean>(true);
 
@@ -101,12 +108,13 @@ export class ModalComponent {
         setTimeout(() => {
           const el = this.elRef.nativeElement;
           const focusables = el.querySelectorAll(
-            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
           );
           if (focusables.length > 0) {
             // Focus the first non-button (like input/textarea) if available, otherwise focus first element
             const firstInput = Array.from(focusables).find(
-              (f: any) => f.tagName === 'INPUT' || f.tagName === 'TEXTAREA' || f.tagName === 'SELECT'
+              (f: any) =>
+                f.tagName === 'INPUT' || f.tagName === 'TEXTAREA' || f.tagName === 'SELECT',
             ) as HTMLElement;
             if (firstInput) {
               firstInput.focus();
@@ -139,7 +147,7 @@ export class ModalComponent {
     if (event.key === 'Tab') {
       const el = this.elRef.nativeElement;
       const focusables = el.querySelectorAll(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
       );
       if (focusables.length === 0) return;
 
@@ -162,10 +170,10 @@ export class ModalComponent {
 
   protected panelSizeClass() {
     const map: Record<string, string> = {
-      sm:   'max-w-md max-h-[90vh]',
-      md:   'max-w-lg max-h-[90vh]',
-      lg:   'max-w-2xl max-h-[90vh]',
-      xl:   'max-w-4xl max-h-[92vh]',
+      sm: 'max-w-md max-h-[90vh]',
+      md: 'max-w-lg max-h-[90vh]',
+      lg: 'max-w-2xl max-h-[90vh]',
+      xl: 'max-w-4xl max-h-[92vh]',
       full: 'max-w-[95vw] max-h-[95vh]',
     };
     return map[this.size()] ?? map['md'];

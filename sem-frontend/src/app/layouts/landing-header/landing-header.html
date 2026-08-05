@@ -1,0 +1,205 @@
+<header
+  class="fixed inset-x-0 top-0 z-50 safe-top bg-slate-950/80 backdrop-blur-md border-b border-white/10 h-16 flex items-center"
+>
+  <div class="w-full max-w-6xl mx-auto px-5 sm:px-8 flex items-center justify-between">
+    <!-- Logo -->
+    <a
+      routerLink="/"
+      (click)="closeMobileMenu()"
+      class="flex items-center gap-2.5 text-sm font-black tracking-tight cursor-pointer"
+    >
+      <span
+        class="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-violet-500/25"
+      >
+        <i class="fi fi-sr-trophy text-white text-xs"></i>
+      </span>
+      <span class="text-white text-base">SEM</span>
+    </a>
+
+    <!-- Desktop Navigation links -->
+    <nav class="hidden md:flex items-center gap-7 text-xs font-semibold text-slate-300">
+      <a
+        routerLink="/"
+        [routerLinkActiveOptions]="{ exact: true }"
+        routerLinkActive="text-white font-bold"
+        class="hover:text-white transition cursor-pointer"
+      >
+        Home
+      </a>
+      <a
+        routerLink="/events"
+        routerLinkActive="text-white font-bold"
+        class="hover:text-white transition cursor-pointer"
+      >
+        Browse events
+      </a>
+      <a
+        routerLink="/live"
+        routerLinkActive="text-white font-bold"
+        class="hover:text-white transition inline-flex items-center gap-1.5 cursor-pointer"
+      >
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+        Live scores
+      </a>
+      <a
+        routerLink="/pricing"
+        routerLinkActive="text-white font-bold"
+        class="hover:text-white transition cursor-pointer"
+      >
+        Pricing
+      </a>
+      <a
+        href="#features"
+        (click)="navigateToSection('features', $event)"
+        class="hover:text-white transition cursor-pointer"
+      >
+        Features
+      </a>
+      <a
+        href="#how"
+        (click)="navigateToSection('how', $event)"
+        class="hover:text-white transition cursor-pointer"
+      >
+        How it works
+      </a>
+    </nav>
+
+    <!-- Desktop Actions (Language Selector / Sign in / Get started / Back button) -->
+    <div class="hidden md:flex items-center gap-3">
+      <app-language-selector direction="down" align="right" />
+
+      @if (backUrl()) {
+        <a
+          [routerLink]="backUrl()"
+          class="text-xs font-bold text-slate-300 hover:text-white px-3 py-2 rounded-lg transition cursor-pointer flex items-center gap-1"
+        >
+          <i class="fi fi-rr-arrow-small-left text-sm"></i>
+          Back
+        </a>
+      } @else {
+        <a
+          routerLink="/login"
+          class="text-xs font-bold text-slate-300 hover:text-white px-3 py-2 rounded-lg transition cursor-pointer"
+        >
+          Sign in
+        </a>
+        <a
+          routerLink="/register"
+          class="text-xs font-bold text-white bg-violet-600 hover:bg-violet-500 px-4 py-2 rounded-lg transition cursor-pointer shadow-md shadow-violet-500/20"
+        >
+          Get started
+        </a>
+      }
+    </div>
+
+    <!-- Mobile Menu Toggle Button -->
+    <button
+      type="button"
+      (click)="toggleMobileMenu()"
+      class="md:hidden p-2 rounded-lg text-slate-300 hover:text-white hover:bg-white/5 transition focus:outline-none cursor-pointer"
+      [attr.aria-label]="isMobileMenuOpen() ? 'Close menu' : 'Open menu'"
+    >
+      <i
+        [class]="isMobileMenuOpen() ? 'fi fi-rr-cross text-lg' : 'fi fi-rr-menu-burger text-lg'"
+      ></i>
+    </button>
+  </div>
+</header>
+
+<!-- Mobile Menu Drawer Overlay -->
+@if (isMobileMenuOpen()) {
+  <div
+    class="fixed inset-x-0 top-16 z-40 bg-slate-950/95 backdrop-blur-xl border-b border-white/10 md:hidden flex flex-col p-6 space-y-4 shadow-2xl"
+  >
+    <nav class="flex flex-col space-y-2 text-sm font-semibold text-slate-300">
+      <a
+        routerLink="/"
+        [routerLinkActiveOptions]="{ exact: true }"
+        routerLinkActive="text-white font-bold bg-white/10"
+        (click)="closeMobileMenu()"
+        class="px-4 py-3 rounded-xl hover:text-white hover:bg-white/5 transition flex items-center gap-3 cursor-pointer"
+      >
+        <i class="fi fi-rr-home text-base"></i>
+        Home
+      </a>
+      <a
+        routerLink="/events"
+        routerLinkActive="text-white font-bold bg-white/10"
+        (click)="closeMobileMenu()"
+        class="px-4 py-3 rounded-xl hover:text-white hover:bg-white/5 transition flex items-center gap-3 cursor-pointer"
+      >
+        <i class="fi fi-rr-calendar text-base"></i>
+        Browse events
+      </a>
+      <a
+        routerLink="/live"
+        routerLinkActive="text-white font-bold bg-white/10"
+        (click)="closeMobileMenu()"
+        class="px-4 py-3 rounded-xl hover:text-white hover:bg-white/5 transition flex items-center gap-3 cursor-pointer"
+      >
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        Live scores
+      </a>
+      <a
+        routerLink="/pricing"
+        routerLinkActive="text-white font-bold bg-white/10"
+        (click)="closeMobileMenu()"
+        class="px-4 py-3 rounded-xl hover:text-white hover:bg-white/5 transition flex items-center gap-3 cursor-pointer"
+      >
+        <i class="fi fi-rr-tags text-base"></i>
+        Pricing
+      </a>
+      <a
+        href="#features"
+        (click)="navigateToSection('features', $event)"
+        class="px-4 py-3 rounded-xl hover:text-white hover:bg-white/5 transition flex items-center gap-3 cursor-pointer"
+      >
+        <i class="fi fi-rr-star text-base"></i>
+        Features
+      </a>
+      <a
+        href="#how"
+        (click)="navigateToSection('how', $event)"
+        class="px-4 py-3 rounded-xl hover:text-white hover:bg-white/5 transition flex items-center gap-3 cursor-pointer"
+      >
+        <i class="fi fi-rr-info text-base"></i>
+        How it works
+      </a>
+    </nav>
+
+    <div class="pt-4 border-t border-white/10 flex flex-col space-y-3">
+      <div
+        class="flex items-center justify-between px-2 py-1 bg-white/5 rounded-xl border border-white/5"
+      >
+        <span class="text-xs font-semibold text-slate-300">Language</span>
+        <app-language-selector direction="down" align="right" />
+      </div>
+
+      @if (backUrl()) {
+        <a
+          [routerLink]="backUrl()"
+          (click)="closeMobileMenu()"
+          class="w-full text-center py-3 text-sm font-bold text-slate-300 bg-white/5 hover:bg-white/10 rounded-xl transition flex items-center justify-center gap-2 cursor-pointer"
+        >
+          <i class="fi fi-rr-arrow-small-left text-base"></i>
+          Back
+        </a>
+      } @else {
+        <a
+          routerLink="/login"
+          (click)="closeMobileMenu()"
+          class="w-full text-center py-3 text-sm font-bold text-slate-300 bg-white/5 hover:bg-white/10 rounded-xl transition cursor-pointer"
+        >
+          Sign in
+        </a>
+        <a
+          routerLink="/register"
+          (click)="closeMobileMenu()"
+          class="w-full text-center py-3 text-sm font-bold text-white bg-violet-600 hover:bg-violet-500 rounded-xl transition cursor-pointer shadow-lg shadow-violet-500/25"
+        >
+          Get started
+        </a>
+      }
+    </div>
+  </div>
+}

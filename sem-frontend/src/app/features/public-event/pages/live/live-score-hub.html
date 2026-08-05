@@ -8,40 +8,7 @@
     aria-hidden="true"
   ></div>
 
-  <!-- ─────────── Top Bar ─────────── -->
-  <header
-    class="fixed inset-x-0 top-0 z-40 safe-top bg-slate-950/70 backdrop-blur-md border-b border-white/5"
-  >
-    <div class="max-w-6xl mx-auto px-5 sm:px-8 h-14 flex items-center justify-between">
-      <a routerLink="/" class="flex items-center gap-2.5 text-sm font-black tracking-tight">
-        <span
-          class="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-violet-500/25"
-        >
-          <i class="fi fi-sr-trophy text-white text-xs"></i>
-        </span>
-        <span>SEM</span>
-      </a>
-      <nav class="hidden md:flex items-center gap-7 text-xs font-semibold text-slate-400">
-        <a routerLink="/" class="hover:text-white transition">Home</a>
-        <a routerLink="/events" class="hover:text-white transition">Events</a>
-        <a routerLink="/live" class="text-white transition">Live</a>
-      </nav>
-      <div class="flex items-center gap-2.5">
-        <a
-          routerLink="/login"
-          class="text-xs font-bold text-slate-300 hover:text-white px-3 py-2 rounded-lg transition cursor-pointer"
-        >
-          Sign in
-        </a>
-        <a
-          routerLink="/register"
-          class="hidden sm:inline-flex text-xs font-bold text-white bg-violet-600 hover:bg-violet-500 px-4 py-2 rounded-lg transition cursor-pointer shadow-md shadow-violet-500/20"
-        >
-          Get started
-        </a>
-      </div>
-    </div>
-  </header>
+  <app-landing-header></app-landing-header>
 
   <!-- ─────────── Hero ─────────── -->
   <section class="relative pt-28 sm:pt-32 pb-6 px-5 sm:px-8 max-w-6xl mx-auto">

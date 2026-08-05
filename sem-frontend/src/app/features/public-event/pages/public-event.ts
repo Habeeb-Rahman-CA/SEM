@@ -14,11 +14,20 @@ import { GalleryPhoto, GalleryService } from '../../gallery/services/gallery.ser
 import { ShareService } from '../../share/services/share.service';
 import { PublicEventSponsor, SponsorService } from '../../sponsors/services/sponsor.service';
 import { AdBannerComponent } from '../../ads/components/ad-banner/ad-banner';
+import { LandingHeaderComponent } from '../../../layouts/landing-header/landing-header';
 
 @Component({
   selector: 'app-public-event',
   standalone: true,
-  imports: [CommonModule, RouterModule, DatePipe, AvatarComponent, FormsModule, AdBannerComponent],
+  imports: [
+    CommonModule,
+    RouterModule,
+    DatePipe,
+    AvatarComponent,
+    FormsModule,
+    AdBannerComponent,
+    LandingHeaderComponent,
+  ],
   templateUrl: './public-event.html',
 })
 export class PublicEventComponent implements OnInit, OnDestroy {

@@ -3,11 +3,13 @@ import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { QuicklinkDirective } from 'ngx-quicklink';
 import { AuthService } from '../../services/auth.service';
+import { ModalComponent } from '../../../../shared/components/modal/modal';
+import { LanguageSelectorComponent } from '../../../../shared/components/language-selector/language-selector';
 
 @Component({
   selector: 'app-register',
   standalone: true,
-  imports: [FormsModule, RouterLink, QuicklinkDirective],
+  imports: [FormsModule, RouterLink, QuicklinkDirective, ModalComponent, LanguageSelectorComponent],
   templateUrl: './register.html',
   styleUrl: './register.css',
 })
@@ -23,6 +25,56 @@ export class RegisterComponent {
   errorMessage = signal<string>('');
   successMessage = signal<string>('');
   isLoading = signal<boolean>(false);
+
+  // Contact support modal state
+  isContactModalOpen = signal<boolean>(false);
+  contactEmail = signal<string>('');
+  contactTopic = signal<string>('Account Registration Inquiry');
+  contactMessage = signal<string>('');
+  isSendingContact = signal<boolean>(false);
+  contactSuccess = signal<string | null>(null);
+
+  openContactModal(e?: Event) {
+    if (e) e.preventDefault();
+    this.contactSuccess.set(null);
+    if (!this.contactEmail() && this.username().includes('@')) {
+      this.contactEmail.set(this.username());
+    }
+    this.isContactModalOpen.set(true);
+  }
+
+  closeContactModal() {
+    this.isContactModalOpen.set(false);
+    this.contactSuccess.set(null);
+  }
+
+  sendContactRequest() {
+    if (!this.contactEmail().trim() || !this.contactMessage().trim()) return;
+
+    this.isSendingContact.set(true);
+    setTimeout(() => {
+      this.isSendingContact.set(false);
+      const ticketId = Math.floor(100000 + Math.random() * 900000);
+      this.contactSuccess.set(
+        `Ticket #${ticketId} created! Our support team has received your request and will follow up at ${this.contactEmail()} within 2 hours.`,
+      );
+      this.contactMessage.set('');
+    }, 900);
+  }
+
+  // Terms and Privacy modal state
+  isTermsModalOpen = signal<boolean>(false);
+  activeTermsTab = signal<'terms' | 'privacy'>('terms');
+
+  openTermsModal(tab: 'terms' | 'privacy' = 'terms', e?: Event) {
+    if (e) e.preventDefault();
+    this.activeTermsTab.set(tab);
+    this.isTermsModalOpen.set(true);
+  }
+
+  closeTermsModal() {
+    this.isTermsModalOpen.set(false);
+  }
 
   onSubmit() {
     const user = this.username().trim();

@@ -14,6 +14,7 @@ import { LoadingSpinnerComponent } from '../../../../shared/components/loading-s
 import { getSportBadgeClass, getSportIconClass } from '../../../../shared';
 import { ShareService } from '../../../share/services/share.service';
 import { ShareButtonComponent } from '../../../share/components/share-button';
+import { LandingHeaderComponent } from '../../../../layouts/landing-header/landing-header';
 
 interface CoachEntry {
   id: string;
@@ -148,6 +149,7 @@ interface PublicTeamProfile {
     AvatarComponent,
     LoadingSpinnerComponent,
     ShareButtonComponent,
+    LandingHeaderComponent,
   ],
   templateUrl: './public-team-profile.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
