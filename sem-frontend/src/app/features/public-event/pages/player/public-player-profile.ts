@@ -13,6 +13,7 @@ import { AvatarComponent } from '../../../../shared/components/avatar/avatar';
 import { getSportBadgeClass, getSportIconClass } from '../../../../shared';
 import { ShareService } from '../../../share/services/share.service';
 import { ShareButtonComponent } from '../../../share/components/share-button';
+import { LandingHeaderComponent } from '../../../../layouts/landing-header/landing-header';
 
 interface CompetitionStats {
   competitionId: string;
@@ -104,7 +105,13 @@ interface PublicPlayerProfile {
 @Component({
   selector: 'app-public-player-profile',
   standalone: true,
-  imports: [CommonModule, RouterLink, AvatarComponent, ShareButtonComponent],
+  imports: [
+    CommonModule,
+    RouterLink,
+    AvatarComponent,
+    ShareButtonComponent,
+    LandingHeaderComponent,
+  ],
   templateUrl: './public-player-profile.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

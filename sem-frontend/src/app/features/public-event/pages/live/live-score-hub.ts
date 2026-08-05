@@ -16,6 +16,7 @@ import { EventService } from '../../../events/services/event.service';
 import { SocketService } from '../../../../core/services/socket.service';
 import { formatMatchStatusDetail, getSportBadgeClass, getSportIconClass } from '../../../../shared';
 import { AdBannerComponent } from '../../../ads/components/ad-banner/ad-banner';
+import { LandingHeaderComponent } from '../../../../layouts/landing-header/landing-header';
 
 interface LiveMatch {
   id: string;
@@ -48,7 +49,7 @@ const FOLLOWED_STORAGE_KEY = 'sem.liveHub.followed';
 @Component({
   selector: 'app-live-score-hub',
   standalone: true,
-  imports: [CommonModule, RouterLink, AdBannerComponent],
+  imports: [CommonModule, RouterLink, AdBannerComponent, LandingHeaderComponent],
   templateUrl: './live-score-hub.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

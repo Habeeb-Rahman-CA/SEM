@@ -16,13 +16,14 @@ import { EventService } from '../../../events/services/event.service';
 import { WorkspaceEvent } from '../../../workspaces/services/workspace.service';
 import { getSportBadgeClass, getSportIconClass } from '../../../../shared';
 import { AdBannerComponent } from '../../../ads/components/ad-banner/ad-banner';
+import { LandingHeaderComponent } from '../../../../layouts/landing-header/landing-header';
 
 type StatusFilter = 'all' | 'upcoming' | 'ongoing' | 'completed';
 
 @Component({
   selector: 'app-public-events-portal',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, AdBannerComponent],
+  imports: [CommonModule, FormsModule, RouterLink, AdBannerComponent, LandingHeaderComponent],
   templateUrl: './public-events-portal.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

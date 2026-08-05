@@ -13,6 +13,7 @@
  */
 import { HttpInterceptorFn, HttpResponse } from '@angular/common/http';
 import { of, tap } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
 interface CacheEntry {
   response: HttpResponse<unknown>;
@@ -38,7 +39,7 @@ const TTL_RULES: Array<{ pattern: RegExp; ttlMs: number }> = [
   { pattern: /\/members$/, ttlMs: 30_000 }, // 30 s
 ];
 
-const API_BASE = 'http://localhost:3001/api';
+const API_BASE = environment.apiUrl;
 
 function getTtl(url: string): number {
   const rule = TTL_RULES.find((r) => r.pattern.test(url));
@@ -77,7 +78,7 @@ export const cacheInterceptor: HttpInterceptorFn = (req, next) => {
     return next(req);
   }
 
-  const cacheKey = req.url;
+  const cacheKey = req.urlWithParams;
   const now = Date.now();
   const cached = cache.get(cacheKey);
 

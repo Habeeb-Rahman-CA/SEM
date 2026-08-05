@@ -10,6 +10,7 @@ import {
 } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../auth/services/auth.service';
+import { LandingHeaderComponent } from '../../../layouts/landing-header/landing-header';
 
 interface FeatureCard {
   icon: string;
@@ -32,7 +33,7 @@ interface Sport {
 @Component({
   selector: 'app-landing',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, LandingHeaderComponent],
   templateUrl: './landing.html',
   styleUrl: './landing.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -151,44 +152,78 @@ export class LandingComponent implements OnInit, AfterViewInit {
     if (!rootEl) return;
 
     const ctx = gsap.context(() => {
+      const q = gsap.utils.selector(rootEl);
+
       // Hero opening timeline — cascades headline chunks in from below.
       gsap
         .timeline({ defaults: { ease: 'power3.out', duration: 0.9 } })
-        .from('[data-hero-eyebrow]', { y: 20, opacity: 0, duration: 0.6 })
-        .from('[data-hero-title] > span', { y: 40, opacity: 0, stagger: 0.12 }, '-=0.25')
-        .from('[data-hero-sub]', { y: 20, opacity: 0, duration: 0.7 }, '-=0.4')
-        .from('[data-hero-cta] > *', { y: 20, opacity: 0, stagger: 0.12 }, '-=0.4')
-        .from('[data-hero-mockup]', { y: 50, opacity: 0, scale: 0.97, duration: 1.1 }, '-=0.5');
+        .fromTo(
+          q('[data-hero-eyebrow]'),
+          { y: 20, opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.6 },
+        )
+        .fromTo(
+          q('[data-hero-title] > span'),
+          { y: 40, opacity: 0 },
+          { y: 0, opacity: 1, stagger: 0.12 },
+          '-=0.25',
+        )
+        .fromTo(
+          q('[data-hero-sub]'),
+          { y: 20, opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.7 },
+          '-=0.4',
+        )
+        .fromTo(
+          q('[data-hero-cta] > *'),
+          { y: 20, opacity: 0 },
+          { y: 0, opacity: 1, stagger: 0.12 },
+          '-=0.4',
+        )
+        .fromTo(
+          q('[data-hero-mockup]'),
+          { y: 50, opacity: 0, scale: 0.97 },
+          { y: 0, opacity: 1, scale: 1, duration: 1.1 },
+          '-=0.5',
+        );
 
       // Section-level reveal — everything with [data-reveal] fades in on scroll.
-      gsap.utils.toArray<HTMLElement>('[data-reveal]').forEach((el) => {
-        gsap.from(el, {
-          y: 40,
-          opacity: 0,
-          duration: 0.9,
-          ease: 'power3.out',
-          scrollTrigger: {
-            trigger: el,
-            start: 'top 85%',
-            toggleActions: 'play none none reverse',
+      q('[data-reveal]').forEach((el) => {
+        gsap.fromTo(
+          el,
+          { y: 40, opacity: 0 },
+          {
+            y: 0,
+            opacity: 1,
+            duration: 0.9,
+            ease: 'power3.out',
+            scrollTrigger: {
+              trigger: el,
+              start: 'top 85%',
+              toggleActions: 'play none none reverse',
+            },
           },
-        });
+        );
       });
 
       // Staggered grid reveal — used on feature + step + sport grids.
-      gsap.utils.toArray<HTMLElement>('[data-reveal-stagger]').forEach((grid) => {
-        gsap.from(grid.children, {
-          y: 30,
-          opacity: 0,
-          duration: 0.7,
-          ease: 'power3.out',
-          stagger: 0.08,
-          scrollTrigger: {
-            trigger: grid,
-            start: 'top 85%',
-            toggleActions: 'play none none reverse',
+      q('[data-reveal-stagger]').forEach((grid) => {
+        gsap.fromTo(
+          grid.children,
+          { y: 30, opacity: 0 },
+          {
+            y: 0,
+            opacity: 1,
+            duration: 0.7,
+            ease: 'power3.out',
+            stagger: 0.08,
+            scrollTrigger: {
+              trigger: grid,
+              start: 'top 85%',
+              toggleActions: 'play none none reverse',
+            },
           },
-        });
+        );
       });
     }, rootEl);
 

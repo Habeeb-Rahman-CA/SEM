@@ -1,6 +1,6 @@
 .landing-root {
   position: relative;
-  min-height: 100vh;
+  min-height: 100vse;
 }
 
 /* Ambient violet glow behind the hero. Positioned so it fades out well before
@@ -34,7 +34,7 @@
   z-index: 0;
 }
 
-.landing-root > * {
+.landing-root > *:not(app-landing-header):not(header):not(.landing-glow) {
   position: relative;
   z-index: 1;
 }

@@ -3,7 +3,7 @@ import {
   provideBrowserGlobalErrorListeners,
   APP_INITIALIZER,
 } from '@angular/core';
-import { provideRouter, withPreloading } from '@angular/router';
+import { provideRouter, withPreloading, withInMemoryScrolling } from '@angular/router';
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
 import { QuicklinkStrategy, quicklinkProviders } from 'ngx-quicklink';
 
@@ -27,7 +27,14 @@ export const appConfig: ApplicationConfig = {
   providers: [
     quicklinkProviders,
     provideBrowserGlobalErrorListeners(),
-    provideRouter(routes, withPreloading(QuicklinkStrategy)),
+    provideRouter(
+      routes,
+      withPreloading(QuicklinkStrategy),
+      withInMemoryScrolling({
+        scrollPositionRestoration: 'enabled',
+        anchorScrolling: 'enabled',
+      }),
+    ),
     provideHttpClient(
       withFetch(), // Use Fetch API (HTTP/2 multiplexing)
       withInterceptors([authInterceptor, retryInterceptor, cacheInterceptor]), // Auth token + auto retry + in-memory GET cache

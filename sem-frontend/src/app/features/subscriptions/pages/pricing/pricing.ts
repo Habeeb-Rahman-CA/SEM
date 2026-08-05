@@ -9,11 +9,12 @@ import {
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { SubscriptionPlan, SubscriptionService } from '../../services/subscription.service';
+import { LandingHeaderComponent } from '../../../../layouts/landing-header/landing-header';
 
 @Component({
   selector: 'app-pricing',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, LandingHeaderComponent],
   templateUrl: './pricing.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

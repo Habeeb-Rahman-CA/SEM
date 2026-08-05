@@ -14,6 +14,7 @@ import { ShareService } from '../../../share/services/share.service';
 import { ShareButtonComponent } from '../../../share/components/share-button';
 import { AvatarComponent } from '../../../../shared/components/avatar/avatar';
 import { getSportBadgeClass, getSportIconClass } from '../../../../shared';
+import { LandingHeaderComponent } from '../../../../layouts/landing-header/landing-header';
 
 interface HighlightVideo {
   id: string;
@@ -84,7 +85,14 @@ interface TimelineEvent {
 @Component({
   selector: 'app-public-match',
   standalone: true,
-  imports: [CommonModule, RouterLink, DatePipe, AvatarComponent, ShareButtonComponent],
+  imports: [
+    CommonModule,
+    RouterLink,
+    DatePipe,
+    AvatarComponent,
+    ShareButtonComponent,
+    LandingHeaderComponent,
+  ],
   templateUrl: './public-match.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
