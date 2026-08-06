@@ -3,11 +3,12 @@ import { RouterOutlet } from '@angular/router';
 import { NgClass } from '@angular/common';
 import { UiService } from './core/services/ui.service';
 import { BrandingService } from './features/branding/services/branding.service';
+import { CommandPaletteComponent } from './shared/components/command-palette/command-palette';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, NgClass],
+  imports: [RouterOutlet, NgClass, CommandPaletteComponent],
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
