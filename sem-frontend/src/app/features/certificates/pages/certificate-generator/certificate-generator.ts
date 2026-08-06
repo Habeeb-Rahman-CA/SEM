@@ -6,7 +6,7 @@ import {
   OnInit,
   signal,
 } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import {
@@ -21,7 +21,7 @@ import { CopyButtonComponent } from '../../../../shared/components/copy-button/c
 @Component({
   selector: 'app-certificate-generator',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, DatePipe, CopyButtonComponent],
+  imports: [CommonModule, FormsModule, RouterLink, CopyButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './certificate-generator.html',
 })

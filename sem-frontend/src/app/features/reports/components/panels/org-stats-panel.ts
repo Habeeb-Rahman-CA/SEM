@@ -1,12 +1,11 @@
 import { Component, input } from '@angular/core';
-import { DecimalPipe } from '@angular/common';
 import { OrganizationStatsData } from '../../models/report.interface';
 import { CentsToCurrencyPipe } from '../../pipes/cents-to-currency.pipe';
 
 @Component({
   selector: 'app-org-stats-panel',
   standalone: true,
-  imports: [DecimalPipe, CentsToCurrencyPipe],
+  imports: [CentsToCurrencyPipe],
   template: `
     @if (!data()) {
       <div

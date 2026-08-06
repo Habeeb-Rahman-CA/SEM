@@ -6,12 +6,11 @@ import {
   ActivityCategory,
   ActivityItem,
 } from '../../../core/services/activity-feed.service';
-import { ButtonComponent } from '../button/button';
 
 @Component({
   selector: 'app-activity-feed',
   standalone: true,
-  imports: [CommonModule, DatePipe, ButtonComponent],
+  imports: [CommonModule, DatePipe],
   templateUrl: './activity-feed.html',
 })
 export class ActivityFeedComponent {

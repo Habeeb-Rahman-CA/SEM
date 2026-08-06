@@ -146,9 +146,7 @@
               <!-- Author + Pin + Actions -->
               <div class="flex items-center justify-between text-[11px] text-slate-400">
                 <div class="flex items-center gap-2">
-                  <span class="font-bold text-slate-200">{{
-                    note.author?.username || 'User'
-                  }}</span>
+                  <span class="font-bold text-slate-200">{{ note.author.username || 'User' }}</span>
                   <span>•</span>
                   <span>{{ note.createdAt | date: 'short' }}</span>
                   @if (note.isPinned) {

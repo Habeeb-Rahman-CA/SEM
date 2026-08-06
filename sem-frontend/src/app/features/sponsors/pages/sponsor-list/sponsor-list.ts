@@ -6,7 +6,7 @@ import {
   OnInit,
   signal,
 } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Sponsor, SponsorService, SponsorTier } from '../../services/sponsor.service';
@@ -21,7 +21,6 @@ import { BulkOperationsBarComponent } from '../../../../shared/components/bulk-o
     CommonModule,
     FormsModule,
     RouterLink,
-    DatePipe,
     SponsorModalComponent,
     BulkOperationsBarComponent,
   ],

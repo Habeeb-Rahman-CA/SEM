@@ -23,6 +23,7 @@ import { DuplicateWarningModalComponent } from './shared/components/duplicate-wa
 import { FloatingActionButtonComponent } from './shared/components/floating-action-button/floating-action-button';
 import { QuickPreviewModalComponent } from './shared/components/quick-preview-modal/quick-preview-modal';
 import { SessionRestoreService } from './core/services/session-restore.service';
+import { RecycleBinService } from './core/services/recycle-bin.service';
 
 @Component({
   selector: 'app-root',

@@ -6,7 +6,7 @@ import {
   OnInit,
   signal,
 } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { EventService } from '../../../events/services/event.service';
@@ -89,7 +89,6 @@ interface TimelineEvent {
   imports: [
     CommonModule,
     RouterLink,
-    DatePipe,
     AvatarComponent,
     ShareButtonComponent,
     LandingHeaderComponent,

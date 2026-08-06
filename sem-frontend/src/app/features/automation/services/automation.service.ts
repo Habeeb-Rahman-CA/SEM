@@ -115,6 +115,7 @@ export interface ActionMeta {
   category: string;
   description: string;
   configTemplate: Record<string, any>;
+  template?: Record<string, any>;
 }
 
 export const TRIGGER_CATALOG: TriggerMeta[] = [

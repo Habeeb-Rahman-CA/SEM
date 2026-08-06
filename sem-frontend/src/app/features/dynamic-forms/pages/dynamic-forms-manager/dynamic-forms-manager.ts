@@ -21,13 +21,22 @@ import {
 } from '../../services/dynamic-forms.service';
 import { UiService } from '../../../../core/services/ui.service';
 import { BulkOperationsBarComponent } from '../../../../shared/components/bulk-operations-bar/bulk-operations-bar';
+import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state';
 
 import { BackgroundJobsService } from '../../../../core/services/background-jobs.service';
 
 @Component({
   selector: 'app-dynamic-forms-manager',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, DatePipe, JsonPipe, BulkOperationsBarComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterLink,
+    DatePipe,
+    JsonPipe,
+    BulkOperationsBarComponent,
+    EmptyStateComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './dynamic-forms-manager.html',
 })

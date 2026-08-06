@@ -23,6 +23,7 @@ import { UndoService } from '../../../core/services/undo.service';
 import { VersionHistoryService } from '../../../core/services/version-history.service';
 import { ConfettiService } from '../../../core/services/confetti.service';
 import { QuickPreviewService } from '../../../core/services/quick-preview.service';
+import { UiService } from '../../../core/services/ui.service';
 
 import { RecordCommentsComponent } from '../../../shared/components/record-comments/record-comments';
 

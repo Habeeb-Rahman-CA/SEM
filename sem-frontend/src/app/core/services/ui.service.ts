@@ -9,6 +9,8 @@ export interface Toast {
   undoCountdown?: number;
 }
 
+export type ToastMessage = Toast;
+
 export interface ConfirmOptions {
   title: string;
   message: string;

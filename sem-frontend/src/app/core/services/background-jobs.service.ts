@@ -110,6 +110,15 @@ export class BackgroundJobsService {
       );
   }
 
+  triggerJob(
+    workspaceId: string,
+    type: JobType,
+    title: string,
+    payload?: any,
+  ): Observable<{ job: BackgroundJob; message: string }> {
+    return this.dispatchJob(workspaceId, type, title, payload);
+  }
+
   cancelJob(workspaceId: string, jobId: string): Observable<any> {
     const url = `${environment.apiUrl}/workspaces/${workspaceId}/background-jobs/${jobId}`;
     return this.http.delete(url, { headers: this.getHeaders() }).pipe(

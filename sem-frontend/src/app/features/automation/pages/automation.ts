@@ -401,6 +401,28 @@ export class AutomationComponent implements OnInit {
     }
   }
 
+  readonly allTriggers = TRIGGER_CATALOG.map((t) => t.type);
+
+  triggerLabel(t: TriggerType | string): string {
+    return this.triggerMeta(t as TriggerType).label;
+  }
+
+  actionTypeLabel(t: ActionType | string): string {
+    return this.actionMeta(t as ActionType).label;
+  }
+
+  openZapierPaymentPreset() {
+    this.openBuilder();
+    this.selectTrigger('payment_completed');
+    this.nextStep();
+    this.nextStep();
+    this.addAction(this.actionMeta('send_webhook'));
+  }
+
+  appendActionTemplate(meta: ActionMeta) {
+    this.addAction(meta);
+  }
+
   triggerMeta(t: TriggerType): TriggerMeta {
     return (
       this.triggerCatalog.find((x) => x.type === t) ?? {
@@ -414,16 +436,19 @@ export class AutomationComponent implements OnInit {
   }
 
   actionMeta(t: ActionType): ActionMeta {
-    return (
-      this.actionCatalog.find((x) => x.type === t) ?? {
-        type: t,
-        label: t.replace(/_/g, ' '),
-        icon: 'fi-rr-layers',
-        category: '',
-        description: '',
-        configTemplate: {},
-      }
-    );
+    const found = this.actionCatalog.find((x) => x.type === t);
+    if (found) {
+      return { ...found, template: found.configTemplate };
+    }
+    return {
+      type: t,
+      label: t.replace(/_/g, ' '),
+      icon: 'fi-rr-layers',
+      category: '',
+      description: '',
+      configTemplate: {},
+      template: {},
+    };
   }
 
   selectRule(id: string) {

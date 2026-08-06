@@ -5,6 +5,7 @@ import { catchError, concatMap, tap } from 'rxjs/operators';
 import { UiService } from './ui.service';
 import { IndexedDbService, OfflineQueueItem, SyncLogEntry } from './indexed-db.service';
 import { AuthService } from '../../features/auth/services/auth.service';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root',
@@ -222,5 +223,37 @@ export class OfflineSyncService {
 
   closeQueueInspector() {
     this.showQueueModal.set(false);
+  }
+
+  // Backwards compatibility methods
+  getPendingCount(): number {
+    return this.pendingCount();
+  }
+
+  syncPendingUpdates(): Observable<any> {
+    return this.syncPendingOperations();
+  }
+
+  queueMatchUpdate(
+    workspaceId: string,
+    eventId: string,
+    competitionId: string,
+    stageId: string,
+    matchId: string,
+    payload: any,
+    currentMatch?: any,
+  ): Observable<any> {
+    const url = `${environment.apiUrl}/workspaces/${workspaceId}/events/${eventId}/competitions/${competitionId}/stages/${stageId}/matches/${matchId}`;
+    return from(this.enqueueOperation('PATCH', url, payload, 'Match Update')).pipe(
+      concatMap((item) => {
+        const syntheticMatch = {
+          ...(currentMatch || {}),
+          ...payload,
+          id: matchId,
+          _offline: true,
+        };
+        return of(syntheticMatch);
+      }),
+    );
   }
 }

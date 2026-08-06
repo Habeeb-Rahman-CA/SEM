@@ -422,7 +422,7 @@
                           Avg rating
                         </span>
                         <span class="text-lg font-black text-emerald-300 tabular-nums">
-                          {{ (c.avgRating ?? 0).toFixed(2) }}
+                          {{ (c.avgRating || 0).toFixed(2) }}
                         </span>
                       </div>
                       @if (c.sportCode === 'football') {

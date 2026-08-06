@@ -14,6 +14,7 @@ import { getSportBadgeClass, getSportIconClass } from '../../../../shared';
 import { ShareService } from '../../../share/services/share.service';
 import { ShareButtonComponent } from '../../../share/components/share-button';
 import { LandingHeaderComponent } from '../../../../layouts/landing-header/landing-header';
+import { CopyButtonComponent } from '../../../../shared/components/copy-button/copy-button';
 
 interface CompetitionStats {
   competitionId: string;

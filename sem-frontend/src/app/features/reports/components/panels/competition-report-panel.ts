@@ -174,7 +174,7 @@ import { getStandingsForStage } from '../../utils/standings.util';
                 <div class="text-right pl-4">
                   <div class="text-[10px] text-slate-500 font-bold">
                     {{ stageNameFor(m.stageId) }}
-                    @if (m.config?.round) {
+                    @if (m.config.round) {
                       &middot; {{ m.config.round }}
                     }
                   </div>

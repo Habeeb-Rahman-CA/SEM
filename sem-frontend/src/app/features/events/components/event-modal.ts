@@ -9,6 +9,7 @@ import { PhotoCaptureComponent } from '../../../shared/components/photo-capture/
 import { GalleryManagerComponent } from '../../gallery/components/gallery-manager';
 import { DuplicateDetectionService } from '../../../core/services/duplicate-detection.service';
 import { HelpTooltipComponent } from '../../../shared/components/help-tooltip/help-tooltip';
+import { AvatarComponent } from '../../../shared/components/avatar/avatar';
 
 @Component({
   selector: 'app-event-modal',

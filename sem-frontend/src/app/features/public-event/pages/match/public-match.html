@@ -104,9 +104,9 @@
 
             <div class="flex flex-col items-center min-w-[120px]">
               <div class="text-3xl sm:text-5xl font-black text-white tabular-nums leading-none">
-                {{ m.homeScore ?? 0 }}
+                {{ m.homeScore || 0 }}
                 <span class="text-slate-700 mx-2">:</span>
-                {{ m.awayScore ?? 0 }}
+                {{ m.awayScore || 0 }}
               </div>
               @if (m.scheduledAt) {
                 <div class="mt-3 text-[10px] text-slate-500 font-mono">
@@ -177,8 +177,8 @@
             [liveData]="m.liveData"
             [homeTeamName]="m.homeTeam?.name ?? 'Home'"
             [awayTeamName]="m.awayTeam?.name ?? 'Away'"
-            [homeScore]="m.homeScore ?? 0"
-            [awayScore]="m.awayScore ?? 0"
+            [homeScore]="m.homeScore || 0"
+            [awayScore]="m.awayScore || 0"
             [sportCode]="m.competition.sport?.code ?? 'football'"
             [status]="m.status"
             [homeLogoUrl]="m.homeTeam?.logoUrl ?? null"

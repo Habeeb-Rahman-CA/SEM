@@ -489,7 +489,7 @@
                 >
                   <option value="">— Select player —</option>
                   @for (p of players(); track p.id) {
-                    <option [value]="p.id">{{ p.user.username }} ({{ p.team?.name }})</option>
+                    <option [value]="p.id">{{ p.user.username }} ({{ p.team.name }})</option>
                   }
                 </select>
               </div>
@@ -879,7 +879,7 @@
             >
               <option value="">— Select player —</option>
               @for (p of players(); track p.id) {
-                <option [value]="p.id">{{ p.user.username }} ({{ p.team?.name }})</option>
+                <option [value]="p.id">{{ p.user.username }} ({{ p.team.name }})</option>
               }
             </select>
           </div>
@@ -1112,7 +1112,7 @@
             <option value="">— Release only (no replacement) —</option>
             @for (p of players(); track p.id) {
               @if (p.id !== releaseForm().playerId) {
-                <option [value]="p.id">{{ p.user.username }} ({{ p.team?.name }})</option>
+                <option [value]="p.id">{{ p.user.username }} ({{ p.team.name }})</option>
               }
             }
           </select>

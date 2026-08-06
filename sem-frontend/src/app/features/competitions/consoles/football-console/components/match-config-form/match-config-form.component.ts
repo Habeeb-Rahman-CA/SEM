@@ -1,12 +1,13 @@
 import { ChangeDetectionStrategy, Component, input, output, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { CompetitionStage, Match } from '../../../../../workspaces/services/workspace.service';
 import { FootballMatchStartOptions } from '../../models/football-console.interface';
-import { HelpTooltipComponent } from '../../../../../../../shared/components/help-tooltip/help-tooltip';
+import { HelpTooltipComponent } from '../../../../../../shared/components/help-tooltip/help-tooltip';
 
 @Component({
   selector: 'app-football-match-config-form',
   standalone: true,
-  imports: [HelpTooltipComponent],
+  imports: [FormsModule, HelpTooltipComponent],
   templateUrl: './match-config-form.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

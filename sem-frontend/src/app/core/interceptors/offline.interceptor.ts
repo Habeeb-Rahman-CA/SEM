@@ -103,9 +103,10 @@ export const offlineInterceptor: HttpInterceptorFn = (req, next) => {
         offlineSync.enqueueOperation(req.method as any, req.url, payload, entityName),
       ).pipe(
         switchMap((item) => {
+          const bodyObj = payload as Record<string, any> | null;
           const syntheticBody =
-            payload && typeof payload === 'object'
-              ? { ...payload, id: payload.id || item.id, _offline: true }
+            bodyObj && typeof bodyObj === 'object'
+              ? { ...bodyObj, id: bodyObj['id'] || item.id, _offline: true }
               : { success: true, id: item.id, _offline: true };
 
           return of(
@@ -129,9 +130,10 @@ export const offlineInterceptor: HttpInterceptorFn = (req, next) => {
             offlineSync.enqueueOperation(req.method as any, req.url, req.body, entityName),
           ).pipe(
             switchMap((item) => {
+              const bodyObj = req.body as Record<string, any> | null;
               const syntheticBody =
-                req.body && typeof req.body === 'object'
-                  ? { ...req.body, id: req.body.id || item.id, _offline: true }
+                bodyObj && typeof bodyObj === 'object'
+                  ? { ...bodyObj, id: bodyObj['id'] || item.id, _offline: true }
                   : { success: true, id: item.id, _offline: true };
 
               return of(
