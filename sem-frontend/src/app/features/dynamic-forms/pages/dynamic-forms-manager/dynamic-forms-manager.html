@@ -535,6 +535,20 @@
               </div>
             }
           </div>
+        } @else {
+          <app-empty-state
+            iconClass="fi-rr-form"
+            title="No forms yet"
+            message="Create your first form or select an existing form to manage fields and responses."
+          >
+            <button
+              type="button"
+              (click)="openBuilderModal()"
+              class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl transition flex items-center gap-1.5 cursor-pointer border-0"
+            >
+              <i class="fi fi-rr-plus"></i> Create your first form
+            </button>
+          </app-empty-state>
         }
       </div>
     </div>
