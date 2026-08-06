@@ -23,6 +23,8 @@ import { UndoService } from '../../../core/services/undo.service';
 import { VersionHistoryService } from '../../../core/services/version-history.service';
 import { ConfettiService } from '../../../core/services/confetti.service';
 
+import { RecordCommentsComponent } from '../../../shared/components/record-comments/record-comments';
+
 @Component({
   selector: 'app-team-list',
   standalone: true,
@@ -42,6 +44,7 @@ import { ConfettiService } from '../../../core/services/confetti.service';
     PaginatorComponent,
     BulkOperationsBarComponent,
     SavedFiltersBarComponent,
+    RecordCommentsComponent,
   ],
   templateUrl: './team-list.html',
 })

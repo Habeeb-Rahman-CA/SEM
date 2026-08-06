@@ -1,0 +1,146 @@
+<div
+  class="bg-slate-900/60 border border-white/10 backdrop-blur-md rounded-2xl p-5 shadow-xl flex flex-col gap-4"
+>
+  <!-- Header -->
+  <div class="flex items-center justify-between border-b border-white/5 pb-3">
+    <div class="flex items-center gap-2">
+      <div
+        class="w-8 h-8 rounded-xl bg-violet-500/20 border border-violet-500/30 flex items-center justify-center text-violet-400"
+      >
+        <i class="fi fi-rr-comment-alt text-sm"></i>
+      </div>
+      <div>
+        <h4 class="text-xs font-bold text-white uppercase tracking-wider">
+          {{ title() }}
+        </h4>
+        <p class="text-[11px] text-slate-400 font-medium">
+          {{ comments().length }} {{ comments().length === 1 ? 'comment' : 'comments' }} on this
+          record
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- New Comment Input Box with @Mention Autocomplete -->
+  <form (submit)="onSubmitComment(); $event.preventDefault()" class="flex flex-col gap-2 relative">
+    <div class="relative">
+      <textarea
+        [ngModel]="newCommentText()"
+        (ngModelChange)="onInputText($event)"
+        name="commentText"
+        rows="2"
+        placeholder="Type a comment... Use @John or @Coach to mention team members"
+        class="w-full bg-slate-950/80 border border-white/10 rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-violet-500 transition resize-none"
+      ></textarea>
+
+      <!-- Mention Suggestions Dropdown Popup -->
+      @if (showMentionDropdown()) {
+        <div
+          class="absolute left-3 bottom-full mb-1 w-56 bg-slate-900 border border-white/10 rounded-xl shadow-2xl p-2 z-50 animate-fadeIn"
+        >
+          <div
+            class="text-[10px] font-bold text-slate-400 px-2 py-1 uppercase border-b border-white/5"
+          >
+            Mention Member
+          </div>
+          <div class="max-h-36 overflow-y-auto flex flex-col gap-1 mt-1">
+            @for (user of filteredMentionUsers(); track user) {
+              <button
+                type="button"
+                (click)="insertMention(user)"
+                class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs font-semibold text-slate-200 hover:text-white hover:bg-violet-500/20 transition cursor-pointer text-left border-0 bg-transparent"
+              >
+                <div
+                  class="w-5 h-5 rounded-full bg-violet-500/20 text-violet-300 text-[10px] flex items-center justify-center font-black"
+                >
+                  @
+                </div>
+                <span>{{ user }}</span>
+              </button>
+            } @empty {
+              <div class="text-[10px] text-slate-500 px-2 py-1 italic">No users found</div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+
+    <div class="flex items-center justify-between">
+      <span class="text-[10px] text-slate-500"
+        >Tip: Mention team members using
+        <code class="text-violet-400 font-mono font-bold">@name</code></span
+      >
+      <app-button
+        type="submit"
+        label="Post Comment"
+        iconClass="fi-rr-paper-plane-top"
+        size="xs"
+        [disabled]="!newCommentText().trim() || isSubmitting()"
+      />
+    </div>
+  </form>
+
+  <!-- Comments Feed -->
+  <div class="flex flex-col gap-3 max-h-80 overflow-y-auto pr-1">
+    @for (cmt of comments(); track cmt.id) {
+      <div
+        class="bg-slate-950/60 border border-white/5 rounded-xl p-3.5 flex items-start gap-3 relative group"
+      >
+        <!-- Avatar -->
+        <app-avatar [name]="cmt.authorName" size="sm" class="shrink-0" />
+
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center justify-between gap-2">
+            <h5 class="text-xs font-bold text-white truncate flex items-center gap-1.5">
+              <span>{{ cmt.authorName }}</span>
+              @if (cmt.mentions && cmt.mentions.length > 0) {
+                <span
+                  class="text-[9px] px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-300 border border-violet-500/30"
+                >
+                  <i class="fi fi-rr-at text-[8px]"></i> {{ cmt.mentions.length }} tagged
+                </span>
+              }
+            </h5>
+            <span class="text-[10px] text-slate-500 font-mono">{{
+              cmt.createdAt | date: 'shortTime'
+            }}</span>
+          </div>
+
+          <!-- Formatted comment text with highlighted mentions -->
+          <p
+            class="text-xs text-slate-300 mt-1.5 leading-relaxed whitespace-pre-wrap"
+            [innerHTML]="formatCommentText(cmt.text)"
+          ></p>
+
+          <!-- Actions: Like & Delete -->
+          <div
+            class="flex items-center gap-4 mt-2.5 pt-2 border-t border-white/5 text-[11px] text-slate-400 font-semibold"
+          >
+            <button
+              type="button"
+              (click)="onToggleLike(cmt.id)"
+              class="flex items-center gap-1 hover:text-rose-400 transition cursor-pointer bg-transparent border-0"
+              [class.text-rose-400]="cmt.isLiked"
+            >
+              <i [class]="cmt.isLiked ? 'fi fi-sr-heart' : 'fi fi-rr-heart'"></i>
+              <span>{{ cmt.likesCount }}</span>
+            </button>
+
+            <button
+              type="button"
+              (click)="onDeleteComment(cmt.id)"
+              class="opacity-0 group-hover:opacity-100 hover:text-rose-400 transition cursor-pointer bg-transparent border-0 ml-auto text-[10px]"
+              title="Delete Comment"
+            >
+              <i class="fi fi-rr-trash"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    } @empty {
+      <div class="p-6 text-center text-slate-500 text-xs italic">
+        No comments posted yet. Start the conversation!
+      </div>
+    }
+  </div>
+</div>

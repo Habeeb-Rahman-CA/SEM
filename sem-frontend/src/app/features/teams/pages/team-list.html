@@ -1072,6 +1072,13 @@
           </div>
         </div>
       }
+
+      <!-- Record Comments & Discussion Thread -->
+      <app-record-comments
+        entityType="team"
+        [entityId]="teamDetails.id"
+        title="Team Discussion & Coach Notes"
+      />
     </div>
   } @else {
     <!-- Teams Header -->
