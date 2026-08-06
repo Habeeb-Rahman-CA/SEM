@@ -41,4 +41,16 @@ export class PublicTeamsController {
   async getPublicTeamAnalytics(@Param('teamId') teamId: string) {
     return this.teamsService.getPublicTeamAnalytics(teamId);
   }
+
+  @Get(':teamId/chemistry')
+  @ApiOperation({
+    summary: 'Get public team chemistry score',
+    description:
+      'Calculates squad chemistry scores across Attack, Midfield, and Defense based on co-play frequency, win ratios, and sector stability.',
+  })
+  @ApiParam({ name: 'teamId', description: 'Team UUID' })
+  @ApiResponse({ status: 200, description: 'Team chemistry object' })
+  async getPublicTeamChemistry(@Param('teamId') teamId: string) {
+    return this.teamsService.getTeamChemistry(teamId);
+  }
 }

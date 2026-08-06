@@ -146,4 +146,23 @@ export class TeamsController {
   ) {
     return this.teamsService.getTeamAnalytics(workspaceId, teamId, req.user.id);
   }
+
+  @Get(':teamId/chemistry')
+  @ApiOperation({
+    summary: 'Get team chemistry score',
+    description:
+      'Calculates squad chemistry scores across Attack, Midfield, and Defense based on co-play frequency, win ratios, and sector stability.',
+  })
+  @ApiParam(WS)
+  @ApiParam(TEAM)
+  @ApiResponse({ status: 200, description: 'Team chemistry object' })
+  @ApiResponse({ status: 403, description: 'Not a member of this workspace' })
+  @ApiResponse({ status: 404, description: 'Team not found' })
+  getTeamChemistry(
+    @Param('workspaceId') workspaceId: string,
+    @Param('teamId') teamId: string,
+    @Request() req: any,
+  ) {
+    return this.teamsService.getTeamChemistry(teamId);
+  }
 }

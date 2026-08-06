@@ -108,4 +108,14 @@ export class TeamService {
   getPublicTeamAnalytics(teamId: string): Observable<any> {
     return this.http.get<any>(`${environment.apiUrl}/public/teams/${teamId}/analytics`);
   }
+
+  getPublicTeamChemistry(teamId: string): Observable<any> {
+    return this.http.get<any>(`${environment.apiUrl}/public/teams/${teamId}/chemistry`);
+  }
+
+  getTeamChemistry(workspaceId: string, teamId: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/${workspaceId}/teams/${teamId}/chemistry`, {
+      headers: this.headers,
+    });
+  }
 }
