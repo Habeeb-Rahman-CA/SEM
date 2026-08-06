@@ -5,12 +5,11 @@ import { QuicklinkDirective } from 'ngx-quicklink';
 import { AuthService } from '../../services/auth.service';
 import { BrandingService } from '../../../branding/services/branding.service';
 import { ModalComponent } from '../../../../shared/components/modal/modal';
-import { LanguageSelectorComponent } from '../../../../shared/components/language-selector/language-selector';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [FormsModule, RouterLink, QuicklinkDirective, ModalComponent, LanguageSelectorComponent],
+  imports: [FormsModule, RouterLink, QuicklinkDirective, ModalComponent],
   templateUrl: './login.html',
   styleUrl: './login.css',
 })

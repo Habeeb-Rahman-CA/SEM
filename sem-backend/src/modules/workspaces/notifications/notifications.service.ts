@@ -322,7 +322,7 @@ export class NotificationsService {
       }
 
       const pushTitles: Record<NotificationType, string> = {
-        [NotificationType.WELCOME]: 'Welcome to SEM 🏆',
+        [NotificationType.WELCOME]: 'Welcome to Taisen 🏆',
         [NotificationType.MEMBER_INVITED]: 'Workspace Invitation 📩',
         [NotificationType.INVITATION_ACCEPTED]: 'Invitation Accepted ✔',
         [NotificationType.INVITATION_REJECTED]: 'Invitation Declined ❌',
@@ -341,7 +341,7 @@ export class NotificationsService {
         [NotificationType.PASSWORD_CHANGED]: 'Password Changed 🔒',
       } as any;
 
-      const title = pushTitles[type] || 'SEM Notification 🔔';
+      const title = pushTitles[type] || 'Taisen Notification 🔔';
 
       this.logger.log(
         `[MOCK NATIVE PUSH SENT] to user: ${user.username} (Token: ${user.pushToken})\n` +

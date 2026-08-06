@@ -244,7 +244,7 @@ export function buildWorkspaceReportHtml(
         <p class="subtitle">${ws.name} (/${ws.slug})</p>
       </div>
       <div style="text-align: right;">
-        <div style="font-weight: 800; font-size: 14px; color: #4f46e5;">SEM Analytics</div>
+        <div style="font-weight: 800; font-size: 14px; color: #4f46e5;">Taisen Analytics</div>
         <div style="font-size: 11px; color: #64748b; margin-top: 2px;">Report Generated: ${today()}</div>
       </div>
     </div>

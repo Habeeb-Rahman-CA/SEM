@@ -68,7 +68,7 @@ export class BrandingService {
 
   /**
    * Public branding for the current window — populated on app boot from
-   * host / query string. `null` when running with default SEM branding.
+   * host / query string. `null` when running with default Taisen branding.
    * Components can subscribe via the signal.
    */
   activeBranding = signal<PublicBrandingView | null>(null);
@@ -153,7 +153,7 @@ export class BrandingService {
     if (branding.accentColor) root.style.setProperty('--brand-accent', branding.accentColor);
 
     if (branding.brandName && typeof document.title === 'string') {
-      document.title = `${branding.brandName} · SEM`;
+      document.title = `${branding.brandName} · Taisen`;
     }
     if (branding.faviconUrl) {
       let link = document.querySelector<HTMLLinkElement>("link[rel~='icon']");
