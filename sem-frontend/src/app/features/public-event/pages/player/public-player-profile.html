@@ -173,45 +173,175 @@
             }
           </div>
 
-          <div class="rounded-3xl border border-white/10 bg-slate-900 p-6 shadow-xl">
-            <h2
-              class="text-xs font-black text-slate-300 uppercase tracking-widest flex items-center gap-2 mb-3"
-            >
-              <i class="fi fi-sr-trophy text-amber-400"></i>
-              Achievements &amp; awards
-              <span class="ml-auto text-slate-500 font-bold">{{
-                p.player.achievements?.length ?? 0
-              }}</span>
-            </h2>
+          <!-- Achievements System & Badges -->
+          <div
+            class="rounded-3xl border border-white/10 bg-slate-900 p-6 shadow-xl relative overflow-hidden"
+          >
+            <!-- Header -->
+            <div class="flex items-center justify-between gap-2 mb-4">
+              <h2
+                class="text-xs font-black text-slate-300 uppercase tracking-widest flex items-center gap-2"
+              >
+                <i class="fi fi-sr-trophy text-amber-400 text-sm"></i>
+                Player Achievements
+              </h2>
+              <span
+                class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30"
+              >
+                Unlocked {{ unlockedCount() }}/{{ p.systemAchievements?.length ?? 0 }}
+              </span>
+            </div>
 
-            <div class="flex flex-col gap-2">
-              @for (a of p.player.achievements ?? []; track a.id) {
+            <!-- Filter tabs -->
+            <div
+              class="flex items-center gap-1.5 p-1 rounded-xl bg-slate-950/60 border border-white/5 mb-4 text-[10px] font-bold"
+            >
+              <button
+                type="button"
+                (click)="achievementFilter.set('all')"
+                [class]="
+                  'flex-1 py-1 px-2 rounded-lg transition text-center ' +
+                  (achievementFilter() === 'all'
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                    : 'text-slate-400 hover:text-white')
+                "
+              >
+                All
+              </button>
+              <button
+                type="button"
+                (click)="achievementFilter.set('unlocked')"
+                [class]="
+                  'flex-1 py-1 px-2 rounded-lg transition text-center ' +
+                  (achievementFilter() === 'unlocked'
+                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                    : 'text-slate-400 hover:text-white')
+                "
+              >
+                Unlocked ({{ unlockedCount() }})
+              </button>
+              <button
+                type="button"
+                (click)="achievementFilter.set('locked')"
+                [class]="
+                  'flex-1 py-1 px-2 rounded-lg transition text-center ' +
+                  (achievementFilter() === 'locked'
+                    ? 'bg-violet-500/20 text-violet-300 border border-violet-500/30'
+                    : 'text-slate-400 hover:text-white')
+                "
+              >
+                In Progress
+              </button>
+            </div>
+
+            <!-- System Badges List -->
+            <div class="flex flex-col gap-3">
+              @for (a of filteredAchievements(); track a.id) {
                 <div
-                  class="p-3 rounded-xl bg-gradient-to-r from-amber-500/10 to-slate-900 border border-amber-500/20 flex items-start gap-3"
+                  [class]="
+                    'p-3.5 rounded-2xl border transition-all flex flex-col gap-2 relative overflow-hidden ' +
+                    (a.unlocked
+                      ? 'bg-gradient-to-r from-amber-500/10 via-slate-900 to-amber-950/20 border-amber-500/30 shadow-lg shadow-amber-500/5'
+                      : 'bg-slate-950/40 border-white/5 opacity-75 hover:opacity-100')
+                  "
                 >
-                  <div
-                    class="w-9 h-9 rounded-lg bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-300 flex-shrink-0"
-                  >
-                    <i class="fi fi-sr-trophy text-sm"></i>
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2">
-                      <span class="text-sm font-bold text-white">{{ a.title }}</span>
-                      @if (a.year) {
-                        <span
-                          class="text-[10px] font-bold text-amber-300 bg-amber-500/10 border border-amber-500/25 rounded-md px-1.5 py-0.5"
-                          >{{ a.year }}</span
-                        >
-                      }
+                  <div class="flex items-start gap-3">
+                    <!-- Icon / Emoji Badge -->
+                    <div
+                      [class]="
+                        'w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0 border ' +
+                        (a.unlocked
+                          ? 'bg-amber-500/20 border-amber-500/40 text-amber-300 shadow-md shadow-amber-500/20'
+                          : 'bg-slate-900 border-white/10 text-slate-500')
+                      "
+                    >
+                      <span class="text-base">{{ a.emoji }}</span>
                     </div>
-                    @if (a.description) {
-                      <p class="text-[11px] text-slate-400 mt-0.5">{{ a.description }}</p>
-                    }
+
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center justify-between gap-1">
+                        <span
+                          class="text-xs font-bold text-white truncate flex items-center gap-1.5"
+                        >
+                          {{ a.title }}
+                          @if (a.unlocked) {
+                            <i class="fi fi-sr-check-circle text-emerald-400 text-[11px]"></i>
+                          }
+                        </span>
+                        <span
+                          class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-white/5 text-slate-400"
+                        >
+                          {{ a.category }}
+                        </span>
+                      </div>
+                      <p class="text-[11px] text-slate-400 mt-0.5 leading-snug">
+                        {{ a.description }}
+                      </p>
+                    </div>
+                  </div>
+
+                  <!-- Progress Bar -->
+                  <div class="w-full mt-1">
+                    <div
+                      class="flex items-center justify-between text-[9px] font-mono font-bold text-slate-400 mb-1"
+                    >
+                      <span>Progress</span>
+                      <span [class]="a.unlocked ? 'text-amber-300' : 'text-slate-500'">
+                        {{ a.progress.current }}/{{ a.progress.target }} ({{
+                          a.progress.percentage
+                        }}%)
+                      </span>
+                    </div>
+                    <div
+                      class="w-full h-1.5 rounded-full bg-slate-950 overflow-hidden border border-white/5"
+                    >
+                      <div
+                        [class]="
+                          'h-full transition-all duration-500 rounded-full ' +
+                          (a.unlocked
+                            ? 'bg-gradient-to-r from-amber-400 to-emerald-400'
+                            : 'bg-violet-600/60')
+                        "
+                        [style.width.%]="a.progress.percentage"
+                      ></div>
+                    </div>
                   </div>
                 </div>
               } @empty {
-                <div class="py-6 text-center text-xs text-slate-500">
-                  No achievements published yet.
+                <div class="py-6 text-center text-xs text-slate-500 italic">
+                  No achievements in this view.
+                </div>
+              }
+
+              <!-- Custom Org / Manual Awards -->
+              @if (p.player.achievements && p.player.achievements.length > 0) {
+                <div class="border-t border-white/5 pt-3 mt-1">
+                  <div
+                    class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1"
+                  >
+                    <i class="fi fi-rr-medal text-amber-400"></i> Organization Honors
+                  </div>
+                  @for (manual of p.player.achievements; track manual.id) {
+                    <div
+                      class="p-2.5 rounded-xl bg-slate-950/40 border border-white/5 flex items-center justify-between gap-2 mb-2"
+                    >
+                      <div class="min-w-0">
+                        <div class="text-xs font-bold text-white truncate">{{ manual.title }}</div>
+                        @if (manual.description) {
+                          <div class="text-[10px] text-slate-400 truncate">
+                            {{ manual.description }}
+                          </div>
+                        }
+                      </div>
+                      @if (manual.year) {
+                        <span
+                          class="text-[9px] font-mono font-bold text-amber-300 px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 flex-shrink-0"
+                        >
+                          {{ manual.year }}
+                        </span>
+                      }
+                    </div>
+                  }
                 </div>
               }
             </div>

@@ -751,7 +751,213 @@ export class PlayersService {
       order: { transferredAt: 'ASC' },
     });
 
+    // Automated achievements system calculation
+    const unlockedSystemAchievements: Array<{
+      id: string;
+      code: string;
+      title: string;
+      description: string;
+      icon: string;
+      emoji: string;
+      category: string;
+      unlocked: boolean;
+      progress: { current: number; target: number; percentage: number };
+    }> = [];
+
+    // 1. Hat Trick Hero (⚽)
+    let maxGoalsInSingleMatch = 0;
+    let maxAssistsInSingleMatch = 0;
+    let cleanSheets = 0;
+    let maxWinStreak = 0;
+    let currentStreak = 0;
+
+    for (const cmp of completedMatchPlayers) {
+      const m = cmp.match;
+      if (!m) continue;
+      const liveData = m.liveData || {};
+      let mGoals = 0;
+      let mAssists = 0;
+
+      if (m.stage?.competition?.sport?.code === 'football') {
+        const events = liveData.events || [];
+        for (const ev of events) {
+          if (
+            ev.type === 'goal' &&
+            ev.goalType !== 'own_goal' &&
+            (ev.playerUserId === player.userId || ev.playerId === player.id)
+          ) {
+            mGoals++;
+          }
+          const isSelfAssist =
+            ev.assistPlayerUserId === player.userId ||
+            ev.assistPlayerId === player.id;
+          if (
+            (ev.type === 'assist' || ev.type === 'goal') &&
+            isSelfAssist &&
+            ev.playerUserId !== player.userId &&
+            ev.playerId !== player.id
+          ) {
+            mAssists++;
+          }
+        }
+      }
+      if (mGoals > maxGoalsInSingleMatch) maxGoalsInSingleMatch = mGoals;
+      if (mAssists > maxAssistsInSingleMatch)
+        maxAssistsInSingleMatch = mAssists;
+
+      // Clean sheet check
+      const isHome = m.homeTeamId === player.teamId;
+      const oppScore = isHome ? m.awayScore : m.homeScore;
+      const myScore = isHome ? m.homeScore : m.awayScore;
+      if (oppScore === 0) {
+        cleanSheets++;
+      }
+
+      // Win streak check
+      if (myScore > oppScore) {
+        currentStreak++;
+        if (currentStreak > maxWinStreak) maxWinStreak = currentStreak;
+      } else {
+        currentStreak = 0;
+      }
+    }
+
+    const hatTrickUnlocked = maxGoalsInSingleMatch >= 3;
+    unlockedSystemAchievements.push({
+      id: 'hat_trick_hero',
+      code: 'HAT_TRICK_HERO',
+      title: 'Hat Trick Hero',
+      description: 'Scored 3 or more goals in a single match',
+      icon: 'fi fi-rr-football',
+      emoji: '⚽',
+      category: 'Scoring',
+      unlocked: hatTrickUnlocked,
+      progress: {
+        current: Math.min(3, maxGoalsInSingleMatch),
+        target: 3,
+        percentage: Math.min(
+          100,
+          Math.round((maxGoalsInSingleMatch / 3) * 100),
+        ),
+      },
+    });
+
+    // 2. Assist King (🎯)
+    const assistKingUnlocked =
+      maxAssistsInSingleMatch >= 3 || allTimeAssists >= 10;
+    const currentAssistVal = Math.max(maxAssistsInSingleMatch, allTimeAssists);
+    unlockedSystemAchievements.push({
+      id: 'assist_king',
+      code: 'ASSIST_KING',
+      title: 'Assist King',
+      description:
+        'Provided 3+ assists in a single match or 10+ career assists',
+      icon: 'fi fi-rr-bullseye',
+      emoji: '🎯',
+      category: 'Playmaking',
+      unlocked: assistKingUnlocked,
+      progress: {
+        current: Math.min(10, currentAssistVal),
+        target: 10,
+        percentage: Math.min(100, Math.round((currentAssistVal / 10) * 100)),
+      },
+    });
+
+    // 3. Wall Defender (🛡️)
+    const defVal = allTimeBlocks + allTimeTacklePoints + allTimeCatches;
+    const wallDefenderUnlocked = defVal >= 5;
+    unlockedSystemAchievements.push({
+      id: 'wall_defender',
+      code: 'WALL_DEFENDER',
+      title: 'Wall Defender',
+      description:
+        'Registered 5+ blocks, tackle points, or key defensive stops',
+      icon: 'fi fi-sr-shield',
+      emoji: '🛡️',
+      category: 'Defense',
+      unlocked: wallDefenderUnlocked,
+      progress: {
+        current: Math.min(5, defVal),
+        target: 5,
+        percentage: Math.min(100, Math.round((defVal / 5) * 100)),
+      },
+    });
+
+    // 4. Clean Sheet Master (🥅)
+    const cleanSheetUnlocked = cleanSheets >= 1;
+    unlockedSystemAchievements.push({
+      id: 'clean_sheet_master',
+      code: 'CLEAN_SHEET_MASTER',
+      title: 'Clean Sheet Master',
+      description: 'Kept a clean sheet with 0 opponent goals conceded',
+      icon: 'fi fi-rr-shield-check',
+      emoji: '🥅',
+      category: 'Defense',
+      unlocked: cleanSheetUnlocked,
+      progress: {
+        current: Math.min(1, cleanSheets),
+        target: 1,
+        percentage: cleanSheets >= 1 ? 100 : 0,
+      },
+    });
+
+    // 5. 10 Match Winning Streak (🔥)
+    const streakUnlocked = maxWinStreak >= 10;
+    unlockedSystemAchievements.push({
+      id: 'winning_streak_10',
+      code: 'WINNING_STREAK_10',
+      title: '10 Match Winning Streak',
+      description: 'Achieved a 10-match undefeated winning streak',
+      icon: 'fi fi-sr-flame',
+      emoji: '🔥',
+      category: 'Streak',
+      unlocked: streakUnlocked,
+      progress: {
+        current: Math.min(10, maxWinStreak),
+        target: 10,
+        percentage: Math.min(100, Math.round((maxWinStreak / 10) * 100)),
+      },
+    });
+
+    // 6. Iron Man (🏃)
+    const ironManUnlocked = allTimeGames >= 15;
+    unlockedSystemAchievements.push({
+      id: 'iron_man',
+      code: 'IRON_MAN',
+      title: 'Iron Man',
+      description:
+        'Demonstrated remarkable stamina across 15+ match appearances',
+      icon: 'fi fi-rr-running',
+      emoji: '🏃',
+      category: 'Endurance',
+      unlocked: ironManUnlocked,
+      progress: {
+        current: Math.min(15, allTimeGames),
+        target: 15,
+        percentage: Math.min(100, Math.round((allTimeGames / 15) * 100)),
+      },
+    });
+
+    // 7. Clutch MVP (🏆)
+    const mvpUnlocked = allTimeMvps >= 3;
+    unlockedSystemAchievements.push({
+      id: 'clutch_mvp',
+      code: 'CLUTCH_MVP',
+      title: 'Clutch MVP',
+      description: 'Awarded Match MVP in 3 or more matches',
+      icon: 'fi fi-sr-trophy',
+      emoji: '🏆',
+      category: 'Excellence',
+      unlocked: mvpUnlocked,
+      progress: {
+        current: Math.min(3, allTimeMvps),
+        target: 3,
+        percentage: Math.min(100, Math.round((allTimeMvps / 3) * 100)),
+      },
+    });
+
     return {
+      systemAchievements: unlockedSystemAchievements,
       player: {
         id: player.id,
         jerseyNumber: player.jerseyNumber,

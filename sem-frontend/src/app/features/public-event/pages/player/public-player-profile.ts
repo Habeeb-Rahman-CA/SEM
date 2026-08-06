@@ -43,7 +43,20 @@ interface CompetitionStats {
   avgRating: number;
 }
 
+export interface SystemAchievement {
+  id: string;
+  code: string;
+  title: string;
+  description: string;
+  icon: string;
+  emoji: string;
+  category: string;
+  unlocked: boolean;
+  progress: { current: number; target: number; percentage: number };
+}
+
 interface PublicPlayerProfile {
+  systemAchievements?: SystemAchievement[];
   player: {
     id: string;
     jerseyNumber: string | null;
@@ -128,6 +141,21 @@ export class PublicPlayerProfileComponent implements OnInit {
 
   getSportBadgeClass = getSportBadgeClass;
   getSportIconClass = getSportIconClass;
+
+  achievementFilter = signal<'all' | 'unlocked' | 'locked'>('all');
+
+  unlockedCount = computed(() => {
+    const list = this.profile()?.systemAchievements ?? [];
+    return list.filter((a) => a.unlocked).length;
+  });
+
+  filteredAchievements = computed(() => {
+    const list = this.profile()?.systemAchievements ?? [];
+    const filter = this.achievementFilter();
+    if (filter === 'unlocked') return list.filter((a) => a.unlocked);
+    if (filter === 'locked') return list.filter((a) => !a.unlocked);
+    return list;
+  });
 
   // Sport this player is primarily associated with — used to shape headline stat cards
   primarySport = computed(() => {
