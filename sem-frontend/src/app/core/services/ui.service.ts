@@ -47,8 +47,39 @@ export class UiService {
     this.shortcutsModalOpen.update((v) => !v);
   }
 
+  // Compact Mode Density Signal
+  isCompactMode = signal(false);
+
+  toggleCompactMode() {
+    this.isCompactMode.update((v) => !v);
+    this.applyCompactMode();
+    this.info(
+      this.isCompactMode()
+        ? 'Compact Mode Enabled (High Density View)'
+        : 'Standard Density Mode Enabled',
+    );
+  }
+
+  private applyCompactMode() {
+    if (typeof document !== 'undefined') {
+      if (this.isCompactMode()) {
+        document.documentElement.classList.add('compact-mode');
+        localStorage.setItem('sem_compact_mode', 'true');
+      } else {
+        document.documentElement.classList.remove('compact-mode');
+        localStorage.setItem('sem_compact_mode', 'false');
+      }
+    }
+  }
+
   constructor() {
     if (typeof window !== 'undefined') {
+      const savedCompact = localStorage.getItem('sem_compact_mode') === 'true';
+      if (savedCompact) {
+        this.isCompactMode.set(true);
+        this.applyCompactMode();
+      }
+
       window.addEventListener('online', () => {
         this.isOffline.set(false);
         this.success('Your connection has been restored.');

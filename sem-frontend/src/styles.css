@@ -180,3 +180,30 @@ body.qr-scanner-active .hide-on-scan {
     animation: none;
   }
 }
+
+/* ── Compact Mode (High Density Information View) ── */
+.compact-mode table th,
+.compact-mode table td {
+  padding-top: 0.35rem !important;
+  padding-bottom: 0.35rem !important;
+  font-size: 0.72rem !important;
+}
+
+.compact-mode .p-5,
+.compact-mode .p-6,
+.compact-mode .p-8 {
+  padding: 0.75rem !important;
+}
+
+.compact-mode .gap-4,
+.compact-mode .gap-6 {
+  gap: 0.5rem !important;
+}
+
+.compact-mode h1 {
+  font-size: 1.5rem !important;
+}
+
+.compact-mode h2 {
+  font-size: 1.15rem !important;
+}
