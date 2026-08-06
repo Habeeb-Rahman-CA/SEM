@@ -198,4 +198,39 @@ export class PublicEventsController {
       competitionId,
     );
   }
+
+  @Get(':eventId/competitions/:competitionId/story')
+  @ApiOperation({
+    summary: 'Generate tournament story recap for social media',
+    description:
+      'Generates automated daily narrative recap summarizing key match highlights, comeback victories, hat tricks, and current Golden Boot leaders.',
+  })
+  @ApiParam({ name: 'eventId', description: 'Event UUID' })
+  @ApiParam({ name: 'competitionId', description: 'Competition UUID' })
+  @ApiQuery({
+    name: 'day',
+    required: false,
+    type: Number,
+    description: 'Day number (1, 2, 3...)',
+  })
+  @ApiQuery({
+    name: 'date',
+    required: false,
+    type: String,
+    description: 'Date YYYY-MM-DD',
+  })
+  @ApiResponse({ status: 200, description: 'Tournament story recap' })
+  async getPublicTournamentStory(
+    @Param('eventId') eventId: string,
+    @Param('competitionId') competitionId: string,
+    @Query('day') day?: number,
+    @Query('date') date?: string,
+  ) {
+    return this.competitionsService.generateTournamentStory(
+      eventId,
+      competitionId,
+      day ? Number(day) : undefined,
+      date,
+    );
+  }
 }

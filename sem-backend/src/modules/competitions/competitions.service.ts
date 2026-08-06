@@ -1851,4 +1851,222 @@ export class CompetitionsService {
     }
     return this.predictionsService.getPredictions(competitionId);
   }
+
+  async generateTournamentStory(
+    eventId: string,
+    competitionId: string,
+    queryDay?: number,
+    queryDate?: string,
+  ): Promise<any> {
+    const event = await this.eventRepo.findOne({ where: { id: eventId } });
+    if (!event) throw new NotFoundException('Event not found');
+
+    const comp = await this.competitionRepo.findOne({
+      where: { id: competitionId, eventId },
+      relations: { sport: true },
+    });
+    if (!comp) throw new NotFoundException('Competition not found');
+
+    const stages = await this.stageRepo.find({
+      where: { competitionId },
+      order: { sequence: 'ASC' },
+    });
+    const stageIds = stages.map((s) => s.id);
+    if (stageIds.length === 0) {
+      return {
+        competitionName: comp.name,
+        story: `No matches have been played yet in ${comp.name}.`,
+        dayLabel: 'Day 1',
+        socialPost: `🏆 ${comp.name} is gearing up! Fixtures coming soon. #TaisenSports`,
+      };
+    }
+
+    const allCompletedMatches = await this.matchRepo.find({
+      where: { stageId: In(stageIds), status: 'completed' },
+      relations: { homeTeam: true, awayTeam: true, stage: true },
+      order: { scheduledAt: 'ASC', createdAt: 'ASC' },
+    });
+
+    if (allCompletedMatches.length === 0) {
+      return {
+        competitionName: comp.name,
+        story: `Tournament action for ${comp.name} is about to kick off! Stay tuned for daily recaps.`,
+        dayLabel: 'Day 1',
+        socialPost: `⚽ ${comp.name} is starting soon! Follow for daily highlights and scores. #TaisenSports`,
+      };
+    }
+
+    const dateGroupsMap = new Map<string, typeof allCompletedMatches>();
+    for (const m of allCompletedMatches) {
+      const dStr = m.scheduledAt
+        ? new Date(m.scheduledAt).toISOString().split('T')[0]
+        : new Date(m.createdAt).toISOString().split('T')[0];
+      if (!dateGroupsMap.has(dStr)) dateGroupsMap.set(dStr, []);
+      dateGroupsMap.get(dStr)!.push(m);
+    }
+
+    const sortedDates = Array.from(dateGroupsMap.keys()).sort();
+
+    let targetIndex = sortedDates.length - 1;
+    if (queryDay && queryDay >= 1 && queryDay <= sortedDates.length) {
+      targetIndex = queryDay - 1;
+    } else if (queryDate && sortedDates.includes(queryDate)) {
+      targetIndex = sortedDates.indexOf(queryDate);
+    }
+
+    const targetDate = sortedDates[targetIndex];
+    const dayNumber = targetIndex + 1;
+    const dayLabel = `Day ${dayNumber}`;
+    const dayMatches = dateGroupsMap.get(targetDate) || [];
+
+    const matchesUpToTarget = allCompletedMatches.filter((m) => {
+      const dStr = m.scheduledAt
+        ? new Date(m.scheduledAt).toISOString().split('T')[0]
+        : new Date(m.createdAt).toISOString().split('T')[0];
+      return dStr <= targetDate;
+    });
+
+    const careerScorers = new Map<
+      string,
+      { name: string; team: string; goals: number }
+    >();
+    for (const m of matchesUpToTarget) {
+      const events = m.liveData?.events || [];
+      for (const ev of events) {
+        if (ev.type === 'goal' && ev.goalType !== 'own_goal') {
+          const pName = ev.playerName || ev.playerUsername || 'Player';
+          const tName =
+            ev.teamSide === 'home'
+              ? m.homeTeam?.name || 'Home'
+              : m.awayTeam?.name || 'Away';
+          const pKey = ev.playerUserId || ev.playerId || pName;
+
+          if (!careerScorers.has(pKey)) {
+            careerScorers.set(pKey, { name: pName, team: tName, goals: 0 });
+          }
+          careerScorers.get(pKey)!.goals++;
+        }
+      }
+    }
+
+    const sortedScorers = Array.from(careerScorers.values()).sort(
+      (a, b) => b.goals - a.goals,
+    );
+    const goldenBootLeader = sortedScorers.length > 0 ? sortedScorers[0] : null;
+
+    let dominantTeamName = '';
+    let defeatedTeamName = '';
+    let isComebackWin = false;
+    let dayHatTrickPlayer: { name: string; goals: number } | null = null;
+    let dayMargin = -1;
+
+    for (const m of dayMatches) {
+      const homeName = m.homeTeam?.name || 'Home Team';
+      const awayName = m.awayTeam?.name || 'Away Team';
+      const margin = Math.abs(m.homeScore - m.awayScore);
+
+      const events = m.liveData?.events || [];
+      const matchGoalsPerPlayer = new Map<
+        string,
+        { name: string; count: number }
+      >();
+      for (const ev of events) {
+        if (ev.type === 'goal' && ev.goalType !== 'own_goal') {
+          const pName = ev.playerName || ev.playerUsername || 'Player';
+          const pKey = ev.playerUserId || ev.playerId || pName;
+          if (!matchGoalsPerPlayer.has(pKey))
+            matchGoalsPerPlayer.set(pKey, { name: pName, count: 0 });
+          matchGoalsPerPlayer.get(pKey)!.count++;
+        }
+      }
+
+      for (const p of matchGoalsPerPlayer.values()) {
+        if (
+          p.count >= 3 &&
+          (!dayHatTrickPlayer || p.count > dayHatTrickPlayer.goals)
+        ) {
+          dayHatTrickPlayer = { name: p.name, goals: p.count };
+        }
+      }
+
+      if (margin > dayMargin || (!dominantTeamName && margin >= 0)) {
+        dayMargin = margin;
+        if (m.homeScore > m.awayScore) {
+          dominantTeamName = homeName;
+          defeatedTeamName = awayName;
+        } else if (m.awayScore > m.homeScore) {
+          dominantTeamName = awayName;
+          defeatedTeamName = homeName;
+        } else {
+          dominantTeamName = homeName;
+          defeatedTeamName = awayName;
+        }
+      }
+
+      if (events.length >= 2) {
+        const firstGoal = events.find((ev: any) => ev.type === 'goal');
+        if (firstGoal) {
+          const winnerSide =
+            m.homeScore > m.awayScore
+              ? 'home'
+              : m.awayScore > m.homeScore
+                ? 'away'
+                : null;
+          if (
+            winnerSide &&
+            firstGoal.teamSide &&
+            firstGoal.teamSide !== winnerSide
+          ) {
+            isComebackWin = true;
+          }
+        }
+      }
+    }
+
+    let storyText = `${dayLabel} was dominated by ${dominantTeamName || 'the teams'}`;
+    if (defeatedTeamName) {
+      if (isComebackWin) {
+        storyText += `, who secured a dramatic comeback victory against ${defeatedTeamName}.`;
+      } else {
+        storyText += `, who secured a decisive victory against ${defeatedTeamName}.`;
+      }
+    } else {
+      storyText += `, delivering spectacular match performances across the tournament.`;
+    }
+
+    if (dayHatTrickPlayer) {
+      storyText += ` ${dayHatTrickPlayer.name} scored a hat trick`;
+      if (
+        goldenBootLeader &&
+        goldenBootLeader.name === dayHatTrickPlayer.name
+      ) {
+        storyText += ` and now leads the Golden Boot race with ${goldenBootLeader.goals} goals.`;
+      } else if (goldenBootLeader) {
+        storyText += `. Meanwhile, ${goldenBootLeader.name} leads the Golden Boot race with ${goldenBootLeader.goals} goals.`;
+      } else {
+        storyText += `.`;
+      }
+    } else if (goldenBootLeader) {
+      storyText += ` ${goldenBootLeader.name} leads the Golden Boot race with ${goldenBootLeader.goals} goals.`;
+    }
+
+    const socialPost = `🔥 TOURNAMENT RECAP — ${dayLabel.toUpperCase()} 🔥\n\n${storyText}\n\n⚽ Matches Played: ${dayMatches.length}\n🏆 ${comp.name}\n\n#TaisenSports #TournamentStory #${comp.name.replace(/\s+/g, '')}`;
+
+    return {
+      dayLabel,
+      dayNumber,
+      date: targetDate,
+      totalDays: sortedDates.length,
+      availableDays: sortedDates.map((d, i) => ({ dayNumber: i + 1, date: d })),
+      competitionName: comp.name,
+      story: storyText,
+      socialPost,
+      dominantTeam: dominantTeamName,
+      defeatedTeam: defeatedTeamName,
+      isComebackWin,
+      hatTrickScorer: dayHatTrickPlayer,
+      goldenBootLeader,
+      matchesPlayed: dayMatches.length,
+    };
+  }
 }

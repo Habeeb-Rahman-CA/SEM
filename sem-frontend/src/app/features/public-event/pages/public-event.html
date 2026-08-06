@@ -142,7 +142,14 @@
         </div>
 
         <!-- Action / Share Button -->
-        <div class="flex-shrink-0 md:self-center">
+        <div class="flex-shrink-0 md:self-center flex flex-wrap items-center gap-2.5">
+          <button
+            (click)="openStoryModal()"
+            class="px-4 py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-sm rounded-2xl shadow-lg shadow-amber-500/20 transition-all flex items-center gap-2 cursor-pointer border border-amber-400/50"
+          >
+            <i class="fi fi-rr-magic-wand text-base"></i>
+            Daily Story Recap
+          </button>
           <button
             (click)="shareEventLink()"
             class="px-5 py-3 bg-violet-600 hover:bg-violet-500 text-white font-bold text-sm rounded-2xl shadow-lg shadow-violet-600/20 hover:shadow-violet-600/35 transition-all flex items-center gap-2 cursor-pointer border border-violet-500/50"
@@ -3774,5 +3781,129 @@
         </div>
       </div>
     }
+  }
+
+  <!-- ─── TOURNAMENT STORY GENERATOR MODAL ─── -->
+  @if (isStoryModalOpen()) {
+    <div
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in"
+      (click)="closeStoryModal()"
+    >
+      <div
+        class="bg-slate-900 border border-amber-500/30 rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl relative overflow-hidden flex flex-col gap-6"
+        (click)="$event.stopPropagation()"
+      >
+        <!-- Modal Glow -->
+        <div
+          class="absolute top-0 right-0 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"
+        ></div>
+
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between border-b border-white/10 pb-4">
+          <div class="flex items-center gap-3">
+            <div
+              class="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300 shadow-md text-lg"
+            >
+              📖
+            </div>
+            <div>
+              <h3 class="text-base sm:text-lg font-black text-white">Tournament Story Generator</h3>
+              <p class="text-xs text-slate-400">
+                Automated daily narrative recap &amp; social media posts
+              </p>
+            </div>
+          </div>
+          <button
+            (click)="closeStoryModal()"
+            class="w-8 h-8 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center cursor-pointer transition"
+          >
+            <i class="fi fi-rr-cross text-xs"></i>
+          </button>
+        </div>
+
+        @if (isLoadingStory()) {
+          <div class="py-12 flex flex-col items-center justify-center gap-3">
+            <div
+              class="w-8 h-8 rounded-full border-2 border-amber-400/20 border-t-amber-400 animate-spin"
+            ></div>
+            <span class="text-xs font-bold text-slate-400">Generating daily story...</span>
+          </div>
+        } @else if (storyData(); as story) {
+          <!-- Day Selector Pills -->
+          @if (story.availableDays && story.availableDays.length > 0) {
+            <div class="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+              <span class="text-[10px] font-black uppercase text-slate-400 mr-1 flex-shrink-0"
+                >Select Day:</span
+              >
+              @for (d of story.availableDays; track d.dayNumber) {
+                <button
+                  type="button"
+                  (click)="changeStoryDay(d.dayNumber)"
+                  [class]="
+                    'px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex-shrink-0 ' +
+                    (selectedStoryDay() === d.dayNumber ||
+                    (!selectedStoryDay() && d.dayNumber === story.dayNumber)
+                      ? 'bg-amber-500 text-slate-950 font-black shadow-md shadow-amber-500/20'
+                      : 'bg-slate-800 text-slate-400 hover:text-white')
+                  "
+                >
+                  Day {{ d.dayNumber }}
+                </button>
+              }
+            </div>
+          }
+
+          <!-- Narrative Card -->
+          <div
+            class="rounded-2xl border border-amber-500/30 bg-slate-950/80 p-5 shadow-inner flex flex-col gap-3"
+          >
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-black uppercase tracking-wider text-amber-400 font-mono">
+                {{ story.dayLabel }} RECAP
+              </span>
+              <span class="text-[10px] text-slate-500 font-medium">
+                {{ story.matchesPlayed }} matches completed
+              </span>
+            </div>
+
+            <p class="text-sm font-medium text-slate-200 leading-relaxed italic">
+              "{{ story.story }}"
+            </p>
+          </div>
+
+          <!-- Social Media Ready Copy Block -->
+          <div class="flex flex-col gap-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-black uppercase tracking-widest text-slate-300">
+                📱 Ready for Social Media (X / IG / WhatsApp)
+              </span>
+              @if (storyCopySuccess()) {
+                <span
+                  class="text-xs font-bold text-emerald-400 animate-pulse flex items-center gap-1"
+                >
+                  <i class="fi fi-rr-check"></i> Copied to Clipboard!
+                </span>
+              }
+            </div>
+
+            <div
+              class="relative bg-slate-950 border border-white/10 rounded-2xl p-4 font-mono text-xs text-amber-200/90 whitespace-pre-wrap leading-relaxed"
+            >
+              {{ story.socialPost }}
+            </div>
+          </div>
+
+          <!-- Copy Button -->
+          <button
+            type="button"
+            (click)="copyStoryText(story.socialPost)"
+            class="w-full py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-sm rounded-xl shadow-lg shadow-amber-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <i class="fi fi-rr-copy"></i>
+            Copy Story for Social Media
+          </button>
+        }
+      </div>
+    </div>
   }
 </div>

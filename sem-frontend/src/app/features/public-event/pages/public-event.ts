@@ -110,6 +110,49 @@ export class PublicEventComponent implements OnInit, OnDestroy {
   shareTab = signal<'general' | 'fixtures' | 'standings' | 'results' | 'predictions'>('general');
   copySuccess = signal<boolean>(false);
 
+  // Tournament Story State
+  isStoryModalOpen = signal<boolean>(false);
+  storyData = signal<any | null>(null);
+  isLoadingStory = signal<boolean>(false);
+  selectedStoryDay = signal<number | undefined>(undefined);
+  storyCopySuccess = signal<boolean>(false);
+
+  openStoryModal(day?: number) {
+    const eventId = this.eventId();
+    const compId = this.selectedCompetition()?.id || this.event()?.competitions?.[0]?.id;
+    if (!eventId || !compId) return;
+
+    this.isStoryModalOpen.set(true);
+    this.isLoadingStory.set(true);
+    if (day !== undefined) this.selectedStoryDay.set(day);
+
+    this.eventService.getPublicTournamentStory(eventId, compId, this.selectedStoryDay()).subscribe({
+      next: (data) => {
+        this.storyData.set(data);
+        this.isLoadingStory.set(false);
+      },
+      error: (err) => {
+        console.error('Failed to load tournament story', err);
+        this.isLoadingStory.set(false);
+      },
+    });
+  }
+
+  changeStoryDay(day: number) {
+    this.selectedStoryDay.set(day);
+    this.openStoryModal(day);
+  }
+
+  closeStoryModal() {
+    this.isStoryModalOpen.set(false);
+  }
+
+  copyStoryText(text: string) {
+    navigator.clipboard.writeText(text);
+    this.storyCopySuccess.set(true);
+    setTimeout(() => this.storyCopySuccess.set(false), 2000);
+  }
+
   shareUrl = computed(() => {
     const base = window.location.origin + window.location.pathname;
     const tab = this.shareTab();
