@@ -16,11 +16,12 @@ import {
 } from '../../services/certificate.service';
 import { UiService } from '../../../../core/services/ui.service';
 import { ConfettiService } from '../../../../core/services/confetti.service';
+import { CopyButtonComponent } from '../../../../shared/components/copy-button/copy-button';
 
 @Component({
   selector: 'app-certificate-generator',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, DatePipe],
+  imports: [CommonModule, FormsModule, RouterLink, DatePipe, CopyButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './certificate-generator.html',
 })

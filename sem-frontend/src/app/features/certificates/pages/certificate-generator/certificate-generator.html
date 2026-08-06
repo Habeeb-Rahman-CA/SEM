@@ -247,14 +247,10 @@
               </span>
 
               <div class="flex items-center gap-2">
-                <button
-                  type="button"
-                  (click)="copyVerificationLink(cert.code)"
-                  class="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition text-xs cursor-pointer"
-                  title="Copy QR Verification Link"
-                >
-                  <i class="fi fi-rr-share"></i>
-                </button>
+                <app-copy-button
+                  [value]="'https://taisen.app/verify/' + cert.code"
+                  toastMessage="QR Verification Link copied!"
+                />
                 <button
                   type="button"
                   (click)="viewCertificate(cert)"

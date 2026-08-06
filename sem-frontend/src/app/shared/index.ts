@@ -36,6 +36,8 @@ export { CelebrationModalComponent } from './components/celebration-modal/celebr
 export { CustomizableTableComponent } from './components/customizable-table/customizable-table';
 export { RecordCommentsComponent } from './components/record-comments/record-comments';
 export { ActivityFeedComponent } from './components/activity-feed/activity-feed';
+export { CopyButtonComponent } from './components/copy-button/copy-button';
+export { CopyDirective } from './directives/copy.directive';
 export { ConfettiService } from '../core/services/confetti.service';
 export { RecordCommentsService } from '../core/services/record-comments.service';
 export { ActivityFeedService } from '../core/services/activity-feed.service';

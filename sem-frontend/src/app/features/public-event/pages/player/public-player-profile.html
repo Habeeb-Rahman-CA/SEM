@@ -61,12 +61,19 @@
                   <span class="text-slate-500 font-black">#{{ p.player.jerseyNumber }}</span>
                 }
               </h1>
-              <app-share-button
-                entity="players"
-                [entityId]="p.player.id"
-                [shareTitle]="p.player.user.username"
-                size="sm"
-              />
+              <div class="flex items-center gap-2">
+                <app-copy-button
+                  [value]="p.player.id"
+                  label="Copy ID"
+                  toastMessage="Player ID copied!"
+                />
+                <app-share-button
+                  entity="players"
+                  [entityId]="p.player.id"
+                  [shareTitle]="p.player.user.username"
+                  size="sm"
+                />
+              </div>
             </div>
 
             <div class="mt-3 flex items-center gap-3 justify-center md:justify-start">

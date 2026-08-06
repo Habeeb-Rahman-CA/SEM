@@ -124,6 +124,7 @@ interface PublicPlayerProfile {
     AvatarComponent,
     ShareButtonComponent,
     LandingHeaderComponent,
+    CopyButtonComponent,
   ],
   templateUrl: './public-player-profile.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
