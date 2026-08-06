@@ -41,6 +41,36 @@ export class SavedFiltersBarComponent {
     this.closeSaveModal();
   }
 
+  shareCurrentFilterLink() {
+    const params = new URLSearchParams();
+    const query = this.currentQuery().trim();
+    if (query) {
+      params.set('q', query);
+    }
+
+    const filters = this.currentFilters();
+    if (filters) {
+      Object.keys(filters).forEach((k) => {
+        if (filters[k] !== undefined && filters[k] !== null && filters[k] !== '') {
+          params.set(k, String(filters[k]));
+        }
+      });
+    }
+
+    const baseUrl = window.location.origin + window.location.pathname;
+    const shareableUrl = params.toString() ? `${baseUrl}?${params.toString()}` : baseUrl;
+
+    navigator.clipboard.writeText(shareableUrl).then(
+      () => {
+        this.ui.success('Shareable filter URL copied to clipboard!');
+      },
+      (err) => {
+        console.error('Failed to copy shareable filter link', err);
+        this.ui.error('Failed to copy shareable URL');
+      },
+    );
+  }
+
   selectPreset(preset: FilterPreset) {
     this.applyPreset.emit(preset);
     this.ui.info(`Applied filter preset "${preset.name}"`);
