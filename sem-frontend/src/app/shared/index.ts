@@ -23,6 +23,7 @@ export type {
 export { OfflineBannerComponent } from './components/offline-banner/offline-banner';
 export { OfflineSyncModalComponent } from './components/offline-sync-modal/offline-sync-modal';
 export { BackgroundJobsWidgetComponent } from './components/background-jobs-widget/background-jobs-widget';
+export { BreadcrumbComponent } from './components/breadcrumb/breadcrumb';
 
 // ── Type re-exports ───────────────────────────────────────────────────────────
 export type { ButtonVariant, ButtonSize } from './components/button/button';

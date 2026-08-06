@@ -19,6 +19,7 @@ import { FavoriteButtonComponent } from '../../shared/components/favorite-button
 import { GlobalNotesComponent } from '../../shared/components/global-notes/global-notes';
 import { FavoriteEntityType } from '../../core/services/favorites.service';
 import { NoteEntityType } from '../../core/services/global-notes.service';
+import { BreadcrumbComponent } from '../../shared/components/breadcrumb/breadcrumb';
 
 @Component({
   selector: 'app-topbar',
@@ -30,6 +31,7 @@ import { NoteEntityType } from '../../core/services/global-notes.service';
     UserDropdownComponent,
     FavoriteButtonComponent,
     GlobalNotesComponent,
+    BreadcrumbComponent,
   ],
   templateUrl: './topbar.html',
 })
