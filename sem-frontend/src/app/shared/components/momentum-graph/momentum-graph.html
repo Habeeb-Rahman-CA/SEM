@@ -1,0 +1,264 @@
+<div
+  class="rounded-3xl border border-white/10 bg-slate-900/90 p-6 sm:p-7 shadow-2xl backdrop-blur-md relative overflow-hidden"
+>
+  <!-- Ambient background glow -->
+  <div
+    class="pointer-events-none absolute -top-24 -right-24 w-64 h-64 rounded-full bg-violet-600/10 blur-3xl"
+    aria-hidden="true"
+  ></div>
+
+  <!-- Header -->
+  <div class="flex items-center justify-between gap-3 mb-6">
+    <div>
+      <h3
+        class="text-xs font-black text-slate-300 uppercase tracking-widest flex items-center gap-2"
+      >
+        <i class="fi fi-rr-chart-histogram text-violet-400 text-sm"></i>
+        Match Momentum Graph
+      </h3>
+      <p class="text-[11px] text-slate-400 mt-0.5">
+        Real-time match control & dominance breakdown over time
+      </p>
+    </div>
+
+    @if (status() === 'live') {
+      <span
+        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-[10px] font-bold text-emerald-300 uppercase tracking-wider animate-pulse"
+      >
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+        Live Tracking
+      </span>
+    } @else {
+      <span
+        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-800 border border-white/10 text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+      >
+        <i class="fi fi-rr-check-circle text-xs text-violet-400"></i>
+        Final Analysis
+      </span>
+    }
+  </div>
+
+  @if (summary(); as s) {
+    <!-- ── 1. ASCII-Style Dominance Progress Block Representation ── -->
+    <div class="rounded-2xl border border-white/5 bg-slate-950/70 p-5 mb-6">
+      <div
+        class="text-[10px] uppercase font-mono font-bold tracking-widest text-slate-500 mb-3 flex items-center justify-between"
+      >
+        <span>Overall Match Dominance</span>
+        <span class="text-violet-300 font-bold">{{ s.summaryText }}</span>
+      </div>
+
+      <div class="flex flex-col gap-3 font-mono">
+        <!-- Home Team Bar -->
+        <div class="flex items-center justify-between text-xs sm:text-sm gap-2 sm:gap-4">
+          <div class="flex items-center gap-2 min-w-[120px] max-w-[150px] truncate">
+            @if (homeLogoUrl()) {
+              <img
+                [src]="homeLogoUrl()"
+                [alt]="homeTeamName()"
+                class="w-4 h-4 rounded object-cover flex-shrink-0"
+              />
+            }
+            <span class="font-bold text-white truncate">{{ homeTeamName() }}</span>
+          </div>
+
+          <!-- ASCII Blocks + Styled Bar -->
+          <div class="flex-1 flex items-center gap-3">
+            <div
+              class="relative flex-1 h-6 rounded-lg bg-slate-900 border border-white/10 overflow-hidden flex items-center px-2"
+            >
+              <!-- Visual ASCII Representation -->
+              <span
+                class="text-violet-400 font-mono tracking-widest text-xs select-none z-10 font-bold"
+              >
+                {{ s.homeBlocks }}
+              </span>
+              <!-- Smooth Fill Overlay -->
+              <div
+                class="absolute inset-y-0 left-0 bg-gradient-to-r from-violet-600 to-indigo-500 opacity-25 transition-all duration-700"
+                [style.width.%]="s.homePercentage"
+              ></div>
+            </div>
+            <span
+              class="text-xs sm:text-sm font-black text-violet-300 min-w-[42px] text-right tabular-nums"
+            >
+              {{ s.homePercentage }}%
+            </span>
+          </div>
+        </div>
+
+        <!-- Away Team Bar -->
+        <div class="flex items-center justify-between text-xs sm:text-sm gap-2 sm:gap-4">
+          <div class="flex items-center gap-2 min-w-[120px] max-w-[150px] truncate">
+            @if (awayLogoUrl()) {
+              <img
+                [src]="awayLogoUrl()"
+                [alt]="awayTeamName()"
+                class="w-4 h-4 rounded object-cover flex-shrink-0"
+              />
+            }
+            <span class="font-bold text-slate-300 truncate">{{ awayTeamName() }}</span>
+          </div>
+
+          <!-- ASCII Blocks + Styled Bar -->
+          <div class="flex-1 flex items-center gap-3">
+            <div
+              class="relative flex-1 h-6 rounded-lg bg-slate-900 border border-white/10 overflow-hidden flex items-center px-2"
+            >
+              <!-- Visual ASCII Representation -->
+              <span
+                class="text-cyan-400 font-mono tracking-widest text-xs select-none z-10 font-bold"
+              >
+                {{ s.awayBlocks }}
+              </span>
+              <!-- Smooth Fill Overlay -->
+              <div
+                class="absolute inset-y-0 right-0 bg-gradient-to-l from-cyan-500 to-teal-500 opacity-25 transition-all duration-700"
+                [style.width.%]="s.awayPercentage"
+              ></div>
+            </div>
+            <span
+              class="text-xs sm:text-sm font-black text-cyan-300 min-w-[42px] text-right tabular-nums"
+            >
+              {{ s.awayPercentage }}%
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 2. Timeline Segmented Breakdown Graph ── -->
+    <div class="mb-4">
+      <div class="flex items-center justify-between mb-3 text-xs">
+        <span class="font-bold text-slate-300 uppercase tracking-wider text-[10px]">
+          Momentum Flow by Interval
+        </span>
+        <span class="text-[10px] text-slate-500 italic"> Click segment to view details </span>
+      </div>
+
+      <div class="grid grid-cols-6 gap-2">
+        @for (inv of s.intervals; track inv.label) {
+          <button
+            type="button"
+            (click)="selectInterval(inv)"
+            [class]="
+              'flex flex-col items-center p-2 rounded-xl border transition-all cursor-pointer text-left ' +
+              (selectedInterval()?.label === inv.label
+                ? 'bg-violet-950/60 border-violet-400 shadow-lg shadow-violet-500/20 ring-1 ring-violet-400'
+                : 'bg-slate-950/50 border-white/5 hover:border-white/20 hover:bg-slate-900/60')
+            "
+          >
+            <!-- Label -->
+            <span class="text-[10px] font-mono font-bold text-slate-400 mb-2 truncate">
+              {{ inv.label }}
+            </span>
+
+            <!-- Dual Bar Representation -->
+            <div class="w-full flex flex-col gap-1 my-1">
+              <!-- Home Portion -->
+              <div
+                class="w-full h-8 bg-slate-900 rounded-md overflow-hidden relative border border-white/5 flex items-end"
+              >
+                <div
+                  class="w-full bg-gradient-to-t from-violet-600 to-indigo-400 transition-all duration-500 rounded-t-sm"
+                  [style.height.%]="inv.homeDominance"
+                ></div>
+                <span
+                  class="absolute inset-0 flex items-center justify-center text-[9px] font-black text-white font-mono drop-shadow"
+                >
+                  {{ inv.homeDominance }}%
+                </span>
+              </div>
+
+              <!-- Away Portion -->
+              <div
+                class="w-full h-8 bg-slate-900 rounded-md overflow-hidden relative border border-white/5 flex items-start"
+              >
+                <div
+                  class="w-full bg-gradient-to-b from-cyan-500 to-teal-400 transition-all duration-500 rounded-b-sm"
+                  [style.height.%]="inv.awayDominance"
+                ></div>
+                <span
+                  class="absolute inset-0 flex items-center justify-center text-[9px] font-black text-white font-mono drop-shadow"
+                >
+                  {{ inv.awayDominance }}%
+                </span>
+              </div>
+            </div>
+
+            <!-- Indicator Pill -->
+            <div class="mt-1 text-[9px] font-bold uppercase tracking-wider truncate max-w-full">
+              @if (inv.dominantSide === 'home') {
+                <span class="text-violet-300">Home ▲</span>
+              } @else if (inv.dominantSide === 'away') {
+                <span class="text-cyan-300">Away ▼</span>
+              } @else {
+                <span class="text-slate-500">Even</span>
+              }
+            </div>
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- ── 3. Selected Interval Details / Peak Callout ── -->
+    @if (selectedInterval(); as sel) {
+      <div class="mt-4 p-4 rounded-2xl bg-violet-950/30 border border-violet-500/30 animate-fadeIn">
+        <div class="flex items-center justify-between text-xs font-bold mb-1">
+          <span class="text-violet-300 flex items-center gap-1.5">
+            <i class="fi fi-rr-time-fast"></i>
+            Interval Breakdown: {{ sel.label }}
+          </span>
+          <span class="text-slate-400 text-[11px] font-mono">
+            {{ sel.eventsCount }} action(s) recorded
+          </span>
+        </div>
+
+        <p class="text-xs text-slate-300 leading-relaxed">
+          @if (sel.dominantSide === 'home') {
+            <strong class="text-violet-300">{{ homeTeamName() }}</strong> dominated this spell with
+            <strong>{{ sel.homeDominance }}%</strong> control.
+          } @else if (sel.dominantSide === 'away') {
+            <strong class="text-cyan-300">{{ awayTeamName() }}</strong> took control with
+            <strong>{{ sel.awayDominance }}%</strong> momentum.
+          } @else {
+            Control remained evenly split (50%–50%) between both sides.
+          }
+        </p>
+
+        @if (sel.highlightText) {
+          <div
+            class="mt-2 text-[11px] text-slate-400 bg-slate-950/50 p-2.5 rounded-xl border border-white/5"
+          >
+            <span class="text-violet-400 font-bold mr-1">Key Actions:</span>
+            {{ sel.highlightText }}
+          </div>
+        }
+      </div>
+    } @else if (s.peakInterval; as peak) {
+      <div
+        class="mt-4 p-3.5 rounded-2xl bg-slate-950/60 border border-white/5 flex items-center justify-between gap-3 text-xs"
+      >
+        <div class="flex items-center gap-2">
+          <span
+            class="w-7 h-7 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300 flex items-center justify-center font-bold"
+          >
+            <i class="fi fi-sr-bolt"></i>
+          </span>
+          <div>
+            <div class="font-bold text-white">Peak Momentum Spell</div>
+            <div class="text-[11px] text-slate-400">
+              Highest control achieved during
+              <span class="font-mono text-violet-300 font-bold">{{ peak.label }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="text-right font-mono text-[11px] font-bold text-violet-300">
+          {{ peak.dominantSide === 'home' ? homeTeamName() : awayTeamName() }}
+          {{ peak.dominantSide === 'home' ? peak.homeDominance : peak.awayDominance }}%
+        </div>
+      </div>
+    }
+  }
+</div>

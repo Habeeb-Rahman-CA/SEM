@@ -1,0 +1,186 @@
+<div class="max-w-6xl mx-auto p-5 sm:p-8 text-white">
+  <!-- Back to Workspace -->
+  <div class="flex items-center gap-3 mb-6">
+    <a
+      [routerLink]="['/workspaces', workspaceId()]"
+      class="text-xs font-bold text-slate-400 hover:text-white transition inline-flex items-center gap-1"
+    >
+      <i class="fi fi-rr-arrow-small-left text-sm"></i>
+      Back to workspace
+    </a>
+  </div>
+
+  <!-- Page Header -->
+  <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-black tracking-tight flex items-center gap-2">
+        <i class="fi fi-rr-trash text-amber-400"></i> Workspace Recycle Bin
+      </h1>
+      <p class="text-sm text-slate-400 mt-1 max-w-2xl">
+        Restore accidentally deleted teams, roster players, venues, and events, or permanently purge
+        them from workspace storage.
+      </p>
+    </div>
+
+    <div class="flex items-center gap-2.5">
+      <button
+        type="button"
+        (click)="emptyTrash()"
+        class="px-4 py-2 bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/40 text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer"
+      >
+        <i class="fi fi-rr-trash text-xs"></i>
+        Empty Recycle Bin
+      </button>
+    </div>
+  </div>
+
+  <!-- ─── RETENTION BANNER ─── -->
+  <div
+    class="mb-6 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center gap-3 text-xs text-amber-200"
+  >
+    <i class="fi fi-rr-info text-xl text-amber-400 flex-shrink-0"></i>
+    <span>
+      <strong>Safety Net Active:</strong> Items placed in the Recycle Bin are held for 30 days
+      before automatic deletion. You can click <strong>Undo</strong> or
+      <strong>Restore</strong> anytime.
+    </span>
+  </div>
+
+  <!-- ─── STAT STRIP ─── -->
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+    <div class="rounded-2xl border border-white/10 bg-slate-900 p-4">
+      <div class="text-[10px] uppercase tracking-wider text-slate-400 font-bold">
+        Total In Trash
+      </div>
+      <div class="text-2xl font-black text-white font-mono mt-1 tabular-nums">
+        {{ counts().total }}
+      </div>
+    </div>
+    <div class="rounded-2xl border border-blue-500/30 bg-slate-900 p-4">
+      <div class="text-[10px] uppercase tracking-wider text-blue-400 font-bold">Teams</div>
+      <div class="text-2xl font-black text-blue-300 font-mono mt-1 tabular-nums">
+        {{ counts().teams }}
+      </div>
+    </div>
+    <div class="rounded-2xl border border-emerald-500/30 bg-slate-900 p-4">
+      <div class="text-[10px] uppercase tracking-wider text-emerald-400 font-bold">Players</div>
+      <div class="text-2xl font-black text-emerald-300 font-mono mt-1 tabular-nums">
+        {{ counts().players }}
+      </div>
+    </div>
+    <div class="rounded-2xl border border-amber-500/30 bg-slate-900 p-4">
+      <div class="text-[10px] uppercase tracking-wider text-amber-400 font-bold">
+        Venues & Events
+      </div>
+      <div class="text-2xl font-black text-amber-300 font-mono mt-1 tabular-nums">
+        {{ counts().venues + counts().events }}
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── SEARCH & FILTERS ─── -->
+  <div
+    class="flex flex-col sm:flex-row sm:items-center gap-3 mb-6 p-3 bg-slate-900/60 border border-white/5 rounded-xl"
+  >
+    <div class="relative flex-1">
+      <i
+        class="fi fi-rr-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs pointer-events-none"
+      ></i>
+      <input
+        type="search"
+        placeholder="Search trashed items by name or who deleted them…"
+        [ngModel]="searchQuery()"
+        (ngModelChange)="searchQuery.set($event)"
+        class="w-full pl-9 pr-3 py-2 bg-slate-950 border border-white/10 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 rounded-lg text-xs text-white outline-none transition-all"
+      />
+    </div>
+
+    <select
+      [ngModel]="typeFilter()"
+      (ngModelChange)="typeFilter.set($event)"
+      class="bg-slate-950 border border-white/10 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 rounded-lg px-3 py-2 text-xs text-white outline-none transition-all"
+    >
+      <option value="all">All Item Types</option>
+      <option value="team">Teams</option>
+      <option value="player">Players</option>
+      <option value="venue">Venues</option>
+      <option value="event">Events</option>
+      <option value="sponsor">Sponsors</option>
+    </select>
+  </div>
+
+  <!-- ─── TRASH ITEMS LIST ─── -->
+  @if (isLoading()) {
+    <div class="py-20 flex flex-col items-center justify-center gap-3">
+      <div
+        class="w-8 h-8 rounded-full border-2 border-amber-400/20 border-t-amber-400 animate-spin"
+      ></div>
+      <span class="text-xs font-bold text-slate-400">Loading Recycle Bin items...</span>
+    </div>
+  } @else if (error()) {
+    <div class="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-rose-200">
+      <i class="fi fi-rr-triangle-warning text-2xl block mb-2"></i>
+      {{ error() }}
+    </div>
+  } @else if (filteredItems().length === 0) {
+    <div
+      class="py-16 rounded-3xl border border-dashed border-white/10 text-center text-xs text-slate-500 flex flex-col items-center gap-2"
+    >
+      <i class="fi fi-rr-box-open text-4xl text-slate-600"></i>
+      <div>Recycle Bin is empty. No deleted items found.</div>
+    </div>
+  } @else {
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      @for (item of filteredItems(); track item.id) {
+        <div
+          class="p-5 bg-slate-900 border border-white/10 rounded-2xl flex flex-col justify-between gap-4 hover:border-amber-500/40 transition"
+        >
+          <div class="flex flex-col gap-2">
+            <div class="flex items-center justify-between">
+              <span
+                [class]="
+                  'text-[9px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md border flex items-center gap-1 ' +
+                  itemBadge(item.itemType)
+                "
+              >
+                <i [class]="itemIcon(item.itemType)"></i>
+                {{ item.itemType }}
+              </span>
+              <span class="text-[10px] text-slate-400 font-mono">
+                Deleted by <strong class="text-slate-200">{{ item.deletedBy }}</strong>
+              </span>
+            </div>
+
+            <div>
+              <h3 class="text-base font-black text-white line-through opacity-80">
+                {{ item.itemName }}
+              </h3>
+              <div class="text-[10px] font-mono text-slate-400 mt-1">
+                Deleted on {{ item.deletedAt | date: 'medium' }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="flex items-center justify-between border-t border-white/5 pt-3 text-xs">
+            <button
+              type="button"
+              (click)="restoreItem(item)"
+              class="px-3.5 py-1.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-slate-950 font-black text-xs rounded-xl shadow-md transition flex items-center gap-1 cursor-pointer"
+            >
+              <i class="fi fi-rr-undo"></i> Restore Item
+            </button>
+
+            <button
+              type="button"
+              (click)="purgeItem(item)"
+              class="px-3 py-1.5 bg-slate-800 hover:bg-rose-600/30 text-slate-400 hover:text-rose-300 border border-white/5 hover:border-rose-500/40 rounded-xl transition flex items-center gap-1 cursor-pointer"
+            >
+              <i class="fi fi-rr-trash"></i> Delete Permanently
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

@@ -1,0 +1,177 @@
+<!-- Floating Quick Access Trigger Button -->
+<button
+  type="button"
+  (click)="toggleFeed()"
+  class="fixed bottom-6 right-20 z-[999] px-3.5 py-2.5 bg-slate-900/90 hover:bg-slate-800 border border-white/10 backdrop-blur-md rounded-2xl shadow-2xl text-xs font-bold text-white flex items-center gap-2 transition hover:scale-105 cursor-pointer pointer-events-auto"
+  title="View Platform Activity Timeline"
+>
+  <div class="relative flex items-center justify-center">
+    <i class="fi fi-rr-time-fast text-violet-400 text-sm"></i>
+    <span class="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+  </div>
+  <span class="hidden sm:inline">Activity Feed</span>
+</button>
+
+<!-- Slide-Over Activity Feed Drawer -->
+@if (isOpen()) {
+  <!-- Backdrop -->
+  <div
+    class="fixed inset-0 bg-black/60 backdrop-blur-xs z-[9998] transition-opacity"
+    (click)="closeFeed()"
+  ></div>
+
+  <!-- Slide-Over Drawer Panel -->
+  <div
+    #drawer
+    class="fixed top-0 right-0 h-full w-full max-w-md bg-slate-950/95 border-l border-white/10 backdrop-blur-xl z-[9999] shadow-2xl flex flex-col p-6 pointer-events-auto"
+  >
+    <!-- Header -->
+    <div class="flex items-center justify-between border-b border-white/10 pb-4 mb-4">
+      <div class="flex items-center gap-3">
+        <div
+          class="w-10 h-10 rounded-2xl bg-violet-500/20 border border-violet-500/30 flex items-center justify-center text-violet-400 text-lg shadow-lg"
+        >
+          <i class="fi fi-rr-time-fast"></i>
+        </div>
+        <div>
+          <h3 class="text-sm font-extrabold text-white uppercase tracking-wider">
+            Activity Feed Timeline
+          </h3>
+          <p class="text-xs text-slate-400">All recent system actions & milestones</p>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        (click)="closeFeed()"
+        class="text-slate-400 hover:text-white transition p-1.5 rounded-xl hover:bg-slate-900 border-0 cursor-pointer bg-transparent"
+      >
+        <i class="fi fi-rr-cross text-xs"></i>
+      </button>
+    </div>
+
+    <!-- Category Filters Toolbar -->
+    <div class="flex items-center gap-1.5 overflow-x-auto pb-3 mb-4 scrollbar-none">
+      <button
+        type="button"
+        (click)="setCategory('all')"
+        class="px-2.5 py-1 rounded-xl text-[11px] font-bold transition border cursor-pointer shrink-0"
+        [ngClass]="{
+          'bg-violet-600 text-white border-violet-500 shadow-md': activeCategory() === 'all',
+          'bg-slate-900/60 text-slate-400 border-white/5 hover:text-white':
+            activeCategory() !== 'all',
+        }"
+      >
+        All Actions
+      </button>
+      <button
+        type="button"
+        (click)="setCategory('team')"
+        class="px-2.5 py-1 rounded-xl text-[11px] font-bold transition border cursor-pointer shrink-0"
+        [ngClass]="{
+          'bg-violet-600 text-white border-violet-500 shadow-md': activeCategory() === 'team',
+          'bg-slate-900/60 text-slate-400 border-white/5 hover:text-white':
+            activeCategory() !== 'team',
+        }"
+      >
+        Teams
+      </button>
+      <button
+        type="button"
+        (click)="setCategory('milestone')"
+        class="px-2.5 py-1 rounded-xl text-[11px] font-bold transition border cursor-pointer shrink-0"
+        [ngClass]="{
+          'bg-violet-600 text-white border-violet-500 shadow-md': activeCategory() === 'milestone',
+          'bg-slate-900/60 text-slate-400 border-white/5 hover:text-white':
+            activeCategory() !== 'milestone',
+        }"
+      >
+        Milestones
+      </button>
+      <button
+        type="button"
+        (click)="setCategory('certificate')"
+        class="px-2.5 py-1 rounded-xl text-[11px] font-bold transition border cursor-pointer shrink-0"
+        [ngClass]="{
+          'bg-violet-600 text-white border-violet-500 shadow-md':
+            activeCategory() === 'certificate',
+          'bg-slate-900/60 text-slate-400 border-white/5 hover:text-white':
+            activeCategory() !== 'certificate',
+        }"
+      >
+        Certificates
+      </button>
+    </div>
+
+    <!-- Timeline Body -->
+    <div class="flex-1 overflow-y-auto pr-1 flex flex-col gap-4 relative">
+      <!-- Vertical Timeline Guide Line -->
+      <div
+        class="absolute left-4 top-2 bottom-2 w-0.5 bg-gradient-to-b from-violet-500/50 via-slate-800 to-transparent"
+      ></div>
+
+      @for (item of filteredActivities(); track item.id) {
+        <div class="relative pl-10 group">
+          <!-- Timeline Node Icon -->
+          <div
+            class="absolute left-1.5 top-0 w-6 h-6 rounded-full bg-slate-900 border border-violet-500/40 text-violet-400 flex items-center justify-center text-[10px] shadow-md group-hover:scale-110 transition-transform"
+          >
+            <i [class]="'fi ' + item.icon"></i>
+          </div>
+
+          <!-- Card Content -->
+          <div
+            class="bg-slate-900/80 border border-white/10 hover:border-white/20 rounded-2xl p-3.5 shadow-lg transition-all"
+          >
+            <div class="flex items-center justify-between gap-2">
+              <span
+                class="text-[10px] font-black uppercase tracking-wider text-violet-400 bg-violet-500/10 px-2 py-0.5 rounded-md border border-violet-500/20"
+              >
+                {{ item.action }}
+              </span>
+              <span class="text-[10px] text-slate-500 font-mono">
+                {{ item.timestamp | date: 'shortTime' }}
+              </span>
+            </div>
+
+            <h4 class="text-xs font-bold text-white mt-1.5">
+              {{ item.title }}
+            </h4>
+            <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+              {{ item.description }}
+            </p>
+
+            <div
+              class="mt-2.5 pt-2 border-t border-white/5 flex items-center justify-between text-[10px] text-slate-500 font-semibold"
+            >
+              <span class="flex items-center gap-1">
+                <i class="fi fi-rr-user text-slate-400"></i> {{ item.authorName }}
+              </span>
+              <span class="uppercase tracking-wider font-mono text-[9px] text-slate-500">
+                {{ item.category }}
+              </span>
+            </div>
+          </div>
+        </div>
+      } @empty {
+        <div class="p-8 text-center text-slate-500 text-xs italic">
+          No activity logs found for this category.
+        </div>
+      }
+    </div>
+
+    <!-- Footer Controls -->
+    <div class="pt-4 mt-2 border-t border-white/10 flex items-center justify-between">
+      <span class="text-[11px] text-slate-400 font-semibold">
+        Total: {{ filteredActivities().length }} entries
+      </span>
+      <button
+        type="button"
+        (click)="clearFeed()"
+        class="text-xs text-rose-400 hover:text-rose-300 font-bold transition cursor-pointer border-0 bg-transparent flex items-center gap-1"
+      >
+        <i class="fi fi-rr-trash"></i> Clear Timeline
+      </button>
+    </div>
+  </div>
+}

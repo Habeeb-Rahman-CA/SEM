@@ -1,0 +1,41 @@
+<!-- ─── EFFORTLESS BREADCRUMB NAVIGATION TRAIL ─── -->
+@if (breadcrumbService.breadcrumbs().length > 0) {
+  <nav
+    aria-label="Breadcrumb"
+    class="flex items-center gap-1.5 py-2 px-1 text-xs text-slate-400 overflow-x-auto no-scrollbar"
+  >
+    @for (
+      item of breadcrumbService.breadcrumbs();
+      track item.label;
+      let first = $first;
+      let last = $last
+    ) {
+      @if (!first) {
+        <span class="text-slate-600 flex items-center justify-center px-0.5 select-none">
+          <i class="fi fi-rr-angle-small-right text-xs"></i>
+        </span>
+      }
+
+      @if (last) {
+        <span
+          class="flex items-center gap-1.5 font-bold text-white bg-white/5 border border-white/10 px-2.5 py-1 rounded-xl shadow-sm cursor-default truncate max-w-[220px]"
+        >
+          @if (item.icon) {
+            <i [class]="item.icon + ' text-violet-400 text-xs'"></i>
+          }
+          <span>{{ item.label }}</span>
+        </span>
+      } @else {
+        <a
+          [routerLink]="item.url"
+          class="flex items-center gap-1.5 font-medium text-slate-400 hover:text-white hover:bg-slate-800/60 px-2 py-1 rounded-xl transition duration-200 cursor-pointer text-xs truncate max-w-[180px]"
+        >
+          @if (item.icon) {
+            <i [class]="item.icon + ' text-slate-400 text-xs'"></i>
+          }
+          <span>{{ item.label }}</span>
+        </a>
+      }
+    }
+  </nav>
+}

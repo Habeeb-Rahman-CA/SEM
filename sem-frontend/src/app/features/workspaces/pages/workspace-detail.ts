@@ -37,6 +37,8 @@ import { EventService } from '../../events/services/event.service';
 import { CompetitionService } from '../../competitions/services/competition.service';
 import { MatchLockService } from '../services/match-lock.service';
 import { WorkspaceCrudService } from '../services/workspace-crud.service';
+import { RecentlyViewedService } from '../../../core/services/recently-viewed.service';
+import { SessionRestoreService } from '../../../core/services/session-restore.service';
 
 import { PlayerModalComponent } from '../../players/components/player-modal';
 import { VenueModalComponent } from '../../venues/components/venue-modal';
@@ -114,6 +116,8 @@ export class WorkspaceDetailComponent implements OnInit {
   private storage = inject(StorageService);
   private matchLock = inject(MatchLockService);
   private crud = inject(WorkspaceCrudService);
+  private recentlyViewedService = inject(RecentlyViewedService);
+  private sessionRestore = inject(SessionRestoreService);
 
   // ── Core workspace state ───────────────────────────────────────────────────
   workspace = signal<Workspace | null>(null);
@@ -202,13 +206,15 @@ export class WorkspaceDetailComponent implements OnInit {
   private currentSubscribedWorkspaceId: string | null = null;
 
   constructor() {
-    // When the top-level tab changes, clear any deep selections that only
-    // make sense inside their own tab (team detail, player detail, file).
+    // When the top-level tab changes, clear any deep selections and persist tab state
     effect(() => {
-      this.activeTab();
+      const tab = this.activeTab();
       this.selectedTeamId.set(null);
       this.selectedPlayerId.set(null);
       this.selectedFileId.set(null);
+      if (tab) {
+        void this.sessionRestore.saveTabState(tab);
+      }
     });
 
     effect(
@@ -252,7 +258,12 @@ export class WorkspaceDetailComponent implements OnInit {
     );
   }
 
-  ngOnInit() {
+  async ngOnInit() {
+    const savedTab = await this.sessionRestore.getTabState();
+    if (savedTab) {
+      this.activeTab.set(savedTab as WorkspaceTab);
+    }
+
     this.loadInvitationsAndNotifications();
     this.loadAllWorkspaces();
 
@@ -338,6 +349,7 @@ export class WorkspaceDetailComponent implements OnInit {
         this.loadEvents(id);
         this.loadVenues(id);
         this.loadWorkspaceDashboard(id);
+        this.recentlyViewedService.loadRecentlyViewed(id).subscribe();
         this.isLoading.set(false);
       },
       error: (err) => {
@@ -515,18 +527,54 @@ export class WorkspaceDetailComponent implements OnInit {
     this.activeTab.set('teams');
     this.selectedTeamId.set(team.id);
     this.clearGlobalSearch();
+    if (this.workspace()?.id) {
+      this.recentlyViewedService
+        .recordView(this.workspace()!.id, {
+          entityType: 'team',
+          entityId: team.id,
+          title: team.name,
+          subtitle: `Team (${team.code || 'Roster'})`,
+          url: this.router.url,
+          icon: 'fi fi-rr-users-alt',
+        })
+        .subscribe();
+    }
   }
 
   selectGlobalPlayer(player: Player) {
     this.activeTab.set('players');
     this.selectedPlayerId.set(player.id);
     this.clearGlobalSearch();
+    if (this.workspace()?.id) {
+      this.recentlyViewedService
+        .recordView(this.workspace()!.id, {
+          entityType: 'player',
+          entityId: player.id,
+          title: player.user.username || 'Player',
+          subtitle: `Player - ${player.team?.name || 'Roster'}`,
+          url: this.router.url,
+          icon: 'fi fi-rr-running',
+        })
+        .subscribe();
+    }
   }
 
   selectGlobalEvent(event: WorkspaceEvent) {
     this.activeTab.set('events');
     this.selectedEvent.set(event);
     this.clearGlobalSearch();
+    if (this.workspace()?.id) {
+      this.recentlyViewedService
+        .recordView(this.workspace()!.id, {
+          entityType: 'event',
+          entityId: event.id,
+          title: event.name,
+          subtitle: `Event (${event.sport || 'Tournament'})`,
+          url: this.router.url,
+          icon: 'fi fi-rr-calendar',
+        })
+        .subscribe();
+    }
   }
 
   selectGlobalCompetition(comp: Competition) {
@@ -537,11 +585,35 @@ export class WorkspaceDetailComponent implements OnInit {
       this.selectedCompetition.set(comp);
     }
     this.clearGlobalSearch();
+    if (this.workspace()?.id) {
+      this.recentlyViewedService
+        .recordView(this.workspace()!.id, {
+          entityType: 'competition',
+          entityId: comp.id,
+          title: comp.name,
+          subtitle: 'Competition Stage',
+          url: this.router.url,
+          icon: 'fi fi-rr-trophy',
+        })
+        .subscribe();
+    }
   }
 
-  selectGlobalVenue(_venue: Venue) {
+  selectGlobalVenue(venue: Venue) {
     this.activeTab.set('venues');
     this.clearGlobalSearch();
+    if (this.workspace()?.id) {
+      this.recentlyViewedService
+        .recordView(this.workspace()!.id, {
+          entityType: 'venue',
+          entityId: venue.id,
+          title: venue.name,
+          subtitle: venue.location || 'Venue Location',
+          url: this.router.url,
+          icon: 'fi fi-rr-marker',
+        })
+        .subscribe();
+    }
   }
 
   selectGlobalMember(_member: WorkspaceMember) {
@@ -553,6 +625,18 @@ export class WorkspaceDetailComponent implements OnInit {
     this.activeTab.set('files');
     this.selectedFileId.set(file.id);
     this.clearGlobalSearch();
+    if (this.workspace()?.id) {
+      this.recentlyViewedService
+        .recordView(this.workspace()!.id, {
+          entityType: 'custom',
+          entityId: file.id,
+          title: file.name,
+          subtitle: 'Workspace Document',
+          url: this.router.url,
+          icon: 'fi fi-rr-file',
+        })
+        .subscribe();
+    }
   }
 
   clearGlobalSearch() {

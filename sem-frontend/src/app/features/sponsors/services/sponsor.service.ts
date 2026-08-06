@@ -107,6 +107,15 @@ export class SponsorService {
     });
   }
 
+  getAnalytics(workspaceId: string, sponsorId?: string): Observable<any> {
+    const params: Record<string, string> = {};
+    if (sponsorId) params['sponsorId'] = sponsorId;
+    return this.http.get<any>(`${this.wsBase(workspaceId)}/sponsors/analytics`, {
+      headers: this.authHeaders,
+      params,
+    });
+  }
+
   // ─── Per-event attachment ────────────────────────────────────────────
 
   listForEvent(workspaceId: string, eventId: string): Observable<EventSponsor[]> {

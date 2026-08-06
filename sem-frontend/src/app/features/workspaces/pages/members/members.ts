@@ -10,11 +10,19 @@ import {
   BulkImportFieldMapping,
 } from '../../../../shared/components/bulk-import/bulk-import';
 import { roleBadgeClass, PaginatorComponent } from '../../../../shared';
+import { HelpTooltipComponent } from '../../../../shared/components/help-tooltip/help-tooltip';
 
 @Component({
   selector: 'app-workspace-members',
   standalone: true,
-  imports: [CommonModule, FormsModule, AvatarComponent, BulkImportComponent, PaginatorComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    AvatarComponent,
+    BulkImportComponent,
+    PaginatorComponent,
+    HelpTooltipComponent,
+  ],
   templateUrl: './members.html',
 })
 export class WorkspaceMembersComponent {

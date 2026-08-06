@@ -869,4 +869,225 @@ export class TeamsService {
         })),
     };
   }
+
+  async getTeamChemistry(teamId: string): Promise<any> {
+    const team = await this.teamRepo.findOne({ where: { id: teamId } });
+    if (!team) throw new NotFoundException('Team not found');
+
+    const squad = await this.playerRepo.find({
+      where: { teamId },
+      relations: { user: true },
+    });
+
+    const matches = await this.matchRepo.find({
+      where: [
+        { homeTeamId: teamId, status: 'completed' },
+        { awayTeamId: teamId, status: 'completed' },
+      ],
+      relations: {
+        stage: { competition: { sport: true } },
+        homeTeam: true,
+        awayTeam: true,
+      },
+    });
+
+    const squadPlayerIds = squad.map((p) => p.id);
+    let matchPlayers: MatchPlayer[] = [];
+    if (matches.length > 0 && squadPlayerIds.length > 0) {
+      matchPlayers = await this.matchPlayerRepo.find({
+        where: {
+          matchId: In(matches.map((m) => m.id)),
+          playerId: In(squadPlayerIds),
+          isPlaying: true,
+        },
+        relations: { player: { user: true } },
+      });
+    }
+
+    const attackPlayers: Player[] = [];
+    const midfieldPlayers: Player[] = [];
+    const defensePlayers: Player[] = [];
+
+    squad.forEach((p, idx) => {
+      const pos = (p.position || '').toLowerCase();
+      if (
+        pos.includes('fw') ||
+        pos.includes('st') ||
+        pos.includes('att') ||
+        pos.includes('wing') ||
+        pos.includes('forward')
+      ) {
+        attackPlayers.push(p);
+      } else if (
+        pos.includes('mid') ||
+        pos.includes('cm') ||
+        pos.includes('cam') ||
+        pos.includes('cdm')
+      ) {
+        midfieldPlayers.push(p);
+      } else if (
+        pos.includes('def') ||
+        pos.includes('cb') ||
+        pos.includes('lb') ||
+        pos.includes('rb') ||
+        pos.includes('gk') ||
+        pos.includes('goal')
+      ) {
+        defensePlayers.push(p);
+      } else {
+        if (idx % 3 === 0) attackPlayers.push(p);
+        else if (idx % 3 === 1) midfieldPlayers.push(p);
+        else defensePlayers.push(p);
+      }
+    });
+
+    const calculateSectorChemistry = (sectorPlayers: Player[]) => {
+      if (sectorPlayers.length === 0 || matches.length === 0) {
+        return {
+          score: 80,
+          barFilled: 8,
+          barTotal: 10,
+          barVisual: '████████░░',
+          label: 'Solid Synergy',
+        };
+      }
+
+      const pIds = sectorPlayers.map((p) => p.id);
+      const matchPlayerCounts = new Map<string, number>();
+      matchPlayers.forEach((mp) => {
+        if (pIds.includes(mp.playerId)) {
+          matchPlayerCounts.set(
+            mp.matchId,
+            (matchPlayerCounts.get(mp.matchId) || 0) + 1,
+          );
+        }
+      });
+
+      let totalCoGames = 0;
+      matchPlayerCounts.forEach((cnt) => {
+        if (cnt >= 2) totalCoGames += cnt;
+      });
+
+      const experienceBoost = Math.min(
+        40,
+        matches.length * 5 + totalCoGames * 4,
+      );
+      const finalScore = Math.min(
+        100,
+        Math.max(50, Math.round(60 + experienceBoost / 2)),
+      );
+
+      const barFilled = Math.min(10, Math.max(1, Math.round(finalScore / 10)));
+      const barTotal = 10;
+      const barVisual =
+        '█'.repeat(barFilled) + '░'.repeat(barTotal - barFilled);
+
+      let label = 'Developing';
+      if (finalScore >= 90) label = 'Impenetrable Unit';
+      else if (finalScore >= 80) label = 'High Cohesion';
+      else if (finalScore >= 70) label = 'Established Control';
+
+      return {
+        score: finalScore,
+        barFilled,
+        barTotal,
+        barVisual,
+        label,
+      };
+    };
+
+    const attackChem = calculateSectorChemistry(attackPlayers);
+    const midfieldChem = calculateSectorChemistry(midfieldPlayers);
+    const defenseChem = calculateSectorChemistry(defensePlayers);
+
+    if (matches.length > 0) {
+      let wins = 0;
+      let cleanSheets = 0;
+      matches.forEach((m) => {
+        const isHome = m.homeTeamId === teamId;
+        const myScore = isHome ? m.homeScore : m.awayScore;
+        const oppScore = isHome ? m.awayScore : m.homeScore;
+        if (myScore > oppScore) wins++;
+        if (oppScore === 0) cleanSheets++;
+      });
+
+      const winRatio = wins / matches.length;
+      const cleanSheetRatio = cleanSheets / matches.length;
+
+      attackChem.score = Math.min(
+        100,
+        Math.max(50, Math.round(70 + winRatio * 25 + matches.length * 2)),
+      );
+      attackChem.barFilled = Math.min(
+        10,
+        Math.max(1, Math.round(attackChem.score / 10)),
+      );
+      attackChem.barVisual =
+        '█'.repeat(attackChem.barFilled) +
+        '░'.repeat(10 - attackChem.barFilled);
+
+      midfieldChem.score = Math.min(
+        100,
+        Math.max(50, Math.round(65 + winRatio * 20 + matches.length * 3)),
+      );
+      midfieldChem.barFilled = Math.min(
+        10,
+        Math.max(1, Math.round(midfieldChem.score / 10)),
+      );
+      midfieldChem.barVisual =
+        '█'.repeat(midfieldChem.barFilled) +
+        '░'.repeat(10 - midfieldChem.barFilled);
+
+      defenseChem.score = Math.min(
+        100,
+        Math.max(
+          50,
+          Math.round(75 + cleanSheetRatio * 25 + matches.length * 2),
+        ),
+      );
+      defenseChem.barFilled = Math.min(
+        10,
+        Math.max(1, Math.round(defenseChem.score / 10)),
+      );
+      defenseChem.barVisual =
+        '█'.repeat(defenseChem.barFilled) +
+        '░'.repeat(10 - defenseChem.barFilled);
+    } else {
+      attackChem.score = 80;
+      attackChem.barFilled = 8;
+      attackChem.barVisual = '████████░░';
+
+      midfieldChem.score = 70;
+      midfieldChem.barFilled = 7;
+      midfieldChem.barVisual = '███████░░░';
+
+      defenseChem.score = 100;
+      defenseChem.barFilled = 10;
+      defenseChem.barVisual = '██████████';
+    }
+
+    const overallChemistry = Math.round(
+      attackChem.score * 0.35 +
+        midfieldChem.score * 0.35 +
+        defenseChem.score * 0.3,
+    );
+
+    return {
+      teamId: team.id,
+      teamName: team.name,
+      overallChemistry,
+      overallLabel:
+        overallChemistry >= 90
+          ? 'Masterful Synergy'
+          : overallChemistry >= 75
+            ? 'High Synergy'
+            : 'Developing Synergy',
+      totalMatchesTogether: matches.length,
+      sectors: {
+        attack: attackChem,
+        midfield: midfieldChem,
+        defense: defenseChem,
+      },
+    };
+  }
 }

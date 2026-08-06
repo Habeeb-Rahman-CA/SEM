@@ -127,6 +127,121 @@
         </div>
       </div>
 
+      <!-- Team Chemistry Score Card -->
+      @if (chemistry(); as chem) {
+        <div
+          class="mt-6 rounded-3xl border border-violet-500/30 bg-slate-900/90 p-6 sm:p-8 shadow-2xl relative overflow-hidden"
+        >
+          <!-- Background Glow -->
+          <div
+            class="absolute top-0 right-0 w-64 h-64 bg-violet-500/10 rounded-full blur-3xl pointer-events-none"
+          ></div>
+
+          <div
+            class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/10 pb-5 mb-6"
+          >
+            <div>
+              <div class="flex items-center gap-2">
+                <i class="fi fi-rr-users-alt text-violet-400 text-lg"></i>
+                <h2 class="text-base sm:text-lg font-black text-white tracking-tight">
+                  Team Chemistry Score
+                </h2>
+              </div>
+              <p class="text-xs text-slate-400 mt-1">
+                Based on players who frequently play together
+              </p>
+            </div>
+
+            <div class="flex items-center gap-3">
+              <div
+                class="px-4 py-2 rounded-2xl bg-violet-500/15 border border-violet-500/30 flex items-center gap-2"
+              >
+                <span class="text-xs text-slate-400 font-bold uppercase tracking-wider"
+                  >Overall</span
+                >
+                <span class="text-xl font-black text-violet-300 font-mono"
+                  >{{ chem.overallChemistry }}%</span
+                >
+                <span
+                  class="text-[10px] font-bold text-violet-400 bg-violet-500/20 px-2 py-0.5 rounded-lg"
+                >
+                  {{ chem.overallLabel }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Chemistry Breakdown -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Attack -->
+            <div class="bg-slate-950/60 rounded-2xl border border-white/5 p-4 flex flex-col gap-2">
+              <div class="flex items-center justify-between">
+                <span
+                  class="text-xs font-black uppercase tracking-wider text-emerald-400 flex items-center gap-1.5"
+                >
+                  <i class="fi fi-rr-crosshair text-xs"></i> Attack
+                </span>
+                <span class="text-xs font-mono font-bold text-white"
+                  >{{ chem.sectors.attack.score }}%</span
+                >
+              </div>
+              <div
+                class="text-xs font-mono text-emerald-300 tracking-widest bg-slate-950 p-2.5 rounded-xl border border-emerald-500/20 text-center select-all"
+              >
+                {{ chem.sectors.attack.barVisual }}
+              </div>
+              <span class="text-[10px] text-slate-400 font-medium text-right">{{
+                chem.sectors.attack.label
+              }}</span>
+            </div>
+
+            <!-- Midfield -->
+            <div class="bg-slate-950/60 rounded-2xl border border-white/5 p-4 flex flex-col gap-2">
+              <div class="flex items-center justify-between">
+                <span
+                  class="text-xs font-black uppercase tracking-wider text-violet-400 flex items-center gap-1.5"
+                >
+                  <i class="fi fi-rr-settings-sliders text-xs"></i> Midfield
+                </span>
+                <span class="text-xs font-mono font-bold text-white"
+                  >{{ chem.sectors.midfield.score }}%</span
+                >
+              </div>
+              <div
+                class="text-xs font-mono text-violet-300 tracking-widest bg-slate-950 p-2.5 rounded-xl border border-violet-500/20 text-center select-all"
+              >
+                {{ chem.sectors.midfield.barVisual }}
+              </div>
+              <span class="text-[10px] text-slate-400 font-medium text-right">{{
+                chem.sectors.midfield.label
+              }}</span>
+            </div>
+
+            <!-- Defense -->
+            <div class="bg-slate-950/60 rounded-2xl border border-white/5 p-4 flex flex-col gap-2">
+              <div class="flex items-center justify-between">
+                <span
+                  class="text-xs font-black uppercase tracking-wider text-blue-400 flex items-center gap-1.5"
+                >
+                  <i class="fi fi-rr-shield-check text-xs"></i> Defense
+                </span>
+                <span class="text-xs font-mono font-bold text-white"
+                  >{{ chem.sectors.defense.score }}%</span
+                >
+              </div>
+              <div
+                class="text-xs font-mono text-blue-300 tracking-widest bg-slate-950 p-2.5 rounded-xl border border-blue-500/20 text-center select-all"
+              >
+                {{ chem.sectors.defense.barVisual }}
+              </div>
+              <span class="text-[10px] text-slate-400 font-medium text-right">{{
+                chem.sectors.defense.label
+              }}</span>
+            </div>
+          </div>
+        </div>
+      }
+
       <div class="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Left: Coaches + Trophies + Best players -->
         <div class="lg:col-span-1 flex flex-col gap-6">

@@ -1,0 +1,84 @@
+@if (suggestionsService.suggestions().length > 0) {
+  <div
+    class="fixed top-20 right-6 z-[9999] flex flex-col gap-4 max-w-sm w-full pointer-events-none"
+  >
+    @for (item of suggestionsService.suggestions(); track item.id) {
+      <div
+        #toastItem
+        class="bg-slate-950/95 border border-violet-500/40 rounded-3xl p-4.5 shadow-[0_0_35px_rgba(139,92,246,0.3)] backdrop-blur-xl text-white flex flex-col gap-3 relative overflow-hidden pointer-events-auto group hover:border-violet-400 transition-all duration-300"
+      >
+        <!-- AI Glowing Background Flare -->
+        <div
+          class="absolute top-0 right-0 w-36 h-36 bg-gradient-to-br from-violet-600/20 via-cyan-500/10 to-transparent rounded-full blur-2xl pointer-events-none"
+        ></div>
+
+        <!-- Top Header Badge: AI Assistant Badge & Pulsing Node -->
+        <div class="flex items-center justify-between gap-2 border-b border-white/10 pb-2.5">
+          <div class="flex items-center gap-2">
+            <!-- AI Avatar Badge -->
+            <div
+              class="w-8 h-8 rounded-xl bg-gradient-to-tr from-violet-600 via-indigo-600 to-cyan-400 p-0.5 shadow-md flex items-center justify-center shrink-0"
+            >
+              <div
+                class="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center"
+              >
+                <i class="fi fi-sr-sparkles text-cyan-400 text-xs animate-pulse"></i>
+              </div>
+            </div>
+
+            <div class="flex flex-col">
+              <div class="flex items-center gap-1.5">
+                <span
+                  class="text-[10px] font-black tracking-widest uppercase text-transparent bg-clip-text bg-gradient-to-r from-violet-300 via-cyan-300 to-emerald-300"
+                >
+                  TAISEN AI CO-PILOT
+                </span>
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+              </div>
+              <span class="text-[11px] font-extrabold text-white">{{ item.title }}</span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            (click)="dismiss(item)"
+            class="w-6 h-6 rounded-full bg-slate-900 border border-white/10 text-slate-400 hover:text-white transition flex items-center justify-center cursor-pointer shrink-0"
+            title="Dismiss AI Insight"
+          >
+            <i class="fi fi-rr-cross text-[9px]"></i>
+          </button>
+        </div>
+
+        <!-- AI Insight Suggestion Card Body -->
+        <div
+          class="flex items-start gap-3 bg-slate-900/60 p-3 rounded-2xl border border-white/5 relative"
+        >
+          <i [class]="item.icon + ' text-base shrink-0 mt-0.5 text-cyan-400'"></i>
+          <p class="text-xs text-slate-200 leading-relaxed font-medium">
+            {{ item.message }}
+          </p>
+        </div>
+
+        <!-- Quick AI Action Button (Optional) -->
+        @if (item.actionText) {
+          <div class="flex justify-end pt-0.5">
+            <button
+              type="button"
+              (click)="triggerAction(item)"
+              class="px-3.5 py-1.5 bg-gradient-to-r from-violet-600 to-cyan-600 hover:from-violet-500 hover:to-cyan-500 text-white text-xs font-black rounded-xl transition cursor-pointer shadow-lg shadow-cyan-500/20 border border-cyan-400/40 flex items-center gap-1.5"
+            >
+              <i class="fi fi-rr-bolt text-xs text-cyan-200"></i> {{ item.actionText }}
+            </button>
+          </div>
+        }
+
+        <!-- Futuristic AI 5-Second Countdown Progress Bar -->
+        <div class="absolute bottom-0 left-0 right-0 h-1 bg-slate-900 overflow-hidden">
+          <div
+            class="h-full bg-gradient-to-r from-violet-500 via-cyan-400 to-emerald-400 animate-shrink-5s"
+          ></div>
+        </div>
+      </div>
+    }
+  </div>
+}

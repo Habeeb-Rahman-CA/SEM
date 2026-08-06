@@ -336,7 +336,7 @@
             >
               <div class="text-xs font-bold text-white">{{ p.user.username }}</div>
               <div class="text-[10px] text-slate-400 mt-0.5">
-                {{ p.team?.name || '—' }}
+                {{ p.team.name }}
                 @if (p.position) {
                   · {{ p.position }}
                 }
@@ -378,9 +378,7 @@
           >
             <option value="">— Select player —</option>
             @for (p of players(); track p.id) {
-              <option [value]="p.id">
-                {{ p.user.username }} ({{ p.team?.name || 'no team' }})
-              </option>
+              <option [value]="p.id">{{ p.user.username }} ({{ p.team.name }})</option>
             }
           </select>
         </div>

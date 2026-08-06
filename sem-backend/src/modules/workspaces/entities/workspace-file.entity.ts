@@ -11,9 +11,13 @@ import { Workspace } from './workspace.entity';
 import { AuditableEntity } from '../../../common/entities/auditable.entity';
 import { WorkspaceFileVersion } from './workspace-file-version.entity';
 
+export type FileAccessLevel =
+  'public' | 'internal' | 'restricted' | 'admin_only';
+
 @Entity('workspace_files')
 @Index('idx_workspace_files_workspace_id', ['workspaceId'])
 @Index('idx_workspace_files_is_deleted', ['isDeleted'])
+@Index('idx_workspace_files_folder', ['workspaceId', 'folderPath'])
 export class WorkspaceFile extends AuditableEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -39,6 +43,26 @@ export class WorkspaceFile extends AuditableEntity {
 
   @Column({ name: 'public_id', type: 'varchar', length: 255, nullable: true })
   publicId: string | null;
+
+  @Column({ name: 'folder_path', type: 'varchar', length: 255, default: '/' })
+  folderPath: string;
+
+  @Column({ name: 'is_folder', type: 'boolean', default: false })
+  isFolder: boolean;
+
+  @Column({ type: 'simple-array', nullable: true })
+  tags: string[] | null;
+
+  @Column({
+    name: 'access_level',
+    type: 'varchar',
+    length: 50,
+    default: 'public',
+  })
+  accessLevel: FileAccessLevel;
+
+  @Column({ type: 'text', nullable: true })
+  description: string | null;
 
   @Column({ name: 'current_version', type: 'integer', default: 1 })
   currentVersion: number;

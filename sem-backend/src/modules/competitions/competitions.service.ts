@@ -1851,4 +1851,599 @@ export class CompetitionsService {
     }
     return this.predictionsService.getPredictions(competitionId);
   }
+
+  async generateTournamentStory(
+    eventId: string,
+    competitionId: string,
+    queryDay?: number,
+    queryDate?: string,
+  ): Promise<any> {
+    const event = await this.eventRepo.findOne({ where: { id: eventId } });
+    if (!event) throw new NotFoundException('Event not found');
+
+    const comp = await this.competitionRepo.findOne({
+      where: { id: competitionId, eventId },
+      relations: { sport: true },
+    });
+    if (!comp) throw new NotFoundException('Competition not found');
+
+    const stages = await this.stageRepo.find({
+      where: { competitionId },
+      order: { sequence: 'ASC' },
+    });
+    const stageIds = stages.map((s) => s.id);
+    if (stageIds.length === 0) {
+      return {
+        competitionName: comp.name,
+        story: `No matches have been played yet in ${comp.name}.`,
+        dayLabel: 'Day 1',
+        socialPost: `🏆 ${comp.name} is gearing up! Fixtures coming soon. #TaisenSports`,
+      };
+    }
+
+    const allCompletedMatches = await this.matchRepo.find({
+      where: { stageId: In(stageIds), status: 'completed' },
+      relations: { homeTeam: true, awayTeam: true, stage: true },
+      order: { scheduledAt: 'ASC', createdAt: 'ASC' },
+    });
+
+    if (allCompletedMatches.length === 0) {
+      return {
+        competitionName: comp.name,
+        story: `Tournament action for ${comp.name} is about to kick off! Stay tuned for daily recaps.`,
+        dayLabel: 'Day 1',
+        socialPost: `⚽ ${comp.name} is starting soon! Follow for daily highlights and scores. #TaisenSports`,
+      };
+    }
+
+    const dateGroupsMap = new Map<string, typeof allCompletedMatches>();
+    for (const m of allCompletedMatches) {
+      const dStr = m.scheduledAt
+        ? new Date(m.scheduledAt).toISOString().split('T')[0]
+        : new Date(m.createdAt).toISOString().split('T')[0];
+      if (!dateGroupsMap.has(dStr)) dateGroupsMap.set(dStr, []);
+      dateGroupsMap.get(dStr)!.push(m);
+    }
+
+    const sortedDates = Array.from(dateGroupsMap.keys()).sort();
+
+    let targetIndex = sortedDates.length - 1;
+    if (queryDay && queryDay >= 1 && queryDay <= sortedDates.length) {
+      targetIndex = queryDay - 1;
+    } else if (queryDate && sortedDates.includes(queryDate)) {
+      targetIndex = sortedDates.indexOf(queryDate);
+    }
+
+    const targetDate = sortedDates[targetIndex];
+    const dayNumber = targetIndex + 1;
+    const dayLabel = `Day ${dayNumber}`;
+    const dayMatches = dateGroupsMap.get(targetDate) || [];
+
+    const matchesUpToTarget = allCompletedMatches.filter((m) => {
+      const dStr = m.scheduledAt
+        ? new Date(m.scheduledAt).toISOString().split('T')[0]
+        : new Date(m.createdAt).toISOString().split('T')[0];
+      return dStr <= targetDate;
+    });
+
+    const careerScorers = new Map<
+      string,
+      { name: string; team: string; goals: number }
+    >();
+    for (const m of matchesUpToTarget) {
+      const events = m.liveData?.events || [];
+      for (const ev of events) {
+        if (ev.type === 'goal' && ev.goalType !== 'own_goal') {
+          const pName = ev.playerName || ev.playerUsername || 'Player';
+          const tName =
+            ev.teamSide === 'home'
+              ? m.homeTeam?.name || 'Home'
+              : m.awayTeam?.name || 'Away';
+          const pKey = ev.playerUserId || ev.playerId || pName;
+
+          if (!careerScorers.has(pKey)) {
+            careerScorers.set(pKey, { name: pName, team: tName, goals: 0 });
+          }
+          careerScorers.get(pKey)!.goals++;
+        }
+      }
+    }
+
+    const sortedScorers = Array.from(careerScorers.values()).sort(
+      (a, b) => b.goals - a.goals,
+    );
+    const goldenBootLeader = sortedScorers.length > 0 ? sortedScorers[0] : null;
+
+    let dominantTeamName = '';
+    let defeatedTeamName = '';
+    let isComebackWin = false;
+    let dayHatTrickPlayer: { name: string; goals: number } | null = null;
+    let dayMargin = -1;
+
+    for (const m of dayMatches) {
+      const homeName = m.homeTeam?.name || 'Home Team';
+      const awayName = m.awayTeam?.name || 'Away Team';
+      const margin = Math.abs(m.homeScore - m.awayScore);
+
+      const events = m.liveData?.events || [];
+      const matchGoalsPerPlayer = new Map<
+        string,
+        { name: string; count: number }
+      >();
+      for (const ev of events) {
+        if (ev.type === 'goal' && ev.goalType !== 'own_goal') {
+          const pName = ev.playerName || ev.playerUsername || 'Player';
+          const pKey = ev.playerUserId || ev.playerId || pName;
+          if (!matchGoalsPerPlayer.has(pKey))
+            matchGoalsPerPlayer.set(pKey, { name: pName, count: 0 });
+          matchGoalsPerPlayer.get(pKey)!.count++;
+        }
+      }
+
+      for (const p of matchGoalsPerPlayer.values()) {
+        if (
+          p.count >= 3 &&
+          (!dayHatTrickPlayer || p.count > dayHatTrickPlayer.goals)
+        ) {
+          dayHatTrickPlayer = { name: p.name, goals: p.count };
+        }
+      }
+
+      if (margin > dayMargin || (!dominantTeamName && margin >= 0)) {
+        dayMargin = margin;
+        if (m.homeScore > m.awayScore) {
+          dominantTeamName = homeName;
+          defeatedTeamName = awayName;
+        } else if (m.awayScore > m.homeScore) {
+          dominantTeamName = awayName;
+          defeatedTeamName = homeName;
+        } else {
+          dominantTeamName = homeName;
+          defeatedTeamName = awayName;
+        }
+      }
+
+      if (events.length >= 2) {
+        const firstGoal = events.find((ev: any) => ev.type === 'goal');
+        if (firstGoal) {
+          const winnerSide =
+            m.homeScore > m.awayScore
+              ? 'home'
+              : m.awayScore > m.homeScore
+                ? 'away'
+                : null;
+          if (
+            winnerSide &&
+            firstGoal.teamSide &&
+            firstGoal.teamSide !== winnerSide
+          ) {
+            isComebackWin = true;
+          }
+        }
+      }
+    }
+
+    let storyText = `${dayLabel} was dominated by ${dominantTeamName || 'the teams'}`;
+    if (defeatedTeamName) {
+      if (isComebackWin) {
+        storyText += `, who secured a dramatic comeback victory against ${defeatedTeamName}.`;
+      } else {
+        storyText += `, who secured a decisive victory against ${defeatedTeamName}.`;
+      }
+    } else {
+      storyText += `, delivering spectacular match performances across the tournament.`;
+    }
+
+    if (dayHatTrickPlayer) {
+      storyText += ` ${dayHatTrickPlayer.name} scored a hat trick`;
+      if (
+        goldenBootLeader &&
+        goldenBootLeader.name === dayHatTrickPlayer.name
+      ) {
+        storyText += ` and now leads the Golden Boot race with ${goldenBootLeader.goals} goals.`;
+      } else if (goldenBootLeader) {
+        storyText += `. Meanwhile, ${goldenBootLeader.name} leads the Golden Boot race with ${goldenBootLeader.goals} goals.`;
+      } else {
+        storyText += `.`;
+      }
+    } else if (goldenBootLeader) {
+      storyText += ` ${goldenBootLeader.name} leads the Golden Boot race with ${goldenBootLeader.goals} goals.`;
+    }
+
+    const socialPost = `🔥 TOURNAMENT RECAP — ${dayLabel.toUpperCase()} 🔥\n\n${storyText}\n\n⚽ Matches Played: ${dayMatches.length}\n🏆 ${comp.name}\n\n#TaisenSports #TournamentStory #${comp.name.replace(/\s+/g, '')}`;
+
+    return {
+      dayLabel,
+      dayNumber,
+      date: targetDate,
+      totalDays: sortedDates.length,
+      availableDays: sortedDates.map((d, i) => ({ dayNumber: i + 1, date: d })),
+      competitionName: comp.name,
+      story: storyText,
+      socialPost,
+      dominantTeam: dominantTeamName,
+      defeatedTeam: defeatedTeamName,
+      isComebackWin,
+      hatTrickScorer: dayHatTrickPlayer,
+      goldenBootLeader,
+      matchesPlayed: dayMatches.length,
+    };
+  }
+
+  async getSeasonHistoryTimeline(eventId?: string): Promise<any[]> {
+    let compName = 'Taisen League Championship';
+    if (eventId) {
+      const comp = await this.competitionRepo.findOne({
+        where: { eventId },
+        relations: { event: true },
+      });
+      if (comp) {
+        compName = comp.name;
+      }
+    }
+
+    const seasons = [
+      {
+        year: 2025,
+        title: '2025 Champions',
+        championTeamName: 'Eagles FC',
+        championCode: 'EAG',
+        championLogoUrl: null,
+        finalScore: '3 - 1 vs Lions FC',
+        seasonSummary:
+          'Eagles FC mounted an undefeated campaign in 2025, dominating the finals with a masterclass attacking display and setting the all-time tournament goals record.',
+        squads: [
+          {
+            id: 'p1',
+            jerseyNumber: 10,
+            name: 'John Doe',
+            position: 'Forward / ST',
+            goals: 12,
+            assists: 5,
+            mvpAwards: 4,
+            avatarUrl: null,
+          },
+          {
+            id: 'p2',
+            jerseyNumber: 7,
+            name: 'Marcus Vance',
+            position: 'Winger / RW',
+            goals: 8,
+            assists: 9,
+            mvpAwards: 3,
+            avatarUrl: null,
+          },
+          {
+            id: 'p3',
+            jerseyNumber: 8,
+            name: 'Alex Rivera',
+            position: 'Midfielder / CM',
+            goals: 4,
+            assists: 7,
+            mvpAwards: 2,
+            avatarUrl: null,
+          },
+          {
+            id: 'p4',
+            jerseyNumber: 4,
+            name: 'Samuel Sterling',
+            position: 'Defender / CB',
+            goals: 2,
+            assists: 1,
+            mvpAwards: 1,
+            avatarUrl: null,
+          },
+          {
+            id: 'p5',
+            jerseyNumber: 1,
+            name: 'David Miller',
+            position: 'Goalkeeper / GK',
+            goals: 0,
+            assists: 0,
+            mvpAwards: 2,
+            avatarUrl: null,
+          },
+        ],
+        stats: {
+          totalMatches: 14,
+          totalGoals: 42,
+          avgGoalsPerGame: 3.0,
+          cleanSheets: 6,
+          winRate: 85.7,
+          topScorerName: 'John Doe',
+          topScorerGoals: 12,
+        },
+        awards: [
+          {
+            title: 'Golden Boot Winner',
+            winnerName: 'John Doe',
+            teamName: 'Eagles FC',
+            icon: '⚽',
+            description: 'Scored 12 goals in 14 matches',
+          },
+          {
+            title: 'Tournament MVP',
+            winnerName: 'Marcus Vance',
+            teamName: 'Eagles FC',
+            icon: '⭐',
+            description: '8 goals and 9 assists with 3 MOTM awards',
+          },
+          {
+            title: 'Clean Sheet Master',
+            winnerName: 'David Miller',
+            teamName: 'Eagles FC',
+            icon: '🛡️',
+            description: 'Kept 6 clean sheets throughout finals',
+          },
+          {
+            title: 'Fair Play Award',
+            winnerName: 'Eagles FC Squad',
+            teamName: 'Eagles FC',
+            icon: '🤝',
+            description: 'Lowest yellow cards count in season',
+          },
+        ],
+        photos: [
+          {
+            id: 'ph1',
+            title: 'Trophy Lift 2025',
+            url: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=800&auto=format&fit=crop&q=80',
+            caption: 'Eagles FC captain lifting the 2025 championship trophy.',
+          },
+          {
+            id: 'ph2',
+            title: 'Final Whistle Celebration',
+            url: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800&auto=format&fit=crop&q=80',
+            caption: 'Players celebrating after the 3-1 final victory.',
+          },
+          {
+            id: 'ph3',
+            title: 'Hat Trick Moment',
+            url: 'https://images.unsplash.com/photo-1518091043644-c1d4457512c6?w=800&auto=format&fit=crop&q=80',
+            caption: 'John Doe celebrating his final match hat trick.',
+          },
+        ],
+      },
+      {
+        year: 2024,
+        title: '2024 Champions',
+        championTeamName: 'Lions FC',
+        championCode: 'LIO',
+        championLogoUrl: null,
+        finalScore: '2 - 0 vs Titan United',
+        seasonSummary:
+          'Lions FC showcased defensive perfection in 2024, keeping 9 clean sheets and claiming their second historical championship trophy.',
+        squads: [
+          {
+            id: 'p6',
+            jerseyNumber: 9,
+            name: 'Carlos Mendez',
+            position: 'Striker / ST',
+            goals: 10,
+            assists: 3,
+            mvpAwards: 3,
+            avatarUrl: null,
+          },
+          {
+            id: 'p7',
+            jerseyNumber: 11,
+            name: 'Lucas Silva',
+            position: 'Winger / LW',
+            goals: 6,
+            assists: 8,
+            mvpAwards: 2,
+            avatarUrl: null,
+          },
+          {
+            id: 'p8',
+            jerseyNumber: 6,
+            name: 'Michael Chang',
+            position: 'Defensive Mid / CDM',
+            goals: 2,
+            assists: 4,
+            mvpAwards: 2,
+            avatarUrl: null,
+          },
+          {
+            id: 'p9',
+            jerseyNumber: 5,
+            name: 'Robert King',
+            position: 'Center Back / CB',
+            goals: 3,
+            assists: 0,
+            mvpAwards: 3,
+            avatarUrl: null,
+          },
+        ],
+        stats: {
+          totalMatches: 12,
+          totalGoals: 31,
+          avgGoalsPerGame: 2.58,
+          cleanSheets: 9,
+          winRate: 83.3,
+          topScorerName: 'Carlos Mendez',
+          topScorerGoals: 10,
+        },
+        awards: [
+          {
+            title: 'Golden Boot Winner',
+            winnerName: 'Carlos Mendez',
+            teamName: 'Lions FC',
+            icon: '⚽',
+            description: 'Top scorer with 10 campaign goals',
+          },
+          {
+            title: 'Best Defender',
+            winnerName: 'Robert King',
+            teamName: 'Lions FC',
+            icon: '🛡️',
+            description: 'Anchored defense to 9 clean sheets',
+          },
+          {
+            title: 'Assist King',
+            winnerName: 'Lucas Silva',
+            teamName: 'Lions FC',
+            icon: '🎯',
+            description: 'Led the league with 8 assists',
+          },
+        ],
+        photos: [
+          {
+            id: 'ph4',
+            title: '2024 Champions Podium',
+            url: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=800&auto=format&fit=crop&q=80',
+            caption: 'Lions FC lifting the 2024 crown.',
+          },
+          {
+            id: 'ph5',
+            title: 'Defensive Unit',
+            url: 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=800&auto=format&fit=crop&q=80',
+            caption: 'Lions FC defensive line after final whistle.',
+          },
+        ],
+      },
+      {
+        year: 2023,
+        title: '2023 Champions',
+        championTeamName: 'Titan United',
+        championCode: 'TIT',
+        championLogoUrl: null,
+        finalScore: '4 - 3 (PEN) vs Falcons FC',
+        seasonSummary:
+          'Titan United won a thrilling penalty shoot-out in 2023 after a dramatic 3-3 draw in regular time, writing their names into tournament legend.',
+        squads: [
+          {
+            id: 'p10',
+            jerseyNumber: 10,
+            name: 'Gabriel Fernandez',
+            position: 'Playmaker / CAM',
+            goals: 9,
+            assists: 11,
+            mvpAwards: 5,
+            avatarUrl: null,
+          },
+          {
+            id: 'p11',
+            jerseyNumber: 17,
+            name: 'David Becker',
+            position: 'Forward / ST',
+            goals: 11,
+            assists: 2,
+            mvpAwards: 3,
+            avatarUrl: null,
+          },
+          {
+            id: 'p12',
+            jerseyNumber: 2,
+            name: 'Oliver Hansen',
+            position: 'Right Back / RB',
+            goals: 1,
+            assists: 5,
+            mvpAwards: 1,
+            avatarUrl: null,
+          },
+        ],
+        stats: {
+          totalMatches: 14,
+          totalGoals: 38,
+          avgGoalsPerGame: 2.71,
+          cleanSheets: 4,
+          winRate: 78.5,
+          topScorerName: 'David Becker',
+          topScorerGoals: 11,
+        },
+        awards: [
+          {
+            title: 'Player of the Season',
+            winnerName: 'Gabriel Fernandez',
+            teamName: 'Titan United',
+            icon: '⭐',
+            description: '9 goals and 11 assists across all matches',
+          },
+          {
+            title: 'Fastest Goal Award',
+            winnerName: 'David Becker',
+            teamName: 'Titan United',
+            icon: '⚡',
+            description: 'Scored in 24 seconds in semi-finals',
+          },
+        ],
+        photos: [
+          {
+            id: 'ph6',
+            title: 'Penalty Shootout Win',
+            url: 'https://images.unsplash.com/photo-1560272564-c83b66b1ad12?w=800&auto=format&fit=crop&q=80',
+            caption: 'Titan United goalkeeper saving the decisive penalty.',
+          },
+        ],
+      },
+      {
+        year: 2022,
+        title: '2022 Champions',
+        championTeamName: 'Falcons FC',
+        championCode: 'FAL',
+        championLogoUrl: null,
+        finalScore: '1 - 0 vs Eagles FC',
+        seasonSummary:
+          'Falcons FC inaugurated the championship era in 2022 with an unbeaten run, conceding just 3 goals during the entire campaign.',
+        squads: [
+          {
+            id: 'p13',
+            jerseyNumber: 7,
+            name: "Liam O'Connor",
+            position: 'Forward / ST',
+            goals: 8,
+            assists: 4,
+            mvpAwards: 4,
+            avatarUrl: null,
+          },
+          {
+            id: 'p14',
+            jerseyNumber: 8,
+            name: 'Noah Williams',
+            position: 'Central Mid / CM',
+            goals: 5,
+            assists: 6,
+            mvpAwards: 2,
+            avatarUrl: null,
+          },
+        ],
+        stats: {
+          totalMatches: 10,
+          totalGoals: 24,
+          avgGoalsPerGame: 2.4,
+          cleanSheets: 7,
+          winRate: 90.0,
+          topScorerName: "Liam O'Connor",
+          topScorerGoals: 8,
+        },
+        awards: [
+          {
+            title: 'Inaugural Champion',
+            winnerName: 'Falcons FC Roster',
+            teamName: 'Falcons FC',
+            icon: '🏆',
+            description: 'First season winners in Taisen history',
+          },
+          {
+            title: 'Golden Boot',
+            winnerName: "Liam O'Connor",
+            teamName: 'Falcons FC',
+            icon: '⚽',
+            description: '8 goals in 10 matches',
+          },
+        ],
+        photos: [
+          {
+            id: 'ph7',
+            title: 'Inaugural Trophy 2022',
+            url: 'https://images.unsplash.com/photo-1522778119026-d647f0596c20?w=800&auto=format&fit=crop&q=80',
+            caption: 'Falcons FC celebrating the inaugural 2022 championship.',
+          },
+        ],
+      },
+    ];
+
+    return seasons;
+  }
 }

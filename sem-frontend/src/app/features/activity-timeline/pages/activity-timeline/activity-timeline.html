@@ -1,0 +1,211 @@
+<div class="max-w-6xl mx-auto p-5 sm:p-8 text-white">
+  <!-- Back to Workspace -->
+  <div class="flex items-center gap-3 mb-6">
+    <a
+      [routerLink]="['/workspaces', workspaceId()]"
+      class="text-xs font-bold text-slate-400 hover:text-white transition inline-flex items-center gap-1"
+    >
+      <i class="fi fi-rr-arrow-small-left text-sm"></i>
+      Back to workspace
+    </a>
+  </div>
+
+  <!-- Page Header -->
+  <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-black tracking-tight flex items-center gap-2">
+        <i class="fi fi-rr-time-past text-amber-400"></i> Global Activity Timeline
+      </h1>
+      <p class="text-sm text-slate-400 mt-1 max-w-2xl">
+        One place showing every action across teams, matches, venues, and registrations for complete
+        audit trail compliance and team collaboration.
+      </p>
+    </div>
+
+    <div class="flex items-center gap-2.5">
+      <button
+        type="button"
+        (click)="exportAuditCSV()"
+        class="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-amber-500/20 transition flex items-center gap-1.5 cursor-pointer border border-amber-400/50"
+      >
+        <i class="fi fi-rr-file-export"></i>
+        Export Audit CSV
+      </button>
+    </div>
+  </div>
+
+  <!-- ─── STAT STRIP ─── -->
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+    <div class="rounded-2xl border border-white/10 bg-slate-900 p-4">
+      <div class="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Total Actions</div>
+      <div class="text-2xl font-black text-white font-mono mt-1 tabular-nums">
+        {{ counts().total }}
+      </div>
+    </div>
+    <div class="rounded-2xl border border-emerald-500/30 bg-slate-900 p-4">
+      <div class="text-[10px] uppercase tracking-wider text-emerald-400 font-bold">Created</div>
+      <div class="text-2xl font-black text-emerald-300 font-mono mt-1 tabular-nums">
+        {{ counts().created }}
+      </div>
+    </div>
+    <div class="rounded-2xl border border-blue-500/30 bg-slate-900 p-4">
+      <div class="text-[10px] uppercase tracking-wider text-blue-400 font-bold">Updated</div>
+      <div class="text-2xl font-black text-blue-300 font-mono mt-1 tabular-nums">
+        {{ counts().updated }}
+      </div>
+    </div>
+    <div class="rounded-2xl border border-amber-500/30 bg-slate-900 p-4">
+      <div class="text-[10px] uppercase tracking-wider text-amber-400 font-bold">Approved</div>
+      <div class="text-2xl font-black text-amber-300 font-mono mt-1 tabular-nums">
+        {{ counts().approved }}
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── FILTERS STRIP ─── -->
+  <div
+    class="flex flex-col sm:flex-row sm:items-center gap-3 mb-6 p-3 bg-slate-900/60 border border-white/5 rounded-xl"
+  >
+    <div class="relative flex-1">
+      <i
+        class="fi fi-rr-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs pointer-events-none"
+      ></i>
+      <input
+        type="search"
+        placeholder="Filter activity by actor name, entity, or description (e.g. Ahmed, Match, Venue)…"
+        [ngModel]="searchQuery()"
+        (ngModelChange)="searchQuery.set($event)"
+        class="w-full pl-9 pr-3 py-2 bg-slate-950 border border-white/10 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 rounded-lg text-xs text-white outline-none transition-all"
+      />
+    </div>
+
+    <select
+      [ngModel]="categoryFilter()"
+      (ngModelChange)="categoryFilter.set($event)"
+      class="bg-slate-950 border border-white/10 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 rounded-lg px-3 py-2 text-xs text-white outline-none transition-all"
+    >
+      <option value="all">All Categories</option>
+      <option value="team">Teams</option>
+      <option value="match">Matches</option>
+      <option value="venue">Venues</option>
+      <option value="registration">Registrations</option>
+      <option value="certificate">Certificates</option>
+      <option value="sponsor">Sponsors</option>
+    </select>
+
+    <select
+      [ngModel]="actionFilter()"
+      (ngModelChange)="actionFilter.set($event)"
+      class="bg-slate-950 border border-white/10 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 rounded-lg px-3 py-2 text-xs text-white outline-none transition-all"
+    >
+      <option value="all">All Actions</option>
+      <option value="created">Created</option>
+      <option value="updated">Updated</option>
+      <option value="deleted">Deleted</option>
+      <option value="approved">Approved</option>
+      <option value="published">Published</option>
+    </select>
+  </div>
+
+  <!-- ─── TIMELINE STREAM ─── -->
+  @if (isLoading()) {
+    <div class="py-20 flex flex-col items-center justify-center gap-3">
+      <div
+        class="w-8 h-8 rounded-full border-2 border-amber-400/20 border-t-amber-400 animate-spin"
+      ></div>
+      <span class="text-xs font-bold text-slate-400">Loading audit activity logs...</span>
+    </div>
+  } @else if (error()) {
+    <div class="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-rose-200">
+      <i class="fi fi-rr-triangle-warning text-2xl block mb-2"></i>
+      {{ error() }}
+    </div>
+  } @else if (filteredLogs().length === 0) {
+    <div
+      class="py-16 rounded-3xl border border-dashed border-white/10 text-center text-xs text-slate-500 flex flex-col items-center gap-2"
+    >
+      <i class="fi fi-rr-time-past text-4xl text-slate-600"></i>
+      <div>No activity logs match your search filters.</div>
+    </div>
+  } @else {
+    <div class="relative pl-6 sm:pl-8 border-l-2 border-white/10 flex flex-col gap-6">
+      @for (log of filteredLogs(); track log.id) {
+        <div class="relative flex flex-col gap-2 group">
+          <!-- Timeline Bullet Node -->
+          <div
+            [class]="
+              'absolute -left-[31px] sm:-left-[39px] top-1.5 w-6 h-6 rounded-full border flex items-center justify-center text-[10px] shadow-md transition-transform group-hover:scale-110 ' +
+              actionBadge(log.action)
+            "
+          >
+            <i [class]="actionIcon(log.action)"></i>
+          </div>
+
+          <!-- Main Log Item Content -->
+          <div
+            class="p-4 bg-slate-900 border border-white/10 rounded-2xl flex flex-col gap-2.5 hover:border-amber-500/40 transition"
+          >
+            <!-- Header Line -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div class="flex items-center gap-2 flex-wrap">
+                <!-- Actor Avatar / Name -->
+                <div
+                  class="w-7 h-7 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center font-black text-amber-300 text-xs"
+                >
+                  {{ log.actorName.charAt(0) }}
+                </div>
+                <span class="text-xs font-black text-white">{{ log.actorName }}</span>
+                @if (log.actorRole) {
+                  <span
+                    class="text-[10px] text-slate-400 bg-slate-800 px-2 py-0.5 rounded-md border border-white/5 font-mono"
+                  >
+                    {{ log.actorRole }}
+                  </span>
+                }
+                <span
+                  [class]="
+                    'text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border flex items-center gap-1 ' +
+                    actionBadge(log.action)
+                  "
+                >
+                  {{ log.action }}
+                </span>
+                <span class="text-xs font-bold text-amber-300 font-mono">
+                  {{ log.entityName }}
+                </span>
+              </div>
+
+              <!-- Time Badges -->
+              <div class="flex items-center gap-2 text-[10px] text-slate-400 font-mono">
+                <span
+                  class="bg-slate-950 px-2.5 py-1 rounded-lg border border-white/10 font-bold text-slate-200"
+                >
+                  {{ log.formattedTime }}
+                </span>
+                <span class="text-slate-500">({{ log.relativeTime }})</span>
+              </div>
+            </div>
+
+            <!-- Detailed Description -->
+            @if (log.details) {
+              <div
+                class="p-3 bg-slate-950/80 rounded-xl border border-white/5 text-xs text-slate-300 font-mono leading-relaxed"
+              >
+                {{ log.details }}
+              </div>
+            }
+
+            <!-- Footer Meta -->
+            <div class="flex items-center justify-between text-[10px] text-slate-500 pt-1">
+              <span class="flex items-center gap-1">
+                <i [class]="categoryIcon(log.entityType) + ' text-slate-400'"></i>
+                Category: <strong class="text-slate-300 capitalize">{{ log.entityType }}</strong>
+              </span>
+              <span class="font-mono text-slate-600">Audit ID: {{ log.id }}</span>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

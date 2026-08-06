@@ -5,9 +5,11 @@ import { RouterLink } from '@angular/router';
 import { Workspace, Team, WorkspaceEvent } from '../../workspaces/services/workspace.service';
 import { EventService } from '../services/event.service';
 import { UiService } from '../../../core/services/ui.service';
-import { AvatarComponent } from '../../../shared/components/avatar/avatar';
 import { PhotoCaptureComponent } from '../../../shared/components/photo-capture/photo-capture';
 import { GalleryManagerComponent } from '../../gallery/components/gallery-manager';
+import { DuplicateDetectionService } from '../../../core/services/duplicate-detection.service';
+import { HelpTooltipComponent } from '../../../shared/components/help-tooltip/help-tooltip';
+import { AvatarComponent } from '../../../shared/components/avatar/avatar';
 
 @Component({
   selector: 'app-event-modal',
@@ -19,6 +21,7 @@ import { GalleryManagerComponent } from '../../gallery/components/gallery-manage
     PhotoCaptureComponent,
     GalleryManagerComponent,
     RouterLink,
+    HelpTooltipComponent,
   ],
   template: `
     @if (isOpen()) {
@@ -255,9 +258,13 @@ import { GalleryManagerComponent } from '../../gallery/components/gallery-manage
                     <div class="flex flex-col gap-1.5 text-left">
                       <label
                         for="modal-e-status"
-                        class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
-                        >Status</label
-                      >
+                        class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"
+                        >Status
+                        <app-help-tooltip
+                          text="Upcoming (scheduled), Ongoing (live right now), Completed (finished), or Cancelled."
+                          position="top"
+                        />
+                      </label>
                       <select
                         id="modal-e-status"
                         class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-all w-full"
@@ -278,9 +285,14 @@ import { GalleryManagerComponent } from '../../gallery/components/gallery-manage
                     class="flex flex-col gap-3 border-t md:border-t-0 md:border-l border-white/5 pt-4 md:pt-0 md:pl-6 h-full"
                   >
                     <div class="flex items-center justify-between">
-                      <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
-                        >Participating Teams</label
-                      >
+                      <label
+                        class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"
+                        >Participating Teams
+                        <app-help-tooltip
+                          text="Teams selected here can be assigned to competitions and matches within this event."
+                          position="right"
+                        />
+                      </label>
                       <span class="text-[10px] text-violet-400 font-bold"
                         >{{ selectedTeamIds().length }} selected</span
                       >
@@ -368,9 +380,13 @@ import { GalleryManagerComponent } from '../../gallery/components/gallery-manage
                     <div class="flex flex-col gap-1.5 text-left">
                       <label
                         for="modal-e-reg"
-                        class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
-                        >Registration Status</label
-                      >
+                        class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"
+                        >Registration Status
+                        <app-help-tooltip
+                          text="Open (accepting entries), Closed (full/ended), or Not Started (announcement only)."
+                          position="top"
+                        />
+                      </label>
                       <select
                         id="modal-e-reg"
                         class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-all w-full"
@@ -387,9 +403,13 @@ import { GalleryManagerComponent } from '../../gallery/components/gallery-manage
                     <div class="flex flex-col gap-1.5 text-left">
                       <label
                         for="modal-e-venue"
-                        class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
-                        >Public Venue Details</label
-                      >
+                        class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"
+                        >Public Venue Details
+                        <app-help-tooltip
+                          text="Location details displayed on the public event page and spectator schedule map."
+                          position="top"
+                        />
+                      </label>
                       <input
                         id="modal-e-venue"
                         type="text"
@@ -860,10 +880,12 @@ import { GalleryManagerComponent } from '../../gallery/components/gallery-manage
 export class EventModalComponent {
   private eventService = inject(EventService);
   private uiService = inject(UiService);
+  private duplicateService = inject(DuplicateDetectionService);
 
   workspace = input.required<Workspace | null>();
   teams = input<Team[]>([]);
   editingEvent = input<WorkspaceEvent | null>(null);
+  existingEvents = input<WorkspaceEvent[]>([]);
 
   isOpen = model<boolean>(false);
   eventSaved = output<WorkspaceEvent>();
@@ -1062,6 +1084,24 @@ export class EventModalComponent {
     const ws = this.workspace();
     if (!ws || !this.name().trim()) return;
 
+    const event = this.editingEvent();
+
+    // On create mode only: run duplicate name detection
+    if (!event) {
+      const newRecord = { name: this.name().trim() };
+      this.duplicateService
+        .confirmCreationWithDuplicateCheck(newRecord, this.existingEvents(), ['name'], 'Event')
+        .then((proceed) => {
+          if (!proceed) return;
+          this.doSaveEvent(ws, event);
+        });
+      return;
+    }
+
+    this.doSaveEvent(ws, event);
+  }
+
+  private doSaveEvent(ws: Workspace, event: WorkspaceEvent | null) {
     this.isSaving.set(true);
     this.error.set('');
     this.success.set('');
@@ -1084,7 +1124,6 @@ export class EventModalComponent {
       organizers: this.organizers().trim() || undefined,
     };
 
-    const event = this.editingEvent();
     const request$ = event
       ? this.eventService.updateEvent(ws.id, event.id, payload)
       : this.eventService.createEvent(ws.id, payload);

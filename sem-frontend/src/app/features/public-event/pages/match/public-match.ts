@@ -6,7 +6,7 @@ import {
   OnInit,
   signal,
 } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { EventService } from '../../../events/services/event.service';
@@ -15,6 +15,7 @@ import { ShareButtonComponent } from '../../../share/components/share-button';
 import { AvatarComponent } from '../../../../shared/components/avatar/avatar';
 import { getSportBadgeClass, getSportIconClass } from '../../../../shared';
 import { LandingHeaderComponent } from '../../../../layouts/landing-header/landing-header';
+import { MomentumGraphComponent } from '../../../../shared/components/momentum-graph/momentum-graph';
 
 interface HighlightVideo {
   id: string;
@@ -88,10 +89,10 @@ interface TimelineEvent {
   imports: [
     CommonModule,
     RouterLink,
-    DatePipe,
     AvatarComponent,
     ShareButtonComponent,
     LandingHeaderComponent,
+    MomentumGraphComponent,
   ],
   templateUrl: './public-match.html',
   changeDetection: ChangeDetectionStrategy.OnPush,

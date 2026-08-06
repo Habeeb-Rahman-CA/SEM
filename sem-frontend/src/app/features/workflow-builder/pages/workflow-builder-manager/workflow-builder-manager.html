@@ -1,0 +1,404 @@
+<div class="max-w-7xl mx-auto p-5 sm:p-8 text-white">
+  <!-- Back to Workspace -->
+  <div class="flex items-center gap-3 mb-6">
+    <a
+      [routerLink]="['/workspaces', workspaceId()]"
+      class="text-xs font-bold text-slate-400 hover:text-white transition inline-flex items-center gap-1"
+    >
+      <i class="fi fi-rr-arrow-small-left text-sm"></i>
+      Back to workspace
+    </a>
+  </div>
+
+  <!-- Page Header -->
+  <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-black tracking-tight flex items-center gap-2">
+        <i class="fi fi-rr-site-alt text-amber-400"></i> Reusable Workflow Builder
+      </h1>
+      <p class="text-sm text-slate-400 mt-1 max-w-2xl">
+        Standardized 4-stage pipeline (<strong>Create ↓ Review ↓ Approve ↓ Publish</strong>)
+        reusable across every module: Events, Player Registrations, Sponsorship Deals, Equipment,
+        and Rules.
+      </p>
+    </div>
+
+    <div class="flex items-center gap-2.5">
+      <button
+        type="button"
+        (click)="openNewModal()"
+        class="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-amber-500/20 transition flex items-center gap-1.5 cursor-pointer border border-amber-400/50"
+      >
+        <i class="fi fi-rr-plus"></i>
+        Start New Workflow Pipeline
+      </button>
+    </div>
+  </div>
+
+  @if (isLoading()) {
+    <div class="py-20 flex flex-col items-center justify-center gap-3">
+      <div
+        class="w-8 h-8 rounded-full border-2 border-amber-400/20 border-t-amber-400 animate-spin"
+      ></div>
+      <span class="text-xs font-bold text-slate-400">Loading workflow pipelines...</span>
+    </div>
+  } @else if (error()) {
+    <div class="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-rose-200">
+      <i class="fi fi-rr-triangle-warning text-2xl block mb-2"></i>
+      {{ error() }}
+    </div>
+  } @else {
+    <!-- ─── MAIN WORKFLOW GRID ─── -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <!-- LEFT WORKFLOW SELECTION COLUMN (4 cols) -->
+      <div
+        class="lg:col-span-4 bg-slate-900 border border-white/10 rounded-3xl p-5 flex flex-col gap-4"
+      >
+        <div class="flex items-center justify-between border-b border-white/10 pb-3">
+          <h3
+            class="text-xs font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5"
+          >
+            <i class="fi fi-rr-list text-amber-400"></i> Workspace Active Pipelines
+          </h3>
+          <span
+            class="text-[10px] font-mono font-bold text-slate-500 bg-slate-950 px-2 py-0.5 rounded border border-white/5"
+          >
+            {{ workflows().length }} Items
+          </span>
+        </div>
+
+        <div class="flex flex-col gap-3 max-h-[600px] overflow-y-auto pr-1">
+          @for (wf of workflows(); track wf.id) {
+            <div
+              (click)="selectWorkflow(wf)"
+              [class]="
+                'p-4 rounded-2xl border transition cursor-pointer flex flex-col gap-2 relative ' +
+                (selectedWorkflow()?.id === wf.id
+                  ? 'bg-amber-500/15 border-amber-500/50 shadow-lg'
+                  : 'bg-slate-950 border-white/5 hover:border-white/20')
+              "
+            >
+              <div class="flex items-center justify-between">
+                <span
+                  [class]="
+                    'px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider rounded-lg border ' +
+                    moduleBadge(wf.module)
+                  "
+                >
+                  {{ wf.module }}
+                </span>
+
+                <span
+                  [class]="
+                    'px-2 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-lg border ' +
+                    stageBadge(wf.currentStage, wf.status)
+                  "
+                >
+                  {{ wf.currentStage }}
+                </span>
+              </div>
+
+              <h4 class="text-sm font-black text-white leading-snug">
+                {{ wf.itemName }}
+              </h4>
+
+              <div
+                class="flex items-center justify-between text-[10px] font-mono text-slate-400 pt-1 border-t border-white/5"
+              >
+                <span
+                  >By <strong class="text-slate-300">{{ wf.authorName }}</strong></span
+                >
+                <span>{{ wf.createdAt | date: 'shortDate' }}</span>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- RIGHT VISUAL PIPELINE STEPPER & CONTROLS COLUMN (8 cols) -->
+      <div
+        class="lg:col-span-8 bg-slate-900 border border-white/10 rounded-3xl p-6 flex flex-col justify-between"
+      >
+        @if (selectedWorkflow(); as activeWf) {
+          <div class="flex flex-col gap-6">
+            <!-- Header Bar -->
+            <div
+              class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4"
+            >
+              <div>
+                <span
+                  [class]="
+                    'px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider rounded-lg border inline-block mb-1 ' +
+                    moduleBadge(activeWf.module)
+                  "
+                >
+                  {{ activeWf.module }} Module Item
+                </span>
+                <h2 class="text-xl font-black text-white">
+                  {{ activeWf.itemName }}
+                </h2>
+                <div class="text-xs text-slate-400 font-mono mt-1">
+                  Author: <strong class="text-slate-200">{{ activeWf.authorName }}</strong> |
+                  Reviewer: <strong class="text-slate-200">{{ activeWf.reviewerName }}</strong> |
+                  Approver: <strong class="text-slate-200">{{ activeWf.approverName }}</strong>
+                </div>
+              </div>
+            </div>
+
+            <!-- ─── 4-STAGE VISUAL PIPELINE STEPPER ─── -->
+            <div class="p-6 bg-slate-950 rounded-2xl border border-white/10">
+              <h4
+                class="text-xs font-black uppercase tracking-wider text-slate-400 mb-6 flex items-center gap-1.5"
+              >
+                <i class="fi fi-rr-site-alt text-amber-400"></i> Sequential Approval Pipeline
+              </h4>
+
+              <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 relative">
+                @for (stage of stagesList; track stage.id) {
+                  <div
+                    [class]="
+                      'p-4 rounded-2xl border flex flex-col gap-2 relative transition ' +
+                      (isStageActive(stage.id, activeWf.currentStage)
+                        ? 'bg-amber-500/20 border-amber-500/60 text-white shadow-lg'
+                        : isStageCompleted(stage.id, activeWf.currentStage)
+                          ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                          : 'bg-slate-900 border-white/5 text-slate-500')
+                    "
+                  >
+                    <div class="flex items-center justify-between">
+                      <i
+                        [class]="
+                          stage.icon +
+                          ' text-lg ' +
+                          (isStageActive(stage.id, activeWf.currentStage)
+                            ? 'text-amber-400'
+                            : isStageCompleted(stage.id, activeWf.currentStage)
+                              ? 'text-emerald-400'
+                              : 'text-slate-500')
+                        "
+                      ></i>
+                      @if (isStageCompleted(stage.id, activeWf.currentStage)) {
+                        <i class="fi fi-rr-check text-xs font-black text-emerald-400"></i>
+                      }
+                    </div>
+
+                    <div class="text-xs font-black">{{ stage.label }}</div>
+
+                    <div class="text-[9px] font-mono uppercase">
+                      @if (isStageActive(stage.id, activeWf.currentStage)) {
+                        <span class="text-amber-400 font-bold">In Progress</span>
+                      } @else if (isStageCompleted(stage.id, activeWf.currentStage)) {
+                        <span class="text-emerald-400">Completed</span>
+                      } @else {
+                        <span>Pending</span>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- ─── ACTION TRANSITION CONTROLS ─── -->
+            <div class="p-5 bg-slate-950 rounded-2xl border border-white/10 flex flex-col gap-4">
+              <h4 class="text-xs font-black uppercase text-amber-400 flex items-center gap-1.5">
+                <i class="fi fi-rr-paper-plane text-xs"></i> Advance Workflow Stage
+              </h4>
+
+              <div class="flex flex-col gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <label class="block text-slate-400 font-bold mb-1">Actor Name</label>
+                    <input
+                      type="text"
+                      [ngModel]="actorNameInput()"
+                      (ngModelChange)="actorNameInput.set($event)"
+                      class="w-full px-3 py-2 bg-slate-900 border border-white/10 rounded-xl text-white outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-slate-400 font-bold mb-1"
+                      >Transition Note / Comment</label
+                    >
+                    <input
+                      type="text"
+                      placeholder="Optional notes or feedback..."
+                      [ngModel]="transitionCommentInput()"
+                      (ngModelChange)="transitionCommentInput.set($event)"
+                      class="w-full px-3 py-2 bg-slate-900 border border-white/10 rounded-xl text-white outline-none"
+                    />
+                  </div>
+                </div>
+
+                <!-- Stage Buttons -->
+                <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-white/5">
+                  @if (activeWf.currentStage === 'draft') {
+                    <button
+                      type="button"
+                      (click)="transition('submit')"
+                      class="px-4 py-2.5 bg-blue-500 hover:bg-blue-400 text-slate-950 font-black text-xs rounded-xl shadow-lg transition flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <i class="fi fi-rr-paper-plane"></i> Submit for Peer Review
+                    </button>
+                  }
+
+                  @if (activeWf.currentStage === 'review') {
+                    <button
+                      type="button"
+                      (click)="transition('approve')"
+                      class="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl shadow-lg transition flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <i class="fi fi-rr-check-circle"></i> Approve & Send for Manager Approval
+                    </button>
+                  }
+
+                  @if (activeWf.currentStage === 'approve') {
+                    <button
+                      type="button"
+                      (click)="transition('approve')"
+                      class="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs rounded-xl shadow-lg transition flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <i class="fi fi-rr-rocket-lunch"></i> Approve & Advance to Publish
+                    </button>
+                  }
+
+                  @if (activeWf.currentStage === 'publish') {
+                    <span
+                      class="px-4 py-2 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-xl text-xs font-black flex items-center gap-1.5"
+                    >
+                      <i class="fi fi-rr-check-circle"></i> Workflow Fully Published & Live
+                    </span>
+                  }
+
+                  @if (activeWf.currentStage !== 'publish') {
+                    <button
+                      type="button"
+                      (click)="transition('reject')"
+                      class="px-4 py-2 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 font-bold text-xs rounded-xl transition cursor-pointer"
+                    >
+                      Reject Back to Draft
+                    </button>
+                  }
+                </div>
+              </div>
+            </div>
+
+            <!-- ─── AUDIT TRAIL LOG ─── -->
+            <div class="flex flex-col gap-3">
+              <h4 class="text-xs font-black uppercase text-slate-400 flex items-center gap-1.5">
+                <i class="fi fi-rr-time-past text-amber-400"></i> Transition Audit Log
+              </h4>
+
+              <div class="flex flex-col gap-2 max-h-48 overflow-y-auto">
+                @for (log of activeWf.history; track log.timestamp) {
+                  <div
+                    class="p-3 bg-slate-950 rounded-xl border border-white/5 flex items-center justify-between text-xs"
+                  >
+                    <div class="flex items-center gap-2">
+                      <span class="font-bold text-amber-400 capitalize">{{ log.action }}</span>
+                      <span class="text-slate-400">({{ log.fromStage }} → {{ log.toStage }})</span>
+                      <span class="text-slate-300">by {{ log.actorName }}</span>
+                      @if (log.comment) {
+                        <span class="text-slate-500 italic">"{{ log.comment }}"</span>
+                      }
+                    </div>
+                    <span class="text-[10px] font-mono text-slate-500">{{
+                      log.timestamp | date: 'medium'
+                    }}</span>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>
+
+<!-- ─── NEW WORKFLOW PIPELINE MODAL ─── -->
+@if (newModalOpen()) {
+  <div
+    class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4"
+  >
+    <div
+      class="bg-slate-900 border border-white/10 rounded-3xl p-6 max-w-md w-full shadow-2xl flex flex-col gap-4 animate-in fade-in zoom-in duration-200"
+    >
+      <div class="flex items-center justify-between border-b border-white/10 pb-3">
+        <h3 class="text-lg font-black text-white flex items-center gap-2">
+          <i class="fi fi-rr-site-alt text-amber-400"></i> Start Workflow Pipeline
+        </h3>
+        <button
+          (click)="closeNewModal()"
+          class="text-slate-400 hover:text-white transition cursor-pointer"
+        >
+          <i class="fi fi-rr-cross text-sm"></i>
+        </button>
+      </div>
+
+      <div class="flex flex-col gap-3 text-xs">
+        <div>
+          <label class="block text-slate-400 font-bold mb-1">Item Title / Name</label>
+          <input
+            type="text"
+            placeholder="e.g. World Cup Qualification Rulebook"
+            [ngModel]="newItemName()"
+            (ngModelChange)="newItemName.set($event)"
+            class="w-full px-3.5 py-2 bg-slate-950 border border-white/10 focus:border-amber-500 rounded-xl text-white outline-none"
+          />
+        </div>
+
+        <div>
+          <label class="block text-slate-400 font-bold mb-1">Module</label>
+          <select
+            [ngModel]="newModule()"
+            (ngModelChange)="newModule.set($event)"
+            class="w-full px-3.5 py-2 bg-slate-950 border border-white/10 focus:border-amber-500 rounded-xl text-white outline-none"
+          >
+            <option value="events">Events</option>
+            <option value="registrations">Player Registrations</option>
+            <option value="sponsorships">Sponsorship Deals</option>
+            <option value="equipment">Equipment Purchases</option>
+            <option value="rules">Rules & Policies</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-slate-400 font-bold mb-1">Peer Reviewer</label>
+          <input
+            type="text"
+            [ngModel]="newReviewer()"
+            (ngModelChange)="newReviewer.set($event)"
+            class="w-full px-3.5 py-2 bg-slate-950 border border-white/10 focus:border-amber-500 rounded-xl text-white outline-none"
+          />
+        </div>
+
+        <div>
+          <label class="block text-slate-400 font-bold mb-1">Manager Approver</label>
+          <input
+            type="text"
+            [ngModel]="newApprover()"
+            (ngModelChange)="newApprover.set($event)"
+            class="w-full px-3.5 py-2 bg-slate-950 border border-white/10 focus:border-amber-500 rounded-xl text-white outline-none"
+          />
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-2 border-t border-white/10">
+        <button
+          type="button"
+          (click)="closeNewModal()"
+          class="px-4 py-2 bg-slate-800 text-slate-300 hover:text-white rounded-xl text-xs font-bold transition cursor-pointer"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          (click)="submitNewWorkflow()"
+          class="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-amber-500/20 transition cursor-pointer border border-amber-400/50"
+        >
+          Initialize Pipeline
+        </button>
+      </div>
+    </div>
+  </div>
+}

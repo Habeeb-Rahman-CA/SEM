@@ -304,6 +304,71 @@ export class FilesService {
     await this.searchService.deleteFile(fileId);
   }
 
+  async createFolder(
+    workspaceId: string,
+    folderName: string,
+    parentPath: string = '/',
+    userId: string,
+  ): Promise<WorkspaceFile> {
+    await this.workspaceMembersService.ensureMember(workspaceId, userId);
+
+    if (!folderName || folderName.trim() === '') {
+      throw new BadRequestException('Folder name cannot be empty');
+    }
+
+    const cleanPath = parentPath.startsWith('/')
+      ? parentPath
+      : `/${parentPath}`;
+    const folderFile = this.fileRepo.create({
+      workspaceId,
+      name: folderName.trim(),
+      mimeType: 'folder',
+      size: 0,
+      url: '',
+      publicId: null,
+      folderPath: cleanPath.endsWith('/') ? cleanPath : `${cleanPath}/`,
+      isFolder: true,
+      accessLevel: 'public',
+      virusScanStatus: 'clean',
+      currentVersion: 1,
+    });
+
+    return this.fileRepo.save(folderFile);
+  }
+
+  async updateMetadata(
+    workspaceId: string,
+    fileId: string,
+    payload: {
+      tags?: string[];
+      accessLevel?: 'public' | 'internal' | 'restricted' | 'admin_only';
+      folderPath?: string;
+      description?: string;
+    },
+    userId: string,
+  ): Promise<WorkspaceFile> {
+    await this.workspaceMembersService.ensureMember(workspaceId, userId);
+
+    const workspaceFile = await this.fileRepo.findOne({
+      where: { id: fileId, workspaceId, isDeleted: false },
+    });
+    if (!workspaceFile) {
+      throw new NotFoundException('File not found');
+    }
+
+    if (payload.tags !== undefined) workspaceFile.tags = payload.tags;
+    if (payload.accessLevel !== undefined)
+      workspaceFile.accessLevel = payload.accessLevel;
+    if (payload.folderPath !== undefined)
+      workspaceFile.folderPath = payload.folderPath;
+    if (payload.description !== undefined)
+      workspaceFile.description = payload.description;
+
+    const saved = await this.fileRepo.save(workspaceFile);
+    await this.searchService.indexFile(saved);
+    return saved;
+  }
+
   // Real-time enterprise virus scanning mockup with ClamAV details
   private async scanFileInBackground(
     workspaceId: string,

@@ -56,4 +56,34 @@ export class GlobalPreferencesComponent implements OnInit {
       },
     });
   }
+
+  // ─── Global Force Logout Action ───────────────────────────────────────────
+  isGlobalLogoutModalOpen = signal(false);
+  isExecutingGlobalLogout = signal(false);
+
+  openGlobalLogoutModal() {
+    this.isGlobalLogoutModalOpen.set(true);
+  }
+
+  closeGlobalLogoutModal() {
+    this.isGlobalLogoutModalOpen.set(false);
+  }
+
+  confirmGlobalLogout() {
+    this.isExecutingGlobalLogout.set(true);
+    this.workspaceService.triggerGlobalLogout().subscribe({
+      next: (res) => {
+        this.isExecutingGlobalLogout.set(false);
+        this.isGlobalLogoutModalOpen.set(false);
+        this.uiService.success(
+          `Global Logout Event #${res.logoutEventId} triggered! All active user sessions have been terminated.`,
+        );
+        this.loadSystemConfigs();
+      },
+      error: (err) => {
+        this.isExecutingGlobalLogout.set(false);
+        this.uiService.error(err.error?.message ?? 'Failed to trigger global logout event.');
+      },
+    });
+  }
 }

@@ -1,0 +1,139 @@
+<!-- ─── DRAFT RECOVERY MODAL & DRAWER ─── -->
+@if (autoSaveService.showRecoveryModal()) {
+  <div
+    class="fixed inset-0 z-[9998] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4"
+    role="dialog"
+    aria-modal="true"
+  >
+    <div
+      class="bg-slate-900 border border-white/10 rounded-3xl max-w-2xl w-full max-h-[80vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
+    >
+      <!-- Header -->
+      <div
+        class="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-slate-950/60"
+      >
+        <div class="flex items-center gap-3">
+          <div
+            class="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center text-lg"
+          >
+            <i class="fi fi-rr-time-past"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-extrabold text-white flex items-center gap-2">
+              Unfinished Draft Recovery
+              <span
+                class="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-full font-bold"
+              >
+                {{ autoSaveService.draftCount() }} Saved
+              </span>
+            </h3>
+            <p class="text-xs text-slate-400">
+              Restore form state from previous browser sessions or accidental tab closure.
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          (click)="close()"
+          class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition flex items-center justify-center cursor-pointer border-0"
+        >
+          <i class="fi fi-rr-cross text-xs"></i>
+        </button>
+      </div>
+
+      <!-- Drafts List -->
+      <div class="flex-1 overflow-y-auto p-6 space-y-3">
+        @if (autoSaveService.drafts().length === 0) {
+          <div class="py-16 text-center text-slate-500 flex flex-col items-center gap-3">
+            <div
+              class="w-16 h-16 rounded-3xl bg-slate-800/50 border border-white/5 flex items-center justify-center text-2xl text-slate-600"
+            >
+              <i class="fi fi-rr-folder-open"></i>
+            </div>
+            <div class="text-sm font-bold text-slate-300">No Drafts Saved</div>
+            <div class="text-xs max-w-xs text-slate-500">
+              When you type in forms, drafts will automatically save here so you never lose
+              progress.
+            </div>
+          </div>
+        } @else {
+          @for (draft of autoSaveService.drafts(); track draft.id) {
+            <div
+              class="p-4 bg-slate-950/80 border border-white/10 hover:border-violet-500/40 rounded-2xl transition flex flex-col gap-3 group"
+            >
+              <div class="flex items-start justify-between gap-3">
+                <div class="space-y-1">
+                  <div class="flex items-center gap-2">
+                    <span
+                      class="px-2 py-0.5 text-[9px] font-bold uppercase rounded-md bg-violet-500/10 text-violet-300 border border-violet-500/20"
+                    >
+                      {{ getFormTypeBadge(draft.formType) }}
+                    </span>
+                    <span class="text-[10px] font-mono text-slate-500">
+                      Updated {{ draft.updatedAt | date: 'short' }} by {{ draft.updatedBy }}
+                    </span>
+                  </div>
+                  <h4 class="text-sm font-bold text-white group-hover:text-violet-300 transition">
+                    {{ draft.title }}
+                  </h4>
+                </div>
+
+                <div class="flex items-center gap-2">
+                  <button
+                    type="button"
+                    (click)="delete(draft.id)"
+                    class="px-2.5 py-1.5 text-xs text-slate-400 hover:text-rose-400 transition cursor-pointer bg-transparent border-0"
+                    title="Discard Draft"
+                  >
+                    <i class="fi fi-rr-trash text-xs"></i>
+                  </button>
+
+                  <button
+                    type="button"
+                    (click)="restore(draft)"
+                    class="px-3.5 py-1.5 bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-lg border-0"
+                  >
+                    <i class="fi fi-rr-time-past text-xs"></i> Restore Draft
+                  </button>
+                </div>
+              </div>
+
+              <!-- Progress bar & Preview -->
+              <div class="space-y-1">
+                <div class="flex items-center justify-between text-[10px] text-slate-400">
+                  <span>Form Completion</span>
+                  <span class="font-bold font-mono text-violet-400"
+                    >{{ draft.progressPercent }}%</span
+                  >
+                </div>
+                <div
+                  class="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden border border-white/5"
+                >
+                  <div
+                    class="h-full bg-violet-500 rounded-full transition-all duration-300"
+                    [style.width.%]="draft.progressPercent"
+                  ></div>
+                </div>
+              </div>
+            </div>
+          }
+        }
+      </div>
+
+      <!-- Footer -->
+      <div
+        class="px-6 py-3 border-t border-white/10 bg-slate-950/60 flex items-center justify-between text-xs text-slate-500"
+      >
+        <span>Drafts automatically persist locally & on server</span>
+        <button
+          type="button"
+          (click)="close()"
+          class="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl transition cursor-pointer border-0"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+}

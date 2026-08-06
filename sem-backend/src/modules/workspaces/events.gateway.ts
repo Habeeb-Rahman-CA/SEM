@@ -149,4 +149,14 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
     }
   }
+
+  // Helper method to emit global logout event across all connected clients
+  emitGlobalLogout(logoutEventId: string) {
+    if (this.server) {
+      this.server.emit('global_logout_event', {
+        logoutEventId,
+        message: 'A global logout event was triggered by an administrator.',
+      });
+    }
+  }
 }

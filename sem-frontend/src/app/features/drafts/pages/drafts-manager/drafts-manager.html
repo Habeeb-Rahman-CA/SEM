@@ -1,0 +1,277 @@
+<div class="max-w-6xl mx-auto p-5 sm:p-8 text-white">
+  <!-- Back to Workspace -->
+  <div class="flex items-center gap-3 mb-6">
+    <a
+      [routerLink]="['/workspaces', workspaceId()]"
+      class="text-xs font-bold text-slate-400 hover:text-white transition inline-flex items-center gap-1"
+    >
+      <i class="fi fi-rr-arrow-small-left text-sm"></i>
+      Back to workspace
+    </a>
+  </div>
+
+  <!-- Page Header -->
+  <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-black tracking-tight flex items-center gap-2">
+        <i class="fi fi-rr-document text-amber-400"></i> Draft Mode & Saved Work
+      </h1>
+      <p class="text-sm text-slate-400 mt-1 max-w-2xl">
+        Save unfinished forms, reports, and registrations as drafts. Resume later anytime with
+        pre-filled inputs and step completion tracking.
+      </p>
+    </div>
+
+    <div class="flex items-center gap-2.5">
+      <button
+        type="button"
+        (click)="createNewDraft()"
+        class="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-amber-500/20 transition flex items-center gap-1.5 cursor-pointer border border-amber-400/50"
+      >
+        <i class="fi fi-rr-plus"></i>
+        Save New Draft
+      </button>
+    </div>
+  </div>
+
+  <!-- ─── STAT STRIP ─── -->
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+    <div class="rounded-2xl border border-white/10 bg-slate-900 p-4">
+      <div class="text-[10px] uppercase tracking-wider text-slate-400 font-bold">
+        Total Saved Drafts
+      </div>
+      <div class="text-2xl font-black text-white font-mono mt-1 tabular-nums">
+        {{ counts().total }}
+      </div>
+    </div>
+    <div class="rounded-2xl border border-violet-500/30 bg-slate-900 p-4">
+      <div class="text-[10px] uppercase tracking-wider text-violet-400 font-bold">
+        Event Creation
+      </div>
+      <div class="text-2xl font-black text-violet-300 font-mono mt-1 tabular-nums">
+        {{ counts().events }}
+      </div>
+    </div>
+    <div class="rounded-2xl border border-blue-500/30 bg-slate-900 p-4">
+      <div class="text-[10px] uppercase tracking-wider text-blue-400 font-bold">Team Rosters</div>
+      <div class="text-2xl font-black text-blue-300 font-mono mt-1 tabular-nums">
+        {{ counts().teams }}
+      </div>
+    </div>
+    <div class="rounded-2xl border border-emerald-500/30 bg-slate-900 p-4">
+      <div class="text-[10px] uppercase tracking-wider text-emerald-400 font-bold">
+        Reports & Forms
+      </div>
+      <div class="text-2xl font-black text-emerald-300 font-mono mt-1 tabular-nums">
+        {{ counts().reports }}
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── SEARCH & FILTERS ─── -->
+  <div
+    class="flex flex-col sm:flex-row sm:items-center gap-3 mb-6 p-3 bg-slate-900/60 border border-white/5 rounded-xl"
+  >
+    <div class="relative flex-1">
+      <i
+        class="fi fi-rr-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs pointer-events-none"
+      ></i>
+      <input
+        type="search"
+        placeholder="Search saved drafts by title or author name…"
+        [ngModel]="searchQuery()"
+        (ngModelChange)="searchQuery.set($event)"
+        class="w-full pl-9 pr-3 py-2 bg-slate-950 border border-white/10 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 rounded-lg text-xs text-white outline-none transition-all"
+      />
+    </div>
+
+    <select
+      [ngModel]="typeFilter()"
+      (ngModelChange)="typeFilter.set($event)"
+      class="bg-slate-950 border border-white/10 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 rounded-lg px-3 py-2 text-xs text-white outline-none transition-all"
+    >
+      <option value="all">All Form Types</option>
+      <option value="event_creation">Event Creation</option>
+      <option value="team_registration">Team Registration</option>
+      <option value="analytics_report">Analytics & Reports</option>
+      <option value="venue_setup">Venue Setup</option>
+    </select>
+  </div>
+
+  <!-- ─── DRAFTS GRID ─── -->
+  @if (isLoading()) {
+    <div class="py-20 flex flex-col items-center justify-center gap-3">
+      <div
+        class="w-8 h-8 rounded-full border-2 border-amber-400/20 border-t-amber-400 animate-spin"
+      ></div>
+      <span class="text-xs font-bold text-slate-400">Loading saved drafts...</span>
+    </div>
+  } @else if (error()) {
+    <div class="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-rose-200">
+      <i class="fi fi-rr-triangle-warning text-2xl block mb-2"></i>
+      {{ error() }}
+    </div>
+  } @else if (filteredDrafts().length === 0) {
+    <div
+      class="py-16 rounded-3xl border border-dashed border-white/10 text-center text-xs text-slate-500 flex flex-col items-center gap-2"
+    >
+      <i class="fi fi-rr-document text-4xl text-slate-600"></i>
+      <div>No saved drafts found matching your criteria.</div>
+    </div>
+  } @else {
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      @for (draft of filteredDrafts(); track draft.id) {
+        <div
+          class="p-5 bg-slate-900 border border-white/10 rounded-2xl flex flex-col justify-between gap-4 hover:border-amber-500/40 transition"
+        >
+          <div class="flex flex-col gap-3">
+            <div class="flex items-center justify-between">
+              <span
+                [class]="
+                  'text-[9px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md border flex items-center gap-1 ' +
+                  formBadge(draft.formType)
+                "
+              >
+                <i [class]="formIcon(draft.formType)"></i>
+                {{ draft.formType.replace('_', ' ') }}
+              </span>
+              <span class="text-[10px] text-slate-400 font-mono">
+                Saved by <strong class="text-slate-200">{{ draft.updatedBy }}</strong>
+              </span>
+            </div>
+
+            <div>
+              <h3 class="text-base font-black text-white leading-snug">{{ draft.title }}</h3>
+              <div class="text-[10px] font-mono text-slate-400 mt-1">
+                Last edited {{ draft.updatedAt | date: 'medium' }}
+              </div>
+            </div>
+
+            <!-- Progress Completion Bar -->
+            <div class="flex flex-col gap-1 mt-1">
+              <div class="flex items-center justify-between text-[10px] font-bold">
+                <span class="text-slate-400 uppercase tracking-wider">Completion Progress</span>
+                <span class="text-amber-400 font-mono">{{ draft.progressPercent }}%</span>
+              </div>
+              <div
+                class="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-white/5"
+              >
+                <div
+                  class="bg-gradient-to-r from-amber-500 to-amber-400 h-2 rounded-full transition-all duration-500"
+                  [style.width.%]="draft.progressPercent"
+                ></div>
+              </div>
+            </div>
+
+            <!-- Form Data Preview Box -->
+            <div
+              class="p-3 bg-slate-950/80 rounded-xl border border-white/5 text-[11px] text-slate-300 font-mono overflow-hidden max-h-20"
+            >
+              <span class="text-slate-500 text-[10px] block mb-0.5 uppercase tracking-wider"
+                >Saved State:</span
+              >
+              <span class="line-clamp-2 text-slate-300">
+                {{ draft.formData | json }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="flex items-center justify-between border-t border-white/5 pt-3 text-xs">
+            <button
+              type="button"
+              (click)="openResumeModal(draft)"
+              class="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs rounded-xl shadow-md transition flex items-center gap-1.5 cursor-pointer"
+            >
+              <i class="fi fi-rr-play text-xs"></i> Resume Draft Later
+            </button>
+
+            <button
+              type="button"
+              (click)="discardDraft(draft)"
+              class="px-3 py-1.5 bg-slate-800 hover:bg-rose-600/30 text-slate-400 hover:text-rose-300 border border-white/5 hover:border-rose-500/40 rounded-xl transition flex items-center gap-1 cursor-pointer"
+            >
+              <i class="fi fi-rr-cross-small"></i> Discard
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>
+
+<!-- ─── RESUME DRAFT MODAL ─── -->
+@if (resumeModalOpen()) {
+  <div
+    class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4"
+  >
+    <div
+      class="bg-slate-900 border border-white/10 rounded-3xl p-6 max-w-md w-full shadow-2xl flex flex-col gap-4 animate-in fade-in zoom-in duration-200"
+    >
+      <div class="flex items-center justify-between border-b border-white/10 pb-3">
+        <h3 class="text-lg font-black text-white flex items-center gap-2">
+          <i class="fi fi-rr-document text-amber-400"></i> Resume Saved Draft
+        </h3>
+        <button
+          (click)="closeResumeModal()"
+          class="text-slate-400 hover:text-white transition cursor-pointer"
+        >
+          <i class="fi fi-rr-cross text-sm"></i>
+        </button>
+      </div>
+
+      @if (selectedDraft(); as d) {
+        <div class="flex flex-col gap-3 text-xs text-slate-300">
+          <div>
+            <span class="text-slate-500 block text-[10px] uppercase font-bold">Draft Title</span>
+            <span class="text-sm font-bold text-white">{{ d.title }}</span>
+          </div>
+
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="text-slate-500 block text-[10px] uppercase font-bold">Form Type</span>
+              <span
+                [class]="
+                  'text-[9px] font-black uppercase px-2 py-0.5 rounded border inline-block mt-0.5 ' +
+                  formBadge(d.formType)
+                "
+              >
+                {{ d.formType }}
+              </span>
+            </div>
+            <div class="text-right">
+              <span class="text-slate-500 block text-[10px] uppercase font-bold">Progress</span>
+              <span class="text-amber-400 font-mono font-bold"
+                >{{ d.progressPercent }}% Complete</span
+              >
+            </div>
+          </div>
+
+          <div class="p-3 bg-slate-950 rounded-xl border border-white/5 font-mono text-[11px]">
+            <span class="text-slate-500 block text-[10px] mb-1">Pre-filled Data Payload:</span>
+            <div class="text-slate-200 max-h-32 overflow-y-auto">
+              {{ d.formData | json }}
+            </div>
+          </div>
+        </div>
+      }
+
+      <div class="flex items-center justify-end gap-2 pt-2 border-t border-white/10">
+        <button
+          type="button"
+          (click)="closeResumeModal()"
+          class="px-4 py-2 bg-slate-800 text-slate-300 hover:text-white rounded-xl text-xs font-bold transition cursor-pointer"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          (click)="confirmResume()"
+          class="px-5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs rounded-xl shadow-lg transition flex items-center gap-1.5 cursor-pointer"
+        >
+          <i class="fi fi-rr-check"></i> Continue & Pre-fill Form
+        </button>
+      </div>
+    </div>
+  </div>
+}

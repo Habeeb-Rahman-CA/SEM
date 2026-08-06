@@ -1,7 +1,7 @@
 name: Deploy
 
 # Triggered on:
-#   - a semver tag push (v5.0.0)          → production release
+#   - a semver tag push (v5.5.0)          → production release
 #   - a manual dispatch with `environment` → staging / on-demand
 #
 # Pipeline:

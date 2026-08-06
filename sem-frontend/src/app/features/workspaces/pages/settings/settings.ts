@@ -8,11 +8,12 @@ import { UiService } from '../../../../core/services/ui.service';
 import { AuthService } from '../../../auth/services/auth.service';
 import { FeatureCode, LicensingService } from '../../../subscriptions/services/licensing.service';
 import { ExtensionTile } from './settings.interface';
+import { HelpTooltipComponent } from '../../../../shared/components/help-tooltip/help-tooltip';
 
 @Component({
   selector: 'app-workspace-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, HelpTooltipComponent],
   templateUrl: './settings.html',
 })
 export class WorkspaceSettingsComponent {

@@ -254,6 +254,21 @@ export class EventService {
     );
   }
 
+  getPublicTournamentStory(
+    eventId: string,
+    competitionId: string,
+    day?: number,
+    date?: string,
+  ): Observable<any> {
+    const params: Record<string, string> = {};
+    if (day !== undefined) params['day'] = String(day);
+    if (date !== undefined) params['date'] = date;
+    return this.http.get<any>(
+      `${environment.apiUrl}/public/events/${eventId}/competitions/${competitionId}/story`,
+      { params },
+    );
+  }
+
   getAttendanceForecast(workspaceId: string, eventId: string): Observable<any> {
     return this.http.get<any>(
       `${this.apiUrl}/${workspaceId}/events/${eventId}/attendance-forecast`,
@@ -261,5 +276,13 @@ export class EventService {
         headers: this.headers,
       },
     );
+  }
+
+  getSeasonHistoryTimeline(eventId?: string): Observable<any[]> {
+    const params: Record<string, string> = {};
+    if (eventId) params['eventId'] = eventId;
+    return this.http.get<any[]>(`${environment.apiUrl}/public/events/seasons/timeline`, {
+      params,
+    });
   }
 }

@@ -73,6 +73,91 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
   {
+    path: 'workspaces/:id/certificates',
+    loadComponent: () =>
+      import('./features/certificates/pages/certificate-generator/certificate-generator').then(
+        (m) => m.CertificateGeneratorComponent,
+      ),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'workspaces/:id/activity',
+    loadComponent: () =>
+      import('./features/activity-timeline/pages/activity-timeline/activity-timeline').then(
+        (m) => m.ActivityTimelineComponent,
+      ),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'workspaces/:id/trash',
+    loadComponent: () =>
+      import('./features/trash/pages/recycle-bin/recycle-bin').then((m) => m.RecycleBinComponent),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'workspaces/:id/drafts',
+    loadComponent: () =>
+      import('./features/drafts/pages/drafts-manager/drafts-manager').then(
+        (m) => m.DraftsManagerComponent,
+      ),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'workspaces/:id/saved-filters',
+    loadComponent: () =>
+      import('./features/saved-filters/pages/saved-filters-manager/saved-filters-manager').then(
+        (m) => m.SavedFiltersManagerComponent,
+      ),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'workspaces/:id/custom-dashboard',
+    loadComponent: () =>
+      import('./features/custom-dashboard/pages/custom-dashboard/custom-dashboard').then(
+        (m) => m.CustomDashboardComponent,
+      ),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'workspaces/:id/notifications',
+    loadComponent: () =>
+      import('./features/notification-center/pages/notification-center/notification-center').then(
+        (m) => m.NotificationCenterComponent,
+      ),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'workspaces/:id/version-history',
+    loadComponent: () =>
+      import('./features/version-history/pages/version-history-manager/version-history-manager').then(
+        (m) => m.VersionHistoryManagerComponent,
+      ),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'workspaces/:id/dynamic-forms',
+    loadComponent: () =>
+      import('./features/dynamic-forms/pages/dynamic-forms-manager/dynamic-forms-manager').then(
+        (m) => m.DynamicFormsManagerComponent,
+      ),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'workspaces/:id/workflows',
+    loadComponent: () =>
+      import('./features/workflow-builder/pages/workflow-builder-manager/workflow-builder-manager').then(
+        (m) => m.WorkflowBuilderManagerComponent,
+      ),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'public/forms/:formId',
+    loadComponent: () =>
+      import('./features/dynamic-forms/pages/public-dynamic-form/public-dynamic-form').then(
+        (m) => m.PublicDynamicFormComponent,
+      ),
+  },
+  {
     path: 'workspaces/:id/ads',
     loadComponent: () =>
       import('./features/ads/pages/ad-list/ad-list').then((m) => m.AdListComponent),
@@ -128,6 +213,14 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/subscriptions/pages/pricing/pricing').then((m) => m.PricingComponent),
   },
+  // Hall of Fame — permanent all-time records across every season
+  {
+    path: 'hall-of-fame',
+    loadComponent: () =>
+      import('./features/public-event/pages/hall-of-fame/hall-of-fame').then(
+        (m) => m.HallOfFameComponent,
+      ),
+  },
   {
     path: 'public/events/:id',
     loadComponent: () =>
@@ -163,6 +256,15 @@ export const routes: Routes = [
     path: 'public/streaming/:id',
     loadComponent: () =>
       import('./features/streaming/pages/public-spectator').then((m) => m.PublicSpectatorComponent),
+  },
+
+  // Public QR Certificate Verification Portal
+  {
+    path: 'public/certificates/verify/:code',
+    loadComponent: () =>
+      import('./features/public-event/pages/certificate-verify/certificate-verify').then(
+        (m) => m.CertificateVerifyComponent,
+      ),
   },
 
   // Dedicated 404 (also the catch-all target — no silent redirect, so

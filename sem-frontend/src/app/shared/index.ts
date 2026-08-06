@@ -15,6 +15,44 @@ export { PhotoCaptureComponent } from './components/photo-capture/photo-capture'
 export { QrScannerComponent } from './components/qr-scanner/qr-scanner';
 export { SkeletonComponent } from './components/skeleton/skeleton';
 export type { SkeletonVariant } from './components/skeleton/skeleton';
+export { BulkOperationsBarComponent } from './components/bulk-operations-bar/bulk-operations-bar';
+export type {
+  BulkAssignOption,
+  BulkStatusOption,
+} from './components/bulk-operations-bar/bulk-operations-bar';
+export { OfflineBannerComponent } from './components/offline-banner/offline-banner';
+export { OfflineSyncModalComponent } from './components/offline-sync-modal/offline-sync-modal';
+export { BackgroundJobsWidgetComponent } from './components/background-jobs-widget/background-jobs-widget';
+export { BreadcrumbComponent } from './components/breadcrumb/breadcrumb';
+export { AutoSaveBadgeComponent } from './components/auto-save-badge/auto-save-badge';
+export { DraftRecoveryModalComponent } from './components/draft-recovery-modal/draft-recovery-modal';
+export { SmartDefaultsBannerComponent } from './components/smart-defaults-banner/smart-defaults-banner';
+export { AutoSaveDirective } from './directives/auto-save.directive';
+export { UndoToastComponent } from './components/undo-toast/undo-toast';
+export { SavedFiltersBarComponent } from './components/saved-filters-bar/saved-filters-bar';
+export { VersionHistoryDrawerComponent } from './components/version-history-drawer/version-history-drawer';
+export { ToastItemComponent } from './components/toast-item/toast-item';
+export { CelebrationModalComponent } from './components/celebration-modal/celebration-modal';
+export { CustomizableTableComponent } from './components/customizable-table/customizable-table';
+export { RecordCommentsComponent } from './components/record-comments/record-comments';
+export { ActivityFeedComponent } from './components/activity-feed/activity-feed';
+export { CopyButtonComponent } from './components/copy-button/copy-button';
+export { RecycleBinComponent } from './components/recycle-bin/recycle-bin';
+export { SmartSuggestionToastComponent } from './components/smart-suggestion-toast/smart-suggestion-toast';
+export { DuplicateWarningModalComponent } from './components/duplicate-warning-modal/duplicate-warning-modal';
+export { HelpTooltipComponent } from './components/help-tooltip/help-tooltip';
+export { FloatingActionButtonComponent } from './components/floating-action-button/floating-action-button';
+export { QuickPreviewModalComponent } from './components/quick-preview-modal/quick-preview-modal';
+export { CopyDirective } from './directives/copy.directive';
+export { TippyDirective } from './directives/tippy.directive';
+export { ConfettiService } from '../core/services/confetti.service';
+export { RecordCommentsService } from '../core/services/record-comments.service';
+export { ActivityFeedService } from '../core/services/activity-feed.service';
+export { RecycleBinService } from '../core/services/recycle-bin.service';
+export { SmartSuggestionsService } from '../core/services/smart-suggestions.service';
+export { DuplicateDetectionService } from '../core/services/duplicate-detection.service';
+export { QuickPreviewService } from '../core/services/quick-preview.service';
+export { SessionRestoreService } from '../core/services/session-restore.service';
 
 // ── Type re-exports ───────────────────────────────────────────────────────────
 export type { ButtonVariant, ButtonSize } from './components/button/button';

@@ -229,4 +229,53 @@ export class FilesController {
   ) {
     return this.filesService.deleteFile(workspaceId, fileId, req.user.id);
   }
+
+  @Post('folder')
+  @ApiOperation({
+    summary: 'Create a new folder in File Center',
+    description: 'Creates a virtual folder path entry.',
+  })
+  @ApiParam(WS_ID)
+  @ApiResponse({ status: 201, description: 'Folder created' })
+  createFolder(
+    @Param('workspaceId') workspaceId: string,
+    @Body() body: { name: string; parentPath?: string },
+    @Request() req: any,
+  ) {
+    return this.filesService.createFolder(
+      workspaceId,
+      body.name,
+      body.parentPath || '/',
+      req.user.id,
+    );
+  }
+
+  @Patch(':fileId/metadata')
+  @ApiOperation({
+    summary: 'Update file tags, folder, description, or permissions',
+    description:
+      'Updates metadata properties including tagging, access level, and folder location.',
+  })
+  @ApiParam(WS_ID)
+  @ApiParam(FILE_ID)
+  @ApiResponse({ status: 200, description: 'Metadata updated' })
+  updateMetadata(
+    @Param('workspaceId') workspaceId: string,
+    @Param('fileId') fileId: string,
+    @Body()
+    body: {
+      tags?: string[];
+      accessLevel?: 'public' | 'internal' | 'restricted' | 'admin_only';
+      folderPath?: string;
+      description?: string;
+    },
+    @Request() req: any,
+  ) {
+    return this.filesService.updateMetadata(
+      workspaceId,
+      fileId,
+      body,
+      req.user.id,
+    );
+  }
 }

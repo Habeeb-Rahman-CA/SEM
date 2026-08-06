@@ -10,6 +10,7 @@ import { Repository, LessThan } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
 import { UsersService } from '../users/users.service';
+import { SystemConfigService } from '../workspaces/system-config/system-config.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { User } from '../users/entities/user.entity';
@@ -36,6 +37,7 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly systemConfigService: SystemConfigService,
     @InjectRepository(RefreshToken)
     private readonly refreshTokenRepo: Repository<RefreshToken>,
   ) {}
@@ -47,10 +49,14 @@ export class AuthService {
   }
 
   private async generateTokenPair(user: User): Promise<TokenPair> {
+    const sysConfigs = await this.systemConfigService.getSystemConfigs();
+    const logoutEventId = sysConfigs['global_logout_event_id'] || '1';
+
     const payload = {
       sub: user.id,
       username: user.username,
       isSuperAdmin: user.isSuperAdmin,
+      logoutEventId,
     };
 
     const accessToken = await this.jwtService.signAsync(payload, {

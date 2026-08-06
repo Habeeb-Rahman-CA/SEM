@@ -4,11 +4,12 @@ import { TeamService } from '../services/team.service';
 import { Team } from '../../workspaces/services/workspace.service';
 import { UiService } from '../../../core/services/ui.service';
 import { PhotoCaptureComponent } from '../../../shared/components/photo-capture/photo-capture';
+import { HelpTooltipComponent } from '../../../shared/components/help-tooltip/help-tooltip';
 
 @Component({
   selector: 'app-team-modal',
   standalone: true,
-  imports: [FormsModule, PhotoCaptureComponent],
+  imports: [FormsModule, PhotoCaptureComponent, HelpTooltipComponent],
   templateUrl: './team-modal.html',
 })
 export class TeamModalComponent {

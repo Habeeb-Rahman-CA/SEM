@@ -1,6 +1,6 @@
 {
   "name": "taisen-frontend",
-  "version": "5.0.0",
+  "version": "5.5.0",
   "description": "Angular Front-End application for the Taisen Sports Event Management Platform, featuring live scoreboard widgets, real-time sync with websockets, and organizers/referees scoring console.",
   "author": "Taisen Team",
   "license": "MIT",
@@ -40,7 +40,10 @@
     "@capacitor/preferences": "^8.0.1",
     "@capacitor/push-notifications": "^8.1.2",
     "@capacitor/status-bar": "^8.0.3",
+    "@popperjs/core": "^2.11.8",
     "@tailwindcss/postcss": "^4.3.2",
+    "@types/canvas-confetti": "^1.9.0",
+    "canvas-confetti": "^1.9.4",
     "cloudinary": "^2.10.0",
     "gsap": "^3.15.0",
     "ngx-quicklink": "^0.4.9",
@@ -48,6 +51,7 @@
     "rxjs": "~7.8.0",
     "socket.io-client": "^4.8.3",
     "tailwindcss": "^4.3.2",
+    "tippy.js": "^6.3.7",
     "tslib": "^2.3.0",
     "xlsx": "^0.18.5",
     "xlsx-js-style": "^1.2.0"

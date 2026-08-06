@@ -14,6 +14,7 @@ import { getSportBadgeClass, getSportIconClass } from '../../../../shared';
 import { ShareService } from '../../../share/services/share.service';
 import { ShareButtonComponent } from '../../../share/components/share-button';
 import { LandingHeaderComponent } from '../../../../layouts/landing-header/landing-header';
+import { CopyButtonComponent } from '../../../../shared/components/copy-button/copy-button';
 
 interface CompetitionStats {
   competitionId: string;
@@ -43,7 +44,20 @@ interface CompetitionStats {
   avgRating: number;
 }
 
+export interface SystemAchievement {
+  id: string;
+  code: string;
+  title: string;
+  description: string;
+  icon: string;
+  emoji: string;
+  category: string;
+  unlocked: boolean;
+  progress: { current: number; target: number; percentage: number };
+}
+
 interface PublicPlayerProfile {
+  systemAchievements?: SystemAchievement[];
   player: {
     id: string;
     jerseyNumber: string | null;
@@ -111,6 +125,7 @@ interface PublicPlayerProfile {
     AvatarComponent,
     ShareButtonComponent,
     LandingHeaderComponent,
+    CopyButtonComponent,
   ],
   templateUrl: './public-player-profile.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -128,6 +143,21 @@ export class PublicPlayerProfileComponent implements OnInit {
 
   getSportBadgeClass = getSportBadgeClass;
   getSportIconClass = getSportIconClass;
+
+  achievementFilter = signal<'all' | 'unlocked' | 'locked'>('all');
+
+  unlockedCount = computed(() => {
+    const list = this.profile()?.systemAchievements ?? [];
+    return list.filter((a) => a.unlocked).length;
+  });
+
+  filteredAchievements = computed(() => {
+    const list = this.profile()?.systemAchievements ?? [];
+    const filter = this.achievementFilter();
+    if (filter === 'unlocked') return list.filter((a) => a.unlocked);
+    if (filter === 'locked') return list.filter((a) => !a.unlocked);
+    return list;
+  });
 
   // Sport this player is primarily associated with — used to shape headline stat cards
   primarySport = computed(() => {

@@ -1,0 +1,93 @@
+@if (duplicateService.warningModalOpen()) {
+  <div
+    class="fixed inset-0 z-[99999] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4"
+    (click)="cancel()"
+  >
+    <div
+      class="bg-slate-900 border border-amber-500/40 rounded-3xl max-w-md w-full p-6 shadow-2xl flex flex-col gap-5 text-white relative overflow-hidden"
+      (click)="$event.stopPropagation()"
+    >
+      <!-- Background Flare -->
+      <div
+        class="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/20 rounded-full blur-2xl pointer-events-none"
+      ></div>
+
+      <!-- Header Icon & Title -->
+      <div class="flex items-center gap-3 border-b border-white/10 pb-4">
+        <div
+          class="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/30 text-amber-400 flex items-center justify-center shrink-0"
+        >
+          <i class="fi fi-rr-copy-alt text-xl"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h3 class="text-base font-black text-white">Possible Duplicate Detected</h3>
+            <span
+              class="px-2 py-0.5 rounded-md bg-amber-500/20 border border-amber-500/30 text-amber-300 font-mono text-[10px] font-bold"
+            >
+              {{ duplicateService.activeConfidence() }}% Match
+            </span>
+          </div>
+          <p class="text-xs text-slate-400">A matching record already exists in your workspace.</p>
+        </div>
+      </div>
+
+      <!-- Warning Reason Box -->
+      <div
+        class="p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-start gap-2.5"
+      >
+        <i class="fi fi-rr-info text-amber-400 text-sm mt-0.5 shrink-0"></i>
+        <p class="text-xs text-amber-200 font-medium leading-relaxed">
+          {{ duplicateService.activeMatchReason() }}
+        </p>
+      </div>
+
+      <!-- Existing Record Snapshot (if available) -->
+      @if (duplicateService.activeExistingRecord()) {
+        <div
+          class="bg-slate-950/80 p-3.5 rounded-2xl border border-white/10 flex flex-col gap-1 text-xs"
+        >
+          <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            Existing Record Preview
+          </span>
+          <span class="font-bold text-white">
+            {{
+              duplicateService.activeExistingRecord().name ||
+                duplicateService.activeExistingRecord().title ||
+                'Matching Entry'
+            }}
+          </span>
+          @if (
+            duplicateService.activeExistingRecord().email ||
+            duplicateService.activeExistingRecord().code
+          ) {
+            <span class="text-[11px] text-slate-400 font-mono">
+              {{
+                duplicateService.activeExistingRecord().email ||
+                  duplicateService.activeExistingRecord().code
+              }}
+            </span>
+          }
+        </div>
+      }
+
+      <!-- Action Buttons -->
+      <div class="flex items-center justify-end gap-3 pt-2">
+        <button
+          type="button"
+          (click)="cancel()"
+          class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold rounded-xl transition cursor-pointer border border-white/10"
+        >
+          Cancel Creation
+        </button>
+        <button
+          type="button"
+          (click)="proceed()"
+          class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black rounded-xl transition cursor-pointer shadow-lg shadow-amber-500/20 flex items-center gap-1.5"
+        >
+          <i class="fi fi-rr-check text-xs"></i> Create Anyway
+        </button>
+      </div>
+    </div>
+  </div>
+}

@@ -89,4 +89,8 @@ export class PlayerService {
   getPublicPlayerInsights(playerId: string): Observable<any> {
     return this.http.get<any>(`${environment.apiUrl}/public/players/${playerId}/insights`);
   }
+
+  getHallOfFame(): Observable<any> {
+    return this.http.get<any>(`${environment.apiUrl}/public/players/hall-of-fame`);
+  }
 }

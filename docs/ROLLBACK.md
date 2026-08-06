@@ -103,7 +103,7 @@ If `deploy.yml` produced a bad image and it's already `:latest`:
 
 ```bash
 # Re-run deploy against a known-good tag
-gh workflow run deploy.yml -f environment=production -r v5.0.3
+gh workflow run deploy.yml -f environment=production -r v5.5.0
 ```
 
 The workflow re-tags `latest` on push, so the next automatic rollout

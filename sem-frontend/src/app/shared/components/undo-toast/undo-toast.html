@@ -1,0 +1,44 @@
+<!-- ─── FLOATING UNDO ACTION TOAST ─── -->
+@if (undoService.activeAction(); as action) {
+  <div class="fixed bottom-6 right-6 z-[9999] animate-in slide-in-from-bottom-5 duration-300">
+    <div
+      class="bg-slate-900/95 border border-amber-500/30 text-white p-4 rounded-2xl shadow-2xl backdrop-blur-xl flex items-center gap-4 max-w-md"
+    >
+      <div
+        class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center text-lg flex-shrink-0"
+      >
+        <i class="fi fi-rr-undo-alt"></i>
+      </div>
+
+      <div class="flex-1 min-w-0">
+        <div class="text-xs font-bold text-slate-200 truncate">
+          {{ action.description }}
+        </div>
+        <div class="text-[10px] text-slate-400 font-mono flex items-center gap-1.5 mt-0.5">
+          <span>Undo available for</span>
+          <span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-extrabold"
+            >{{ undoService.countdown() }}s</span
+          >
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button
+          type="button"
+          (click)="onUndo()"
+          class="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl transition flex items-center gap-1 cursor-pointer shadow-lg border-0"
+        >
+          <i class="fi fi-rr-undo-alt text-xs"></i> Undo
+        </button>
+
+        <button
+          type="button"
+          (click)="onDismiss()"
+          class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition flex items-center justify-center cursor-pointer border-0"
+        >
+          <i class="fi fi-rr-cross text-[10px]"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+}

@@ -751,7 +751,213 @@ export class PlayersService {
       order: { transferredAt: 'ASC' },
     });
 
+    // Automated achievements system calculation
+    const unlockedSystemAchievements: Array<{
+      id: string;
+      code: string;
+      title: string;
+      description: string;
+      icon: string;
+      emoji: string;
+      category: string;
+      unlocked: boolean;
+      progress: { current: number; target: number; percentage: number };
+    }> = [];
+
+    // 1. Hat Trick Hero (⚽)
+    let maxGoalsInSingleMatch = 0;
+    let maxAssistsInSingleMatch = 0;
+    let cleanSheets = 0;
+    let maxWinStreak = 0;
+    let currentStreak = 0;
+
+    for (const cmp of completedMatchPlayers) {
+      const m = cmp.match;
+      if (!m) continue;
+      const liveData = m.liveData || {};
+      let mGoals = 0;
+      let mAssists = 0;
+
+      if (m.stage?.competition?.sport?.code === 'football') {
+        const events = liveData.events || [];
+        for (const ev of events) {
+          if (
+            ev.type === 'goal' &&
+            ev.goalType !== 'own_goal' &&
+            (ev.playerUserId === player.userId || ev.playerId === player.id)
+          ) {
+            mGoals++;
+          }
+          const isSelfAssist =
+            ev.assistPlayerUserId === player.userId ||
+            ev.assistPlayerId === player.id;
+          if (
+            (ev.type === 'assist' || ev.type === 'goal') &&
+            isSelfAssist &&
+            ev.playerUserId !== player.userId &&
+            ev.playerId !== player.id
+          ) {
+            mAssists++;
+          }
+        }
+      }
+      if (mGoals > maxGoalsInSingleMatch) maxGoalsInSingleMatch = mGoals;
+      if (mAssists > maxAssistsInSingleMatch)
+        maxAssistsInSingleMatch = mAssists;
+
+      // Clean sheet check
+      const isHome = m.homeTeamId === player.teamId;
+      const oppScore = isHome ? m.awayScore : m.homeScore;
+      const myScore = isHome ? m.homeScore : m.awayScore;
+      if (oppScore === 0) {
+        cleanSheets++;
+      }
+
+      // Win streak check
+      if (myScore > oppScore) {
+        currentStreak++;
+        if (currentStreak > maxWinStreak) maxWinStreak = currentStreak;
+      } else {
+        currentStreak = 0;
+      }
+    }
+
+    const hatTrickUnlocked = maxGoalsInSingleMatch >= 3;
+    unlockedSystemAchievements.push({
+      id: 'hat_trick_hero',
+      code: 'HAT_TRICK_HERO',
+      title: 'Hat Trick Hero',
+      description: 'Scored 3 or more goals in a single match',
+      icon: 'fi fi-rr-football',
+      emoji: '⚽',
+      category: 'Scoring',
+      unlocked: hatTrickUnlocked,
+      progress: {
+        current: Math.min(3, maxGoalsInSingleMatch),
+        target: 3,
+        percentage: Math.min(
+          100,
+          Math.round((maxGoalsInSingleMatch / 3) * 100),
+        ),
+      },
+    });
+
+    // 2. Assist King (🎯)
+    const assistKingUnlocked =
+      maxAssistsInSingleMatch >= 3 || allTimeAssists >= 10;
+    const currentAssistVal = Math.max(maxAssistsInSingleMatch, allTimeAssists);
+    unlockedSystemAchievements.push({
+      id: 'assist_king',
+      code: 'ASSIST_KING',
+      title: 'Assist King',
+      description:
+        'Provided 3+ assists in a single match or 10+ career assists',
+      icon: 'fi fi-rr-bullseye',
+      emoji: '🎯',
+      category: 'Playmaking',
+      unlocked: assistKingUnlocked,
+      progress: {
+        current: Math.min(10, currentAssistVal),
+        target: 10,
+        percentage: Math.min(100, Math.round((currentAssistVal / 10) * 100)),
+      },
+    });
+
+    // 3. Wall Defender (🛡️)
+    const defVal = allTimeBlocks + allTimeTacklePoints + allTimeCatches;
+    const wallDefenderUnlocked = defVal >= 5;
+    unlockedSystemAchievements.push({
+      id: 'wall_defender',
+      code: 'WALL_DEFENDER',
+      title: 'Wall Defender',
+      description:
+        'Registered 5+ blocks, tackle points, or key defensive stops',
+      icon: 'fi fi-sr-shield',
+      emoji: '🛡️',
+      category: 'Defense',
+      unlocked: wallDefenderUnlocked,
+      progress: {
+        current: Math.min(5, defVal),
+        target: 5,
+        percentage: Math.min(100, Math.round((defVal / 5) * 100)),
+      },
+    });
+
+    // 4. Clean Sheet Master (🥅)
+    const cleanSheetUnlocked = cleanSheets >= 1;
+    unlockedSystemAchievements.push({
+      id: 'clean_sheet_master',
+      code: 'CLEAN_SHEET_MASTER',
+      title: 'Clean Sheet Master',
+      description: 'Kept a clean sheet with 0 opponent goals conceded',
+      icon: 'fi fi-rr-shield-check',
+      emoji: '🥅',
+      category: 'Defense',
+      unlocked: cleanSheetUnlocked,
+      progress: {
+        current: Math.min(1, cleanSheets),
+        target: 1,
+        percentage: cleanSheets >= 1 ? 100 : 0,
+      },
+    });
+
+    // 5. 10 Match Winning Streak (🔥)
+    const streakUnlocked = maxWinStreak >= 10;
+    unlockedSystemAchievements.push({
+      id: 'winning_streak_10',
+      code: 'WINNING_STREAK_10',
+      title: '10 Match Winning Streak',
+      description: 'Achieved a 10-match undefeated winning streak',
+      icon: 'fi fi-sr-flame',
+      emoji: '🔥',
+      category: 'Streak',
+      unlocked: streakUnlocked,
+      progress: {
+        current: Math.min(10, maxWinStreak),
+        target: 10,
+        percentage: Math.min(100, Math.round((maxWinStreak / 10) * 100)),
+      },
+    });
+
+    // 6. Iron Man (🏃)
+    const ironManUnlocked = allTimeGames >= 15;
+    unlockedSystemAchievements.push({
+      id: 'iron_man',
+      code: 'IRON_MAN',
+      title: 'Iron Man',
+      description:
+        'Demonstrated remarkable stamina across 15+ match appearances',
+      icon: 'fi fi-rr-running',
+      emoji: '🏃',
+      category: 'Endurance',
+      unlocked: ironManUnlocked,
+      progress: {
+        current: Math.min(15, allTimeGames),
+        target: 15,
+        percentage: Math.min(100, Math.round((allTimeGames / 15) * 100)),
+      },
+    });
+
+    // 7. Clutch MVP (🏆)
+    const mvpUnlocked = allTimeMvps >= 3;
+    unlockedSystemAchievements.push({
+      id: 'clutch_mvp',
+      code: 'CLUTCH_MVP',
+      title: 'Clutch MVP',
+      description: 'Awarded Match MVP in 3 or more matches',
+      icon: 'fi fi-sr-trophy',
+      emoji: '🏆',
+      category: 'Excellence',
+      unlocked: mvpUnlocked,
+      progress: {
+        current: Math.min(3, allTimeMvps),
+        target: 3,
+        percentage: Math.min(100, Math.round((allTimeMvps / 3) * 100)),
+      },
+    });
+
     return {
+      systemAchievements: unlockedSystemAchievements,
       player: {
         id: player.id,
         jerseyNumber: player.jerseyNumber,
@@ -805,6 +1011,309 @@ export class PlayersService {
         toTeam: { id: t.toTeam.id, name: t.toTeam.name },
         transferredAt: t.transferredAt,
       })),
+    };
+  }
+
+  async getHallOfFame() {
+    const completedMatchPlayers = await this.matchPlayerRepo.find({
+      where: {
+        isPlaying: true,
+        match: { status: 'completed' },
+      },
+      relations: {
+        player: {
+          user: true,
+          team: true,
+        },
+        match: {
+          stage: {
+            competition: {
+              sport: true,
+            },
+          },
+        },
+      },
+    });
+
+    const completedMatches = await this.matchRepo.find({
+      where: { status: 'completed' },
+      relations: {
+        homeTeam: true,
+        awayTeam: true,
+        stage: {
+          competition: {
+            sport: true,
+          },
+        },
+      },
+      order: { scheduledAt: 'ASC' },
+    });
+
+    // Map max ratings per match for MVP evaluation
+    const maxRatings = new Map<string, number>();
+    for (const cmp of completedMatchPlayers) {
+      if (cmp.rating !== null) {
+        const rVal = Number(cmp.rating);
+        const curMax = maxRatings.get(cmp.matchId) ?? -1;
+        if (rVal > curMax) maxRatings.set(cmp.matchId, rVal);
+      }
+    }
+
+    const playerMap = new Map<
+      string,
+      {
+        id: string;
+        userId: string;
+        username: string;
+        avatarUrl?: string | null;
+        teamName: string;
+        teamId: string;
+        goals: number;
+        assists: number;
+        mvps: number;
+        gamesPlayed: number;
+      }
+    >();
+
+    for (const cmp of completedMatchPlayers) {
+      if (!cmp.player?.user) continue;
+      const pid = cmp.player.userId;
+      if (!playerMap.has(pid)) {
+        playerMap.set(pid, {
+          id: cmp.playerId,
+          userId: cmp.player.userId,
+          username: cmp.player.user.username,
+          avatarUrl: cmp.player.user.avatarUrl,
+          teamName: cmp.player.team?.name ?? 'Free Agent',
+          teamId: cmp.player.teamId,
+          goals: 0,
+          assists: 0,
+          mvps: 0,
+          gamesPlayed: 0,
+        });
+      }
+      const entry = playerMap.get(pid)!;
+      entry.gamesPlayed++;
+
+      if (
+        cmp.rating !== null &&
+        maxRatings.get(cmp.matchId) === Number(cmp.rating)
+      ) {
+        entry.mvps++;
+      }
+
+      const m = cmp.match;
+      if (m?.liveData?.events && Array.isArray(m.liveData.events)) {
+        for (const ev of m.liveData.events) {
+          if (
+            ev.type === 'goal' &&
+            ev.goalType !== 'own_goal' &&
+            (ev.playerUserId === pid || ev.playerId === cmp.playerId)
+          ) {
+            entry.goals++;
+          }
+          const isSelfAssist =
+            ev.assistPlayerUserId === pid || ev.assistPlayerId === cmp.playerId;
+          if (
+            (ev.type === 'assist' || ev.type === 'goal') &&
+            isSelfAssist &&
+            ev.playerUserId !== pid &&
+            ev.playerId !== cmp.playerId
+          ) {
+            entry.assists++;
+          }
+        }
+      }
+    }
+
+    const allPlayersList = Array.from(playerMap.values());
+
+    const mostGoals = [...allPlayersList]
+      .filter((p) => p.goals > 0)
+      .sort((a, b) => b.goals - a.goals || b.gamesPlayed - a.gamesPlayed)
+      .slice(0, 10);
+
+    const mostAssists = [...allPlayersList]
+      .filter((p) => p.assists > 0)
+      .sort((a, b) => b.assists - a.assists || b.gamesPlayed - a.gamesPlayed)
+      .slice(0, 10);
+
+    const mostMvps = [...allPlayersList]
+      .filter((p) => p.mvps > 0)
+      .sort((a, b) => b.mvps - a.mvps || b.gamesPlayed - a.gamesPlayed)
+      .slice(0, 10);
+
+    let fastestGoal: {
+      minute: number;
+      second?: number;
+      playerName: string;
+      teamName: string;
+      matchTitle: string;
+      matchId: string;
+    } | null = null;
+
+    for (const m of completedMatches) {
+      if (m.liveData?.events && Array.isArray(m.liveData.events)) {
+        for (const ev of m.liveData.events) {
+          if (
+            ev.type === 'goal' &&
+            ev.goalType !== 'own_goal' &&
+            (ev.minute !== undefined || ev.second !== undefined)
+          ) {
+            const min = ev.minute ?? 0;
+            const sec = ev.second ?? 0;
+            const totalSec = min * 60 + sec;
+            const currentFastestSec = fastestGoal
+              ? fastestGoal.minute * 60 + (fastestGoal.second ?? 0)
+              : Infinity;
+            if (totalSec < currentFastestSec) {
+              fastestGoal = {
+                minute: min,
+                second: sec,
+                playerName: ev.playerName || 'Player',
+                teamName:
+                  ev.teamSide === 'home'
+                    ? m.homeTeam?.name || 'Home'
+                    : m.awayTeam?.name || 'Away',
+                matchTitle: `${m.homeTeam?.name || 'Home'} vs ${m.awayTeam?.name || 'Away'}`,
+                matchId: m.id,
+              };
+            }
+          }
+        }
+      }
+    }
+
+    const teamStreaks = new Map<
+      string,
+      {
+        teamId: string;
+        name: string;
+        logoUrl?: string | null;
+        current: number;
+        max: number;
+      }
+    >();
+
+    for (const m of completedMatches) {
+      if (!m.homeTeamId || !m.awayTeamId) continue;
+      const homeId = m.homeTeamId;
+      const awayId = m.awayTeamId;
+      if (!teamStreaks.has(homeId)) {
+        teamStreaks.set(homeId, {
+          teamId: homeId,
+          name: m.homeTeam?.name ?? 'Team',
+          logoUrl: m.homeTeam?.logoUrl,
+          current: 0,
+          max: 0,
+        });
+      }
+      if (!teamStreaks.has(awayId)) {
+        teamStreaks.set(awayId, {
+          teamId: awayId,
+          name: m.awayTeam?.name ?? 'Team',
+          logoUrl: m.awayTeam?.logoUrl,
+          current: 0,
+          max: 0,
+        });
+      }
+
+      const homeEntry = teamStreaks.get(homeId)!;
+      const awayEntry = teamStreaks.get(awayId)!;
+
+      if (m.homeScore > m.awayScore) {
+        homeEntry.current++;
+        if (homeEntry.current > homeEntry.max)
+          homeEntry.max = homeEntry.current;
+        awayEntry.current = 0;
+      } else if (m.awayScore > m.homeScore) {
+        awayEntry.current++;
+        if (awayEntry.current > awayEntry.max)
+          awayEntry.max = awayEntry.current;
+        homeEntry.current = 0;
+      } else {
+        homeEntry.current = 0;
+        awayEntry.current = 0;
+      }
+    }
+
+    const longestStreak = Array.from(teamStreaks.values())
+      .filter((t) => t.max > 0)
+      .sort((a, b) => b.max - a.max)
+      .slice(0, 10);
+
+    const finalsMap = new Map<
+      string,
+      {
+        teamId: string;
+        teamName: string;
+        logoUrl?: string | null;
+        titles: number;
+        finals: number;
+      }
+    >();
+
+    for (const m of completedMatches) {
+      const stageName = (m.stage?.name || '').toLowerCase();
+      const isFinal =
+        stageName.includes('final') &&
+        !stageName.includes('semi') &&
+        !stageName.includes('quarter');
+      if (isFinal) {
+        const homeId = m.homeTeamId;
+        const awayId = m.awayTeamId;
+        if (!homeId || !awayId) continue;
+        if (!finalsMap.has(homeId)) {
+          finalsMap.set(homeId, {
+            teamId: homeId,
+            teamName: m.homeTeam?.name ?? 'Team',
+            logoUrl: m.homeTeam?.logoUrl,
+            titles: 0,
+            finals: 0,
+          });
+        }
+        if (!finalsMap.has(awayId)) {
+          finalsMap.set(awayId, {
+            teamId: awayId,
+            teamName: m.awayTeam?.name ?? 'Team',
+            logoUrl: m.awayTeam?.logoUrl,
+            titles: 0,
+            finals: 0,
+          });
+        }
+
+        const homeFinals = finalsMap.get(homeId)!;
+        const awayFinals = finalsMap.get(awayId)!;
+
+        homeFinals.finals++;
+        awayFinals.finals++;
+
+        if (m.homeScore > m.awayScore) {
+          homeFinals.titles++;
+        } else if (m.awayScore > m.homeScore) {
+          awayFinals.titles++;
+        }
+      }
+    }
+
+    const mostTitles = Array.from(finalsMap.values())
+      .filter((f) => f.titles > 0)
+      .sort((a, b) => b.titles - a.titles || b.finals - a.finals)
+      .slice(0, 10);
+
+    const mostFinals = Array.from(finalsMap.values())
+      .filter((f) => f.finals > 0)
+      .sort((a, b) => b.finals - a.finals || b.titles - a.titles)
+      .slice(0, 10);
+
+    return {
+      mostGoals,
+      mostAssists,
+      mostMvps,
+      mostTitles,
+      mostFinals,
+      fastestGoal,
+      longestStreak,
     };
   }
 }

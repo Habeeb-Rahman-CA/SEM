@@ -161,8 +161,10 @@ export class PublicTeamProfileComponent implements OnInit {
 
   profile = signal<PublicTeamProfile | null>(null);
   analytics = signal<any | null>(null);
+  chemistry = signal<any | null>(null);
   isLoading = signal<boolean>(true);
   isLoadingAnalytics = signal<boolean>(false);
+  isLoadingChemistry = signal<boolean>(false);
   error = signal<string | null>(null);
 
   getSportBadgeClass = getSportBadgeClass;
@@ -191,11 +193,13 @@ export class PublicTeamProfileComponent implements OnInit {
     this.isLoading.set(true);
     this.error.set(null);
     this.analytics.set(null);
+    this.chemistry.set(null);
     this.teamService.getPublicTeam(id).subscribe({
       next: (data) => {
         this.profile.set(data);
         this.isLoading.set(false);
         this.loadAnalytics(id);
+        this.loadChemistry(id);
         const t = data?.team;
         if (t) {
           this.shareService.setPageMeta({
@@ -227,6 +231,20 @@ export class PublicTeamProfileComponent implements OnInit {
       error: (err) => {
         console.error('Failed to load team public analytics', err);
         this.isLoadingAnalytics.set(false);
+      },
+    });
+  }
+
+  private loadChemistry(id: string) {
+    this.isLoadingChemistry.set(true);
+    this.teamService.getPublicTeamChemistry(id).subscribe({
+      next: (data) => {
+        this.chemistry.set(data);
+        this.isLoadingChemistry.set(false);
+      },
+      error: (err) => {
+        console.error('Failed to load team public chemistry', err);
+        this.isLoadingChemistry.set(false);
       },
     });
   }

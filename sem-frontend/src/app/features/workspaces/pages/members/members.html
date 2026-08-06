@@ -43,9 +43,13 @@
           <div class="flex flex-col gap-1.5">
             <label
               for="inv-username"
-              class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
-              >Username</label
-            >
+              class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"
+              >Username
+              <app-help-tooltip
+                text="The registered Taisen username of the person you want to invite to this workspace."
+                position="top"
+              />
+            </label>
             <input
               id="inv-username"
               type="text"
@@ -63,9 +67,13 @@
             <div class="flex-1 flex flex-col gap-1.5">
               <label
                 for="inv-role"
-                class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
-                >Role</label
-              >
+                class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"
+                >Role
+                <app-help-tooltip
+                  text="Determines permissions: Admin (full access), Manager (events/matches), Referee (scorekeeping), or Viewer (read-only)."
+                  position="top"
+                />
+              </label>
               <select
                 id="inv-role"
                 name="role"
@@ -132,9 +140,14 @@
 
           <!-- Share Link Input & Copy -->
           <div class="flex-1 w-full flex flex-col gap-2">
-            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
-              >Shareable Invite Link</label
-            >
+            <label
+              class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"
+              >Shareable Invite Link
+              <app-help-tooltip
+                text="Anyone with this link or QR code can join the workspace directly as a Viewer."
+                position="top"
+              />
+            </label>
             <div class="relative w-full">
               <input
                 type="text"

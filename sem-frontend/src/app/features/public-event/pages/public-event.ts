@@ -110,6 +110,100 @@ export class PublicEventComponent implements OnInit, OnDestroy {
   shareTab = signal<'general' | 'fixtures' | 'standings' | 'results' | 'predictions'>('general');
   copySuccess = signal<boolean>(false);
 
+  // Tournament Story State
+  isStoryModalOpen = signal<boolean>(false);
+  storyData = signal<any | null>(null);
+  isLoadingStory = signal<boolean>(false);
+  selectedStoryDay = signal<number | undefined>(undefined);
+  storyCopySuccess = signal<boolean>(false);
+
+  openStoryModal(day?: number) {
+    const eventId = this.eventId();
+    const compId = this.selectedCompetition()?.id || this.event()?.competitions?.[0]?.id;
+    if (!eventId || !compId) return;
+
+    this.isStoryModalOpen.set(true);
+    this.isLoadingStory.set(true);
+    if (day !== undefined) this.selectedStoryDay.set(day);
+
+    this.eventService.getPublicTournamentStory(eventId, compId, this.selectedStoryDay()).subscribe({
+      next: (data) => {
+        this.storyData.set(data);
+        this.isLoadingStory.set(false);
+      },
+      error: (err) => {
+        console.error('Failed to load tournament story', err);
+        this.isLoadingStory.set(false);
+      },
+    });
+  }
+
+  changeStoryDay(day: number) {
+    this.selectedStoryDay.set(day);
+    this.openStoryModal(day);
+  }
+
+  closeStoryModal() {
+    this.isStoryModalOpen.set(false);
+  }
+
+  copyStoryText(text: string) {
+    navigator.clipboard.writeText(text);
+    this.storyCopySuccess.set(true);
+    setTimeout(() => this.storyCopySuccess.set(false), 2000);
+  }
+
+  // Season History Timeline State
+  seasonsTimeline = signal<any[]>([]);
+  isSeasonTimelineModalOpen = signal<boolean>(false);
+  selectedSeason = signal<any | null>(null);
+  activeSeasonTab = signal<'squads' | 'stats' | 'awards' | 'photos'>('squads');
+  isLoadingSeasonTimeline = signal<boolean>(false);
+
+  openSeasonTimelineModal(seasonYear?: number) {
+    this.isSeasonTimelineModalOpen.set(true);
+    if (this.seasonsTimeline().length === 0) {
+      this.loadSeasonTimeline(seasonYear);
+    } else if (seasonYear) {
+      const match = this.seasonsTimeline().find((s) => s.year === seasonYear);
+      if (match) this.selectedSeason.set(match);
+    }
+  }
+
+  closeSeasonTimelineModal() {
+    this.isSeasonTimelineModalOpen.set(false);
+  }
+
+  selectSeason(season: any) {
+    this.selectedSeason.set(season);
+  }
+
+  selectSeasonTab(tab: 'squads' | 'stats' | 'awards' | 'photos') {
+    this.activeSeasonTab.set(tab);
+  }
+
+  private loadSeasonTimeline(autoSelectYear?: number) {
+    this.isLoadingSeasonTimeline.set(true);
+    const eventId = this.eventId() || undefined;
+    this.eventService.getSeasonHistoryTimeline(eventId).subscribe({
+      next: (data) => {
+        this.seasonsTimeline.set(data);
+        if (autoSelectYear) {
+          const match = data.find((s) => s.year === autoSelectYear);
+          if (match) this.selectedSeason.set(match);
+          else if (data.length > 0) this.selectedSeason.set(data[0]);
+        } else if (data.length > 0 && !this.selectedSeason()) {
+          this.selectedSeason.set(data[0]);
+        }
+        this.isLoadingSeasonTimeline.set(false);
+      },
+      error: (err) => {
+        console.error('Failed to load season history timeline', err);
+        this.isLoadingSeasonTimeline.set(false);
+      },
+    });
+  }
+
   shareUrl = computed(() => {
     const base = window.location.origin + window.location.pathname;
     const tab = this.shareTab();

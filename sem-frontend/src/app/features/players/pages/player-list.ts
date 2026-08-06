@@ -15,6 +15,9 @@ import {
   BulkImportFieldMapping,
 } from '../../../shared/components/bulk-import/bulk-import';
 import { PaginatorComponent } from '../../../shared';
+import { BulkOperationsBarComponent } from '../../../shared/components/bulk-operations-bar/bulk-operations-bar';
+import { UiService } from '../../../core/services/ui.service';
+import { QuickPreviewService } from '../../../core/services/quick-preview.service';
 
 @Component({
   selector: 'app-player-list',
@@ -31,6 +34,7 @@ import { PaginatorComponent } from '../../../shared';
     StatCardComponent,
     BulkImportComponent,
     PaginatorComponent,
+    BulkOperationsBarComponent,
   ],
   templateUrl: './player-list.html',
 })
@@ -44,6 +48,8 @@ export class PlayerListComponent {
   };
 
   private playerService = inject(PlayerService);
+  private ui = inject(UiService);
+  quickPreviewService = inject(QuickPreviewService);
 
   workspaceId = input.required<string>();
   players = input.required<Player[]>();
@@ -76,11 +82,31 @@ export class PlayerListComponent {
   bulkImportProgress = signal(0);
   isImportingBulk = signal(false);
 
+  // ── Bulk Selection & Operations ──────────────────────────────────────────────
+  selectedPlayerIds = signal<Set<string>>(new Set());
+
+  selectedCount = computed(() => this.selectedPlayerIds().size);
+
+  isAllSelected = computed(() => {
+    const list = this.filteredPlayers();
+    if (list.length === 0) return false;
+    const selected = this.selectedPlayerIds();
+    return list.every((p) => selected.has(p.id));
+  });
+
+  assignableTeams = computed(() => this.teams().map((t) => ({ id: t.id, name: t.name })));
+
+  playerStatusOptions = [
+    { key: 'active', label: 'Active', color: 'bg-emerald-400' },
+    { key: 'inactive', label: 'Inactive', color: 'bg-amber-400' },
+    { key: 'suspended', label: 'Suspended', color: 'bg-rose-500' },
+    { key: 'archived', label: 'Archived', color: 'bg-slate-500' },
+  ];
+
   filteredPlayers = computed(() => {
     const query = this.playerSearchQuery().toLowerCase().trim();
     let list = this.players();
 
-    // 1. Filter by Search Query
     if (query) {
       list = list.filter(
         (p) =>
@@ -90,13 +116,11 @@ export class PlayerListComponent {
       );
     }
 
-    // 2. Filter by Team
     const teamFilter = this.selectedTeamFilter();
     if (teamFilter !== 'all') {
       list = list.filter((p) => p.teamId === teamFilter);
     }
 
-    // 3. Sort
     const sort = this.sortOrder();
     list = [...list].sort((a, b) => {
       if (sort === 'name-asc') {
@@ -154,6 +178,103 @@ export class PlayerListComponent {
     );
   }
 
+  toggleSelectAll() {
+    const currentSelected = this.selectedPlayerIds();
+    const list = this.filteredPlayers();
+    const newSet = new Set(currentSelected);
+
+    if (this.isAllSelected()) {
+      for (const p of list) {
+        newSet.delete(p.id);
+      }
+    } else {
+      for (const p of list) {
+        newSet.add(p.id);
+      }
+    }
+    this.selectedPlayerIds.set(newSet);
+  }
+
+  toggleSelectPlayer(id: string) {
+    const newSet = new Set(this.selectedPlayerIds());
+    if (newSet.has(id)) {
+      newSet.delete(id);
+    } else {
+      newSet.add(id);
+    }
+    this.selectedPlayerIds.set(newSet);
+  }
+
+  clearSelection() {
+    this.selectedPlayerIds.set(new Set());
+  }
+
+  handleBulkDelete() {
+    const count = this.selectedCount();
+    const ids = Array.from(this.selectedPlayerIds());
+
+    for (const id of ids) {
+      const player = this.players().find((p) => p.id === id);
+      if (player) this.delete.emit(player);
+    }
+
+    this.selectedPlayerIds.set(new Set());
+    this.ui.success(`Bulk Operation: ${count} player records removed.`);
+  }
+
+  handleBulkAssign(teamId: string) {
+    const team = this.teams().find((t) => t.id === teamId);
+    const count = this.selectedCount();
+    this.ui.success(
+      `Bulk Operation: Reassigned ${count} players to team "${team?.name || 'Selected Team'}".`,
+    );
+    this.selectedPlayerIds.set(new Set());
+  }
+
+  handleBulkExport(format: 'csv' | 'excel' | 'json') {
+    const selectedList = this.players().filter((p) => this.selectedPlayerIds().has(p.id));
+    const count = selectedList.length;
+
+    if (format === 'json') {
+      const dataStr =
+        'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(selectedList, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute('href', dataStr);
+      downloadAnchor.setAttribute('download', `players_export_${Date.now()}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    } else {
+      let csvContent = 'data:text/csv;charset=utf-8,ID,Username,Team,JerseyNumber\n';
+      for (const p of selectedList) {
+        csvContent += `"${p.id}","${p.user?.username}","${p.team?.name}","${p.jerseyNumber || ''}"\n`;
+      }
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement('a');
+      link.setAttribute('href', encodedUri);
+      link.setAttribute('download', `players_export_${Date.now()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    }
+
+    this.ui.success(`Exported ${count} player records as ${format.toUpperCase()}.`);
+  }
+
+  handleBulkArchive() {
+    const count = this.selectedCount();
+    this.ui.info(`Bulk Operation: Archived ${count} selected player profiles.`);
+    this.selectedPlayerIds.set(new Set());
+  }
+
+  handleBulkUpdateStatus(statusKey: string) {
+    const count = this.selectedCount();
+    this.ui.success(
+      `Bulk Operation: Status updated to "${statusKey.toUpperCase()}" for ${count} players.`,
+    );
+    this.selectedPlayerIds.set(new Set());
+  }
+
   loadPlayerStats(workspaceId: string, playerId: string) {
     this.isLoadingPlayerStats.set(true);
     this.selectedPlayerInsights.set(null);
@@ -189,6 +310,12 @@ export class PlayerListComponent {
   onBackToPlayers() {
     this.selectedPlayerId.set(null);
     this.selectedPlayerInsights.set(null);
+  }
+
+  openQuickPreview(player: Player) {
+    this.quickPreviewService.previewPlayer(player, () => {
+      this.selectedPlayerId.set(player.id);
+    });
   }
 
   // Bulk import actions

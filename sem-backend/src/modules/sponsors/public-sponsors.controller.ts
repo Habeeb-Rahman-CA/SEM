@@ -18,4 +18,19 @@ export class PublicSponsorsController {
   list(@Param('eventId') eventId: string) {
     return this.sponsorsService.listPublicEventSponsors(eventId);
   }
+
+  @Get('track/:sponsorId')
+  @ApiOperation({
+    summary: 'Track sponsor banner impression, click, or QR scan',
+  })
+  track(
+    @Param('eventId') eventId: string,
+    @Param('sponsorId') sponsorId: string,
+  ) {
+    return this.sponsorsService.trackSponsorInteraction(
+      sponsorId,
+      'click',
+      eventId,
+    );
+  }
 }

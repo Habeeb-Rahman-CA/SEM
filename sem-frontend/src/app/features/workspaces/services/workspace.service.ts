@@ -693,6 +693,14 @@ export class WorkspaceService {
     );
   }
 
+  triggerGlobalLogout(): Observable<{ message: string; logoutEventId: string }> {
+    return this.http.post<{ message: string; logoutEventId: string }>(
+      `${environment.apiUrl}/system-settings/force-global-logout`,
+      {},
+      { headers: this.headers },
+    );
+  }
+
   getCommerceConfig(): Observable<CommerceConfigView> {
     return this.http.get<CommerceConfigView>(`${environment.apiUrl}/system-settings/commerce`, {
       headers: this.headers,
@@ -794,6 +802,35 @@ export class WorkspaceService {
     });
   }
 
+  createFolder(
+    workspaceId: string,
+    name: string,
+    parentPath: string = '/',
+  ): Observable<WorkspaceFile> {
+    return this.http.post<WorkspaceFile>(
+      `${this.apiUrl}/${workspaceId}/files/folder`,
+      { name, parentPath },
+      { headers: this.headers },
+    );
+  }
+
+  updateFileMetadata(
+    workspaceId: string,
+    fileId: string,
+    payload: {
+      tags?: string[];
+      accessLevel?: FileAccessLevel;
+      folderPath?: string;
+      description?: string;
+    },
+  ): Observable<WorkspaceFile> {
+    return this.http.patch<WorkspaceFile>(
+      `${this.apiUrl}/${workspaceId}/files/${fileId}/metadata`,
+      payload,
+      { headers: this.headers },
+    );
+  }
+
   globalSearch(
     workspaceId: string,
     query: string,
@@ -805,6 +842,8 @@ export class WorkspaceService {
   }
 }
 
+export type FileAccessLevel = 'public' | 'internal' | 'restricted' | 'admin_only';
+
 export interface WorkspaceFile {
   id: string;
   workspaceId: string;
@@ -813,6 +852,11 @@ export interface WorkspaceFile {
   size: number;
   url: string;
   publicId: string | null;
+  folderPath?: string;
+  isFolder?: boolean;
+  tags?: string[] | null;
+  accessLevel?: FileAccessLevel;
+  description?: string | null;
   currentVersion: number;
   virusScanStatus: string;
   virusScanDetails: string | null;

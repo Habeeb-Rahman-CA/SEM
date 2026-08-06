@@ -1,0 +1,160 @@
+<div class="flex flex-col gap-3 w-full">
+  <!-- Toolbar Header: Column Customizer Dropdown Toggle -->
+  <div class="flex items-center justify-between gap-4">
+    <div class="text-xs font-bold text-slate-400">
+      Showing
+      <span class="text-white font-mono font-black">{{ visibleColumns().length }}</span> of
+      <span class="text-slate-300 font-mono">{{ configuredColumns().length }}</span> columns
+    </div>
+
+    <!-- Customize Columns Dropdown -->
+    <div class="relative">
+      <app-button
+        label="Customize Columns"
+        iconClass="fi-rr-sliders-h"
+        variant="outline"
+        size="xs"
+        (clicked)="isCustomizerOpen.set(!isCustomizerOpen())"
+      />
+
+      @if (isCustomizerOpen()) {
+        <!-- Backdrop Dismiss -->
+        <div
+          class="fixed inset-0 z-40 bg-black/0 cursor-default"
+          (click)="isCustomizerOpen.set(false)"
+        ></div>
+
+        <!-- Dropdown Menu -->
+        <div
+          class="absolute right-0 mt-2 w-72 bg-slate-900 border border-white/10 rounded-2xl shadow-2xl p-4 z-50 animate-fadeIn shrink-0 flex flex-col gap-3"
+        >
+          <div class="flex items-center justify-between border-b border-white/5 pb-2">
+            <h4
+              class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5"
+            >
+              <i class="fi fi-rr-columns text-violet-400"></i> Column Settings
+            </h4>
+            <button
+              type="button"
+              (click)="resetToDefault()"
+              class="text-[10px] text-slate-400 hover:text-white transition font-semibold cursor-pointer bg-transparent border-0"
+            >
+              Reset Default
+            </button>
+          </div>
+
+          <!-- Column List with Show/Hide & Reorder Controls -->
+          <div class="max-h-60 overflow-y-auto flex flex-col gap-2 pr-1">
+            @for (col of configuredColumns(); track col.key; let i = $index) {
+              <div
+                class="flex items-center justify-between bg-slate-950/60 border border-white/5 rounded-xl p-2 text-xs transition-all hover:border-white/10"
+              >
+                <!-- Checkbox & Label -->
+                <label class="flex items-center gap-2 cursor-pointer select-none min-w-0 pr-2">
+                  <input
+                    type="checkbox"
+                    [checked]="col.visible !== false"
+                    (change)="toggleColumnVisibility(col.key)"
+                    class="w-3.5 h-3.5 accent-violet-600 rounded border-white/10 bg-slate-900 cursor-pointer"
+                  />
+                  <span
+                    class="text-xs text-slate-200 font-semibold truncate"
+                    [class.line-through]="col.visible === false"
+                    [class.text-slate-500]="col.visible === false"
+                  >
+                    {{ col.label }}
+                  </span>
+                </label>
+
+                <!-- Reorder Controls -->
+                <div class="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    [disabled]="i === 0"
+                    (click)="moveColumn(i, 'up')"
+                    class="p-1 hover:bg-slate-800 text-slate-400 hover:text-white rounded transition disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer bg-transparent border-0"
+                    title="Move Up"
+                  >
+                    <i class="fi fi-rr-angle-small-up text-xs"></i>
+                  </button>
+                  <button
+                    type="button"
+                    [disabled]="i === configuredColumns().length - 1"
+                    (click)="moveColumn(i, 'down')"
+                    class="p-1 hover:bg-slate-800 text-slate-400 hover:text-white rounded transition disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer bg-transparent border-0"
+                    title="Move Down"
+                  >
+                    <i class="fi fi-rr-angle-small-down text-xs"></i>
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- Main Scrollable Table Wrapper -->
+  <div class="w-full overflow-x-auto border border-white/10 rounded-2xl bg-slate-900/60 shadow-xl">
+    <table class="w-full text-left border-collapse table-fixed">
+      <!-- Table Header with Resizable Columns -->
+      <thead>
+        <tr
+          class="bg-slate-950/80 border-b border-white/10 text-xs font-bold text-slate-400 uppercase tracking-wider select-none"
+        >
+          @for (col of visibleColumns(); track col.key) {
+            <th
+              class="p-3.5 relative group border-r border-white/5 last:border-r-0"
+              [style.width.px]="col.width || 180"
+            >
+              <div class="flex items-center justify-between pr-2">
+                <span class="truncate">{{ col.label }}</span>
+              </div>
+
+              <!-- Resizer Handle -->
+              <div
+                class="absolute top-0 right-0 w-2 h-full cursor-col-resize hover:bg-violet-500/50 group-hover:bg-violet-500/20 transition-colors z-10"
+                (mousedown)="startResize($event, col.key, col.width || 180)"
+              ></div>
+            </th>
+          }
+        </tr>
+      </thead>
+
+      <!-- Table Body -->
+      <tbody class="divide-y divide-white/5 text-xs text-slate-300 font-medium">
+        @for (row of data(); track $index) {
+          <tr class="hover:bg-white/[0.02] transition-colors">
+            @for (col of visibleColumns(); track col.key) {
+              <td
+                class="p-3.5 truncate border-r border-white/5 last:border-r-0"
+                [style.width.px]="col.width || 180"
+              >
+                @if (cellTemplate) {
+                  <ng-container
+                    *ngTemplateOutlet="
+                      cellTemplate;
+                      context: { $implicit: row, column: col, value: row[col.key] }
+                    "
+                  />
+                } @else {
+                  {{ row[col.key] }}
+                }
+              </td>
+            }
+          </tr>
+        } @empty {
+          <tr>
+            <td
+              [attr.colspan]="visibleColumns().length"
+              class="p-8 text-center text-slate-500 italic"
+            >
+              No table records found.
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>

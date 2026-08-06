@@ -5,7 +5,11 @@ export interface Toast {
   message: string;
   type: 'success' | 'error' | 'info' | 'warning';
   duration?: number;
+  onUndo?: () => void;
+  undoCountdown?: number;
 }
+
+export type ToastMessage = Toast;
 
 export interface ConfirmOptions {
   title: string;
@@ -30,8 +34,96 @@ export class UiService {
   confirmOptions = signal<ConfirmOptions | null>(null);
   private confirmResolve: ((value: boolean) => void) | null = null;
 
+  // Keyboard Shortcuts Cheat Sheet Modal
+  shortcutsModalOpen = signal(false);
+
+  openShortcutsModal() {
+    this.shortcutsModalOpen.set(true);
+  }
+
+  closeShortcutsModal() {
+    this.shortcutsModalOpen.set(false);
+  }
+
+  toggleShortcutsModal() {
+    this.shortcutsModalOpen.update((v) => !v);
+  }
+
+  // Compact Mode Density Signal
+  isCompactMode = signal(false);
+
+  toggleCompactMode() {
+    this.isCompactMode.update((v) => !v);
+    this.applyCompactMode();
+    this.info(
+      this.isCompactMode()
+        ? 'Compact Mode Enabled (High Density View)'
+        : 'Standard Density Mode Enabled',
+    );
+  }
+
+  private applyCompactMode() {
+    if (typeof document !== 'undefined') {
+      if (this.isCompactMode()) {
+        document.documentElement.classList.add('compact-mode');
+        localStorage.setItem('sem_compact_mode', 'true');
+      } else {
+        document.documentElement.classList.remove('compact-mode');
+        localStorage.setItem('sem_compact_mode', 'false');
+      }
+    }
+  }
+
+  // Font Size Accessibility Scaling Signal
+  fontSizeScale = signal<'small' | 'medium' | 'large' | 'xlarge'>('medium');
+
+  setFontSize(scale: 'small' | 'medium' | 'large' | 'xlarge') {
+    this.fontSizeScale.set(scale);
+    this.applyFontSize();
+    this.info(`Font size set to ${scale.toUpperCase()}`);
+  }
+
+  cycleFontSize() {
+    const current = this.fontSizeScale();
+    let next: 'small' | 'medium' | 'large' | 'xlarge' = 'medium';
+    if (current === 'small') next = 'medium';
+    else if (current === 'medium') next = 'large';
+    else if (current === 'large') next = 'xlarge';
+    else if (current === 'xlarge') next = 'small';
+
+    this.setFontSize(next);
+  }
+
+  private applyFontSize() {
+    if (typeof document !== 'undefined') {
+      const scale = this.fontSizeScale();
+      const html = document.documentElement;
+      html.classList.remove(
+        'font-scale-small',
+        'font-scale-medium',
+        'font-scale-large',
+        'font-scale-xlarge',
+      );
+      html.classList.add(`font-scale-${scale}`);
+      localStorage.setItem('sem_font_size', scale);
+    }
+  }
+
   constructor() {
     if (typeof window !== 'undefined') {
+      const savedCompact = localStorage.getItem('sem_compact_mode') === 'true';
+      if (savedCompact) {
+        this.isCompactMode.set(true);
+        this.applyCompactMode();
+      }
+
+      const savedFontSize = localStorage.getItem('sem_font_size') as
+        'small' | 'medium' | 'large' | 'xlarge' | null;
+      if (savedFontSize && ['small', 'medium', 'large', 'xlarge'].includes(savedFontSize)) {
+        this.fontSizeScale.set(savedFontSize);
+        this.applyFontSize();
+      }
+
       window.addEventListener('online', () => {
         this.isOffline.set(false);
         this.success('Your connection has been restored.');
@@ -47,14 +139,39 @@ export class UiService {
     message: string,
     type: 'success' | 'error' | 'info' | 'warning' = 'info',
     duration = 3000,
+    onUndo?: () => void,
   ) {
     const id = Math.random().toString(36).substring(2, 9);
-    const newToast: Toast = { id, message, type, duration };
+    const newToast: Toast = {
+      id,
+      message,
+      type,
+      duration,
+      onUndo,
+      undoCountdown: onUndo ? 10 : undefined,
+    };
     this.toasts.update((prev) => [...prev, newToast]);
+
+    if (onUndo) {
+      let secondsLeft = 10;
+      const interval = setInterval(() => {
+        secondsLeft -= 1;
+        this.toasts.update((prev) =>
+          prev.map((t) => (t.id === id ? { ...t, undoCountdown: secondsLeft } : t)),
+        );
+        if (secondsLeft <= 0) {
+          clearInterval(interval);
+        }
+      }, 1000);
+    }
 
     setTimeout(() => {
       this.removeToast(id);
     }, duration);
+  }
+
+  showUndo(message: string, onUndo: () => void, duration = 10000) {
+    this.showToast(message, 'warning', duration, onUndo);
   }
 
   success(message: string, duration = 3000) {

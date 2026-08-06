@@ -64,9 +64,14 @@
 
     <form (submit)="onSaveSettings(); $event.preventDefault()" class="flex flex-col gap-4">
       <div class="flex flex-col gap-1.5">
-        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
-          >Workspace Logo</label
-        >
+        <label
+          class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"
+          >Workspace Logo
+          <app-help-tooltip
+            text="Upload a logo image to brand your workspace. It appears on the dashboard, public events portal, and invite links. Recommended: square PNG or SVG, at least 256×256px."
+            position="right"
+          />
+        </label>
         <div class="flex items-center gap-4">
           <div
             class="w-16 h-16 rounded-xl bg-slate-800 border border-white/10 flex items-center justify-center overflow-hidden relative"
@@ -152,9 +157,15 @@
       </div>
 
       <div class="flex flex-col gap-1.5">
-        <label for="ws-name" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
-          >Workspace Name</label
-        >
+        <label
+          for="ws-name"
+          class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"
+          >Workspace Name
+          <app-help-tooltip
+            text="The display name of this workspace. Shown in the workspace switcher, sidebar header, and on all public-facing event pages."
+            position="right"
+          />
+        </label>
         <input
           id="ws-name"
           type="text"
@@ -168,9 +179,15 @@
         />
       </div>
       <div class="flex flex-col gap-1.5">
-        <label for="ws-desc" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
-          >Description</label
-        >
+        <label
+          for="ws-desc"
+          class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"
+          >Description
+          <app-help-tooltip
+            text="A short description of this workspace — what sport, club, or organization it belongs to. Visible on the public events portal."
+            position="right"
+          />
+        </label>
         <textarea
           id="ws-desc"
           rows="3"
@@ -220,7 +237,13 @@
     <div
       class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-emerald-500 to-teal-500"
     ></div>
-    <h2 class="text-base font-bold text-white mb-1">Extensions</h2>
+    <h2 class="text-base font-bold text-white mb-1 flex items-center gap-2">
+      Extensions
+      <app-help-tooltip
+        text="Extensions are optional modules that add extra functionality to your workspace. Unlocked extensions are active for all workspace members. Locked tiles require a plan upgrade."
+        position="right"
+      />
+    </h2>
     <p class="text-xs text-slate-400 mb-5">
       Commerce &amp; monetisation modules. Locked tiles need a plan upgrade or a workspace-level
       override.
@@ -265,7 +288,13 @@
       class="bg-slate-900 border border-rose-500/20 rounded-2xl p-6 shadow-xl relative overflow-hidden"
     >
       <div class="absolute top-0 left-0 w-full h-[2px] bg-rose-500"></div>
-      <h2 class="text-base font-bold text-rose-400 mb-1">Danger Zone</h2>
+      <h2 class="text-base font-bold text-rose-400 mb-1 flex items-center gap-2">
+        Danger Zone
+        <app-help-tooltip
+          text="Deleting a workspace permanently removes all events, competitions, matches, teams, and player records. This action cannot be undone and there is no recovery option."
+          position="right"
+        />
+      </h2>
       <p class="text-xs text-slate-400 mb-5">
         Permanently delete this workspace and all of its data. This action is irreversible.
       </p>

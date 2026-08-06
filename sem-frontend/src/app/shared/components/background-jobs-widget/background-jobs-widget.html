@@ -1,0 +1,261 @@
+<!-- ─── FLOATING BACKGROUND JOBS WIDGET PILL ─── -->
+<div class="fixed bottom-6 left-6 z-[9990] flex items-center gap-2">
+  <button
+    type="button"
+    (click)="toggleDrawer()"
+    class="px-4 py-2.5 bg-slate-900/90 border border-white/10 hover:border-violet-500/50 backdrop-blur-xl text-white rounded-2xl shadow-2xl transition-all duration-300 flex items-center gap-3 group cursor-pointer"
+  >
+    <div class="relative flex items-center justify-center">
+      @if (jobsService.runningCount() > 0) {
+        <div
+          class="w-7 h-7 rounded-xl bg-violet-600/20 text-violet-400 border border-violet-500/30 flex items-center justify-center text-xs"
+        >
+          <i class="fi fi-rr-refresh animate-spin"></i>
+        </div>
+        <span
+          class="absolute -top-1 -right-1 w-3 h-3 bg-amber-400 rounded-full border-2 border-slate-900 animate-ping"
+        ></span>
+      } @else {
+        <div
+          class="w-7 h-7 rounded-xl bg-slate-800 text-slate-400 border border-white/5 flex items-center justify-center text-xs group-hover:text-violet-300"
+        >
+          <i class="fi fi-rr-time-fast"></i>
+        </div>
+      }
+    </div>
+
+    <div class="text-left flex flex-col">
+      <span class="text-xs font-black text-white flex items-center gap-1.5">
+        <span>Background Jobs</span>
+        @if (jobsService.runningCount() > 0) {
+          <span
+            class="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-1.5 py-0.2 rounded-md font-extrabold"
+          >
+            {{ jobsService.runningCount() }} Running
+          </span>
+        }
+      </span>
+      <span class="text-[10px] text-slate-400">
+        {{
+          jobsService.runningCount() > 0 ? 'Async exports & processing' : 'Exports, Emails, Reports'
+        }}
+      </span>
+    </div>
+  </button>
+</div>
+
+<!-- ─── BACKGROUND JOBS SLIDE-OVER DRAWER MODAL ─── -->
+@if (jobsService.showJobsDrawer()) {
+  <div
+    class="fixed inset-0 z-[9998] bg-slate-950/80 backdrop-blur-md flex items-center justify-end"
+    role="dialog"
+    aria-modal="true"
+  >
+    <div
+      class="bg-slate-900 border-l border-white/10 w-full max-w-xl h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-300"
+    >
+      <!-- Header -->
+      <div class="p-6 border-b border-white/10 flex items-center justify-between bg-slate-950/60">
+        <div class="flex items-center gap-3">
+          <div
+            class="w-10 h-10 rounded-2xl bg-violet-600/10 border border-violet-500/20 text-violet-400 flex items-center justify-center text-lg"
+          >
+            <i class="fi fi-rr-time-fast"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-extrabold text-white flex items-center gap-2">
+              Background Job Pipeline
+              @if (jobsService.runningCount() > 0) {
+                <span
+                  class="text-[10px] bg-amber-500/20 border border-amber-500/30 text-amber-300 px-2 py-0.5 rounded-full font-bold"
+                >
+                  {{ jobsService.runningCount() }} ACTIVE
+                </span>
+              }
+            </h3>
+            <p class="text-xs text-slate-400">
+              Large exports, bulk emails, data imports, and PDF report generation.
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          (click)="jobsService.closeDrawer()"
+          class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition flex items-center justify-center cursor-pointer border-0"
+        >
+          <i class="fi fi-rr-cross text-xs"></i>
+        </button>
+      </div>
+
+      <!-- Quick Action Trigger Bar -->
+      <div class="p-4 bg-slate-950/40 border-b border-white/10 flex flex-wrap items-center gap-2">
+        <span class="text-xs font-bold text-slate-400 mr-1">Trigger Action:</span>
+        <button
+          type="button"
+          (click)="triggerQuickJob('export')"
+          class="px-2.5 py-1.5 bg-slate-800 hover:bg-violet-600/20 hover:border-violet-500/30 text-slate-300 hover:text-violet-300 border border-white/10 rounded-xl text-[11px] font-bold transition flex items-center gap-1.5 cursor-pointer"
+        >
+          <i class="fi fi-rr-file-export text-xs"></i> Large Export
+        </button>
+        <button
+          type="button"
+          (click)="triggerQuickJob('report')"
+          class="px-2.5 py-1.5 bg-slate-800 hover:bg-violet-600/20 hover:border-violet-500/30 text-slate-300 hover:text-violet-300 border border-white/10 rounded-xl text-[11px] font-bold transition flex items-center gap-1.5 cursor-pointer"
+        >
+          <i class="fi fi-rr-chart-histogram text-xs"></i> PDF Report
+        </button>
+        <button
+          type="button"
+          (click)="triggerQuickJob('email')"
+          class="px-2.5 py-1.5 bg-slate-800 hover:bg-violet-600/20 hover:border-violet-500/30 text-slate-300 hover:text-violet-300 border border-white/10 rounded-xl text-[11px] font-bold transition flex items-center gap-1.5 cursor-pointer"
+        >
+          <i class="fi fi-rr-envelope text-xs"></i> Send Emails
+        </button>
+        <button
+          type="button"
+          (click)="triggerQuickJob('import')"
+          class="px-2.5 py-1.5 bg-slate-800 hover:bg-violet-600/20 hover:border-violet-500/30 text-slate-300 hover:text-violet-300 border border-white/10 rounded-xl text-[11px] font-bold transition flex items-center gap-1.5 cursor-pointer"
+        >
+          <i class="fi fi-rr-file-import text-xs"></i> CSV Import
+        </button>
+      </div>
+
+      <!-- Jobs List -->
+      <div class="flex-1 overflow-y-auto p-6 space-y-4">
+        @if (jobsService.jobs().length === 0) {
+          <div class="py-16 text-center text-slate-500 flex flex-col items-center gap-3">
+            <i class="fi fi-rr-time-fast text-4xl text-slate-600"></i>
+            <div class="text-sm font-bold text-slate-300">No Jobs Executing</div>
+            <div class="text-xs max-w-xs">
+              Trigger a large export, report generation, or email dispatch above to test the async
+              background pipeline.
+            </div>
+          </div>
+        } @else {
+          @for (job of jobsService.jobs(); track job.id) {
+            <div
+              class="p-4 rounded-2xl border transition flex flex-col gap-3 relative"
+              [class.border-violet-500\/40]="job.status === 'processing'"
+              [class.bg-slate-950]="job.status === 'processing'"
+              [class.border-white\/10]="job.status !== 'processing'"
+              [class.bg-slate-900\/60]="job.status !== 'processing'"
+            >
+              <!-- Title & Status Badge -->
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex items-center gap-2.5">
+                  <div
+                    class="w-8 h-8 rounded-xl bg-slate-800 border border-white/5 flex items-center justify-center text-slate-300"
+                  >
+                    <i [class]="getJobIcon(job.type)"></i>
+                  </div>
+                  <div>
+                    <h4 class="text-xs font-bold text-white">{{ job.title }}</h4>
+                    <span class="text-[10px] font-mono text-slate-500">{{
+                      job.createdAt | date: 'medium'
+                    }}</span>
+                  </div>
+                </div>
+
+                <span
+                  class="px-2 py-0.5 text-[9px] font-black uppercase rounded-md border"
+                  [class.bg-amber-500\/10]="job.status === 'processing' || job.status === 'pending'"
+                  [class.text-amber-400]="job.status === 'processing' || job.status === 'pending'"
+                  [class.border-amber-500\/20]="
+                    job.status === 'processing' || job.status === 'pending'
+                  "
+                  [class.bg-emerald-500\/10]="job.status === 'completed'"
+                  [class.text-emerald-400]="job.status === 'completed'"
+                  [class.border-emerald-500\/20]="job.status === 'completed'"
+                  [class.bg-rose-500\/10]="job.status === 'failed' || job.status === 'cancelled'"
+                  [class.text-rose-400]="job.status === 'failed' || job.status === 'cancelled'"
+                  [class.border-rose-500\/20]="
+                    job.status === 'failed' || job.status === 'cancelled'
+                  "
+                >
+                  {{ job.status }}
+                </span>
+              </div>
+
+              <!-- Progress Bar -->
+              @if (job.status === 'processing' || job.status === 'pending') {
+                <div class="space-y-1.5">
+                  <div class="flex items-center justify-between text-[10px]">
+                    <span class="text-slate-400 font-mono">{{ job.stage }}</span>
+                    <span class="text-violet-400 font-bold font-mono">{{ job.progress }}%</span>
+                  </div>
+                  <div
+                    class="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden border border-white/5"
+                  >
+                    <div
+                      class="h-full bg-gradient-to-r from-violet-600 to-amber-500 transition-all duration-300"
+                      [style.width.%]="job.progress"
+                    ></div>
+                  </div>
+                </div>
+              }
+
+              <!-- Completed Summary & Actions -->
+              @if (job.status === 'completed' && job.result) {
+                <div
+                  class="p-3 bg-slate-900 rounded-xl border border-white/5 text-xs text-slate-300 space-y-2"
+                >
+                  <div class="text-[11px] font-medium text-slate-300">{{ job.result.summary }}</div>
+
+                  <div
+                    class="flex items-center justify-between pt-1 text-[10px] font-mono text-slate-500 border-t border-white/5"
+                  >
+                    <span>
+                      @if (job.result.totalRecords) {
+                        {{ job.result.totalRecords }} records •
+                      }
+                      @if (job.result.fileSizeBytes) {
+                        {{ (job.result.fileSizeBytes / 1024 / 1024).toFixed(2) }} MB
+                      }
+                    </span>
+
+                    @if (job.result.downloadUrl) {
+                      <button
+                        type="button"
+                        (click)="download(job.id)"
+                        class="px-3 py-1 bg-violet-600 hover:bg-violet-500 text-white font-bold rounded-lg transition flex items-center gap-1 cursor-pointer border-0"
+                      >
+                        <i class="fi fi-rr-download text-xs"></i> Download Result
+                      </button>
+                    }
+                  </div>
+                </div>
+              }
+
+              @if (job.status === 'processing') {
+                <div class="flex justify-end pt-1">
+                  <button
+                    type="button"
+                    (click)="cancel(job.id)"
+                    class="text-[10px] text-rose-400 hover:text-rose-300 font-bold cursor-pointer bg-transparent border-0"
+                  >
+                    Cancel Processing
+                  </button>
+                </div>
+              }
+            </div>
+          }
+        }
+      </div>
+
+      <!-- Footer -->
+      <div
+        class="p-4 border-t border-white/10 bg-slate-950/60 flex items-center justify-between text-xs text-slate-500"
+      >
+        <span>Asynchronous Worker Engine Active</span>
+        <button
+          type="button"
+          (click)="jobsService.closeDrawer()"
+          class="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl transition cursor-pointer border-0"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+}

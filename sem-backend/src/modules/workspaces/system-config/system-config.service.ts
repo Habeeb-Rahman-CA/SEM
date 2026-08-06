@@ -9,6 +9,7 @@ import { Sport } from '../entities/sport.entity';
 import { AuditLog, AuditCategory } from '../entities/audit-log.entity';
 import { UsersService } from '../../users/users.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
+import { EventsGateway } from '../events.gateway';
 
 @Injectable()
 export class SystemConfigService {
@@ -27,6 +28,7 @@ export class SystemConfigService {
     private readonly auditLogRepo: Repository<AuditLog>,
     private readonly usersService: UsersService,
     private readonly auditLogsService: AuditLogsService,
+    private readonly eventsGateway: EventsGateway,
   ) {}
 
   async getSystemConfigs(): Promise<Record<string, string>> {
@@ -37,6 +39,7 @@ export class SystemConfigService {
       announcement_text: '',
       announcement_level: 'info',
       max_workspaces_per_user: '10',
+      global_logout_event_id: '1',
     };
     for (const c of configs) {
       map[c.key] = c.value;
@@ -69,6 +72,45 @@ export class SystemConfigService {
     );
 
     return this.getSystemConfigs();
+  }
+
+  async triggerGlobalLogout(
+    userId?: string,
+    userName?: string,
+  ): Promise<{ message: string; logoutEventId: string }> {
+    let config = await this.systemConfigRepo.findOne({
+      where: { key: 'global_logout_event_id' },
+    });
+    const currentVal = config ? parseInt(config.value || '1', 10) : 1;
+    const newVal = String(currentVal + 1);
+
+    if (!config) {
+      config = this.systemConfigRepo.create({
+        key: 'global_logout_event_id',
+        value: newVal,
+      });
+    } else {
+      config.value = newVal;
+    }
+    await this.systemConfigRepo.save(config);
+
+    // Broadcast WebSockets event to all connected clients immediately
+    this.eventsGateway.emitGlobalLogout(newVal);
+
+    await this.auditLogsService.logAudit(
+      'GLOBAL_FORCE_LOGOUT',
+      AuditCategory.SECURITY,
+      'SystemConfig',
+      'global_logout_event_id',
+      userId,
+      userName,
+      `Triggered Global Force Logout event #${newVal}`,
+    );
+
+    return {
+      message: 'Global force logout triggered successfully',
+      logoutEventId: newVal,
+    };
   }
 
   async getSystemMetrics(): Promise<any> {

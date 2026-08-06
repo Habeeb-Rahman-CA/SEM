@@ -1072,6 +1072,13 @@
           </div>
         </div>
       }
+
+      <!-- Record Comments & Discussion Thread -->
+      <app-record-comments
+        entityType="team"
+        [entityId]="teamDetails.id"
+        title="Team Discussion & Coach Notes"
+      />
     </div>
   } @else {
     <!-- Teams Header -->
@@ -1108,8 +1115,8 @@
       <div class="flex-1 overflow-y-auto min-h-0">
         <app-empty-state
           iconClass="fi-rr-users-alt"
-          title="No teams registered"
-          message="Register your first team to start organizing events."
+          title="No teams yet"
+          message="Create your first team to start organizing squads and match lineups."
         >
           <app-button
             label="Register First Team"
@@ -1119,17 +1126,34 @@
           />
         </app-empty-state>
       </div>
-    } @else {
+      <!-- Saved Filter Presets Bar -->
+      <app-saved-filters-bar
+        [scope]="'teams'"
+        [currentQuery]="teamSearchQuery()"
+        (applyPreset)="onApplyPreset($event)"
+      />
+
       <!-- Search and Filter Bar -->
       <div
         class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-slate-900/20 border border-white/5 p-4 rounded-2xl mb-4 flex-shrink-0"
       >
-        <div class="text-xs text-slate-400 font-medium">
-          @if (teamSearchQuery()) {
-            Showing {{ filteredTeams().length }} of {{ teams().length }} teams
-          } @else {
-            {{ teams().length }} team{{ teams().length !== 1 ? 's' : '' }} registered
-          }
+        <div class="flex items-center gap-3">
+          <label class="flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              [checked]="isAllSelected()"
+              (change)="toggleSelectAll()"
+              class="w-4 h-4 accent-violet-600 rounded border-white/10 bg-slate-950 cursor-pointer"
+            />
+            <span class="text-xs text-slate-300 font-bold">Select All</span>
+          </label>
+          <div class="text-xs text-slate-400 font-medium">
+            @if (teamSearchQuery()) {
+              Showing {{ filteredTeams().length }} of {{ teams().length }} teams
+            } @else {
+              {{ teams().length }} team{{ teams().length !== 1 ? 's' : '' }} registered
+            }
+          </div>
         </div>
 
         <!-- Controls: Sort & Search -->
@@ -1177,6 +1201,8 @@
               @for (team of paginatedTeams(); track team.id) {
                 <div
                   class="bg-slate-900 border rounded-2xl p-5 flex flex-col gap-4 group transition-all duration-300 relative overflow-hidden"
+                  [class.ring-2]="selectedTeamIds().has(team.id)"
+                  [class.ring-violet-500]="selectedTeamIds().has(team.id)"
                   [style.borderColor]="
                     team.primaryColor ? team.primaryColor + '20' : 'rgba(255,255,255,0.1)'
                   "
@@ -1193,6 +1219,16 @@
                     "
                   ></div>
 
+                  <!-- Row Selection Checkbox -->
+                  <div class="absolute top-3 right-3 z-10">
+                    <input
+                      type="checkbox"
+                      [checked]="selectedTeamIds().has(team.id)"
+                      (change)="toggleSelectTeam(team.id)"
+                      class="w-4 h-4 accent-violet-600 rounded border-white/10 bg-slate-950 cursor-pointer"
+                    />
+                  </div>
+
                   <!-- Soft background glow -->
                   <div
                     class="absolute -right-6 -top-6 w-16 h-16 rounded-full filter blur-xl opacity-5 pointer-events-none"
@@ -1208,7 +1244,7 @@
                       textClass="text-base font-extrabold text-white"
                     />
                     <div class="flex-1 min-w-0">
-                      <div class="flex items-center gap-2">
+                      <div class="flex items-center gap-2 pr-6">
                         <h4 class="text-sm font-bold text-white truncate">{{ team.name }}</h4>
                         @if (team.code) {
                           <span
@@ -1244,12 +1280,27 @@
                     class="flex items-center justify-end gap-2 pt-3 border-t border-white/5 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity"
                   >
                     <app-button
+                      label="Preview"
+                      iconClass="fi-rr-eye"
+                      variant="ghost"
+                      size="xs"
+                      (clicked)="openQuickPreview(team)"
+                    />
+                    <app-button
                       label="Stats"
                       iconClass="fi-rr-stats"
                       variant="outline"
                       size="xs"
                       (clicked)="selectedTeamId.set(team.id)"
                     />
+                    <button
+                      type="button"
+                      (click)="openTeamVersionHistory(team)"
+                      class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-indigo-300 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer border border-indigo-500/20"
+                      title="View Team Version History"
+                    >
+                      <i class="fi fi-rr-time-past text-xs"></i> History
+                    </button>
                     @if (canUpdate()) {
                       <app-button
                         label="Edit"
@@ -1306,4 +1357,19 @@
     (excelParsed)="onTeamsExcelParsed($event)"
   >
   </app-bulk-import>
+
+  <!-- Floating Bulk Action Suite Bar -->
+  <app-bulk-operations-bar
+    [selectedCount]="selectedCount()"
+    [totalCount]="filteredTeams().length"
+    entityName="Teams"
+    [statusOptions]="teamStatusOptions"
+    (selectAll)="toggleSelectAll()"
+    (clearSelection)="clearSelection()"
+    (bulkDelete)="handleBulkDelete()"
+    (bulkAssign)="handleBulkAssign($event)"
+    (bulkExport)="handleBulkExport($event)"
+    (bulkArchive)="handleBulkArchive()"
+    (bulkUpdateStatus)="handleBulkUpdateStatus($event)"
+  />
 </div>

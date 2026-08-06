@@ -47,6 +47,20 @@ import { PoliciesModule } from './modules/policies/policies.module';
 import { TeamAlertsModule } from './modules/team-alerts/team-alerts.module';
 import { BootstrapModule } from './modules/bootstrap/bootstrap.module';
 import { CacheModule } from './common/cache/cache.module';
+import { ActivityTimelineModule } from './modules/activity-timeline/activity-timeline.module';
+import { CertificatesModule } from './modules/certificates/certificates.module';
+import { TrashModule } from './modules/trash/trash.module';
+import { DraftsModule } from './modules/drafts/drafts.module';
+import { SavedFiltersModule } from './modules/saved-filters/saved-filters.module';
+import { CustomDashboardModule } from './modules/custom-dashboard/custom-dashboard.module';
+import { NotificationCenterModule } from './modules/notification-center/notification-center.module';
+import { VersionHistoryModule } from './modules/version-history/version-history.module';
+import { DynamicFormsModule } from './modules/dynamic-forms/dynamic-forms.module';
+import { WorkflowBuilderModule } from './modules/workflow-builder/workflow-builder.module';
+import { FavoritesModule } from './modules/favorites/favorites.module';
+import { RecentlyViewedModule } from './modules/recently-viewed/recently-viewed.module';
+import { GlobalNotesModule } from './modules/global-notes/global-notes.module';
+import { BackgroundJobsModule } from './modules/background-jobs/background-jobs.module';
 import { RealtimeModule } from './common/realtime/realtime.module';
 
 @Module({
@@ -149,6 +163,20 @@ import { RealtimeModule } from './common/realtime/realtime.module';
     BootstrapModule,
     CacheModule,
     RealtimeModule,
+    CertificatesModule,
+    ActivityTimelineModule,
+    TrashModule,
+    DraftsModule,
+    SavedFiltersModule,
+    CustomDashboardModule,
+    NotificationCenterModule,
+    VersionHistoryModule,
+    DynamicFormsModule,
+    WorkflowBuilderModule,
+    FavoritesModule,
+    RecentlyViewedModule,
+    GlobalNotesModule,
+    BackgroundJobsModule,
   ],
   controllers: [AppController],
   providers: [

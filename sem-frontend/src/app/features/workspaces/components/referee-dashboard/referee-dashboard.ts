@@ -1,5 +1,5 @@
 import { Component, input, output, signal, computed, inject } from '@angular/core';
-import { NgClass, DatePipe, SlicePipe } from '@angular/common';
+import { DatePipe, SlicePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Workspace, Team, Match, Sport, Venue } from '../../services/workspace.service';
 import { OfflineSyncService } from '../../../../core/services/offline-sync.service';
@@ -10,7 +10,7 @@ import { PullToRefreshDirective } from '../../../../shared/directives/pull-to-re
 @Component({
   selector: 'app-referee-dashboard',
   standalone: true,
-  imports: [NgClass, DatePipe, SlicePipe, FormsModule, PullToRefreshDirective],
+  imports: [DatePipe, SlicePipe, FormsModule, PullToRefreshDirective],
   templateUrl: './referee-dashboard.html',
 })
 export class RefereeDashboardComponent {

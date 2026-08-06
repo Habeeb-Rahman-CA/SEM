@@ -1,0 +1,111 @@
+@if (isOpen()) {
+  <div
+    class="fixed inset-0 z-[10000] flex items-start justify-center pt-16 sm:pt-24 px-4 bg-slate-950/80 backdrop-blur-md animate-fade-in"
+    (click)="close()"
+  >
+    <div
+      class="bg-slate-900/95 border border-violet-500/30 rounded-3xl max-w-xl w-full shadow-2xl overflow-hidden flex flex-col relative animate-scaleUp"
+      (click)="$event.stopPropagation()"
+    >
+      <!-- Top Search Header -->
+      <div class="p-4 border-b border-white/10 flex items-center gap-3 bg-slate-950/60">
+        <i class="fi fi-rr-search text-amber-400 text-lg"></i>
+        <input
+          type="text"
+          placeholder="Type a command or search anything... (e.g. Create Event, Dark Mode, Dashboard)"
+          [ngModel]="query()"
+          (ngModelChange)="query.set($event); selectedIndex.set(0)"
+          autofocus
+          class="w-full bg-transparent text-sm text-white placeholder-slate-500 outline-none font-medium"
+        />
+        <div class="flex items-center gap-1.5 flex-shrink-0">
+          <span
+            class="px-2 py-0.5 rounded-md bg-slate-800 border border-white/10 text-[10px] font-mono text-slate-400 font-bold"
+          >
+            Ctrl K
+          </span>
+          <button (click)="close()" class="text-slate-500 hover:text-white transition p-1">
+            <i class="fi fi-rr-cross text-xs"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Results List -->
+      <div class="max-h-[60vh] overflow-y-auto p-2 flex flex-col gap-1 divide-y divide-white/5">
+        @if (filteredCommands().length === 0) {
+          <div class="py-12 text-center text-xs text-slate-500 flex flex-col items-center gap-2">
+            <i class="fi fi-rr-search-alt text-3xl text-slate-600"></i>
+            <div>No matching commands found for "{{ query() }}".</div>
+          </div>
+        } @else {
+          @for (cmd of filteredCommands(); track cmd.id; let idx = $index) {
+            <button
+              type="button"
+              (click)="execute(cmd)"
+              (mouseenter)="selectedIndex.set(idx)"
+              [class]="
+                'w-full text-left px-3.5 py-3 rounded-2xl transition flex items-center justify-between cursor-pointer border ' +
+                (selectedIndex() === idx
+                  ? 'bg-gradient-to-r from-violet-600/30 via-slate-800 to-slate-900 border-violet-500/50 text-white shadow-lg'
+                  : 'bg-transparent border-transparent text-slate-300 hover:bg-slate-800/50')
+              "
+            >
+              <div class="flex items-center gap-3">
+                <div
+                  [class]="
+                    'w-9 h-9 rounded-xl flex items-center justify-center transition border ' +
+                    (selectedIndex() === idx
+                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                      : 'bg-slate-800 text-slate-400 border-white/5')
+                  "
+                >
+                  <i [class]="cmd.icon + ' text-base'"></i>
+                </div>
+                <div>
+                  <div class="text-xs font-black tracking-wide flex items-center gap-2">
+                    {{ cmd.label }}
+                  </div>
+                  <div class="text-[10px] text-slate-400 font-mono mt-0.5">
+                    {{ cmd.category }}
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-2">
+                @if (cmd.shortcut) {
+                  <span
+                    class="px-2 py-0.5 text-[9px] font-mono font-bold rounded-md bg-slate-950 text-amber-400 border border-amber-500/30"
+                  >
+                    {{ cmd.shortcut }}
+                  </span>
+                }
+                <i class="fi fi-rr-angle-small-right text-xs text-slate-500"></i>
+              </div>
+            </button>
+          }
+        }
+      </div>
+
+      <!-- Footer Keyboard Navigation Hints -->
+      <div
+        class="p-3 border-t border-white/10 bg-slate-950/80 flex items-center justify-between text-[10px] text-slate-400 font-mono"
+      >
+        <div class="flex items-center gap-3">
+          <span class="flex items-center gap-1">
+            <kbd class="px-1.5 py-0.5 bg-slate-800 rounded border border-white/10">↑</kbd>
+            <kbd class="px-1.5 py-0.5 bg-slate-800 rounded border border-white/10">↓</kbd>
+            to navigate
+          </span>
+          <span class="flex items-center gap-1">
+            <kbd class="px-1.5 py-0.5 bg-slate-800 rounded border border-white/10">↵</kbd>
+            to select
+          </span>
+        </div>
+        <span class="flex items-center gap-1">
+          <kbd class="px-1.5 py-0.5 bg-slate-800 rounded border border-white/10">esc</kbd>
+          to exit
+        </span>
+      </div>
+    </div>
+  </div>
+}

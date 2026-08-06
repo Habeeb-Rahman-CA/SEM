@@ -1,0 +1,88 @@
+<!-- ─── VERSION HISTORY SLIDE-OVER DRAWER ─── -->
+@if (versionService.activeDrawer()) {
+  <div class="fixed inset-0 z-[9998] bg-slate-950/80 backdrop-blur-sm flex justify-end">
+    <div
+      class="w-full max-w-md bg-slate-900 border-l border-white/10 h-full flex flex-col shadow-2xl animate-in slide-in-from-right duration-300 overflow-hidden"
+    >
+      <!-- Header -->
+      <div class="p-6 border-b border-white/10 flex items-center justify-between bg-slate-950/60">
+        <div class="flex items-center gap-3">
+          <div
+            class="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center text-lg"
+          >
+            <i class="fi fi-rr-time-past"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-extrabold text-white flex items-center gap-2">
+              Version History
+            </h3>
+            @if (versionService.selectedEntity(); as entity) {
+              <p class="text-xs text-slate-400 truncate max-w-[220px]">
+                {{ entity.title }}
+              </p>
+            }
+          </div>
+        </div>
+
+        <button
+          type="button"
+          (click)="close()"
+          class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition flex items-center justify-center cursor-pointer border-0"
+        >
+          <i class="fi fi-rr-cross text-xs"></i>
+        </button>
+      </div>
+
+      <!-- Version Snapshots List -->
+      <div class="flex-1 overflow-y-auto p-6 space-y-4">
+        @for (ver of versionService.versions(); track ver.id; let idx = $index) {
+          <div
+            class="p-4 bg-slate-950/80 border border-white/10 hover:border-indigo-500/40 rounded-2xl transition flex flex-col gap-2 relative group"
+          >
+            <div class="flex items-center justify-between">
+              <span
+                class="px-2.5 py-0.5 text-xs font-black rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-500/30"
+              >
+                {{ ver.versionNumber }}
+              </span>
+              <span class="text-[10px] font-mono text-slate-500">
+                {{ ver.createdAt | date: 'short' }}
+              </span>
+            </div>
+
+            <h4 class="text-sm font-bold text-white mt-1">
+              {{ ver.title }}
+            </h4>
+            <p class="text-xs text-slate-400">
+              {{ ver.changelog }}
+            </p>
+
+            <div
+              class="flex items-center justify-between pt-2 border-t border-white/5 text-[10px] text-slate-500"
+            >
+              <span>Author: {{ ver.createdByName }}</span>
+              <button
+                type="button"
+                (click)="restore(ver)"
+                class="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg transition flex items-center gap-1 cursor-pointer border-0"
+              >
+                <i class="fi fi-rr-undo-alt text-[10px]"></i> Restore Version
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Footer -->
+      <div class="p-4 border-t border-white/10 bg-slate-950/60 flex justify-end">
+        <button
+          type="button"
+          (click)="close()"
+          class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl text-xs transition cursor-pointer border-0"
+        >
+          Close Drawer
+        </button>
+      </div>
+    </div>
+  </div>
+}

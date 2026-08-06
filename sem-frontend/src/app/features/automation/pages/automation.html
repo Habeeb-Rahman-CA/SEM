@@ -8,13 +8,22 @@
         certificates, reports & archiving.
       </p>
     </div>
-    <button
-      (click)="openRuleModal()"
-      class="flex items-center gap-1.5 px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-violet-900/20 transition-all cursor-pointer border-0 outline-none"
-    >
-      <i class="fi fi-rr-bolt text-xs"></i>
-      New Rule
-    </button>
+    <div class="flex items-center gap-2">
+      <button
+        (click)="openZapierPaymentPreset()"
+        class="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-amber-900/30 transition-all cursor-pointer border-0 outline-none"
+      >
+        <i class="fi fi-rr-bolt text-xs"></i>
+        IF Payment Completed → THEN Invoice, Email & Admin Alert
+      </button>
+      <button
+        (click)="openRuleModal()"
+        class="flex items-center gap-1.5 px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-violet-900/20 transition-all cursor-pointer border-0 outline-none"
+      >
+        <i class="fi fi-rr-plus text-xs"></i>
+        New Custom Rule
+      </button>
+    </div>
   </div>
 
   <!-- KPI cards -->

@@ -148,7 +148,7 @@ async function bootstrap() {
           'Health, metrics, logs, backups and circuit breakers are grouped under the ' +
           '`Health & Monitoring`, `Admin — Logs`, `Admin — Backups`, and `Admin — Recovery` tags.',
       )
-      .setVersion('1.0')
+      .setVersion('5.5')
       .setContact('Taisen Team', '', '')
       .setLicense('UNLICENSED', '')
       .addBearerAuth(

@@ -547,4 +547,20 @@ export class SystemSettingsController {
       req.user?.username,
     );
   }
+
+  @Post('force-global-logout')
+  @UseGuards(SuperAdminGuard)
+  @ApiOperation({
+    summary: 'Trigger Global Force Logout (Super-admin)',
+    description:
+      'Increments the global Logout Event ID and broadcasts a session invalidation signal across all active sessions.',
+  })
+  @ApiResponse({ status: 201, description: 'Global force logout executed' })
+  @ApiResponse(SA_ONLY)
+  triggerGlobalLogout(@Req() req: any) {
+    return this.workspacesService.triggerGlobalLogout(
+      req.user?.userId,
+      req.user?.username,
+    );
+  }
 }

@@ -13,9 +13,11 @@ export class SocketService {
 
   private notificationSubject = new Subject<any>();
   private matchSubject = new Subject<any>();
+  private globalLogoutSubject = new Subject<any>();
 
   notification$ = this.notificationSubject.asObservable();
   matchUpdated$ = this.matchSubject.asObservable();
+  globalLogout$ = this.globalLogoutSubject.asObservable();
 
   constructor() {
     // React to token changes to establish or close websocket connection
@@ -57,6 +59,11 @@ export class SocketService {
     this.socket.on('matchUpdated', (data) => {
       console.log('Socket.IO match update received:', data);
       this.matchSubject.next(data);
+    });
+
+    this.socket.on('global_logout_event', (data) => {
+      console.log('Socket.IO global logout event received:', data);
+      this.globalLogoutSubject.next(data);
     });
   }
 
