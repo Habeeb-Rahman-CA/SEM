@@ -1,0 +1,189 @@
+@if (recycleBinService.isOpen()) {
+  <div
+    class="fixed inset-0 z-[9999] bg-slate-950/80 backdrop-blur-md transition-opacity"
+    (click)="close()"
+  >
+    <div
+      #drawer
+      class="fixed inset-y-0 right-0 max-w-md w-full bg-slate-900 border-l border-white/10 p-6 flex flex-col justify-between shadow-2xl overflow-hidden pointer-events-auto"
+      (click)="$event.stopPropagation()"
+    >
+      <!-- Header -->
+      <div class="flex flex-col gap-4 border-b border-white/10 pb-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <div
+              class="w-10 h-10 rounded-2xl bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-rose-400"
+            >
+              <i class="fi fi-rr-trash text-lg"></i>
+            </div>
+            <div>
+              <h3 class="text-base font-black text-white flex items-center gap-2">
+                Recycle Bin &amp; Trash
+              </h3>
+              <div class="flex items-center gap-1.5 mt-0.5">
+                <p class="text-xs text-slate-400">
+                  Restore accidentally deleted records or permanently purge items.
+                </p>
+              </div>
+              @if (recycleBinService.currentWorkspaceId()) {
+                <span
+                  class="inline-flex items-center gap-1 text-[9px] font-mono font-bold text-violet-400 bg-violet-500/10 border border-violet-500/20 px-2 py-0.5 rounded-md mt-1"
+                >
+                  <i class="fi fi-rr-folder text-[9px]"></i> Workspace Isolated (#{{
+                    recycleBinService.currentWorkspaceId()
+                  }})
+                </span>
+              }
+            </div>
+          </div>
+          <button
+            type="button"
+            (click)="close()"
+            class="text-slate-400 hover:text-white transition cursor-pointer p-1"
+          >
+            <i class="fi fi-rr-cross text-xs"></i>
+          </button>
+        </div>
+
+        <!-- Toolbar & Empty All -->
+        <div class="flex items-center justify-between gap-2">
+          <div class="relative flex-1">
+            <i
+              class="fi fi-rr-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"
+            ></i>
+            <input
+              type="search"
+              placeholder="Search deleted records…"
+              [ngModel]="searchQuery()"
+              (ngModelChange)="searchQuery.set($event)"
+              class="w-full pl-8 pr-3 py-1.5 bg-slate-950 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-rose-500 transition"
+            />
+          </div>
+
+          @if (recycleBinService.trashCount() > 0) {
+            <button
+              type="button"
+              (click)="emptyAll()"
+              class="px-2.5 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer shrink-0"
+              title="Empty entire Recycle Bin"
+            >
+              <i class="fi fi-rr-trash-x text-xs"></i> Empty All
+            </button>
+          }
+        </div>
+
+        <!-- Filter category tabs -->
+        <div class="flex items-center gap-1 overflow-x-auto pb-1 text-[11px] font-bold">
+          <button
+            type="button"
+            (click)="categoryFilter.set('all')"
+            [class]="
+              'px-2.5 py-1 rounded-lg transition cursor-pointer border ' +
+              (categoryFilter() === 'all'
+                ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                : 'bg-slate-950 text-slate-400 border-white/5 hover:text-white')
+            "
+          >
+            All ({{ recycleBinService.trashCount() }})
+          </button>
+          <button
+            type="button"
+            (click)="categoryFilter.set('team')"
+            [class]="
+              'px-2.5 py-1 rounded-lg transition cursor-pointer border ' +
+              (categoryFilter() === 'team'
+                ? 'bg-violet-500/20 text-violet-300 border-violet-500/40'
+                : 'bg-slate-950 text-slate-400 border-white/5 hover:text-white')
+            "
+          >
+            Teams
+          </button>
+          <button
+            type="button"
+            (click)="categoryFilter.set('player')"
+            [class]="
+              'px-2.5 py-1 rounded-lg transition cursor-pointer border ' +
+              (categoryFilter() === 'player'
+                ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                : 'bg-slate-950 text-slate-400 border-white/5 hover:text-white')
+            "
+          >
+            Players
+          </button>
+          <button
+            type="button"
+            (click)="categoryFilter.set('certificate')"
+            [class]="
+              'px-2.5 py-1 rounded-lg transition cursor-pointer border ' +
+              (categoryFilter() === 'certificate'
+                ? 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40'
+                : 'bg-slate-950 text-slate-400 border-white/5 hover:text-white')
+            "
+          >
+            Certificates
+          </button>
+        </div>
+      </div>
+
+      <!-- Content list -->
+      <div class="flex-1 overflow-y-auto py-4 space-y-3">
+        @for (item of filteredItems(); track item.id) {
+          <div
+            class="p-3.5 bg-slate-950/70 border border-white/10 rounded-2xl flex flex-col gap-2 hover:border-rose-500/30 transition group"
+          >
+            <div class="flex items-start justify-between gap-2">
+              <div class="flex items-center gap-2 min-w-0">
+                <i [class]="getTypeIcon(item.entityType) + ' text-sm shrink-0'"></i>
+                <div class="min-w-0">
+                  <h4 class="text-xs font-bold text-white truncate">{{ item.title }}</h4>
+                  <p class="text-[10px] text-slate-400 truncate">{{ item.subtitle }}</p>
+                </div>
+              </div>
+              <span class="text-[9px] font-mono text-slate-500 shrink-0">{{ item.deletedAt }}</span>
+            </div>
+
+            <div class="flex items-center justify-between border-t border-white/5 pt-2 text-xs">
+              <span class="text-[10px] text-slate-500 font-mono">ID: #{{ item.entityId }}</span>
+
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  (click)="restore(item.id)"
+                  class="px-2.5 py-1 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 rounded-lg text-[11px] font-bold transition flex items-center gap-1 cursor-pointer"
+                  title="Restore record"
+                >
+                  <i class="fi fi-rr-undo text-[10px]"></i> Restore
+                </button>
+                <button
+                  type="button"
+                  (click)="deletePermanently(item.id)"
+                  class="p-1 text-slate-500 hover:text-rose-400 transition cursor-pointer"
+                  title="Delete permanently"
+                >
+                  <i class="fi fi-rr-trash text-[11px]"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        } @empty {
+          <app-empty-state
+            title="Recycle Bin is Empty"
+            description="No deleted records found in trash."
+            icon="fi fi-rr-trash text-slate-600"
+          />
+        }
+      </div>
+
+      <!-- Footer info -->
+      <div
+        class="border-t border-white/10 pt-3 text-[10px] text-slate-500 flex items-center justify-between"
+      >
+        <span>Auto-purges items after 30 days</span>
+        <button (click)="close()" class="text-slate-400 hover:text-white font-bold cursor-pointer">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+}

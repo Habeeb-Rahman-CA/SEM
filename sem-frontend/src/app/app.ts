@@ -14,6 +14,7 @@ import { VersionHistoryDrawerComponent } from './shared/components/version-histo
 import { ToastItemComponent } from './shared/components/toast-item/toast-item';
 import { CelebrationModalComponent } from './shared/components/celebration-modal/celebration-modal';
 import { ActivityFeedComponent } from './shared/components/activity-feed/activity-feed';
+import { RecycleBinComponent } from './shared/components/recycle-bin/recycle-bin';
 
 @Component({
   selector: 'app-root',
@@ -32,12 +33,14 @@ import { ActivityFeedComponent } from './shared/components/activity-feed/activit
     ToastItemComponent,
     CelebrationModalComponent,
     ActivityFeedComponent,
+    RecycleBinComponent,
   ],
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
 export class App implements OnInit {
   uiService = inject(UiService);
+  recycleBinService = inject(RecycleBinService);
   private brandingService = inject(BrandingService);
   private previouslyFocusedElement: HTMLElement | null = null;
 

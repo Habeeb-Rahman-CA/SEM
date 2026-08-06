@@ -24,8 +24,27 @@
 <!-- Platform Activity Feed & Timeline Drawer -->
 <app-activity-feed />
 
+<!-- Recycle Bin & Trash Restore Drawer -->
+<app-recycle-bin />
+
 <!-- Floating Accessibility & Density Toolbar -->
 <div class="fixed bottom-6 right-6 z-[999] flex items-center gap-2 pointer-events-auto">
+  <!-- Recycle Bin Trigger Button -->
+  <button
+    type="button"
+    (click)="recycleBinService.openRecycleBin()"
+    class="p-3 bg-slate-900/90 hover:bg-slate-800 border border-white/10 backdrop-blur-md rounded-2xl shadow-2xl text-xs font-bold text-white flex items-center gap-1.5 transition hover:scale-105 cursor-pointer relative"
+    title="Open Recycle Bin & Trash Restore"
+  >
+    <i class="fi fi-rr-trash text-rose-400"></i>
+    @if (recycleBinService.trashCount() > 0) {
+      <span
+        class="px-1.5 py-0.5 rounded-full bg-rose-500 text-white font-mono text-[9px] font-black leading-none"
+      >
+        {{ recycleBinService.trashCount() }}
+      </span>
+    }
+  </button>
   <!-- Accessibility Font Size Cycle Button -->
   <button
     type="button"
