@@ -180,6 +180,17 @@ export class CommandPaletteComponent {
       },
     },
     {
+      id: 'open-version-history',
+      label: 'Open Version History Manager (Google Docs Style Revisions)',
+      category: 'Navigation',
+      icon: 'fi fi-rr-time-past',
+      shortcut: '⌘H',
+      action: () => {
+        this.close();
+        this.router.navigate(['/workspaces/default-ws/version-history']);
+      },
+    },
+    {
       id: 'open-hall-of-fame',
       label: 'Open Hall of Fame & Legends',
       category: 'Navigation',

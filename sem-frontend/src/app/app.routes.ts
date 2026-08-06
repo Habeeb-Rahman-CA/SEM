@@ -127,6 +127,14 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
   {
+    path: 'workspaces/:id/version-history',
+    loadComponent: () =>
+      import('./features/version-history/pages/version-history-manager/version-history-manager').then(
+        (m) => m.VersionHistoryManagerComponent,
+      ),
+    canActivate: [authGuard],
+  },
+  {
     path: 'workspaces/:id/ads',
     loadComponent: () =>
       import('./features/ads/pages/ad-list/ad-list').then((m) => m.AdListComponent),
