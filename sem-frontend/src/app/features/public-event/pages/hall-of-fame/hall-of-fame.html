@@ -1,0 +1,585 @@
+<div class="min-h-screen bg-slate-950 text-white font-sans overflow-x-hidden">
+  <!-- Radial Ambient Glow -->
+  <div
+    class="pointer-events-none fixed inset-x-0 top-[-6rem] h-[40rem] -z-0"
+    style="
+      background:
+        radial-gradient(60% 60% at 50% 30%, rgba(245, 158, 11, 0.15), transparent 70%),
+        radial-gradient(40% 40% at 20% 60%, rgba(139, 92, 246, 0.15), transparent 70%);
+    "
+    aria-hidden="true"
+  ></div>
+
+  <app-landing-header backUrl="/events"></app-landing-header>
+
+  <div class="relative max-w-6xl mx-auto px-5 sm:px-8 pt-24 sm:pt-28 pb-24">
+    <!-- Title & Hero Banner -->
+    <div class="text-center max-w-3xl mx-auto mb-10">
+      <div
+        class="inline-flex items-center gap-2 text-xs font-black tracking-widest uppercase text-amber-400 bg-amber-500/10 border border-amber-500/25 px-4 py-1.5 rounded-full mb-4 shadow-lg shadow-amber-500/10"
+      >
+        <i class="fi fi-sr-trophy text-amber-400 text-sm"></i>
+        Permanent All-Time Records
+      </div>
+      <h1 class="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-white mb-4">
+        Hall of Fame
+      </h1>
+      <p class="text-sm sm:text-base text-slate-400 font-medium leading-relaxed">
+        Immortalizing the greatest achievements, longest streaks, and peak individual performances
+        across every season and competition.
+      </p>
+
+      <!-- Category Filter Tabs -->
+      <div class="flex items-center justify-center gap-2 mt-8 flex-wrap">
+        <button
+          type="button"
+          (click)="activeTab.set('all')"
+          [class]="
+            'px-4 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer border ' +
+            (activeTab() === 'all'
+              ? 'bg-amber-500/20 border-amber-500/40 text-amber-300 shadow-lg shadow-amber-500/10'
+              : 'bg-slate-900/60 border-white/5 text-slate-400 hover:text-white')
+          "
+        >
+          <i class="fi fi-rr-apps text-xs mr-1.5"></i> All Records
+        </button>
+        <button
+          type="button"
+          (click)="activeTab.set('players')"
+          [class]="
+            'px-4 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer border ' +
+            (activeTab() === 'players'
+              ? 'bg-amber-500/20 border-amber-500/40 text-amber-300 shadow-lg shadow-amber-500/10'
+              : 'bg-slate-900/60 border-white/5 text-slate-400 hover:text-white')
+          "
+        >
+          <i class="fi fi-rr-user text-xs mr-1.5"></i> Player Records
+        </button>
+        <button
+          type="button"
+          (click)="activeTab.set('teams')"
+          [class]="
+            'px-4 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer border ' +
+            (activeTab() === 'teams'
+              ? 'bg-amber-500/20 border-amber-500/40 text-amber-300 shadow-lg shadow-amber-500/10'
+              : 'bg-slate-900/60 border-white/5 text-slate-400 hover:text-white')
+          "
+        >
+          <i class="fi fi-rr-users-alt text-xs mr-1.5"></i> Team Records
+        </button>
+      </div>
+    </div>
+
+    @if (isLoading()) {
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div
+          class="rounded-3xl border border-white/10 bg-slate-900/40 p-6 h-64 animate-pulse"
+        ></div>
+        <div
+          class="rounded-3xl border border-white/10 bg-slate-900/40 p-6 h-64 animate-pulse"
+        ></div>
+        <div
+          class="rounded-3xl border border-white/10 bg-slate-900/40 p-6 h-64 animate-pulse"
+        ></div>
+      </div>
+    } @else if (error()) {
+      <div
+        class="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-6 text-center text-sm text-rose-200 max-w-md mx-auto"
+      >
+        <i class="fi fi-rr-triangle-warning text-2xl block mb-2"></i>
+        {{ error() }}
+      </div>
+    } @else if (records(); as rec) {
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- ⚽ Most Goals Ever -->
+        @if (activeTab() === 'all' || activeTab() === 'players') {
+          <div
+            class="rounded-3xl border border-amber-500/20 bg-gradient-to-b from-slate-900 via-slate-900 to-amber-950/20 p-6 shadow-xl relative overflow-hidden flex flex-col"
+          >
+            <div class="flex items-center justify-between gap-2 mb-4 pb-3 border-b border-white/5">
+              <div class="flex items-center gap-2.5">
+                <div
+                  class="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300 shadow-md"
+                >
+                  <i class="fi fi-rr-football text-base"></i>
+                </div>
+                <div>
+                  <h3 class="text-sm font-black text-white">Most Goals Ever</h3>
+                  <p class="text-[10px] text-slate-400 font-bold">All-Time Top Scorers</p>
+                </div>
+              </div>
+              <span class="text-xs font-black text-amber-400 font-mono">⚽ Goals</span>
+            </div>
+
+            <div class="flex flex-col gap-2.5 flex-1">
+              @for (p of rec.mostGoals; track p.id; let i = $index) {
+                <a
+                  [routerLink]="['/public/players', p.id]"
+                  class="p-2.5 rounded-2xl bg-slate-950/60 border border-white/5 hover:border-amber-500/40 transition flex items-center gap-3 group"
+                >
+                  <div
+                    [class]="
+                      'w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black font-mono ' +
+                      (i === 0
+                        ? 'bg-amber-400 text-slate-950 font-extrabold shadow-md'
+                        : i === 1
+                          ? 'bg-slate-300 text-slate-950'
+                          : i === 2
+                            ? 'bg-amber-700 text-white'
+                            : 'bg-slate-800 text-slate-400')
+                    "
+                  >
+                    {{ i + 1 }}
+                  </div>
+                  <app-avatar
+                    [name]="p.username"
+                    [logoUrl]="p.avatarUrl"
+                    customClass="w-8 h-8 rounded-xl"
+                    textClass="text-xs font-bold"
+                  />
+                  <div class="flex-1 min-w-0">
+                    <div
+                      class="text-xs font-bold text-white group-hover:text-amber-300 transition truncate"
+                    >
+                      {{ p.username }}
+                    </div>
+                    <div class="text-[10px] text-slate-400 truncate">{{ p.teamName }}</div>
+                  </div>
+                  <div class="text-right">
+                    <div class="text-sm font-black text-amber-300 font-mono">{{ p.goals }}</div>
+                    <div class="text-[9px] text-slate-500 font-medium">
+                      {{ p.gamesPlayed }} games
+                    </div>
+                  </div>
+                </a>
+              } @empty {
+                <div class="py-10 text-center text-xs text-slate-500 italic">
+                  No goals recorded yet.
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- 🎯 Most Assists -->
+        @if (activeTab() === 'all' || activeTab() === 'players') {
+          <div
+            class="rounded-3xl border border-violet-500/20 bg-gradient-to-b from-slate-900 via-slate-900 to-violet-950/20 p-6 shadow-xl relative overflow-hidden flex flex-col"
+          >
+            <div class="flex items-center justify-between gap-2 mb-4 pb-3 border-b border-white/5">
+              <div class="flex items-center gap-2.5">
+                <div
+                  class="w-9 h-9 rounded-xl bg-violet-500/20 border border-violet-500/40 flex items-center justify-center text-violet-300 shadow-md"
+                >
+                  <i class="fi fi-rr-bullseye text-base"></i>
+                </div>
+                <div>
+                  <h3 class="text-sm font-black text-white">Most Assists</h3>
+                  <p class="text-[10px] text-slate-400 font-bold">All-Time Playmakers</p>
+                </div>
+              </div>
+              <span class="text-xs font-black text-violet-400 font-mono">🎯 Assists</span>
+            </div>
+
+            <div class="flex flex-col gap-2.5 flex-1">
+              @for (p of rec.mostAssists; track p.id; let i = $index) {
+                <a
+                  [routerLink]="['/public/players', p.id]"
+                  class="p-2.5 rounded-2xl bg-slate-950/60 border border-white/5 hover:border-violet-500/40 transition flex items-center gap-3 group"
+                >
+                  <div
+                    [class]="
+                      'w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black font-mono ' +
+                      (i === 0
+                        ? 'bg-amber-400 text-slate-950 font-extrabold shadow-md'
+                        : i === 1
+                          ? 'bg-slate-300 text-slate-950'
+                          : i === 2
+                            ? 'bg-amber-700 text-white'
+                            : 'bg-slate-800 text-slate-400')
+                    "
+                  >
+                    {{ i + 1 }}
+                  </div>
+                  <app-avatar
+                    [name]="p.username"
+                    [logoUrl]="p.avatarUrl"
+                    customClass="w-8 h-8 rounded-xl"
+                    textClass="text-xs font-bold"
+                  />
+                  <div class="flex-1 min-w-0">
+                    <div
+                      class="text-xs font-bold text-white group-hover:text-violet-300 transition truncate"
+                    >
+                      {{ p.username }}
+                    </div>
+                    <div class="text-[10px] text-slate-400 truncate">{{ p.teamName }}</div>
+                  </div>
+                  <div class="text-right">
+                    <div class="text-sm font-black text-violet-300 font-mono">{{ p.assists }}</div>
+                    <div class="text-[9px] text-slate-500 font-medium">
+                      {{ p.gamesPlayed }} games
+                    </div>
+                  </div>
+                </a>
+              } @empty {
+                <div class="py-10 text-center text-xs text-slate-500 italic">
+                  No assists recorded yet.
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- ⭐ Most MVP Awards -->
+        @if (activeTab() === 'all' || activeTab() === 'players') {
+          <div
+            class="rounded-3xl border border-amber-500/20 bg-gradient-to-b from-slate-900 via-slate-900 to-amber-950/20 p-6 shadow-xl relative overflow-hidden flex flex-col"
+          >
+            <div class="flex items-center justify-between gap-2 mb-4 pb-3 border-b border-white/5">
+              <div class="flex items-center gap-2.5">
+                <div
+                  class="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300 shadow-md"
+                >
+                  <i class="fi fi-sr-star text-base"></i>
+                </div>
+                <div>
+                  <h3 class="text-sm font-black text-white">Most MVP Awards</h3>
+                  <p class="text-[10px] text-slate-400 font-bold">Match Award Dominance</p>
+                </div>
+              </div>
+              <span class="text-xs font-black text-amber-400 font-mono">⭐ MVPs</span>
+            </div>
+
+            <div class="flex flex-col gap-2.5 flex-1">
+              @for (p of rec.mostMvps; track p.id; let i = $index) {
+                <a
+                  [routerLink]="['/public/players', p.id]"
+                  class="p-2.5 rounded-2xl bg-slate-950/60 border border-white/5 hover:border-amber-500/40 transition flex items-center gap-3 group"
+                >
+                  <div
+                    [class]="
+                      'w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black font-mono ' +
+                      (i === 0
+                        ? 'bg-amber-400 text-slate-950 font-extrabold shadow-md'
+                        : i === 1
+                          ? 'bg-slate-300 text-slate-950'
+                          : i === 2
+                            ? 'bg-amber-700 text-white'
+                            : 'bg-slate-800 text-slate-400')
+                    "
+                  >
+                    {{ i + 1 }}
+                  </div>
+                  <app-avatar
+                    [name]="p.username"
+                    [logoUrl]="p.avatarUrl"
+                    customClass="w-8 h-8 rounded-xl"
+                    textClass="text-xs font-bold"
+                  />
+                  <div class="flex-1 min-w-0">
+                    <div
+                      class="text-xs font-bold text-white group-hover:text-amber-300 transition truncate"
+                    >
+                      {{ p.username }}
+                    </div>
+                    <div class="text-[10px] text-slate-400 truncate">{{ p.teamName }}</div>
+                  </div>
+                  <div class="text-right">
+                    <div class="text-sm font-black text-amber-300 font-mono">{{ p.mvps }}</div>
+                    <div class="text-[9px] text-slate-500 font-medium">
+                      {{ p.gamesPlayed }} games
+                    </div>
+                  </div>
+                </a>
+              } @empty {
+                <div class="py-10 text-center text-xs text-slate-500 italic">
+                  No MVP awards recorded yet.
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- 🏆 Most Titles -->
+        @if (activeTab() === 'all' || activeTab() === 'teams') {
+          <div
+            class="rounded-3xl border border-emerald-500/20 bg-gradient-to-b from-slate-900 via-slate-900 to-emerald-950/20 p-6 shadow-xl relative overflow-hidden flex flex-col"
+          >
+            <div class="flex items-center justify-between gap-2 mb-4 pb-3 border-b border-white/5">
+              <div class="flex items-center gap-2.5">
+                <div
+                  class="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-300 shadow-md"
+                >
+                  <i class="fi fi-sr-trophy text-base"></i>
+                </div>
+                <div>
+                  <h3 class="text-sm font-black text-white">Most Titles</h3>
+                  <p class="text-[10px] text-slate-400 font-bold">Championship Victories</p>
+                </div>
+              </div>
+              <span class="text-xs font-black text-emerald-400 font-mono">🏆 Titles</span>
+            </div>
+
+            <div class="flex flex-col gap-2.5 flex-1">
+              @for (t of rec.mostTitles; track t.teamId; let i = $index) {
+                <a
+                  [routerLink]="['/public/teams', t.teamId]"
+                  class="p-2.5 rounded-2xl bg-slate-950/60 border border-white/5 hover:border-emerald-500/40 transition flex items-center gap-3 group"
+                >
+                  <div
+                    [class]="
+                      'w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black font-mono ' +
+                      (i === 0
+                        ? 'bg-amber-400 text-slate-950 font-extrabold shadow-md'
+                        : i === 1
+                          ? 'bg-slate-300 text-slate-950'
+                          : i === 2
+                            ? 'bg-amber-700 text-white'
+                            : 'bg-slate-800 text-slate-400')
+                    "
+                  >
+                    {{ i + 1 }}
+                  </div>
+                  <div
+                    class="w-8 h-8 rounded-xl bg-slate-800 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0"
+                  >
+                    @if (t.logoUrl) {
+                      <img
+                        [src]="t.logoUrl"
+                        [alt]="t.teamName"
+                        class="w-full h-full object-cover"
+                      />
+                    } @else {
+                      <span class="text-xs font-black text-slate-400">{{
+                        t.teamName.charAt(0)
+                      }}</span>
+                    }
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div
+                      class="text-xs font-bold text-white group-hover:text-emerald-300 transition truncate"
+                    >
+                      {{ t.teamName }}
+                    </div>
+                    <div class="text-[10px] text-slate-400 truncate">
+                      {{ t.finals }} finals reached
+                    </div>
+                  </div>
+                  <div class="text-right">
+                    <div class="text-sm font-black text-emerald-300 font-mono">{{ t.titles }}</div>
+                    <div class="text-[9px] text-slate-500 font-medium">Champions</div>
+                  </div>
+                </a>
+              } @empty {
+                <div class="py-10 text-center text-xs text-slate-500 italic">
+                  No championship titles recorded yet.
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- 🥇 Most Finals Reached -->
+        @if (activeTab() === 'all' || activeTab() === 'teams') {
+          <div
+            class="rounded-3xl border border-cyan-500/20 bg-gradient-to-b from-slate-900 via-slate-900 to-cyan-950/20 p-6 shadow-xl relative overflow-hidden flex flex-col"
+          >
+            <div class="flex items-center justify-between gap-2 mb-4 pb-3 border-b border-white/5">
+              <div class="flex items-center gap-2.5">
+                <div
+                  class="w-9 h-9 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-300 shadow-md"
+                >
+                  <i class="fi fi-sr-medal text-base"></i>
+                </div>
+                <div>
+                  <h3 class="text-sm font-black text-white">Most Finals</h3>
+                  <p class="text-[10px] text-slate-400 font-bold">Championship Appearances</p>
+                </div>
+              </div>
+              <span class="text-xs font-black text-cyan-400 font-mono">🥇 Finals</span>
+            </div>
+
+            <div class="flex flex-col gap-2.5 flex-1">
+              @for (t of rec.mostFinals; track t.teamId; let i = $index) {
+                <a
+                  [routerLink]="['/public/teams', t.teamId]"
+                  class="p-2.5 rounded-2xl bg-slate-950/60 border border-white/5 hover:border-cyan-500/40 transition flex items-center gap-3 group"
+                >
+                  <div
+                    [class]="
+                      'w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black font-mono ' +
+                      (i === 0
+                        ? 'bg-amber-400 text-slate-950 font-extrabold shadow-md'
+                        : i === 1
+                          ? 'bg-slate-300 text-slate-950'
+                          : i === 2
+                            ? 'bg-amber-700 text-white'
+                            : 'bg-slate-800 text-slate-400')
+                    "
+                  >
+                    {{ i + 1 }}
+                  </div>
+                  <div
+                    class="w-8 h-8 rounded-xl bg-slate-800 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0"
+                  >
+                    @if (t.logoUrl) {
+                      <img
+                        [src]="t.logoUrl"
+                        [alt]="t.teamName"
+                        class="w-full h-full object-cover"
+                      />
+                    } @else {
+                      <span class="text-xs font-black text-slate-400">{{
+                        t.teamName.charAt(0)
+                      }}</span>
+                    }
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div
+                      class="text-xs font-bold text-white group-hover:text-cyan-300 transition truncate"
+                    >
+                      {{ t.teamName }}
+                    </div>
+                    <div class="text-[10px] text-slate-400 truncate">{{ t.titles }} titles won</div>
+                  </div>
+                  <div class="text-right">
+                    <div class="text-sm font-black text-cyan-300 font-mono">{{ t.finals }}</div>
+                    <div class="text-[9px] text-slate-500 font-medium">Finals</div>
+                  </div>
+                </a>
+              } @empty {
+                <div class="py-10 text-center text-xs text-slate-500 italic">
+                  No finals appearances recorded yet.
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- 🔥 Longest Winning Streak -->
+        @if (activeTab() === 'all' || activeTab() === 'teams') {
+          <div
+            class="rounded-3xl border border-rose-500/20 bg-gradient-to-b from-slate-900 via-slate-900 to-rose-950/20 p-6 shadow-xl relative overflow-hidden flex flex-col"
+          >
+            <div class="flex items-center justify-between gap-2 mb-4 pb-3 border-b border-white/5">
+              <div class="flex items-center gap-2.5">
+                <div
+                  class="w-9 h-9 rounded-xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-300 shadow-md"
+                >
+                  <i class="fi fi-sr-flame text-base"></i>
+                </div>
+                <div>
+                  <h3 class="text-sm font-black text-white">Longest Win Streak</h3>
+                  <p class="text-[10px] text-slate-400 font-bold">Unbeaten Match Streaks</p>
+                </div>
+              </div>
+              <span class="text-xs font-black text-rose-400 font-mono">🔥 Wins</span>
+            </div>
+
+            <div class="flex flex-col gap-2.5 flex-1">
+              @for (t of rec.longestStreak; track t.teamId; let i = $index) {
+                <a
+                  [routerLink]="['/public/teams', t.teamId]"
+                  class="p-2.5 rounded-2xl bg-slate-950/60 border border-white/5 hover:border-rose-500/40 transition flex items-center gap-3 group"
+                >
+                  <div
+                    [class]="
+                      'w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black font-mono ' +
+                      (i === 0
+                        ? 'bg-amber-400 text-slate-950 font-extrabold shadow-md'
+                        : i === 1
+                          ? 'bg-slate-300 text-slate-950'
+                          : i === 2
+                            ? 'bg-amber-700 text-white'
+                            : 'bg-slate-800 text-slate-400')
+                    "
+                  >
+                    {{ i + 1 }}
+                  </div>
+                  <div
+                    class="w-8 h-8 rounded-xl bg-slate-800 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0"
+                  >
+                    @if (t.logoUrl) {
+                      <img [src]="t.logoUrl" [alt]="t.name" class="w-full h-full object-cover" />
+                    } @else {
+                      <span class="text-xs font-black text-slate-400">{{ t.name.charAt(0) }}</span>
+                    }
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div
+                      class="text-xs font-bold text-white group-hover:text-rose-300 transition truncate"
+                    >
+                      {{ t.name }}
+                    </div>
+                    <div class="text-[10px] text-slate-400 truncate">Streak Record</div>
+                  </div>
+                  <div class="text-right">
+                    <div class="text-sm font-black text-rose-300 font-mono">{{ t.max }}</div>
+                    <div class="text-[9px] text-slate-500 font-medium">consecutive wins</div>
+                  </div>
+                </a>
+              } @empty {
+                <div class="py-10 text-center text-xs text-slate-500 italic">
+                  No winning streaks recorded yet.
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- ⚡ Fastest Goal Record Badge Card -->
+        <div
+          class="md:col-span-2 lg:col-span-3 rounded-3xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-slate-900 to-violet-950/20 p-6 sm:p-8 shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-6"
+        >
+          <div class="flex items-center gap-4">
+            <div
+              class="w-14 h-14 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300 text-2xl shadow-xl flex-shrink-0"
+            >
+              ⚡
+            </div>
+            <div>
+              <div
+                class="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-amber-300 bg-amber-500/15 border border-amber-500/30 rounded-full px-2.5 py-0.5 mb-1.5"
+              >
+                All-Time Record
+              </div>
+              <h3 class="text-xl sm:text-2xl font-black text-white">Fastest Goal Scored</h3>
+              <p class="text-xs text-slate-400 mt-1">
+                The fastest goal ever recorded in official match history.
+              </p>
+            </div>
+          </div>
+
+          @if (rec.fastestGoal; as fg) {
+            <div
+              class="bg-slate-950/80 border border-amber-500/30 rounded-2xl p-4 flex items-center gap-4 shadow-inner min-w-[240px]"
+            >
+              <div class="text-center">
+                <div class="text-2xl font-black text-amber-400 font-mono">
+                  {{ formatGoalTime(fg.minute, fg.second) }}
+                </div>
+                <div class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+                  Time Elapsed
+                </div>
+              </div>
+              <div class="h-8 w-px bg-white/10"></div>
+              <div class="min-w-0 flex-1">
+                <div class="text-xs font-bold text-white truncate">{{ fg.playerName }}</div>
+                <div class="text-[10px] text-slate-400 truncate">{{ fg.teamName }}</div>
+                <a
+                  [routerLink]="['/public/matches', fg.matchId]"
+                  class="text-[9px] font-bold text-violet-400 hover:underline flex items-center gap-1 mt-0.5"
+                >
+                  View match <i class="fi fi-rr-arrow-small-right"></i>
+                </a>
+              </div>
+            </div>
+          } @else {
+            <div class="text-xs text-slate-500 italic">No fastest goal record logged yet.</div>
+          }
+        </div>
+      </div>
+    }
+  </div>
+</div>

@@ -38,6 +38,14 @@
         Live scores
       </a>
       <a
+        routerLink="/hall-of-fame"
+        routerLinkActive="text-white font-bold"
+        class="hover:text-white transition inline-flex items-center gap-1.5 cursor-pointer"
+      >
+        <i class="fi fi-sr-trophy text-amber-400 text-xs"></i>
+        Hall of Fame
+      </a>
+      <a
         routerLink="/pricing"
         routerLinkActive="text-white font-bold"
         class="hover:text-white transition cursor-pointer"
@@ -135,6 +143,15 @@
       >
         <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
         Live scores
+      </a>
+      <a
+        routerLink="/hall-of-fame"
+        routerLinkActive="text-white font-bold bg-white/10"
+        (click)="closeMobileMenu()"
+        class="px-4 py-3 rounded-xl hover:text-white hover:bg-white/5 transition flex items-center gap-3 cursor-pointer"
+      >
+        <i class="fi fi-sr-trophy text-amber-400 text-base"></i>
+        Hall of Fame
       </a>
       <a
         routerLink="/pricing"

@@ -128,6 +128,14 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/subscriptions/pages/pricing/pricing').then((m) => m.PricingComponent),
   },
+  // Hall of Fame — permanent all-time records across every season
+  {
+    path: 'hall-of-fame',
+    loadComponent: () =>
+      import('./features/public-event/pages/hall-of-fame/hall-of-fame').then(
+        (m) => m.HallOfFameComponent,
+      ),
+  },
   {
     path: 'public/events/:id',
     loadComponent: () =>

@@ -13,6 +13,17 @@ import { PlayersService } from './players.service';
 export class PublicPlayersController {
   constructor(private readonly playersService: PlayersService) {}
 
+  @Get('hall-of-fame')
+  @ApiOperation({
+    summary: 'Get all-time Hall of Fame permanent records',
+    description:
+      'Returns all-time permanent records across all seasons: Most Goals, Most Assists, Most Titles, Most Finals, Most MVPs, Fastest Goal, and Longest Winning Streak.',
+  })
+  @ApiResponse({ status: 200, description: 'Hall of fame records object' })
+  async getHallOfFame() {
+    return this.playersService.getHallOfFame();
+  }
+
   @Get(':playerId')
   @ApiOperation({
     summary: 'Get public player profile',
