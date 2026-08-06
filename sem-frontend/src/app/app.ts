@@ -17,8 +17,8 @@ import { ActivityFeedComponent } from './shared/components/activity-feed/activit
 import { RecycleBinComponent } from './shared/components/recycle-bin/recycle-bin';
 import { SmartSuggestionToastComponent } from './shared/components/smart-suggestion-toast/smart-suggestion-toast';
 import { DuplicateWarningModalComponent } from './shared/components/duplicate-warning-modal/duplicate-warning-modal';
-import { FloatingActionButtonComponent } from './shared/components/floating-action-button/floating-action-button';
 import { QuickPreviewModalComponent } from './shared/components/quick-preview-modal/quick-preview-modal';
+import { SessionRestoreService } from './core/services/session-restore.service';
 
 @Component({
   selector: 'app-root',
@@ -49,6 +49,7 @@ import { QuickPreviewModalComponent } from './shared/components/quick-preview-mo
 export class App implements OnInit {
   uiService = inject(UiService);
   recycleBinService = inject(RecycleBinService);
+  sessionRestoreService = inject(SessionRestoreService);
   private brandingService = inject(BrandingService);
   private previouslyFocusedElement: HTMLElement | null = null;
 

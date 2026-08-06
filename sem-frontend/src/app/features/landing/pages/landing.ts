@@ -12,6 +12,8 @@ import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../auth/services/auth.service';
 import { LandingHeaderComponent } from '../../../layouts/landing-header/landing-header';
 
+import { SessionRestoreService } from '../../../core/services/session-restore.service';
+
 interface FeatureCard {
   icon: string;
   title: string;
@@ -126,10 +128,16 @@ export class LandingComponent implements OnInit, AfterViewInit {
     { code: 'custom', label: 'Custom sports', icon: 'fi-rr-trophy' },
   ];
 
+  private sessionRestore = inject(SessionRestoreService);
+
   ngOnInit() {
-    // Signed-in users skip the marketing page and go straight into the app.
+    // Signed-in users skip the marketing page and restore their previous session or go to workspaces.
     if (this.auth.isAuthenticated()) {
-      void this.router.navigate(['/workspaces']);
+      this.sessionRestore.restoreSessionIfAvailable().then((restored) => {
+        if (!restored) {
+          void this.router.navigate(['/workspaces']);
+        }
+      });
     }
   }
 

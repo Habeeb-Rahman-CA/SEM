@@ -38,6 +38,7 @@ import { CompetitionService } from '../../competitions/services/competition.serv
 import { MatchLockService } from '../services/match-lock.service';
 import { WorkspaceCrudService } from '../services/workspace-crud.service';
 import { RecentlyViewedService } from '../../../core/services/recently-viewed.service';
+import { SessionRestoreService } from '../../../core/services/session-restore.service';
 
 import { PlayerModalComponent } from '../../players/components/player-modal';
 import { VenueModalComponent } from '../../venues/components/venue-modal';
@@ -116,6 +117,7 @@ export class WorkspaceDetailComponent implements OnInit {
   private matchLock = inject(MatchLockService);
   private crud = inject(WorkspaceCrudService);
   private recentlyViewedService = inject(RecentlyViewedService);
+  private sessionRestore = inject(SessionRestoreService);
 
   // ── Core workspace state ───────────────────────────────────────────────────
   workspace = signal<Workspace | null>(null);
@@ -204,13 +206,15 @@ export class WorkspaceDetailComponent implements OnInit {
   private currentSubscribedWorkspaceId: string | null = null;
 
   constructor() {
-    // When the top-level tab changes, clear any deep selections that only
-    // make sense inside their own tab (team detail, player detail, file).
+    // When the top-level tab changes, clear any deep selections and persist tab state
     effect(() => {
-      this.activeTab();
+      const tab = this.activeTab();
       this.selectedTeamId.set(null);
       this.selectedPlayerId.set(null);
       this.selectedFileId.set(null);
+      if (tab) {
+        void this.sessionRestore.saveTabState(tab);
+      }
     });
 
     effect(
@@ -254,7 +258,12 @@ export class WorkspaceDetailComponent implements OnInit {
     );
   }
 
-  ngOnInit() {
+  async ngOnInit() {
+    const savedTab = await this.sessionRestore.getTabState();
+    if (savedTab) {
+      this.activeTab.set(savedTab as WorkspaceTab);
+    }
+
     this.loadInvitationsAndNotifications();
     this.loadAllWorkspaces();
 

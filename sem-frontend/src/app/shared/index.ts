@@ -52,6 +52,7 @@ export { RecycleBinService } from '../core/services/recycle-bin.service';
 export { SmartSuggestionsService } from '../core/services/smart-suggestions.service';
 export { DuplicateDetectionService } from '../core/services/duplicate-detection.service';
 export { QuickPreviewService } from '../core/services/quick-preview.service';
+export { SessionRestoreService } from '../core/services/session-restore.service';
 
 // ── Type re-exports ───────────────────────────────────────────────────────────
 export type { ButtonVariant, ButtonSize } from './components/button/button';

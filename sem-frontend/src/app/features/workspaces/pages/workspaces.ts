@@ -13,6 +13,7 @@ import { AuthService } from '../../auth/services/auth.service';
 import { UiService } from '../../../core/services/ui.service';
 import { SocketService } from '../../../core/services/socket.service';
 import { ConfettiService } from '../../../core/services/confetti.service';
+import { SessionRestoreService } from '../../../core/services/session-restore.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AvatarComponent } from '../../../shared/components/avatar/avatar';
 import { ButtonComponent } from '../../../shared/components/button/button';
@@ -65,6 +66,8 @@ export class WorkspacesComponent implements OnInit {
     () => this.pendingInvitations().length + this.unreadNotificationsCount(),
   );
 
+  private sessionRestore = inject(SessionRestoreService);
+
   ngOnInit() {
     this.socketService.notification$
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -74,11 +77,13 @@ export class WorkspacesComponent implements OnInit {
       });
 
     this.workspaceService.getAll().subscribe({
-      next: (data) => {
+      next: async (data) => {
         this.workspaces.set(data);
         this.isLoading.set(false);
-        // If user has 1 or more workspaces, redirect to their configured default workspace (or first workspace)
-        if (data.length > 0) {
+
+        // Attempt session restore first to reopen where the user left off
+        const restored = await this.sessionRestore.restoreSessionIfAvailable();
+        if (!restored && data.length > 0) {
           const defaultWsId = this.authService.getDefaultWorkspaceId();
           const targetWs = (defaultWsId && data.find((w) => w.id === defaultWsId)) || data[0];
           this.router.navigate(['/workspaces', targetWs.id], { replaceUrl: true });
