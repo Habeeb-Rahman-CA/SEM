@@ -17,8 +17,9 @@
         <i class="fi fi-rr-form text-amber-400"></i> No-Code Dynamic Forms Builder
       </h1>
       <p class="text-sm text-slate-400 mt-1 max-w-2xl">
-        Create custom forms without writing code. Drag & drop text fields, dropdowns, checkboxes,
-        dates, and file uploads for registrations, surveys, and HR workflows.
+        Create custom forms without writing code. Control
+        <strong>WHERE, WHEN, and HOW</strong> forms appear on public registration portals, player
+        dashboards, post-match surveys, or standalone shareable URLs.
       </p>
     </div>
 
@@ -29,7 +30,7 @@
         class="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-amber-500/20 transition flex items-center gap-1.5 cursor-pointer border border-amber-400/50"
       >
         <i class="fi fi-rr-plus"></i>
-        Build Custom Form
+        Build & Deploy Custom Form
       </button>
     </div>
   </div>
@@ -66,7 +67,7 @@
           </span>
         </div>
 
-        <div class="flex flex-col gap-3">
+        <div class="flex flex-col gap-3 max-h-[600px] overflow-y-auto pr-1">
           @for (form of forms(); track form.id) {
             <div
               (click)="selectForm(form)"
@@ -86,8 +87,16 @@
                 >
                   {{ form.category }}
                 </span>
-                <span class="text-[10px] font-mono text-slate-400 font-bold">
-                  {{ form.fields.length }} Fields
+
+                <span
+                  [class]="
+                    'px-2 py-0.5 text-[9px] font-black rounded uppercase border ' +
+                    (form.status === 'published'
+                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                      : 'bg-slate-800 text-slate-400 border-white/10')
+                  "
+                >
+                  {{ form.status }}
                 </span>
               </div>
 
@@ -95,15 +104,19 @@
                 {{ form.title }}
               </h4>
 
-              <p class="text-xs text-slate-400 line-clamp-2">
-                {{ form.description }}
-              </p>
+              <!-- Where & When Placement Badge -->
+              <div
+                class="flex items-center gap-1.5 text-[10px] font-bold text-amber-300/90 bg-amber-500/10 px-2.5 py-1 rounded-xl border border-amber-500/20"
+              >
+                <i [class]="placementIcon(form.placement) + ' text-xs text-amber-400'"></i>
+                <span class="truncate">{{ placementLabel(form.placement) }}</span>
+              </div>
 
               <div
                 class="flex items-center justify-between text-[10px] font-mono text-slate-500 pt-1 border-t border-white/5"
               >
+                <span>{{ form.fields.length }} Fields</span>
                 <span>Created {{ form.createdAt | date: 'shortDate' }}</span>
-                <span class="text-amber-400 font-bold">Interactive</span>
               </div>
             </div>
           }
@@ -121,14 +134,26 @@
               class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4 mb-6"
             >
               <div>
-                <span
-                  [class]="
-                    'px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider rounded-lg border inline-block mb-1 ' +
-                    categoryBadge(activeForm.category)
-                  "
-                >
-                  {{ activeForm.category }} Form
-                </span>
+                <div class="flex items-center gap-2 mb-1">
+                  <span
+                    [class]="
+                      'px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider rounded-lg border ' +
+                      categoryBadge(activeForm.category)
+                    "
+                  >
+                    {{ activeForm.category }} Form
+                  </span>
+                  <span
+                    [class]="
+                      'px-2 py-0.5 text-[10px] font-black uppercase tracking-wider rounded-lg border ' +
+                      (activeForm.status === 'published'
+                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                        : 'bg-slate-800 text-slate-400 border-white/10')
+                    "
+                  >
+                    Status: {{ activeForm.status }}
+                  </span>
+                </div>
                 <h2 class="text-xl font-black text-white">
                   {{ activeForm.title }}
                 </h2>
@@ -152,6 +177,19 @@
                   "
                 >
                   <i class="fi fi-rr-eye"></i> Form Preview
+                </button>
+
+                <button
+                  type="button"
+                  (click)="activeView.set('placement')"
+                  [class]="
+                    'px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ' +
+                    (activeView() === 'placement'
+                      ? 'bg-amber-500 text-slate-950 font-black'
+                      : 'text-slate-400 hover:text-white')
+                  "
+                >
+                  <i class="fi fi-rr-share"></i> Where & How
                 </button>
 
                 <button
@@ -280,7 +318,152 @@
               </form>
             }
 
-            <!-- TAB 2: RESPONSES DATA -->
+            <!-- TAB 2: WHERE, WHEN & HOW DEPLOYMENT SETTINGS -->
+            @if (activeView() === 'placement') {
+              <div class="flex flex-col gap-6">
+                <!-- Deployment Info Banner -->
+                <div
+                  class="p-5 bg-slate-950 rounded-2xl border border-white/10 flex flex-col gap-4"
+                >
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                      <div
+                        class="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-lg border border-amber-500/30"
+                      >
+                        <i [class]="placementIcon(activeForm.placement)"></i>
+                      </div>
+                      <div>
+                        <div class="text-xs uppercase font-bold text-slate-400">
+                          Assigned Target Placement
+                        </div>
+                        <div class="text-base font-black text-white">
+                          {{ placementLabel(activeForm.placement) }}
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      (click)="togglePublishStatus(activeForm)"
+                      [class]="
+                        'px-4 py-2 text-xs font-black rounded-xl transition cursor-pointer flex items-center gap-1.5 border ' +
+                        (activeForm.status === 'published'
+                          ? 'bg-rose-500/20 text-rose-300 border-rose-500/30 hover:bg-rose-500/30'
+                          : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/30')
+                      "
+                    >
+                      <i
+                        [class]="
+                          activeForm.status === 'published'
+                            ? 'fi fi-rr-cross-circle'
+                            : 'fi fi-rr-play-alt'
+                        "
+                      ></i>
+                      {{
+                        activeForm.status === 'published' ? 'Unpublish Form' : 'Publish Live Now'
+                      }}
+                    </button>
+                  </div>
+
+                  <!-- Details Grid -->
+                  <div
+                    class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs pt-3 border-t border-white/5"
+                  >
+                    <div>
+                      <span class="text-[10px] uppercase font-bold text-slate-500 block"
+                        >WHERE Displayed</span
+                      >
+                      <span class="font-bold text-slate-200">{{
+                        placementLabel(activeForm.placement)
+                      }}</span>
+                    </div>
+                    <div>
+                      <span class="text-[10px] uppercase font-bold text-slate-500 block"
+                        >WHEN Prompted</span
+                      >
+                      <span class="font-bold text-slate-200">
+                        {{
+                          activeForm.placement === 'public_portal'
+                            ? 'During Player/Team Registration'
+                            : activeForm.placement === 'post_match_survey'
+                              ? 'Immediately After Match Whistle'
+                              : 'On Demand / Persistent'
+                        }}
+                      </span>
+                    </div>
+                    <div>
+                      <span class="text-[10px] uppercase font-bold text-slate-500 block"
+                        >Published Date</span
+                      >
+                      <span class="font-bold font-mono text-amber-400">{{
+                        activeForm.publishedAt
+                          ? (activeForm.publishedAt | date: 'mediumDate')
+                          : 'Not Published'
+                      }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Share & Embed Controls -->
+                <div
+                  class="p-5 bg-slate-950 rounded-2xl border border-white/10 flex flex-col gap-4"
+                >
+                  <h4 class="text-xs font-black uppercase text-amber-400 flex items-center gap-1.5">
+                    <i class="fi fi-rr-share text-xs"></i> How to Share & Embed Form
+                  </h4>
+
+                  <div class="flex flex-col gap-3">
+                    <div>
+                      <label class="block text-xs font-bold text-slate-300 mb-1"
+                        >Direct Shareable Public Link (No Login Required)</label
+                      >
+                      <div class="flex items-center gap-2">
+                        <input
+                          type="text"
+                          readonly
+                          [value]="'/public/forms/' + activeForm.id"
+                          class="w-full px-3 py-2 bg-slate-900 border border-white/10 rounded-xl text-xs text-amber-300 font-mono outline-none"
+                        />
+                        <button
+                          type="button"
+                          (click)="copyShareableLink(activeForm)"
+                          class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black rounded-xl transition cursor-pointer flex items-center gap-1 whitespace-nowrap"
+                        >
+                          <i class="fi fi-rr-copy"></i> Copy Link
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label class="block text-xs font-bold text-slate-300 mb-1"
+                        >HTML Embed Snippet for External Websites</label
+                      >
+                      <div class="flex items-center gap-2">
+                        <input
+                          type="text"
+                          readonly
+                          [value]="
+                            '<iframe src=\'/public/forms/' +
+                            activeForm.id +
+                            '\' width=\'100%\' height=\'600\'></iframe>'
+                          "
+                          class="w-full px-3 py-2 bg-slate-900 border border-white/10 rounded-xl text-xs text-slate-400 font-mono outline-none"
+                        />
+                        <button
+                          type="button"
+                          (click)="copyEmbedCode(activeForm)"
+                          class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1 whitespace-nowrap"
+                        >
+                          <i class="fi fi-rr-code-simple"></i> Copy Code
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            }
+
+            <!-- TAB 3: RESPONSES DATA -->
             @if (activeView() === 'responses') {
               <div class="flex flex-col gap-4">
                 @if (submissions().length === 0) {
@@ -368,7 +551,23 @@
           </select>
         </div>
 
-        <div class="sm:col-span-2">
+        <div>
+          <label class="block text-slate-400 font-bold mb-1"
+            >WHERE to Display (Target Placement)</label
+          >
+          <select
+            [ngModel]="newFormPlacement()"
+            (ngModelChange)="newFormPlacement.set($event)"
+            class="w-full px-3.5 py-2 bg-slate-950 border border-white/10 focus:border-amber-500 rounded-xl text-white outline-none"
+          >
+            <option value="public_portal">Public Event Registration Portal</option>
+            <option value="player_dashboard">Player & Team Dashboard</option>
+            <option value="post_match_survey">Post-Match & Venue Survey</option>
+            <option value="direct_link">Direct Shareable Public Link Only</option>
+          </select>
+        </div>
+
+        <div>
           <label class="block text-slate-400 font-bold mb-1">Description</label>
           <input
             type="text"
@@ -508,7 +707,7 @@
           (click)="saveCustomForm()"
           class="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-amber-500/20 transition cursor-pointer border border-amber-400/50"
         >
-          Save Form Schema
+          Save & Publish Form Schema
         </button>
       </div>
     </div>

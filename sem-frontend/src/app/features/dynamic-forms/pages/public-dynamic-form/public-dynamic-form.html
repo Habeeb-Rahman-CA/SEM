@@ -1,0 +1,155 @@
+<div
+  class="min-h-screen bg-slate-950 text-white flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8"
+>
+  <div class="max-w-xl w-full mx-auto space-y-8">
+    @if (isLoading()) {
+      <div class="py-20 flex flex-col items-center justify-center gap-3">
+        <div
+          class="w-8 h-8 rounded-full border-2 border-amber-400/20 border-t-amber-400 animate-spin"
+        ></div>
+        <span class="text-xs font-bold text-slate-400">Loading form...</span>
+      </div>
+    } @else if (error()) {
+      <div
+        class="bg-slate-900 border border-rose-500/30 rounded-3xl p-8 text-center flex flex-col items-center gap-3"
+      >
+        <i class="fi fi-rr-cross-circle text-4xl text-rose-400"></i>
+        <h2 class="text-lg font-black text-white">Form Unavailable</h2>
+        <p class="text-xs text-slate-400 max-w-sm">{{ error() }}</p>
+      </div>
+    } @else if (submittedSuccess()) {
+      <div
+        class="bg-slate-900 border border-emerald-500/30 rounded-3xl p-8 text-center flex flex-col items-center gap-4 shadow-2xl animate-in fade-in zoom-in duration-200"
+      >
+        <div
+          class="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-3xl border border-emerald-500/30"
+        >
+          <i class="fi fi-rr-check text-2xl"></i>
+        </div>
+        <h2 class="text-2xl font-black text-white">Submission Received!</h2>
+        <p class="text-xs text-slate-300">
+          Thank you for completing this form. Your response has been securely logged with Reference
+          ID:
+          <strong class="font-mono text-amber-400 block mt-1">#{{ submissionId() }}</strong>
+        </p>
+      </div>
+    } @else if (form(); as activeForm) {
+      <div class="bg-slate-900 border border-white/10 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
+        <!-- Form Header -->
+        <div class="border-b border-white/10 pb-4 text-center">
+          <span
+            class="px-3 py-1 bg-amber-500/10 text-amber-300 border border-amber-500/20 text-[10px] font-black uppercase tracking-wider rounded-xl inline-block mb-2"
+          >
+            TAISEN PUBLIC FORM PORTAL
+          </span>
+          <h1 class="text-2xl font-black text-white leading-tight">
+            {{ activeForm.title }}
+          </h1>
+          <p class="text-xs text-slate-400 mt-1">
+            {{ activeForm.description }}
+          </p>
+        </div>
+
+        <!-- Dynamic Form Fields -->
+        <form (submit)="submitForm(); $event.preventDefault()" class="space-y-4">
+          @for (field of activeForm.fields; track field.id) {
+            <div class="p-4 bg-slate-950 rounded-2xl border border-white/5 space-y-2">
+              <label class="block text-xs font-black text-slate-200 flex items-center gap-1.5">
+                <i [class]="fieldIcon(field.type) + ' text-amber-400'"></i>
+                {{ field.label }}
+                @if (field.required) {
+                  <span class="text-rose-400 text-sm font-bold">*</span>
+                }
+              </label>
+
+              <!-- Text Field -->
+              @if (field.type === 'text') {
+                <input
+                  type="text"
+                  [placeholder]="field.placeholder || 'Enter response...'"
+                  [ngModel]="formData()[field.id]"
+                  (ngModelChange)="updateField(field.id, $event)"
+                  [name]="field.id"
+                  [required]="field.required"
+                  class="w-full px-3.5 py-2.5 bg-slate-900 border border-white/10 focus:border-amber-500 rounded-xl text-xs text-white outline-none"
+                />
+              }
+
+              <!-- Dropdown Select -->
+              @if (field.type === 'dropdown') {
+                <select
+                  [ngModel]="formData()[field.id]"
+                  (ngModelChange)="updateField(field.id, $event)"
+                  [name]="field.id"
+                  [required]="field.required"
+                  class="w-full px-3.5 py-2.5 bg-slate-900 border border-white/10 focus:border-amber-500 rounded-xl text-xs text-white outline-none"
+                >
+                  <option value="" disabled selected>-- Select Option --</option>
+                  @for (opt of field.options; track opt) {
+                    <option [value]="opt">{{ opt }}</option>
+                  }
+                </select>
+              }
+
+              <!-- Date Field -->
+              @if (field.type === 'date') {
+                <input
+                  type="date"
+                  [ngModel]="formData()[field.id]"
+                  (ngModelChange)="updateField(field.id, $event)"
+                  [name]="field.id"
+                  [required]="field.required"
+                  class="w-full px-3.5 py-2.5 bg-slate-900 border border-white/10 focus:border-amber-500 rounded-xl text-xs text-white outline-none"
+                />
+              }
+
+              <!-- Checkbox Field -->
+              @if (field.type === 'checkbox') {
+                <label class="flex items-center gap-2 cursor-pointer text-xs text-slate-300">
+                  <input
+                    type="checkbox"
+                    [ngModel]="formData()[field.id]"
+                    (ngModelChange)="updateField(field.id, $event)"
+                    [name]="field.id"
+                    class="w-4 h-4 accent-amber-500 rounded cursor-pointer"
+                  />
+                  <span>I agree to the terms specified in this field</span>
+                </label>
+              }
+
+              <!-- File Upload Field -->
+              @if (field.type === 'file') {
+                <div
+                  class="p-4 border border-dashed border-white/20 rounded-xl bg-slate-900/50 flex items-center justify-between"
+                >
+                  <div class="flex items-center gap-3">
+                    <i class="fi fi-rr-file-upload text-xl text-amber-400"></i>
+                    <div>
+                      <div class="text-xs font-bold text-white">Upload Document Attachment</div>
+                      <div class="text-[10px] text-slate-500">PDF, PNG, JPG up to 10MB</div>
+                    </div>
+                  </div>
+                  <input
+                    type="file"
+                    (change)="updateField(field.id, 'uploaded_document.pdf')"
+                    class="text-xs text-slate-400 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-amber-500 file:text-slate-950 cursor-pointer"
+                  />
+                </div>
+              }
+            </div>
+          }
+
+          <div class="pt-4 border-t border-white/10">
+            <button
+              type="submit"
+              class="w-full py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-sm rounded-xl shadow-lg shadow-amber-500/20 transition flex items-center justify-center gap-2 cursor-pointer border border-amber-400/50"
+            >
+              <i class="fi fi-rr-paper-plane"></i>
+              Submit Completed Form
+            </button>
+          </div>
+        </form>
+      </div>
+    }
+  </div>
+</div>

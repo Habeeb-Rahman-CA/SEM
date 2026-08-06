@@ -3,6 +3,9 @@ import { WorkspacesService } from '../workspaces/workspaces.service';
 
 export type FieldType = 'text' | 'dropdown' | 'checkbox' | 'date' | 'file';
 export type FormCategory = 'registration' | 'survey' | 'hr' | 'other';
+export type FormPlacement =
+  'public_portal' | 'player_dashboard' | 'post_match_survey' | 'direct_link';
+export type FormStatus = 'published' | 'draft' | 'archived';
 
 export interface FormFieldConfig {
   id: string;
@@ -10,7 +13,7 @@ export interface FormFieldConfig {
   type: FieldType;
   placeholder?: string;
   required: boolean;
-  options?: string[]; // for dropdown
+  options?: string[];
 }
 
 export interface DynamicForm {
@@ -19,6 +22,9 @@ export interface DynamicForm {
   title: string;
   description: string;
   category: FormCategory;
+  placement: FormPlacement;
+  status: FormStatus;
+  publishedAt?: string;
   fields: FormFieldConfig[];
   createdAt: string;
 }
@@ -47,8 +53,13 @@ export class DynamicFormsService {
         workspaceId: 'default-ws',
         title: 'Player & Team Registration Form 2026',
         description:
-          'No-code form for registering new tournament players and team staff.',
+          'Displayed on Public Event Registration Portal during player onboarding.',
         category: 'registration',
+        placement: 'public_portal',
+        status: 'published',
+        publishedAt: new Date(
+          Date.now() - 1000 * 60 * 60 * 24 * 7,
+        ).toISOString(),
         fields: [
           {
             id: 'field-1',
@@ -94,10 +105,15 @@ export class DynamicFormsService {
       {
         id: 'form-102',
         workspaceId: 'default-ws',
-        title: 'Post-Match Volunteer Survey',
+        title: 'Post-Match Volunteer & Pitch Survey',
         description:
-          'Feedback survey for tournament volunteers and pitch coordinators.',
+          'Prompted automatically to volunteers and pitch coordinators after match completion.',
         category: 'survey',
+        placement: 'post_match_survey',
+        status: 'published',
+        publishedAt: new Date(
+          Date.now() - 1000 * 60 * 60 * 24 * 3,
+        ).toISOString(),
         fields: [
           {
             id: 'field-201',
@@ -136,7 +152,6 @@ export class DynamicFormsService {
 
     this.formsStore.set('default-ws', defaultForms);
 
-    // Initial mock submissions
     this.submissionsStore.set('form-101', [
       {
         id: 'sub-1',
@@ -161,12 +176,19 @@ export class DynamicFormsService {
     if (userId) {
       await this.workspacesService.ensureMember(workspaceId, userId);
     }
-
     return (
       this.formsStore.get(workspaceId) ||
       this.formsStore.get('default-ws') ||
       []
     );
+  }
+
+  async getPublicForm(formId: string): Promise<DynamicForm> {
+    for (const [, forms] of this.formsStore) {
+      const found = forms.find((f) => f.id === formId);
+      if (found) return found;
+    }
+    throw new NotFoundException(`Public form "${formId}" not found`);
   }
 
   async createForm(
@@ -175,6 +197,8 @@ export class DynamicFormsService {
       title: string;
       description: string;
       category: FormCategory;
+      placement?: FormPlacement;
+      status?: FormStatus;
       fields: FormFieldConfig[];
     },
     userId?: string,
@@ -190,12 +214,42 @@ export class DynamicFormsService {
       title: payload.title,
       description: payload.description,
       category: payload.category,
+      placement: payload.placement || 'public_portal',
+      status: payload.status || 'published',
+      publishedAt: new Date().toISOString(),
       fields: payload.fields,
       createdAt: new Date().toISOString(),
     };
 
     this.formsStore.set(workspaceId, [newForm, ...currentList]);
     return newForm;
+  }
+
+  async updateFormStatus(
+    workspaceId: string,
+    formId: string,
+    status: FormStatus,
+    userId?: string,
+  ): Promise<DynamicForm> {
+    if (userId) {
+      await this.workspacesService.ensureMember(workspaceId, userId);
+    }
+
+    const list =
+      this.formsStore.get(workspaceId) ||
+      this.formsStore.get('default-ws') ||
+      [];
+    const index = list.findIndex((f) => f.id === formId);
+
+    if (index === -1) throw new NotFoundException(`Form "${formId}" not found`);
+
+    list[index].status = status;
+    if (status === 'published' && !list[index].publishedAt) {
+      list[index].publishedAt = new Date().toISOString();
+    }
+
+    this.formsStore.set(workspaceId, list);
+    return list[index];
   }
 
   async submitForm(
@@ -207,13 +261,6 @@ export class DynamicFormsService {
     if (userId) {
       await this.workspacesService.ensureMember(workspaceId, userId);
     }
-
-    const forms =
-      this.formsStore.get(workspaceId) ||
-      this.formsStore.get('default-ws') ||
-      [];
-    const form = forms.find((f) => f.id === formId);
-    if (!form) throw new NotFoundException(`Form "${formId}" not found`);
 
     const currentSubmissions = this.submissionsStore.get(formId) || [];
     const submission: FormSubmission = {
@@ -236,7 +283,6 @@ export class DynamicFormsService {
     if (userId) {
       await this.workspacesService.ensureMember(workspaceId, userId);
     }
-
     return this.submissionsStore.get(formId) || [];
   }
 }

@@ -14,6 +14,8 @@ import {
   FieldType,
   FormCategory,
   FormFieldConfig,
+  FormPlacement,
+  FormStatus,
   FormSubmission,
   FrontendDynamicFormsService,
 } from '../../services/dynamic-forms.service';
@@ -38,8 +40,8 @@ export class DynamicFormsManagerComponent implements OnInit {
   isLoading = signal<boolean>(true);
   error = signal<string | null>(null);
 
-  // Active View Tab: 'builder' | 'preview' | 'responses'
-  activeView = signal<'builder' | 'preview' | 'responses'>('preview');
+  // Active View Tab: 'preview' | 'placement' | 'responses'
+  activeView = signal<'preview' | 'placement' | 'responses'>('preview');
 
   // Interactive Form Preview Model Data
   previewFormData = signal<Record<string, any>>({});
@@ -49,6 +51,7 @@ export class DynamicFormsManagerComponent implements OnInit {
   newFormTitle = signal('');
   newFormDescription = signal('');
   newFormCategory = signal<FormCategory>('registration');
+  newFormPlacement = signal<FormPlacement>('public_portal');
   builderFields = signal<FormFieldConfig[]>([
     { id: 'f-1', label: 'Full Name', type: 'text', placeholder: 'Enter full name', required: true },
     {
@@ -104,6 +107,36 @@ export class DynamicFormsManagerComponent implements OnInit {
       next: (list) => this.submissions.set(list),
       error: () => this.submissions.set([]),
     });
+  }
+
+  togglePublishStatus(form: DynamicForm) {
+    const nextStatus: FormStatus = form.status === 'published' ? 'draft' : 'published';
+    this.formsService.updateFormStatus(this.workspaceId(), form.id, nextStatus).subscribe({
+      next: (updated) => {
+        this.forms.update((list) => list.map((f) => (f.id === updated.id ? updated : f)));
+        this.selectedForm.set(updated);
+        this.ui.success(
+          nextStatus === 'published'
+            ? `Published "${form.title}" live across assigned portals!`
+            : `Unpublished "${form.title}" back to draft status.`,
+        );
+      },
+      error: (err) => {
+        this.ui.error(err?.error?.message ?? 'Failed to update form status');
+      },
+    });
+  }
+
+  copyShareableLink(form: DynamicForm) {
+    const link = `${window.location.origin}/public/forms/${form.id}`;
+    navigator.clipboard.writeText(link);
+    this.ui.success('Copied public shareable link to clipboard!');
+  }
+
+  copyEmbedCode(form: DynamicForm) {
+    const embed = `<iframe src="${window.location.origin}/public/forms/${form.id}" width="100%" height="600" frameborder="0"></iframe>`;
+    navigator.clipboard.writeText(embed);
+    this.ui.success('Copied HTML embed snippet to clipboard!');
   }
 
   // Builder actions
@@ -168,12 +201,16 @@ export class DynamicFormsManagerComponent implements OnInit {
       title,
       description: this.newFormDescription().trim() || 'Custom workspace dynamic form.',
       category: this.newFormCategory(),
+      placement: this.newFormPlacement(),
+      status: 'published' as const,
       fields: this.builderFields(),
     };
 
     this.formsService.createForm(this.workspaceId(), payload).subscribe({
       next: (created) => {
-        this.ui.success(`Created dynamic form "${created.title}" without coding!`);
+        this.ui.success(
+          `Created dynamic form "${created.title}" and published to ${this.placementLabel(created.placement)}!`,
+        );
         this.closeBuilderModal();
         this.newFormTitle.set('');
         this.newFormDescription.set('');
@@ -211,5 +248,13 @@ export class DynamicFormsManagerComponent implements OnInit {
 
   categoryBadge(cat: FormCategory): string {
     return this.formsService.getCategoryBadgeClass(cat);
+  }
+
+  placementLabel(p: FormPlacement): string {
+    return this.formsService.getPlacementLabel(p);
+  }
+
+  placementIcon(p: FormPlacement): string {
+    return this.formsService.getPlacementIcon(p);
   }
 }

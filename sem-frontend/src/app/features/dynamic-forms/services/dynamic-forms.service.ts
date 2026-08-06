@@ -6,6 +6,9 @@ import { AuthService } from '../../auth/services/auth.service';
 
 export type FieldType = 'text' | 'dropdown' | 'checkbox' | 'date' | 'file';
 export type FormCategory = 'registration' | 'survey' | 'hr' | 'other';
+export type FormPlacement =
+  'public_portal' | 'player_dashboard' | 'post_match_survey' | 'direct_link';
+export type FormStatus = 'published' | 'draft' | 'archived';
 
 export interface FormFieldConfig {
   id: string;
@@ -22,6 +25,9 @@ export interface DynamicForm {
   title: string;
   description: string;
   category: FormCategory;
+  placement: FormPlacement;
+  status: FormStatus;
+  publishedAt?: string;
   fields: FormFieldConfig[];
   createdAt: string;
 }
@@ -54,18 +60,42 @@ export class FrontendDynamicFormsService {
     });
   }
 
+  getPublicForm(formId: string): Observable<DynamicForm> {
+    return this.http.get<DynamicForm>(`${environment.apiUrl}/public/forms/${formId}`);
+  }
+
+  submitPublicForm(formId: string, formData: Record<string, any>): Observable<FormSubmission> {
+    return this.http.post<FormSubmission>(`${environment.apiUrl}/public/forms/${formId}/submit`, {
+      data: formData,
+    });
+  }
+
   createForm(
     workspaceId: string,
     payload: {
       title: string;
       description: string;
       category: FormCategory;
+      placement?: FormPlacement;
+      status?: FormStatus;
       fields: FormFieldConfig[];
     },
   ): Observable<DynamicForm> {
     return this.http.post<DynamicForm>(this.wsBase(workspaceId), payload, {
       headers: this.authHeaders,
     });
+  }
+
+  updateFormStatus(
+    workspaceId: string,
+    formId: string,
+    status: FormStatus,
+  ): Observable<DynamicForm> {
+    return this.http.post<DynamicForm>(
+      `${this.wsBase(workspaceId)}/${formId}/status`,
+      { status },
+      { headers: this.authHeaders },
+    );
   }
 
   listSubmissions(workspaceId: string, formId: string): Observable<FormSubmission[]> {
@@ -113,6 +143,36 @@ export class FrontendDynamicFormsService {
         return 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30';
       default:
         return 'bg-slate-500/15 text-slate-300 border-slate-500/30';
+    }
+  }
+
+  getPlacementLabel(placement: FormPlacement): string {
+    switch (placement) {
+      case 'public_portal':
+        return 'Public Event Registration Portal';
+      case 'player_dashboard':
+        return 'Player & Team Dashboard';
+      case 'post_match_survey':
+        return 'Post-Match & Venue Survey';
+      case 'direct_link':
+        return 'Direct Shareable Public Link';
+      default:
+        return 'Custom Location';
+    }
+  }
+
+  getPlacementIcon(placement: FormPlacement): string {
+    switch (placement) {
+      case 'public_portal':
+        return 'fi fi-rr-globe';
+      case 'player_dashboard':
+        return 'fi fi-rr-user-gear';
+      case 'post_match_survey':
+        return 'fi fi-rr-football';
+      case 'direct_link':
+        return 'fi fi-rr-link-alt';
+      default:
+        return 'fi fi-rr-apps';
     }
   }
 }

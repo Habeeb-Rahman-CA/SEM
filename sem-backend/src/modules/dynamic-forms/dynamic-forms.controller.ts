@@ -13,6 +13,8 @@ import {
   DynamicFormsService,
   FormCategory,
   FormFieldConfig,
+  FormPlacement,
+  FormStatus,
 } from './dynamic-forms.service';
 
 @ApiTags('dynamic-forms')
@@ -40,11 +42,29 @@ export class DynamicFormsController {
       title: string;
       description: string;
       category: FormCategory;
+      placement?: FormPlacement;
+      status?: FormStatus;
       fields: FormFieldConfig[];
     },
     @Request() req?: any,
   ) {
     return this.dynamicFormsService.createForm(workspaceId, dto, req?.user?.id);
+  }
+
+  @Post(':formId/status')
+  @ApiOperation({ summary: 'Update form publish/draft status' })
+  async updateFormStatus(
+    @Param('workspaceId') workspaceId: string,
+    @Param('formId') formId: string,
+    @Body() dto: { status: FormStatus },
+    @Request() req?: any,
+  ) {
+    return this.dynamicFormsService.updateFormStatus(
+      workspaceId,
+      formId,
+      dto.status,
+      req?.user?.id,
+    );
   }
 
   @Get(':formId/submissions')
