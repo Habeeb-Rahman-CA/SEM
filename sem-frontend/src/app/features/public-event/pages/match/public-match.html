@@ -172,6 +172,19 @@
             }
           </div>
 
+          <!-- Momentum Graph -->
+          <app-momentum-graph
+            [liveData]="m.liveData"
+            [homeTeamName]="m.homeTeam?.name ?? 'Home'"
+            [awayTeamName]="m.awayTeam?.name ?? 'Away'"
+            [homeScore]="m.homeScore ?? 0"
+            [awayScore]="m.awayScore ?? 0"
+            [sportCode]="m.competition.sport?.code ?? 'football'"
+            [status]="m.status"
+            [homeLogoUrl]="m.homeTeam?.logoUrl ?? null"
+            [awayLogoUrl]="m.awayTeam?.logoUrl ?? null"
+          ></app-momentum-graph>
+
           <!-- Highlight videos -->
           <div class="rounded-3xl border border-white/10 bg-slate-900 p-6 shadow-xl">
             <h2

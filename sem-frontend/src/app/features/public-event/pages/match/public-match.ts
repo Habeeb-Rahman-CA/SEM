@@ -15,6 +15,7 @@ import { ShareButtonComponent } from '../../../share/components/share-button';
 import { AvatarComponent } from '../../../../shared/components/avatar/avatar';
 import { getSportBadgeClass, getSportIconClass } from '../../../../shared';
 import { LandingHeaderComponent } from '../../../../layouts/landing-header/landing-header';
+import { MomentumGraphComponent } from '../../../../shared/components/momentum-graph/momentum-graph';
 
 interface HighlightVideo {
   id: string;
@@ -92,6 +93,7 @@ interface TimelineEvent {
     AvatarComponent,
     ShareButtonComponent,
     LandingHeaderComponent,
+    MomentumGraphComponent,
   ],
   templateUrl: './public-match.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
