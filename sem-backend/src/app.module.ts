@@ -51,6 +51,7 @@ import { ActivityTimelineModule } from './modules/activity-timeline/activity-tim
 import { CertificatesModule } from './modules/certificates/certificates.module';
 import { TrashModule } from './modules/trash/trash.module';
 import { DraftsModule } from './modules/drafts/drafts.module';
+import { SavedFiltersModule } from './modules/saved-filters/saved-filters.module';
 import { RealtimeModule } from './common/realtime/realtime.module';
 
 @Module({
@@ -157,6 +158,7 @@ import { RealtimeModule } from './common/realtime/realtime.module';
     ActivityTimelineModule,
     TrashModule,
     DraftsModule,
+    SavedFiltersModule,
   ],
   controllers: [AppController],
   providers: [

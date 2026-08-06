@@ -147,6 +147,17 @@ export class CommandPaletteComponent {
       },
     },
     {
+      id: 'open-saved-filters',
+      label: 'Open Saved Filters Manager (1-Click Presets & Views)',
+      category: 'Navigation',
+      icon: 'fi fi-rr-filter',
+      shortcut: '⌘F',
+      action: () => {
+        this.close();
+        this.router.navigate(['/workspaces/default-ws/saved-filters']);
+      },
+    },
+    {
       id: 'open-hall-of-fame',
       label: 'Open Hall of Fame & Legends',
       category: 'Navigation',

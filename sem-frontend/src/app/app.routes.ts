@@ -103,6 +103,14 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
   {
+    path: 'workspaces/:id/saved-filters',
+    loadComponent: () =>
+      import('./features/saved-filters/pages/saved-filters-manager/saved-filters-manager').then(
+        (m) => m.SavedFiltersManagerComponent,
+      ),
+    canActivate: [authGuard],
+  },
+  {
     path: 'workspaces/:id/ads',
     loadComponent: () =>
       import('./features/ads/pages/ad-list/ad-list').then((m) => m.AdListComponent),
