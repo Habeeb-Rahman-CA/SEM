@@ -12,11 +12,12 @@ import { Router } from '@angular/router';
 import { UiService } from '../../../core/services/ui.service';
 
 import { FavoritesService } from '../../../core/services/favorites.service';
+import { RecentlyViewedService } from '../../../core/services/recently-viewed.service';
 
 export interface CommandItem {
   id: string;
   label: string;
-  category: 'Favorites' | 'Actions' | 'Navigation' | 'Directory' | 'Settings';
+  category: 'Favorites' | 'Recently Opened' | 'Actions' | 'Navigation' | 'Directory' | 'Settings';
   icon: string;
   shortcut?: string;
   action: () => void;
@@ -33,6 +34,7 @@ export class CommandPaletteComponent {
   private router = inject(Router);
   private ui = inject(UiService);
   private favoritesService = inject(FavoritesService);
+  private recentlyViewedService = inject(RecentlyViewedService);
 
   isOpen = signal<boolean>(false);
   query = signal<string>('');
@@ -48,6 +50,18 @@ export class CommandPaletteComponent {
       action: () => {
         this.close();
         this.router.navigateByUrl(fav.url);
+      },
+    }));
+
+    const recent: CommandItem[] = this.recentlyViewedService.recentItems().map((item) => ({
+      id: `recent-${item.id}`,
+      label: `🕒 ${item.title} ${item.subtitle ? '(' + item.subtitle + ')' : ''}`,
+      category: 'Recently Opened' as const,
+      icon: item.icon || 'fi fi-rr-time-past',
+      shortcut: 'Recent',
+      action: () => {
+        this.close();
+        this.router.navigateByUrl(item.url);
       },
     }));
 
@@ -314,7 +328,7 @@ export class CommandPaletteComponent {
       },
     ];
 
-    return [...favs, ...standard];
+    return [...favs, ...recent, ...standard];
   });
 
   filteredCommands = computed(() => {

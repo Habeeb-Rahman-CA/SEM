@@ -58,6 +58,7 @@ import { VersionHistoryModule } from './modules/version-history/version-history.
 import { DynamicFormsModule } from './modules/dynamic-forms/dynamic-forms.module';
 import { WorkflowBuilderModule } from './modules/workflow-builder/workflow-builder.module';
 import { FavoritesModule } from './modules/favorites/favorites.module';
+import { RecentlyViewedModule } from './modules/recently-viewed/recently-viewed.module';
 import { RealtimeModule } from './common/realtime/realtime.module';
 
 @Module({
@@ -171,6 +172,7 @@ import { RealtimeModule } from './common/realtime/realtime.module';
     DynamicFormsModule,
     WorkflowBuilderModule,
     FavoritesModule,
+    RecentlyViewedModule,
   ],
   controllers: [AppController],
   providers: [
