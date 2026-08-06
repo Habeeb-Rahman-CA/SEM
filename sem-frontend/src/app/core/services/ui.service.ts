@@ -5,6 +5,8 @@ export interface Toast {
   message: string;
   type: 'success' | 'error' | 'info' | 'warning';
   duration?: number;
+  onUndo?: () => void;
+  undoCountdown?: number;
 }
 
 export interface ConfirmOptions {
@@ -47,14 +49,39 @@ export class UiService {
     message: string,
     type: 'success' | 'error' | 'info' | 'warning' = 'info',
     duration = 3000,
+    onUndo?: () => void,
   ) {
     const id = Math.random().toString(36).substring(2, 9);
-    const newToast: Toast = { id, message, type, duration };
+    const newToast: Toast = {
+      id,
+      message,
+      type,
+      duration,
+      onUndo,
+      undoCountdown: onUndo ? 10 : undefined,
+    };
     this.toasts.update((prev) => [...prev, newToast]);
+
+    if (onUndo) {
+      let secondsLeft = 10;
+      const interval = setInterval(() => {
+        secondsLeft -= 1;
+        this.toasts.update((prev) =>
+          prev.map((t) => (t.id === id ? { ...t, undoCountdown: secondsLeft } : t)),
+        );
+        if (secondsLeft <= 0) {
+          clearInterval(interval);
+        }
+      }, 1000);
+    }
 
     setTimeout(() => {
       this.removeToast(id);
     }, duration);
+  }
+
+  showUndo(message: string, onUndo: () => void, duration = 10000) {
+    this.showToast(message, 'warning', duration, onUndo);
   }
 
   success(message: string, duration = 3000) {

@@ -125,6 +125,17 @@ export class CommandPaletteComponent {
       },
     },
     {
+      id: 'open-recycle-bin',
+      label: 'Open Workspace Recycle Bin (Undo & Trash)',
+      category: 'Navigation',
+      icon: 'fi fi-rr-trash',
+      shortcut: '⌘Z',
+      action: () => {
+        this.close();
+        this.router.navigate(['/workspaces/default-ws/trash']);
+      },
+    },
+    {
       id: 'open-hall-of-fame',
       label: 'Open Hall of Fame & Legends',
       category: 'Navigation',

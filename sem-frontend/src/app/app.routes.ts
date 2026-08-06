@@ -89,6 +89,12 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
   {
+    path: 'workspaces/:id/trash',
+    loadComponent: () =>
+      import('./features/trash/pages/recycle-bin/recycle-bin').then((m) => m.RecycleBinComponent),
+    canActivate: [authGuard],
+  },
+  {
     path: 'workspaces/:id/ads',
     loadComponent: () =>
       import('./features/ads/pages/ad-list/ad-list').then((m) => m.AdListComponent),
