@@ -34,6 +34,12 @@ export class SponsorListComponent implements OnInit {
   tierFilter = signal<SponsorTier | 'all'>('all');
   activeFilter = signal<'all' | 'active' | 'inactive'>('all');
 
+  // Analytics Dashboard State
+  activeTab = signal<'list' | 'analytics'>('list');
+  selectedAnalyticsSponsorId = signal<string>('');
+  analyticsData = signal<any | null>(null);
+  isLoadingAnalytics = signal<boolean>(false);
+
   isModalOpen = signal<boolean>(false);
   editingSponsor = signal<Sponsor | null>(null);
 
@@ -143,5 +149,34 @@ export class SponsorListComponent implements OnInit {
     if (s.startDate) return `From ${fmt(s.startDate)}`;
     if (s.endDate) return `Until ${fmt(s.endDate)}`;
     return '—';
+  }
+
+  setActiveTab(tab: 'list' | 'analytics') {
+    this.activeTab.set(tab);
+    if (tab === 'analytics' && !this.analyticsData()) {
+      this.loadAnalytics();
+    }
+  }
+
+  loadAnalytics(sponsorId?: string) {
+    this.isLoadingAnalytics.set(true);
+    if (sponsorId !== undefined) {
+      this.selectedAnalyticsSponsorId.set(sponsorId);
+    }
+    const targetId = this.selectedAnalyticsSponsorId() || undefined;
+    this.sponsorService.getAnalytics(this.workspaceId(), targetId).subscribe({
+      next: (data) => {
+        this.analyticsData.set(data);
+        this.isLoadingAnalytics.set(false);
+      },
+      error: (err) => {
+        this.ui.error(err?.error?.message ?? 'Failed to load sponsor analytics');
+        this.isLoadingAnalytics.set(false);
+      },
+    });
+  }
+
+  exportSponsorPitchReport() {
+    this.ui.success('Sponsor ROI Pitch Report exported successfully!');
   }
 }

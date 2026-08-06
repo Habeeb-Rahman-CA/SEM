@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Request,
   UseGuards,
 } from '@nestjs/common';
@@ -15,6 +16,7 @@ import {
   ApiBearerAuth,
   ApiOperation,
   ApiParam,
+  ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -39,6 +41,23 @@ export class SponsorsController {
   @ApiParam({ name: 'workspaceId' })
   list(@Param('workspaceId') workspaceId: string, @Request() req: any) {
     return this.sponsorsService.listWorkspaceSponsors(workspaceId, req.user.id);
+  }
+
+  @Get('sponsors/analytics')
+  @ApiOperation({
+    summary: 'Get workspace sponsor analytics dashboard metrics',
+  })
+  @ApiQuery({ name: 'sponsorId', required: false })
+  async getAnalytics(
+    @Param('workspaceId') workspaceId: string,
+    @Query('sponsorId') sponsorId?: string,
+    @Request() req?: any,
+  ) {
+    return this.sponsorsService.getSponsorAnalytics(
+      workspaceId,
+      sponsorId,
+      req?.user?.id,
+    );
   }
 
   @Post('sponsors')

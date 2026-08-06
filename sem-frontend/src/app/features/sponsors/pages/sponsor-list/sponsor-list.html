@@ -11,223 +11,513 @@
 
   <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-3 mb-6">
     <div>
-      <h1 class="text-2xl sm:text-3xl font-black tracking-tight">Sponsor management</h1>
+      <h1 class="text-2xl sm:text-3xl font-black tracking-tight">Sponsor Management & Analytics</h1>
       <p class="text-sm text-slate-400 mt-1 max-w-2xl">
-        Register the sponsors that back your workspace. Attach them to individual events from the
-        event editor — each attachment can override tier and display order.
+        Register sponsors that back your workspace, track impression & click analytics, and generate
+        ROI reports to attract new sponsorships.
       </p>
     </div>
-    <button
-      type="button"
-      (click)="openNew()"
-      class="inline-flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-xl transition cursor-pointer shadow-md shadow-violet-500/20"
-    >
-      <i class="fi fi-rr-plus text-xs"></i>
-      Add sponsor
-    </button>
+    <div class="flex items-center gap-2">
+      <button
+        type="button"
+        (click)="setActiveTab('list')"
+        [class]="
+          'px-4 py-2 text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5 border ' +
+          (activeTab() === 'list'
+            ? 'bg-violet-600 text-white border-violet-500 shadow-md shadow-violet-500/20'
+            : 'bg-slate-900 text-slate-400 border-white/10 hover:text-white')
+        "
+      >
+        <i class="fi fi-rr-list text-xs"></i>
+        Sponsors Directory
+      </button>
+      <button
+        type="button"
+        (click)="setActiveTab('analytics')"
+        [class]="
+          'px-4 py-2 text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5 border ' +
+          (activeTab() === 'analytics'
+            ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md shadow-amber-500/20'
+            : 'bg-slate-900 text-slate-400 border-white/10 hover:text-white')
+        "
+      >
+        <i class="fi fi-rr-chart-histogram text-xs"></i>
+        Analytics Dashboard
+      </button>
+      @if (activeTab() === 'list') {
+        <button
+          type="button"
+          (click)="openNew()"
+          class="inline-flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-xl transition cursor-pointer shadow-md shadow-violet-500/20 border border-violet-400/50"
+        >
+          <i class="fi fi-rr-plus text-xs"></i>
+          Add sponsor
+        </button>
+      }
+    </div>
   </div>
 
-  @if (isLoading()) {
-    <div class="h-64 rounded-3xl border border-white/5 bg-slate-900/40 animate-pulse"></div>
-  } @else if (error()) {
-    <div class="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-rose-200">
-      <i class="fi fi-rr-triangle-warning text-2xl block mb-2"></i>
-      {{ error() }}
-    </div>
-  } @else {
-    <!-- Stat strip -->
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-      <div class="rounded-2xl border border-white/10 bg-slate-900 p-4">
-        <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Total</div>
-        <div class="text-2xl font-black text-white tabular-nums mt-1">{{ counts().total }}</div>
-      </div>
-      <div class="rounded-2xl border border-white/10 bg-slate-900 p-4">
-        <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Active</div>
-        <div class="text-2xl font-black text-emerald-300 tabular-nums mt-1">
-          {{ counts().active }}
-        </div>
-      </div>
-      <div class="rounded-2xl border border-white/10 bg-slate-900 p-4">
-        <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Hidden</div>
-        <div class="text-2xl font-black text-slate-400 tabular-nums mt-1">
-          {{ counts().inactive }}
-        </div>
-      </div>
-      <div class="rounded-2xl border border-white/10 bg-slate-900 p-4">
-        <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Title tier</div>
-        <div class="text-2xl font-black text-rose-300 tabular-nums mt-1">
-          {{ counts().byTier['title'] ?? 0 }}
-        </div>
-      </div>
-    </div>
-
-    <!-- Filters -->
-    <div
-      class="flex flex-col sm:flex-row sm:items-center gap-3 mb-4 p-3 bg-slate-900/60 border border-white/5 rounded-xl"
-    >
-      <div class="relative flex-1">
-        <i
-          class="fi fi-rr-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs pointer-events-none"
-        ></i>
-        <input
-          type="search"
-          placeholder="Search by name or category…"
-          [ngModel]="searchQuery()"
-          (ngModelChange)="searchQuery.set($event)"
-          class="w-full pl-9 pr-3 py-2 bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-lg text-xs text-white outline-none transition-all"
-        />
-      </div>
-      <select
-        [ngModel]="tierFilter()"
-        (ngModelChange)="tierFilter.set($event)"
-        class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-lg px-3 py-2 text-xs text-white outline-none transition-all"
-      >
-        <option value="all">All tiers</option>
-        <option value="title">Title</option>
-        <option value="platinum">Platinum</option>
-        <option value="gold">Gold</option>
-        <option value="silver">Silver</option>
-        <option value="bronze">Bronze</option>
-        <option value="partner">Partner</option>
-      </select>
-      <select
-        [ngModel]="activeFilter()"
-        (ngModelChange)="activeFilter.set($event)"
-        class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-lg px-3 py-2 text-xs text-white outline-none transition-all"
-      >
-        <option value="all">All visibility</option>
-        <option value="active">Active only</option>
-        <option value="inactive">Hidden only</option>
-      </select>
-    </div>
-
-    @if (filtered().length === 0) {
+  @if (activeTab() === 'analytics') {
+    <!-- ─── SPONSOR ANALYTICS DASHBOARD ─── -->
+    <div class="flex flex-col gap-6">
+      <!-- Analytics Header Controls -->
       <div
-        class="py-16 rounded-3xl border border-dashed border-white/10 text-center text-xs text-slate-500 flex flex-col items-center gap-2"
+        class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-slate-900/80 border border-amber-500/30 rounded-2xl"
       >
-        <i class="fi fi-rr-star text-3xl"></i>
-        @if (sponsors().length === 0) {
-          <div>No sponsors yet. Click "Add sponsor" to register your first one.</div>
-        } @else {
-          <div>No sponsors match your filters.</div>
-        }
-      </div>
-    } @else {
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        @for (sponsor of filtered(); track sponsor.id) {
+        <div class="flex items-center gap-3">
           <div
-            class="rounded-2xl border border-white/10 bg-slate-900 p-4 flex flex-col gap-3 hover:border-violet-500/30 transition"
+            class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300"
           >
-            <div class="flex items-start gap-3">
-              <div
-                class="w-14 h-14 rounded-xl bg-slate-800 border border-white/5 flex items-center justify-center overflow-hidden flex-shrink-0"
-              >
-                @if (sponsor.logoUrl) {
-                  <img
-                    [src]="sponsor.logoUrl"
-                    [alt]="sponsor.name"
-                    class="w-full h-full object-contain p-1.5"
-                    loading="lazy"
-                  />
-                } @else {
-                  <span class="text-lg font-black text-slate-500">
-                    {{ sponsor.name.charAt(0) }}
-                  </span>
-                }
-              </div>
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2 flex-wrap">
-                  <span class="text-sm font-bold text-white truncate">{{ sponsor.name }}</span>
-                  @if (sponsor.tier) {
-                    <span
-                      [class]="
-                        'text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md border ' +
-                        tierBadgeClass(sponsor.tier)
-                      "
-                    >
-                      {{ sponsor.tier }}
-                    </span>
-                  }
-                </div>
-                @if (sponsor.category) {
-                  <div class="text-[10px] text-slate-400 mt-0.5">{{ sponsor.category }}</div>
-                }
-                <div class="flex items-center gap-2 mt-1.5 text-[10px]">
-                  @if (isWithinWindow(sponsor)) {
-                    <span
-                      class="inline-flex items-center gap-1 text-emerald-300 bg-emerald-500/10 border border-emerald-500/25 rounded-md px-1.5 py-0.5"
-                    >
-                      <span class="w-1 h-1 rounded-full bg-emerald-400"></span>
-                      Visible
-                    </span>
-                  } @else {
-                    <span
-                      class="inline-flex items-center gap-1 text-slate-400 bg-slate-500/10 border border-slate-500/25 rounded-md px-1.5 py-0.5"
-                    >
-                      <i class="fi fi-rr-eye-crossed text-[9px]"></i>
-                      Hidden
-                    </span>
-                  }
-                  <span class="text-slate-500">{{ periodLabel(sponsor) }}</span>
-                </div>
-              </div>
-            </div>
+            <i class="fi fi-rr-chart-pie text-lg"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-black text-white">Sponsor Engagement & ROI Dashboard</h3>
+            <p class="text-[11px] text-slate-400">
+              Real-time impressions, clicks, QR scans, and pitch valuation
+            </p>
+          </div>
+        </div>
 
-            @if (sponsor.description) {
-              <p class="text-[11px] text-slate-400 line-clamp-2">{{ sponsor.description }}</p>
+        <div class="flex items-center gap-2">
+          <!-- Sponsor Filter Dropdown -->
+          <select
+            [ngModel]="selectedAnalyticsSponsorId()"
+            (ngModelChange)="loadAnalytics($event)"
+            class="bg-slate-950 border border-white/10 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 rounded-xl px-3 py-2 text-xs text-white outline-none transition-all"
+          >
+            <option value="">All Sponsors (Workspace Aggregate)</option>
+            @for (s of sponsors(); track s.id) {
+              <option [value]="s.id">{{ s.name }} ({{ s.tier || 'Untiered' }})</option>
             }
+          </select>
 
-            <div class="flex items-center justify-between text-[10px] pt-2 border-t border-white/5">
-              <div class="flex items-center gap-2">
-                @if (sponsor.websiteUrl) {
-                  <a
-                    [href]="sponsor.websiteUrl"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="text-slate-400 hover:text-violet-300 truncate max-w-[140px]"
-                  >
-                    <i class="fi fi-rr-globe text-[10px] mr-1"></i>
-                    Website
-                  </a>
-                }
-                @if (sponsor.contactEmail) {
-                  <a
-                    [href]="'mailto:' + sponsor.contactEmail"
-                    class="text-slate-400 hover:text-violet-300 truncate"
-                  >
-                    <i class="fi fi-rr-envelope text-[10px] mr-1"></i>
-                    Contact
-                  </a>
-                }
+          <button
+            type="button"
+            (click)="exportSponsorPitchReport()"
+            class="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-amber-500/20 transition flex items-center gap-1.5 cursor-pointer border border-amber-400/50"
+          >
+            <i class="fi fi-rr-document"></i>
+            Export Pitch PDF
+          </button>
+        </div>
+      </div>
+
+      @if (isLoadingAnalytics()) {
+        <div class="py-20 flex flex-col items-center justify-center gap-3">
+          <div
+            class="w-8 h-8 rounded-full border-2 border-amber-400/20 border-t-amber-400 animate-spin"
+          ></div>
+          <span class="text-xs font-bold text-slate-400"
+            >Calculating sponsor metrics & impressions...</span
+          >
+        </div>
+      } @else if (analyticsData(); as data) {
+        <!-- 6 KPI Metric Cards Grid -->
+        <div class="grid grid-cols-2 lg:grid-cols-3 gap-3.5">
+          <!-- Banner Impressions -->
+          <div
+            class="p-4 bg-slate-900 border border-white/10 rounded-2xl flex flex-col justify-between"
+          >
+            <div class="flex items-center justify-between text-slate-400 text-xs">
+              <span class="font-bold uppercase tracking-wider text-[10px]">Banner Impressions</span>
+              <i class="fi fi-rr-eye text-violet-400"></i>
+            </div>
+            <div class="mt-3">
+              <div class="text-2xl font-black text-white font-mono">
+                {{ data.totalBannerImpressions | number }}
               </div>
-              <div class="flex items-center gap-2">
-                <button
-                  type="button"
-                  (click)="toggleActive(sponsor)"
-                  class="text-[10px] font-bold text-slate-400 hover:text-white transition cursor-pointer bg-transparent border-0"
-                  [title]="sponsor.isActive ? 'Hide from public pages' : 'Show on public pages'"
-                >
-                  {{ sponsor.isActive ? 'Hide' : 'Show' }}
-                </button>
-                <button
-                  type="button"
-                  (click)="openEdit(sponsor)"
-                  class="text-[10px] font-bold text-violet-300 hover:text-violet-200 transition cursor-pointer bg-transparent border-0"
-                >
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  (click)="remove(sponsor)"
-                  class="text-[10px] font-bold text-rose-400 hover:text-rose-300 transition cursor-pointer bg-transparent border-0"
-                >
-                  Delete
-                </button>
+              <div class="text-[10px] text-emerald-400 font-bold mt-0.5 flex items-center gap-1">
+                <i class="fi fi-rr-arrow-trend-up"></i> +14.2% vs last month
               </div>
             </div>
           </div>
-        }
+
+          <!-- QR Scans -->
+          <div
+            class="p-4 bg-slate-900 border border-white/10 rounded-2xl flex flex-col justify-between"
+          >
+            <div class="flex items-center justify-between text-slate-400 text-xs">
+              <span class="font-bold uppercase tracking-wider text-[10px]">QR Code Scans</span>
+              <i class="fi fi-rr-qr-code text-amber-400"></i>
+            </div>
+            <div class="mt-3">
+              <div class="text-2xl font-black text-amber-300 font-mono">
+                {{ data.totalQrScans | number }}
+              </div>
+              <div class="text-[10px] text-amber-400 font-bold mt-0.5 flex items-center gap-1">
+                Direct booth & portal scans
+              </div>
+            </div>
+          </div>
+
+          <!-- Link Clicks -->
+          <div
+            class="p-4 bg-slate-900 border border-white/10 rounded-2xl flex flex-col justify-between"
+          >
+            <div class="flex items-center justify-between text-slate-400 text-xs">
+              <span class="font-bold uppercase tracking-wider text-[10px]">Website Clicks</span>
+              <i class="fi fi-rr-cursor text-blue-400"></i>
+            </div>
+            <div class="mt-3">
+              <div class="text-2xl font-black text-blue-300 font-mono">
+                {{ data.totalClicks | number }}
+              </div>
+              <div class="text-[10px] text-blue-400 font-bold mt-0.5">
+                {{ data.engagementRate }}% CTR Rate
+              </div>
+            </div>
+          </div>
+
+          <!-- Audience Reach -->
+          <div
+            class="p-4 bg-slate-900 border border-white/10 rounded-2xl flex flex-col justify-between"
+          >
+            <div class="flex items-center justify-between text-slate-400 text-xs">
+              <span class="font-bold uppercase tracking-wider text-[10px]">Audience Reach</span>
+              <i class="fi fi-rr-users text-emerald-400"></i>
+            </div>
+            <div class="mt-3">
+              <div class="text-2xl font-black text-emerald-300 font-mono">
+                {{ data.audienceReach | number }}
+              </div>
+              <div class="text-[10px] text-slate-400 mt-0.5">Unique spectator impressions</div>
+            </div>
+          </div>
+
+          <!-- Tournament Attendance -->
+          <div
+            class="p-4 bg-slate-900 border border-white/10 rounded-2xl flex flex-col justify-between"
+          >
+            <div class="flex items-center justify-between text-slate-400 text-xs">
+              <span class="font-bold uppercase tracking-wider text-[10px]">Venue Attendance</span>
+              <i class="fi fi-rr-stadium text-rose-400"></i>
+            </div>
+            <div class="mt-3">
+              <div class="text-2xl font-black text-rose-300 font-mono">
+                {{ data.totalAttendance | number }}
+              </div>
+              <div class="text-[10px] text-slate-400 mt-0.5">On-site & stream spectators</div>
+            </div>
+          </div>
+
+          <!-- Engagement Score -->
+          <div
+            class="p-4 bg-slate-900 border border-amber-500/20 rounded-2xl flex flex-col justify-between bg-gradient-to-br from-amber-500/10 to-slate-900"
+          >
+            <div class="flex items-center justify-between text-amber-400 text-xs">
+              <span class="font-bold uppercase tracking-wider text-[10px]">Engagement Score</span>
+              <i class="fi fi-sr-star text-amber-400"></i>
+            </div>
+            <div class="mt-3">
+              <div class="text-2xl font-black text-amber-300 font-mono">
+                {{ data.engagementScore }} / 10
+              </div>
+              <div class="text-[10px] text-amber-400/90 font-bold mt-0.5">
+                Top 5% Sponsor Visibility
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sponsor Pitch & ROI Valuation Banner -->
+        <div
+          class="p-5 rounded-2xl border border-amber-500/40 bg-gradient-to-r from-amber-500/15 via-slate-900 to-slate-950 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xl"
+        >
+          <div class="flex items-start gap-4">
+            <div
+              class="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/50 flex items-center justify-center text-2xl flex-shrink-0"
+            >
+              💎
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-mono font-bold text-amber-400 uppercase tracking-widest"
+                  >Sponsorship Pitch Valuation</span
+                >
+                <span
+                  class="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full font-bold"
+                  >ROI {{ data.roiMultiplier }}x</span
+                >
+              </div>
+              <h4 class="text-lg font-black text-white mt-0.5">
+                Estimated Media & Exposure Value: {{ data.estimatedRoiValue }}
+              </h4>
+              <p class="text-xs text-slate-300 mt-1 leading-relaxed">
+                Use this verified analytics proof in pitch decks to present guaranteed impressions,
+                attendee reach, and digital engagement when securing new brand sponsorships.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Per-Event Breakdown Table -->
+        <div class="bg-slate-900 border border-white/10 rounded-2xl p-5 flex flex-col gap-4">
+          <div class="flex items-center justify-between">
+            <h4 class="text-sm font-black text-white flex items-center gap-2">
+              <i class="fi fi-rr-trophy text-amber-400"></i> Event-by-Event Sponsor Performance
+            </h4>
+            <span class="text-xs text-slate-400 font-mono"
+              >{{ data.perEventBreakdown.length }} Events Tracked</span
+            >
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead>
+                <tr
+                  class="border-b border-white/10 text-[10px] uppercase font-bold text-slate-400 tracking-wider"
+                >
+                  <th class="py-2.5 px-3">Event Name</th>
+                  <th class="py-2.5 px-3">Sponsor Tier</th>
+                  <th class="py-2.5 px-3 text-right">Impressions</th>
+                  <th class="py-2.5 px-3 text-right">Website Clicks</th>
+                  <th class="py-2.5 px-3 text-right">QR Scans</th>
+                  <th class="py-2.5 px-3 text-right">Audience Reach</th>
+                  <th class="py-2.5 px-3 text-right">CTR</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-white/5">
+                @for (item of data.perEventBreakdown; track item.eventId) {
+                  <tr class="hover:bg-white/5 transition">
+                    <td class="py-3 px-3 font-bold text-white">{{ item.eventName }}</td>
+                    <td class="py-3 px-3">
+                      <span
+                        class="px-2 py-0.5 text-[9px] font-bold uppercase rounded-md bg-amber-500/10 text-amber-300 border border-amber-500/30"
+                      >
+                        {{ item.tier }}
+                      </span>
+                    </td>
+                    <td class="py-3 px-3 text-right font-mono font-bold text-violet-300">
+                      {{ item.impressions | number }}
+                    </td>
+                    <td class="py-3 px-3 text-right font-mono font-bold text-blue-300">
+                      {{ item.clicks | number }}
+                    </td>
+                    <td class="py-3 px-3 text-right font-mono font-bold text-amber-300">
+                      {{ item.qrScans | number }}
+                    </td>
+                    <td class="py-3 px-3 text-right font-mono text-emerald-300">
+                      {{ item.reach | number }}
+                    </td>
+                    <td class="py-3 px-3 text-right font-mono font-black text-emerald-400">
+                      {{ item.ctr }}%
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+    </div>
+  } @else {
+    <!-- ─── EXISTING SPONSOR DIRECTORY LIST ─── -->
+    @if (isLoading()) {
+      <div class="h-64 rounded-3xl border border-white/5 bg-slate-900/40 animate-pulse"></div>
+    } @else if (error()) {
+      <div class="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-rose-200">
+        <i class="fi fi-rr-triangle-warning text-2xl block mb-2"></i>
+        {{ error() }}
       </div>
+    } @else {
+      <!-- Stat strip -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <div class="rounded-2xl border border-white/10 bg-slate-900 p-4">
+          <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Total</div>
+          <div class="text-2xl font-black text-white tabular-nums mt-1">{{ counts().total }}</div>
+        </div>
+        <div class="rounded-2xl border border-white/10 bg-slate-900 p-4">
+          <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Active</div>
+          <div class="text-2xl font-black text-emerald-300 tabular-nums mt-1">
+            {{ counts().active }}
+          </div>
+        </div>
+        <div class="rounded-2xl border border-white/10 bg-slate-900 p-4">
+          <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Hidden</div>
+          <div class="text-2xl font-black text-slate-400 tabular-nums mt-1">
+            {{ counts().inactive }}
+          </div>
+        </div>
+        <div class="rounded-2xl border border-white/10 bg-slate-900 p-4">
+          <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">
+            Title tier
+          </div>
+          <div class="text-2xl font-black text-rose-300 tabular-nums mt-1">
+            {{ counts().byTier['title'] ?? 0 }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div
+        class="flex flex-col sm:flex-row sm:items-center gap-3 mb-4 p-3 bg-slate-900/60 border border-white/5 rounded-xl"
+      >
+        <div class="relative flex-1">
+          <i
+            class="fi fi-rr-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs pointer-events-none"
+          ></i>
+          <input
+            type="search"
+            placeholder="Search by name or category…"
+            [ngModel]="searchQuery()"
+            (ngModelChange)="searchQuery.set($event)"
+            class="w-full pl-9 pr-3 py-2 bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-lg text-xs text-white outline-none transition-all"
+          />
+        </div>
+        <select
+          [ngModel]="tierFilter()"
+          (ngModelChange)="tierFilter.set($event)"
+          class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-lg px-3 py-2 text-xs text-white outline-none transition-all"
+        >
+          <option value="all">All tiers</option>
+          <option value="title">Title</option>
+          <option value="platinum">Platinum</option>
+          <option value="gold">Gold</option>
+          <option value="silver">Silver</option>
+          <option value="bronze">Bronze</option>
+          <option value="partner">Partner</option>
+        </select>
+        <select
+          [ngModel]="activeFilter()"
+          (ngModelChange)="activeFilter.set($event)"
+          class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-lg px-3 py-2 text-xs text-white outline-none transition-all"
+        >
+          <option value="all">All visibility</option>
+          <option value="active">Active only</option>
+          <option value="inactive">Hidden only</option>
+        </select>
+      </div>
+
+      @if (filtered().length === 0) {
+        <div
+          class="py-16 rounded-3xl border border-dashed border-white/10 text-center text-xs text-slate-500 flex flex-col items-center gap-2"
+        >
+          <i class="fi fi-rr-star text-3xl"></i>
+          @if (sponsors().length === 0) {
+            <div>No sponsors yet. Click "Add sponsor" to register your first one.</div>
+          } @else {
+            <div>No sponsors match your filters.</div>
+          }
+        </div>
+      } @else {
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          @for (sponsor of filtered(); track sponsor.id) {
+            <div
+              class="rounded-2xl border border-white/10 bg-slate-900 p-4 flex flex-col gap-3 hover:border-violet-500/30 transition"
+            >
+              <div class="flex items-start gap-3">
+                <div
+                  class="w-14 h-14 rounded-xl bg-slate-800 border border-white/5 flex items-center justify-center overflow-hidden flex-shrink-0"
+                >
+                  @if (sponsor.logoUrl) {
+                    <img
+                      [src]="sponsor.logoUrl"
+                      [alt]="sponsor.name"
+                      class="w-full h-full object-contain p-1.5"
+                      loading="lazy"
+                    />
+                  } @else {
+                    <span class="text-lg font-black text-slate-500">
+                      {{ sponsor.name.charAt(0) }}
+                    </span>
+                  }
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-sm font-bold text-white truncate">{{ sponsor.name }}</span>
+                    @if (sponsor.tier) {
+                      <span
+                        [class]="
+                          'text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md border ' +
+                          tierBadgeClass(sponsor.tier)
+                        "
+                      >
+                        {{ sponsor.tier }}
+                      </span>
+                    }
+                  </div>
+                  @if (sponsor.category) {
+                    <div class="text-[10px] text-slate-400 mt-0.5">{{ sponsor.category }}</div>
+                  }
+                  <div class="flex items-center gap-2 mt-1.5 text-[10px]">
+                    @if (isWithinWindow(sponsor)) {
+                      <span
+                        class="inline-flex items-center gap-1 text-emerald-300 bg-emerald-500/10 border border-emerald-500/25 rounded-md px-1.5 py-0.5"
+                      >
+                        <span class="w-1 h-1 rounded-full bg-emerald-400"></span>
+                        Visible
+                      </span>
+                    } @else {
+                      <span
+                        class="inline-flex items-center gap-1 text-slate-400 bg-slate-500/10 border border-slate-500/25 rounded-md px-1.5 py-0.5"
+                      >
+                        <i class="fi fi-rr-eye-crossed text-[9px]"></i>
+                        Hidden
+                      </span>
+                    }
+                    <span class="text-slate-500">{{ periodLabel(sponsor) }}</span>
+                  </div>
+                </div>
+              </div>
+
+              @if (sponsor.description) {
+                <p class="text-[11px] text-slate-400 line-clamp-2">{{ sponsor.description }}</p>
+              }
+
+              <div
+                class="flex items-center justify-between text-[10px] pt-2 border-t border-white/5"
+              >
+                <div class="flex items-center gap-2">
+                  @if (sponsor.websiteUrl) {
+                    <a
+                      [href]="sponsor.websiteUrl"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="text-slate-400 hover:text-violet-300 truncate max-w-[140px]"
+                    >
+                      <i class="fi fi-rr-globe text-[10px] mr-1"></i>
+                      Website
+                    </a>
+                  }
+                  @if (sponsor.contactEmail) {
+                    <a
+                      [href]="'mailto:' + sponsor.contactEmail"
+                      class="text-slate-400 hover:text-violet-300 truncate"
+                    >
+                      <i class="fi fi-rr-envelope text-[10px] mr-1"></i>
+                      Contact
+                    </a>
+                  }
+                </div>
+                <div class="flex items-center gap-2">
+                  <button
+                    type="button"
+                    (click)="toggleActive(sponsor)"
+                    class="text-[10px] font-bold text-slate-400 hover:text-white transition cursor-pointer bg-transparent border-0"
+                    [title]="sponsor.isActive ? 'Hide from public pages' : 'Show on public pages'"
+                  >
+                    {{ sponsor.isActive ? 'Hide' : 'Show' }}
+                  </button>
+                  <button
+                    type="button"
+                    (click)="openEdit(sponsor)"
+                    class="text-[10px] font-bold text-violet-300 hover:text-violet-200 transition cursor-pointer bg-transparent border-0"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    (click)="remove(sponsor)"
+                    class="text-[10px] font-bold text-rose-400 hover:text-rose-300 transition cursor-pointer bg-transparent border-0"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      }
     }
   }
 

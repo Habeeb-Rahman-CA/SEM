@@ -629,7 +629,7 @@ export class AutomationService implements OnModuleInit {
           this.logger.error(`Scheduled automation ${rule.id} failed: ${err}`);
         }
       });
-      this.schedulerRegistry.addCronJob(key, job as any);
+      this.schedulerRegistry.addCronJob(key, job);
       job.start();
       this.logger.log(
         `Registered cron "${cron}" for automation ${rule.id} (${rule.name})`,
