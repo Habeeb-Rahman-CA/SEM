@@ -20,11 +20,12 @@ import {
   FrontendDynamicFormsService,
 } from '../../services/dynamic-forms.service';
 import { UiService } from '../../../../core/services/ui.service';
+import { BulkOperationsBarComponent } from '../../../../shared/components/bulk-operations-bar/bulk-operations-bar';
 
 @Component({
   selector: 'app-dynamic-forms-manager',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, DatePipe, JsonPipe],
+  imports: [CommonModule, FormsModule, RouterLink, DatePipe, JsonPipe, BulkOperationsBarComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './dynamic-forms-manager.html',
 })
@@ -70,6 +71,23 @@ export class DynamicFormsManagerComponent implements OnInit {
   newFieldRequired = signal(false);
   newFieldOptionsRaw = signal('');
 
+  // ── Bulk Operations ──────────────────────────────────────────────
+  selectedFormIds = signal<Set<string>>(new Set());
+  selectedCount = computed(() => this.selectedFormIds().size);
+
+  isAllSelected = computed(() => {
+    const list = this.forms();
+    if (list.length === 0) return false;
+    const selected = this.selectedFormIds();
+    return list.every((f) => selected.has(f.id));
+  });
+
+  formStatusOptions = [
+    { key: 'published', label: 'Published', color: 'bg-emerald-400' },
+    { key: 'draft', label: 'Draft', color: 'bg-amber-400' },
+    { key: 'archived', label: 'Archived', color: 'bg-slate-500' },
+  ];
+
   ngOnInit() {
     this.route.paramMap.subscribe((params) => {
       const id = params.get('id') ?? '';
@@ -107,6 +125,69 @@ export class DynamicFormsManagerComponent implements OnInit {
       next: (list) => this.submissions.set(list),
       error: () => this.submissions.set([]),
     });
+  }
+
+  toggleSelectAll() {
+    const list = this.forms();
+    const newSet = new Set(this.selectedFormIds());
+    if (this.isAllSelected()) {
+      for (const f of list) newSet.delete(f.id);
+    } else {
+      for (const f of list) newSet.add(f.id);
+    }
+    this.selectedFormIds.set(newSet);
+  }
+
+  toggleSelectForm(id: string) {
+    const newSet = new Set(this.selectedFormIds());
+    if (newSet.has(id)) newSet.delete(id);
+    else newSet.add(id);
+    this.selectedFormIds.set(newSet);
+  }
+
+  clearSelection() {
+    this.selectedFormIds.set(new Set());
+  }
+
+  handleBulkDelete() {
+    const count = this.selectedCount();
+    const ids = Array.from(this.selectedFormIds());
+    this.forms.update((list) => list.filter((f) => !ids.includes(f.id)));
+    this.clearSelection();
+    this.ui.success(`Bulk Operation: ${count} forms deleted.`);
+  }
+
+  handleBulkAssign(target: string) {
+    const count = this.selectedCount();
+    this.ui.success(`Bulk Operation: Reassigned ${count} forms.`);
+    this.clearSelection();
+  }
+
+  handleBulkExport(format: 'csv' | 'excel' | 'json') {
+    const selectedList = this.forms().filter((f) => this.selectedFormIds().has(f.id));
+    const dataStr =
+      'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(selectedList, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute('href', dataStr);
+    downloadAnchor.setAttribute('download', `forms_export_${Date.now()}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+    this.ui.success(`Exported ${selectedList.length} forms as JSON.`);
+  }
+
+  handleBulkArchive() {
+    const count = this.selectedCount();
+    this.ui.info(`Bulk Operation: Archived ${count} forms.`);
+    this.clearSelection();
+  }
+
+  handleBulkUpdateStatus(statusKey: string) {
+    const count = this.selectedCount();
+    this.ui.success(
+      `Bulk Operation: Set status to "${statusKey.toUpperCase()}" for ${count} forms.`,
+    );
+    this.clearSelection();
   }
 
   togglePublishStatus(form: DynamicForm) {

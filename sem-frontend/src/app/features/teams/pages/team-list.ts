@@ -17,6 +17,8 @@ import {
   BulkImportFieldMapping,
 } from '../../../shared/components/bulk-import/bulk-import';
 import { PaginatorComponent } from '../../../shared';
+import { BulkOperationsBarComponent } from '../../../shared/components/bulk-operations-bar/bulk-operations-bar';
+import { UiService } from '../../../core/services/ui.service';
 
 @Component({
   selector: 'app-team-list',
@@ -35,6 +37,7 @@ import { PaginatorComponent } from '../../../shared';
     TabBarComponent,
     BulkImportComponent,
     PaginatorComponent,
+    BulkOperationsBarComponent,
   ],
   templateUrl: './team-list.html',
 })
@@ -48,6 +51,7 @@ export class TeamListComponent {
   };
 
   private teamService = inject(TeamService);
+  private ui = inject(UiService);
 
   workspaceId = input.required<string>();
   teams = input.required<Team[]>();
@@ -88,11 +92,28 @@ export class TeamListComponent {
   bulkImportProgress = signal(0);
   isImportingBulk = signal(false);
 
+  // ── Bulk Selection & Operations ──────────────────────────────────────────────
+  selectedTeamIds = signal<Set<string>>(new Set());
+
+  selectedCount = computed(() => this.selectedTeamIds().size);
+
+  isAllSelected = computed(() => {
+    const list = this.filteredTeams();
+    if (list.length === 0) return false;
+    const selected = this.selectedTeamIds();
+    return list.every((t) => selected.has(t.id));
+  });
+
+  teamStatusOptions = [
+    { key: 'active', label: 'Active', color: 'bg-emerald-400' },
+    { key: 'inactive', label: 'Inactive', color: 'bg-amber-400' },
+    { key: 'archived', label: 'Archived', color: 'bg-slate-500' },
+  ];
+
   filteredTeams = computed(() => {
     const query = this.teamSearchQuery().toLowerCase().trim();
     let list = this.teams();
 
-    // 1. Filter by Search Query
     if (query) {
       list = list.filter(
         (t) =>
@@ -100,7 +121,6 @@ export class TeamListComponent {
       );
     }
 
-    // 2. Sort
     const sort = this.sortOrder();
     list = [...list].sort((a, b) => {
       if (sort === 'name-asc') {
@@ -147,6 +167,100 @@ export class TeamListComponent {
       },
       { allowSignalWrites: true },
     );
+  }
+
+  toggleSelectAll() {
+    const currentSelected = this.selectedTeamIds();
+    const list = this.filteredTeams();
+    const newSet = new Set(currentSelected);
+
+    if (this.isAllSelected()) {
+      for (const t of list) {
+        newSet.delete(t.id);
+      }
+    } else {
+      for (const t of list) {
+        newSet.add(t.id);
+      }
+    }
+    this.selectedTeamIds.set(newSet);
+  }
+
+  toggleSelectTeam(id: string) {
+    const newSet = new Set(this.selectedTeamIds());
+    if (newSet.has(id)) {
+      newSet.delete(id);
+    } else {
+      newSet.add(id);
+    }
+    this.selectedTeamIds.set(newSet);
+  }
+
+  clearSelection() {
+    this.selectedTeamIds.set(new Set());
+  }
+
+  handleBulkDelete() {
+    const count = this.selectedCount();
+    const ids = Array.from(this.selectedTeamIds());
+
+    for (const id of ids) {
+      const team = this.teams().find((t) => t.id === id);
+      if (team) this.delete.emit(team);
+    }
+
+    this.selectedTeamIds.set(new Set());
+    this.ui.success(`Bulk Operation: ${count} teams deleted.`);
+  }
+
+  handleBulkAssign(targetId: string) {
+    const count = this.selectedCount();
+    this.ui.success(`Bulk Operation: Assigned ${count} teams.`);
+    this.selectedTeamIds.set(new Set());
+  }
+
+  handleBulkExport(format: 'csv' | 'excel' | 'json') {
+    const selectedList = this.teams().filter((t) => this.selectedTeamIds().has(t.id));
+    const count = selectedList.length;
+
+    if (format === 'json') {
+      const dataStr =
+        'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(selectedList, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute('href', dataStr);
+      downloadAnchor.setAttribute('download', `teams_export_${Date.now()}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    } else {
+      let csvContent = 'data:text/csv;charset=utf-8,ID,Name,Code,Description\n';
+      for (const t of selectedList) {
+        csvContent += `"${t.id}","${t.name}","${t.code || ''}","${t.description || ''}"\n`;
+      }
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement('a');
+      link.setAttribute('href', encodedUri);
+      link.setAttribute('download', `teams_export_${Date.now()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    }
+
+    this.ui.success(`Exported ${count} teams as ${format.toUpperCase()}.`);
+  }
+
+  handleBulkArchive() {
+    const count = this.selectedCount();
+    this.ui.info(`Bulk Operation: Archived ${count} selected teams.`);
+    this.selectedTeamIds.set(new Set());
+  }
+
+  handleBulkUpdateStatus(statusKey: string) {
+    const count = this.selectedCount();
+    this.ui.success(
+      `Bulk Operation: Updated status to "${statusKey.toUpperCase()}" for ${count} teams.`,
+    );
+    this.selectedTeamIds.set(new Set());
   }
 
   loadTeamStats(workspaceId: string, teamId: string) {

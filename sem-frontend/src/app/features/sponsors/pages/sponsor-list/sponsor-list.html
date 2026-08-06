@@ -352,6 +352,15 @@
       <div
         class="flex flex-col sm:flex-row sm:items-center gap-3 mb-4 p-3 bg-slate-900/60 border border-white/5 rounded-xl"
       >
+        <label class="flex items-center gap-2 cursor-pointer select-none px-2">
+          <input
+            type="checkbox"
+            [checked]="isAllSelected()"
+            (change)="toggleSelectAll()"
+            class="w-4 h-4 accent-violet-600 rounded border-white/10 bg-slate-950 cursor-pointer"
+          />
+          <span class="text-xs text-slate-300 font-bold">Select All</span>
+        </label>
         <div class="relative flex-1">
           <i
             class="fi fi-rr-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs pointer-events-none"
@@ -403,9 +412,21 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           @for (sponsor of filtered(); track sponsor.id) {
             <div
-              class="rounded-2xl border border-white/10 bg-slate-900 p-4 flex flex-col gap-3 hover:border-violet-500/30 transition"
+              class="rounded-2xl border border-white/10 bg-slate-900 p-4 flex flex-col gap-3 hover:border-violet-500/30 transition relative"
+              [class.ring-2]="selectedSponsorIds().has(sponsor.id)"
+              [class.ring-violet-500]="selectedSponsorIds().has(sponsor.id)"
             >
-              <div class="flex items-start gap-3">
+              <!-- Checkbox overlay -->
+              <div class="absolute top-3 right-3 z-10">
+                <input
+                  type="checkbox"
+                  [checked]="selectedSponsorIds().has(sponsor.id)"
+                  (change)="toggleSelectSponsor(sponsor.id)"
+                  class="w-4 h-4 accent-violet-600 rounded border-white/10 bg-slate-950 cursor-pointer"
+                />
+              </div>
+
+              <div class="flex items-start gap-3 pr-6">
                 <div
                   class="w-14 h-14 rounded-xl bg-slate-800 border border-white/5 flex items-center justify-center overflow-hidden flex-shrink-0"
                 >
@@ -520,6 +541,21 @@
       }
     }
   }
+
+  <!-- Floating Bulk Action Suite Bar -->
+  <app-bulk-operations-bar
+    [selectedCount]="selectedCount()"
+    [totalCount]="filtered().length"
+    entityName="Sponsors"
+    [statusOptions]="sponsorStatusOptions"
+    (selectAll)="toggleSelectAll()"
+    (clearSelection)="clearSelection()"
+    (bulkDelete)="handleBulkDelete()"
+    (bulkAssign)="handleBulkAssign($event)"
+    (bulkExport)="handleBulkExport($event)"
+    (bulkArchive)="handleBulkArchive()"
+    (bulkUpdateStatus)="handleBulkUpdateStatus($event)"
+  />
 
   <app-sponsor-modal
     [workspaceId]="workspaceId()"

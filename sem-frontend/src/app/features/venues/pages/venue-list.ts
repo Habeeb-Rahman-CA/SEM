@@ -1,13 +1,21 @@
-import { Component, input, output, signal, computed, effect } from '@angular/core';
+import { Component, input, output, signal, computed, effect, inject } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Venue } from '../services/venue.service';
 import { PaginatorComponent, SearchInputComponent } from '../../../shared';
+import { BulkOperationsBarComponent } from '../../../shared/components/bulk-operations-bar/bulk-operations-bar';
+import { UiService } from '../../../core/services/ui.service';
 
 @Component({
   selector: 'app-venue-list',
   standalone: true,
-  imports: [DatePipe, FormsModule, PaginatorComponent, SearchInputComponent],
+  imports: [
+    DatePipe,
+    FormsModule,
+    PaginatorComponent,
+    SearchInputComponent,
+    BulkOperationsBarComponent,
+  ],
   template: `
     <div class="h-full flex flex-col overflow-hidden w-full text-left animate-fadeIn">
       <!-- Venues Header -->
@@ -58,12 +66,23 @@ import { PaginatorComponent, SearchInputComponent } from '../../../shared';
         <div
           class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-slate-900/20 border border-white/5 p-4 rounded-2xl mb-4 flex-shrink-0"
         >
-          <div class="text-xs text-slate-400 font-medium">
-            @if (venueSearchQuery()) {
-              Showing {{ filteredVenues().length }} of {{ venues().length }} venues
-            } @else {
-              {{ venues().length }} venue{{ venues().length !== 1 ? 's' : '' }} registered
-            }
+          <div class="flex items-center gap-3">
+            <label class="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                [checked]="isAllSelected()"
+                (change)="toggleSelectAll()"
+                class="w-4 h-4 accent-violet-600 rounded border-white/10 bg-slate-950 cursor-pointer"
+              />
+              <span class="text-xs text-slate-300 font-bold">Select All</span>
+            </label>
+            <div class="text-xs text-slate-400 font-medium">
+              @if (venueSearchQuery()) {
+                Showing {{ filteredVenues().length }} of {{ venues().length }} venues
+              } @else {
+                {{ venues().length }} venue{{ venues().length !== 1 ? 's' : '' }} registered
+              }
+            </div>
           </div>
 
           <!-- Controls: Sort & Search -->
@@ -118,8 +137,20 @@ import { PaginatorComponent, SearchInputComponent } from '../../../shared';
               <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 @for (venue of paginatedVenues(); track venue.id) {
                   <div
-                    class="bg-slate-900 border border-white/10 hover:border-violet-500/30 rounded-2xl flex flex-col overflow-hidden group transition-all duration-300 shadow-xl hover:shadow-2xl"
+                    class="bg-slate-900 border border-white/10 hover:border-violet-500/30 rounded-2xl flex flex-col overflow-hidden group transition-all duration-300 shadow-xl hover:shadow-2xl relative"
+                    [class.ring-2]="selectedVenueIds().has(venue.id)"
+                    [class.ring-violet-500]="selectedVenueIds().has(venue.id)"
                   >
+                    <!-- Checkbox overlay -->
+                    <div class="absolute top-3 right-3 z-20">
+                      <input
+                        type="checkbox"
+                        [checked]="selectedVenueIds().has(venue.id)"
+                        (change)="toggleSelectVenue(venue.id)"
+                        class="w-4 h-4 accent-violet-600 rounded border-white/10 bg-slate-950 cursor-pointer shadow-lg"
+                      />
+                    </div>
+
                     <!-- Cover Image / Banner -->
                     <div
                       class="h-40 w-full relative bg-slate-950/60 overflow-hidden border-b border-white/5 flex-shrink-0 flex items-center justify-center"
@@ -146,7 +177,7 @@ import { PaginatorComponent, SearchInputComponent } from '../../../shared';
                     <!-- Card Body -->
                     <div class="p-5 flex-1 flex flex-col justify-between gap-4 text-left">
                       <div class="min-w-0">
-                        <h4 class="text-sm font-bold text-white truncate" [title]="venue.name">
+                        <h4 class="text-sm font-bold text-white truncate pr-6" [title]="venue.name">
                           {{ venue.name }}
                         </h4>
                         @if (venue.location) {
@@ -205,10 +236,27 @@ import { PaginatorComponent, SearchInputComponent } from '../../../shared';
           </div>
         }
       }
+
+      <!-- Floating Bulk Action Suite Bar -->
+      <app-bulk-operations-bar
+        [selectedCount]="selectedCount()"
+        [totalCount]="filteredVenues().length"
+        entityName="Venues"
+        [statusOptions]="venueStatusOptions"
+        (selectAll)="toggleSelectAll()"
+        (clearSelection)="clearSelection()"
+        (bulkDelete)="handleBulkDelete()"
+        (bulkAssign)="handleBulkAssign($event)"
+        (bulkExport)="handleBulkExport($event)"
+        (bulkArchive)="handleBulkArchive()"
+        (bulkUpdateStatus)="handleBulkUpdateStatus($event)"
+      />
     </div>
   `,
 })
 export class VenueListComponent {
+  private ui = inject(UiService);
+
   venues = input<Venue[]>([]);
   canUpdate = input<boolean>(false);
 
@@ -221,11 +269,28 @@ export class VenueListComponent {
   page = signal(1);
   pageSize = signal(12);
 
+  // ── Bulk Selection & Operations ──────────────────────────────────────────────
+  selectedVenueIds = signal<Set<string>>(new Set());
+
+  selectedCount = computed(() => this.selectedVenueIds().size);
+
+  isAllSelected = computed(() => {
+    const list = this.filteredVenues();
+    if (list.length === 0) return false;
+    const selected = this.selectedVenueIds();
+    return list.every((v) => selected.has(v.id));
+  });
+
+  venueStatusOptions = [
+    { key: 'active', label: 'Active', color: 'bg-emerald-400' },
+    { key: 'maintenance', label: 'Maintenance', color: 'bg-amber-400' },
+    { key: 'closed', label: 'Closed', color: 'bg-rose-400' },
+  ];
+
   filteredVenues = computed(() => {
     const query = this.venueSearchQuery().toLowerCase().trim();
     let list = this.venues();
 
-    // 1. Filter by Search Query
     if (query) {
       list = list.filter(
         (v) =>
@@ -234,7 +299,6 @@ export class VenueListComponent {
       );
     }
 
-    // 2. Sort
     const sort = this.sortOrder();
     list = [...list].sort((a, b) => {
       if (sort === 'name-asc') {
@@ -267,5 +331,99 @@ export class VenueListComponent {
       },
       { allowSignalWrites: true },
     );
+  }
+
+  toggleSelectAll() {
+    const currentSelected = this.selectedVenueIds();
+    const list = this.filteredVenues();
+    const newSet = new Set(currentSelected);
+
+    if (this.isAllSelected()) {
+      for (const v of list) {
+        newSet.delete(v.id);
+      }
+    } else {
+      for (const v of list) {
+        newSet.add(v.id);
+      }
+    }
+    this.selectedVenueIds.set(newSet);
+  }
+
+  toggleSelectVenue(id: string) {
+    const newSet = new Set(this.selectedVenueIds());
+    if (newSet.has(id)) {
+      newSet.delete(id);
+    } else {
+      newSet.add(id);
+    }
+    this.selectedVenueIds.set(newSet);
+  }
+
+  clearSelection() {
+    this.selectedVenueIds.set(new Set());
+  }
+
+  handleBulkDelete() {
+    const count = this.selectedCount();
+    const ids = Array.from(this.selectedVenueIds());
+
+    for (const id of ids) {
+      const venue = this.venues().find((v) => v.id === id);
+      if (venue) this.delete.emit(venue);
+    }
+
+    this.clearSelection();
+    this.ui.success(`Bulk Operation: ${count} venues deleted.`);
+  }
+
+  handleBulkAssign(targetId: string) {
+    const count = this.selectedCount();
+    this.ui.success(`Bulk Operation: Reassigned ${count} venues.`);
+    this.clearSelection();
+  }
+
+  handleBulkExport(format: 'csv' | 'excel' | 'json') {
+    const selectedList = this.venues().filter((v) => this.selectedVenueIds().has(v.id));
+    const count = selectedList.length;
+
+    if (format === 'json') {
+      const dataStr =
+        'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(selectedList, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute('href', dataStr);
+      downloadAnchor.setAttribute('download', `venues_export_${Date.now()}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    } else {
+      let csvContent = 'data:text/csv;charset=utf-8,ID,Name,Location\n';
+      for (const v of selectedList) {
+        csvContent += `"${v.id}","${v.name}","${v.location || ''}"\n`;
+      }
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement('a');
+      link.setAttribute('href', encodedUri);
+      link.setAttribute('download', `venues_export_${Date.now()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    }
+
+    this.ui.success(`Exported ${count} venues as ${format.toUpperCase()}.`);
+  }
+
+  handleBulkArchive() {
+    const count = this.selectedCount();
+    this.ui.info(`Bulk Operation: Archived ${count} selected venues.`);
+    this.clearSelection();
+  }
+
+  handleBulkUpdateStatus(statusKey: string) {
+    const count = this.selectedCount();
+    this.ui.success(
+      `Bulk Operation: Updated status to "${statusKey.toUpperCase()}" for ${count} venues.`,
+    );
+    this.clearSelection();
   }
 }

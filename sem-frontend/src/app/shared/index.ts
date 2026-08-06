@@ -15,6 +15,11 @@ export { PhotoCaptureComponent } from './components/photo-capture/photo-capture'
 export { QrScannerComponent } from './components/qr-scanner/qr-scanner';
 export { SkeletonComponent } from './components/skeleton/skeleton';
 export type { SkeletonVariant } from './components/skeleton/skeleton';
+export { BulkOperationsBarComponent } from './components/bulk-operations-bar/bulk-operations-bar';
+export type {
+  BulkAssignOption,
+  BulkStatusOption,
+} from './components/bulk-operations-bar/bulk-operations-bar';
 
 // ── Type re-exports ───────────────────────────────────────────────────────────
 export type { ButtonVariant, ButtonSize } from './components/button/button';
