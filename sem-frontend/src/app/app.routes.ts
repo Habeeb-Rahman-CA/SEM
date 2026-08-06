@@ -135,6 +135,14 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
   {
+    path: 'workspaces/:id/dynamic-forms',
+    loadComponent: () =>
+      import('./features/dynamic-forms/pages/dynamic-forms-manager/dynamic-forms-manager').then(
+        (m) => m.DynamicFormsManagerComponent,
+      ),
+    canActivate: [authGuard],
+  },
+  {
     path: 'workspaces/:id/ads',
     loadComponent: () =>
       import('./features/ads/pages/ad-list/ad-list').then((m) => m.AdListComponent),

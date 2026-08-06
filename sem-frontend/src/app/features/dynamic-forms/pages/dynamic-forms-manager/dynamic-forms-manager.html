@@ -1,0 +1,516 @@
+<div class="max-w-7xl mx-auto p-5 sm:p-8 text-white">
+  <!-- Back to Workspace -->
+  <div class="flex items-center gap-3 mb-6">
+    <a
+      [routerLink]="['/workspaces', workspaceId()]"
+      class="text-xs font-bold text-slate-400 hover:text-white transition inline-flex items-center gap-1"
+    >
+      <i class="fi fi-rr-arrow-small-left text-sm"></i>
+      Back to workspace
+    </a>
+  </div>
+
+  <!-- Page Header -->
+  <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-black tracking-tight flex items-center gap-2">
+        <i class="fi fi-rr-form text-amber-400"></i> No-Code Dynamic Forms Builder
+      </h1>
+      <p class="text-sm text-slate-400 mt-1 max-w-2xl">
+        Create custom forms without writing code. Drag & drop text fields, dropdowns, checkboxes,
+        dates, and file uploads for registrations, surveys, and HR workflows.
+      </p>
+    </div>
+
+    <div class="flex items-center gap-2.5">
+      <button
+        type="button"
+        (click)="openBuilderModal()"
+        class="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-amber-500/20 transition flex items-center gap-1.5 cursor-pointer border border-amber-400/50"
+      >
+        <i class="fi fi-rr-plus"></i>
+        Build Custom Form
+      </button>
+    </div>
+  </div>
+
+  @if (isLoading()) {
+    <div class="py-20 flex flex-col items-center justify-center gap-3">
+      <div
+        class="w-8 h-8 rounded-full border-2 border-amber-400/20 border-t-amber-400 animate-spin"
+      ></div>
+      <span class="text-xs font-bold text-slate-400">Loading dynamic forms...</span>
+    </div>
+  } @else if (error()) {
+    <div class="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-rose-200">
+      <i class="fi fi-rr-triangle-warning text-2xl block mb-2"></i>
+      {{ error() }}
+    </div>
+  } @else {
+    <!-- ─── MAIN FORMS GRID ─── -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <!-- LEFT FORM SELECTION COLUMN (4 cols) -->
+      <div
+        class="lg:col-span-4 bg-slate-900 border border-white/10 rounded-3xl p-5 flex flex-col gap-4"
+      >
+        <div class="flex items-center justify-between border-b border-white/10 pb-3">
+          <h3
+            class="text-xs font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5"
+          >
+            <i class="fi fi-rr-list text-amber-400"></i> Workspace Dynamic Forms
+          </h3>
+          <span
+            class="text-[10px] font-mono font-bold text-slate-500 bg-slate-950 px-2 py-0.5 rounded border border-white/5"
+          >
+            {{ forms().length }} Forms
+          </span>
+        </div>
+
+        <div class="flex flex-col gap-3">
+          @for (form of forms(); track form.id) {
+            <div
+              (click)="selectForm(form)"
+              [class]="
+                'p-4 rounded-2xl border transition cursor-pointer flex flex-col gap-2 relative ' +
+                (selectedForm()?.id === form.id
+                  ? 'bg-amber-500/15 border-amber-500/50 shadow-lg'
+                  : 'bg-slate-950 border-white/5 hover:border-white/20')
+              "
+            >
+              <div class="flex items-center justify-between">
+                <span
+                  [class]="
+                    'px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider rounded-lg border ' +
+                    categoryBadge(form.category)
+                  "
+                >
+                  {{ form.category }}
+                </span>
+                <span class="text-[10px] font-mono text-slate-400 font-bold">
+                  {{ form.fields.length }} Fields
+                </span>
+              </div>
+
+              <h4 class="text-sm font-black text-white leading-snug">
+                {{ form.title }}
+              </h4>
+
+              <p class="text-xs text-slate-400 line-clamp-2">
+                {{ form.description }}
+              </p>
+
+              <div
+                class="flex items-center justify-between text-[10px] font-mono text-slate-500 pt-1 border-t border-white/5"
+              >
+                <span>Created {{ form.createdAt | date: 'shortDate' }}</span>
+                <span class="text-amber-400 font-bold">Interactive</span>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- RIGHT FORM PREVIEW & RESPONSES COLUMN (8 cols) -->
+      <div
+        class="lg:col-span-8 bg-slate-900 border border-white/10 rounded-3xl p-6 flex flex-col justify-between"
+      >
+        @if (selectedForm(); as activeForm) {
+          <div>
+            <!-- Form Header Bar -->
+            <div
+              class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4 mb-6"
+            >
+              <div>
+                <span
+                  [class]="
+                    'px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider rounded-lg border inline-block mb-1 ' +
+                    categoryBadge(activeForm.category)
+                  "
+                >
+                  {{ activeForm.category }} Form
+                </span>
+                <h2 class="text-xl font-black text-white">
+                  {{ activeForm.title }}
+                </h2>
+                <p class="text-xs text-slate-400 mt-1">
+                  {{ activeForm.description }}
+                </p>
+              </div>
+
+              <!-- View Switcher Tabs -->
+              <div
+                class="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-white/10"
+              >
+                <button
+                  type="button"
+                  (click)="activeView.set('preview')"
+                  [class]="
+                    'px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ' +
+                    (activeView() === 'preview'
+                      ? 'bg-amber-500 text-slate-950 font-black'
+                      : 'text-slate-400 hover:text-white')
+                  "
+                >
+                  <i class="fi fi-rr-eye"></i> Form Preview
+                </button>
+
+                <button
+                  type="button"
+                  (click)="activeView.set('responses')"
+                  [class]="
+                    'px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ' +
+                    (activeView() === 'responses'
+                      ? 'bg-amber-500 text-slate-950 font-black'
+                      : 'text-slate-400 hover:text-white')
+                  "
+                >
+                  <i class="fi fi-rr-inbox"></i> Submissions ({{ submissions().length }})
+                </button>
+              </div>
+            </div>
+
+            <!-- TAB 1: FORM PREVIEW & SUBMISSION -->
+            @if (activeView() === 'preview') {
+              <form
+                (submit)="submitPreviewForm(); $event.preventDefault()"
+                class="flex flex-col gap-4"
+              >
+                @for (field of activeForm.fields; track field.id) {
+                  <div
+                    class="p-4 bg-slate-950 rounded-2xl border border-white/5 flex flex-col gap-2"
+                  >
+                    <label
+                      class="block text-xs font-black text-slate-200 flex items-center gap-1.5"
+                    >
+                      <i [class]="fieldIcon(field.type) + ' text-amber-400'"></i>
+                      {{ field.label }}
+                      @if (field.required) {
+                        <span class="text-rose-400 text-sm font-bold">*</span>
+                      }
+                    </label>
+
+                    <!-- Text Field -->
+                    @if (field.type === 'text') {
+                      <input
+                        type="text"
+                        [placeholder]="field.placeholder || 'Enter response...'"
+                        [ngModel]="previewFormData()[field.id]"
+                        (ngModelChange)="updatePreviewField(field.id, $event)"
+                        [name]="field.id"
+                        [required]="field.required"
+                        class="w-full px-3.5 py-2 bg-slate-900 border border-white/10 focus:border-amber-500 rounded-xl text-xs text-white outline-none"
+                      />
+                    }
+
+                    <!-- Dropdown Select -->
+                    @if (field.type === 'dropdown') {
+                      <select
+                        [ngModel]="previewFormData()[field.id]"
+                        (ngModelChange)="updatePreviewField(field.id, $event)"
+                        [name]="field.id"
+                        [required]="field.required"
+                        class="w-full px-3.5 py-2 bg-slate-900 border border-white/10 focus:border-amber-500 rounded-xl text-xs text-white outline-none"
+                      >
+                        <option value="" disabled selected>-- Select Option --</option>
+                        @for (opt of field.options; track opt) {
+                          <option [value]="opt">{{ opt }}</option>
+                        }
+                      </select>
+                    }
+
+                    <!-- Date Field -->
+                    @if (field.type === 'date') {
+                      <input
+                        type="date"
+                        [ngModel]="previewFormData()[field.id]"
+                        (ngModelChange)="updatePreviewField(field.id, $event)"
+                        [name]="field.id"
+                        [required]="field.required"
+                        class="w-full px-3.5 py-2 bg-slate-900 border border-white/10 focus:border-amber-500 rounded-xl text-xs text-white outline-none"
+                      />
+                    }
+
+                    <!-- Checkbox Field -->
+                    @if (field.type === 'checkbox') {
+                      <label class="flex items-center gap-2 cursor-pointer text-xs text-slate-300">
+                        <input
+                          type="checkbox"
+                          [ngModel]="previewFormData()[field.id]"
+                          (ngModelChange)="updatePreviewField(field.id, $event)"
+                          [name]="field.id"
+                          class="w-4 h-4 accent-amber-500 rounded cursor-pointer"
+                        />
+                        <span>I agree to the terms specified in this field</span>
+                      </label>
+                    }
+
+                    <!-- File Upload Field -->
+                    @if (field.type === 'file') {
+                      <div
+                        class="p-4 border border-dashed border-white/20 rounded-xl bg-slate-900/50 flex items-center justify-between"
+                      >
+                        <div class="flex items-center gap-3">
+                          <i class="fi fi-rr-file-upload text-xl text-amber-400"></i>
+                          <div>
+                            <div class="text-xs font-bold text-white">
+                              Upload Document Attachment
+                            </div>
+                            <div class="text-[10px] text-slate-500">PDF, PNG, JPG up to 10MB</div>
+                          </div>
+                        </div>
+                        <input
+                          type="file"
+                          (change)="updatePreviewField(field.id, 'sample_uploaded_file.pdf')"
+                          class="text-xs text-slate-400 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-amber-500 file:text-slate-950 cursor-pointer"
+                        />
+                      </div>
+                    }
+                  </div>
+                }
+
+                <div class="flex justify-end pt-4 border-t border-white/10">
+                  <button
+                    type="submit"
+                    class="px-6 py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-amber-500/20 transition flex items-center gap-2 cursor-pointer border border-amber-400/50"
+                  >
+                    <i class="fi fi-rr-paper-plane"></i>
+                    Submit Form Response
+                  </button>
+                </div>
+              </form>
+            }
+
+            <!-- TAB 2: RESPONSES DATA -->
+            @if (activeView() === 'responses') {
+              <div class="flex flex-col gap-4">
+                @if (submissions().length === 0) {
+                  <div
+                    class="py-16 text-center text-xs text-slate-500 flex flex-col items-center gap-2 border border-dashed border-white/10 rounded-2xl"
+                  >
+                    <i class="fi fi-rr-inbox text-4xl text-slate-600"></i>
+                    <div>No submitted responses recorded for this form yet.</div>
+                  </div>
+                } @else {
+                  <div class="flex flex-col gap-3">
+                    @for (sub of submissions(); track sub.id) {
+                      <div
+                        class="p-4 bg-slate-950 rounded-2xl border border-white/5 flex flex-col gap-2"
+                      >
+                        <div
+                          class="flex items-center justify-between border-b border-white/10 pb-2"
+                        >
+                          <span class="text-xs font-mono font-bold text-amber-400"
+                            >Response #{{ sub.id }}</span
+                          >
+                          <span class="text-[10px] font-mono text-slate-500">{{
+                            sub.submittedAt | date: 'medium'
+                          }}</span>
+                        </div>
+                        <pre
+                          class="text-xs font-mono text-slate-300 p-2 bg-slate-900 rounded-xl border border-white/5 overflow-x-auto"
+                          >{{ sub.data | json }}</pre>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>
+
+<!-- ─── NO-CODE VISUAL FORM BUILDER MODAL ─── -->
+@if (builderModalOpen()) {
+  <div
+    class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4"
+  >
+    <div
+      class="bg-slate-900 border border-white/10 rounded-3xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col gap-5 animate-in fade-in zoom-in duration-200"
+    >
+      <div class="flex items-center justify-between border-b border-white/10 pb-3">
+        <h3 class="text-lg font-black text-white flex items-center gap-2">
+          <i class="fi fi-rr-form text-amber-400"></i> No-Code Form Builder
+        </h3>
+        <button
+          (click)="closeBuilderModal()"
+          class="text-slate-400 hover:text-white transition cursor-pointer"
+        >
+          <i class="fi fi-rr-cross text-sm"></i>
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+        <div>
+          <label class="block text-slate-400 font-bold mb-1">Form Title</label>
+          <input
+            type="text"
+            placeholder="e.g. Volunteer Application Form"
+            [ngModel]="newFormTitle()"
+            (ngModelChange)="newFormTitle.set($event)"
+            class="w-full px-3.5 py-2 bg-slate-950 border border-white/10 focus:border-amber-500 rounded-xl text-white outline-none"
+          />
+        </div>
+
+        <div>
+          <label class="block text-slate-400 font-bold mb-1">Category</label>
+          <select
+            [ngModel]="newFormCategory()"
+            (ngModelChange)="newFormCategory.set($event)"
+            class="w-full px-3.5 py-2 bg-slate-950 border border-white/10 focus:border-amber-500 rounded-xl text-white outline-none"
+          >
+            <option value="registration">Registration</option>
+            <option value="survey">Survey</option>
+            <option value="hr">HR / Accreditation</option>
+            <option value="other">Other Workflow</option>
+          </select>
+        </div>
+
+        <div class="sm:col-span-2">
+          <label class="block text-slate-400 font-bold mb-1">Description</label>
+          <input
+            type="text"
+            placeholder="Brief instruction for form submitters..."
+            [ngModel]="newFormDescription()"
+            (ngModelChange)="newFormDescription.set($event)"
+            class="w-full px-3.5 py-2 bg-slate-950 border border-white/10 focus:border-amber-500 rounded-xl text-white outline-none"
+          />
+        </div>
+      </div>
+
+      <!-- Add Field Controls -->
+      <div class="p-4 bg-slate-950 rounded-2xl border border-white/10 flex flex-col gap-3">
+        <h4 class="text-xs font-black uppercase text-amber-400 flex items-center gap-1.5">
+          <i class="fi fi-rr-plus text-xs"></i> Add New Field to Form
+        </h4>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+          <div>
+            <label class="block text-slate-400 font-bold mb-1">Field Label</label>
+            <input
+              type="text"
+              placeholder="e.g. Passport Number"
+              [ngModel]="newFieldLabel()"
+              (ngModelChange)="newFieldLabel.set($event)"
+              class="w-full px-3 py-1.5 bg-slate-900 border border-white/10 focus:border-amber-500 rounded-lg text-white outline-none"
+            />
+          </div>
+
+          <div>
+            <label class="block text-slate-400 font-bold mb-1">Field Type</label>
+            <select
+              [ngModel]="newFieldType()"
+              (ngModelChange)="newFieldType.set($event)"
+              class="w-full px-3 py-1.5 bg-slate-900 border border-white/10 focus:border-amber-500 rounded-lg text-white outline-none"
+            >
+              <option value="text">Text Input</option>
+              <option value="dropdown">Dropdown Select</option>
+              <option value="checkbox">Checkbox Switch</option>
+              <option value="date">Date Picker</option>
+              <option value="file">File Upload</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-slate-400 font-bold mb-1">Placeholder</label>
+            <input
+              type="text"
+              placeholder="Enter field placeholder"
+              [ngModel]="newFieldPlaceholder()"
+              (ngModelChange)="newFieldPlaceholder.set($event)"
+              class="w-full px-3 py-1.5 bg-slate-900 border border-white/10 focus:border-amber-500 rounded-lg text-white outline-none"
+            />
+          </div>
+        </div>
+
+        @if (newFieldType() === 'dropdown') {
+          <div>
+            <label class="block text-slate-400 font-bold mb-1 text-xs"
+              >Dropdown Options (Comma Separated)</label
+            >
+            <input
+              type="text"
+              placeholder="Option 1, Option 2, Option 3"
+              [ngModel]="newFieldOptionsRaw()"
+              (ngModelChange)="newFieldOptionsRaw.set($event)"
+              class="w-full px-3 py-1.5 bg-slate-900 border border-white/10 focus:border-amber-500 rounded-lg text-xs text-white outline-none"
+            />
+          </div>
+        }
+
+        <div class="flex items-center justify-between pt-1">
+          <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+            <input
+              type="checkbox"
+              [ngModel]="newFieldRequired()"
+              (ngModelChange)="newFieldRequired.set($event)"
+              class="w-4 h-4 accent-amber-500 rounded cursor-pointer"
+            />
+            <span>Mark as Required Field</span>
+          </label>
+
+          <button
+            type="button"
+            (click)="addFieldToBuilder()"
+            class="px-4 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-lg transition"
+          >
+            Add Field
+          </button>
+        </div>
+      </div>
+
+      <!-- Configured Fields List in Builder -->
+      <div class="flex flex-col gap-2 text-xs">
+        <label class="text-slate-400 font-bold"
+          >Form Fields Schema ({{ builderFields().length }} fields):</label
+        >
+        <div class="flex flex-col gap-2 max-h-48 overflow-y-auto">
+          @for (f of builderFields(); track f.id) {
+            <div
+              class="p-3 bg-slate-950 rounded-xl border border-white/5 flex items-center justify-between"
+            >
+              <div class="flex items-center gap-2.5">
+                <i [class]="fieldIcon(f.type) + ' text-amber-400'"></i>
+                <span class="font-bold text-white">{{ f.label }}</span>
+                <span
+                  class="text-[10px] font-mono text-slate-500 bg-slate-900 px-2 py-0.5 rounded border border-white/5 uppercase"
+                >
+                  {{ f.type }}
+                </span>
+                @if (f.required) {
+                  <span class="text-[10px] text-rose-400 font-bold">*Required</span>
+                }
+              </div>
+              <button
+                type="button"
+                (click)="removeFieldFromBuilder(f.id)"
+                class="text-slate-500 hover:text-rose-400 transition"
+              >
+                <i class="fi fi-rr-cross-small text-sm"></i>
+              </button>
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-2 border-t border-white/10">
+        <button
+          type="button"
+          (click)="closeBuilderModal()"
+          class="px-4 py-2 bg-slate-800 text-slate-300 hover:text-white rounded-xl text-xs font-bold transition cursor-pointer"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          (click)="saveCustomForm()"
+          class="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-amber-500/20 transition cursor-pointer border border-amber-400/50"
+        >
+          Save Form Schema
+        </button>
+      </div>
+    </div>
+  </div>
+}

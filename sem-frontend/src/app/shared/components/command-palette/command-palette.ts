@@ -191,6 +191,17 @@ export class CommandPaletteComponent {
       },
     },
     {
+      id: 'open-dynamic-forms',
+      label: 'Open Dynamic Form Builder (No-Code Forms & Registrations)',
+      category: 'Navigation',
+      icon: 'fi fi-rr-form',
+      shortcut: '⌘P',
+      action: () => {
+        this.close();
+        this.router.navigate(['/workspaces/default-ws/dynamic-forms']);
+      },
+    },
+    {
       id: 'open-hall-of-fame',
       label: 'Open Hall of Fame & Legends',
       category: 'Navigation',

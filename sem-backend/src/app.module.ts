@@ -55,6 +55,7 @@ import { SavedFiltersModule } from './modules/saved-filters/saved-filters.module
 import { CustomDashboardModule } from './modules/custom-dashboard/custom-dashboard.module';
 import { NotificationCenterModule } from './modules/notification-center/notification-center.module';
 import { VersionHistoryModule } from './modules/version-history/version-history.module';
+import { DynamicFormsModule } from './modules/dynamic-forms/dynamic-forms.module';
 import { RealtimeModule } from './common/realtime/realtime.module';
 
 @Module({
@@ -165,6 +166,7 @@ import { RealtimeModule } from './common/realtime/realtime.module';
     CustomDashboardModule,
     NotificationCenterModule,
     VersionHistoryModule,
+    DynamicFormsModule,
   ],
   controllers: [AppController],
   providers: [
