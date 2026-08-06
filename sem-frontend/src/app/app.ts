@@ -11,6 +11,7 @@ import { BackgroundJobsWidgetComponent } from './shared/components/background-jo
 import { DraftRecoveryModalComponent } from './shared/components/draft-recovery-modal/draft-recovery-modal';
 import { UndoToastComponent } from './shared/components/undo-toast/undo-toast';
 import { VersionHistoryDrawerComponent } from './shared/components/version-history-drawer/version-history-drawer';
+import { ToastItemComponent } from './shared/components/toast-item/toast-item';
 
 @Component({
   selector: 'app-root',
@@ -26,6 +27,7 @@ import { VersionHistoryDrawerComponent } from './shared/components/version-histo
     DraftRecoveryModalComponent,
     UndoToastComponent,
     VersionHistoryDrawerComponent,
+    ToastItemComponent,
   ],
   templateUrl: './app.html',
   styleUrl: './app.css',
