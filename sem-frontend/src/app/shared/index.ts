@@ -41,6 +41,7 @@ export { RecycleBinComponent } from './components/recycle-bin/recycle-bin';
 export { SmartSuggestionToastComponent } from './components/smart-suggestion-toast/smart-suggestion-toast';
 export { DuplicateWarningModalComponent } from './components/duplicate-warning-modal/duplicate-warning-modal';
 export { HelpTooltipComponent } from './components/help-tooltip/help-tooltip';
+export { FloatingActionButtonComponent } from './components/floating-action-button/floating-action-button';
 export { CopyDirective } from './directives/copy.directive';
 export { TippyDirective } from './directives/tippy.directive';
 export { ConfettiService } from '../core/services/confetti.service';

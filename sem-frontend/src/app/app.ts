@@ -17,6 +17,7 @@ import { ActivityFeedComponent } from './shared/components/activity-feed/activit
 import { RecycleBinComponent } from './shared/components/recycle-bin/recycle-bin';
 import { SmartSuggestionToastComponent } from './shared/components/smart-suggestion-toast/smart-suggestion-toast';
 import { DuplicateWarningModalComponent } from './shared/components/duplicate-warning-modal/duplicate-warning-modal';
+import { FloatingActionButtonComponent } from './shared/components/floating-action-button/floating-action-button';
 
 @Component({
   selector: 'app-root',
@@ -38,6 +39,7 @@ import { DuplicateWarningModalComponent } from './shared/components/duplicate-wa
     RecycleBinComponent,
     SmartSuggestionToastComponent,
     DuplicateWarningModalComponent,
+    FloatingActionButtonComponent,
   ],
   templateUrl: './app.html',
   styleUrl: './app.css',

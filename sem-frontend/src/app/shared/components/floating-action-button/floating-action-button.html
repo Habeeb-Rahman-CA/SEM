@@ -1,0 +1,133 @@
+<div class="fixed bottom-6 right-6 z-[9999] flex flex-col items-end gap-3 pointer-events-auto">
+  <!-- Expanded Speed Dial Actions Menu -->
+  @if (isOpen()) {
+    <div
+      class="flex flex-col items-end gap-2.5 mb-1 animate-fadeIn transition-all duration-300"
+      role="menu"
+      aria-orientation="vertical"
+    >
+      @for (act of actions; track act.id) {
+        <div class="flex items-center gap-2.5 group">
+          <!-- Label Badge -->
+          <span
+            class="px-3 py-1.5 bg-slate-900/95 border border-white/10 text-white font-bold text-xs rounded-xl shadow-2xl backdrop-blur-md whitespace-nowrap select-none transition-all group-hover:scale-105 group-hover:border-violet-500/40"
+          >
+            {{ act.label }}
+            @if (act.badge) {
+              <span
+                class="ml-1.5 px-1.5 py-0.5 rounded-full bg-violet-500/20 text-violet-300 font-mono text-[9px] font-black uppercase"
+                >{{ act.badge }}</span
+              >
+            }
+          </span>
+
+          <!-- Action Button -->
+          <button
+            type="button"
+            (click)="act.action()"
+            [appTippy]="act.label"
+            tippyPlacement="left"
+            class="w-11 h-11 rounded-2xl bg-gradient-to-br border border-white/20 shadow-xl flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer"
+            [class]="act.colorClass"
+            [aria-label]="act.label"
+          >
+            <i [class]="act.icon + ' text-base'"></i>
+          </button>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Main Speed Dial Trigger Button -->
+  <button
+    type="button"
+    (click)="toggleMenu()"
+    [appTippy]="isOpen() ? 'Close Actions Menu' : 'Quick Actions & Create (FAB)'"
+    tippyPlacement="left"
+    class="w-14 h-14 rounded-2xl bg-gradient-to-r from-violet-600 via-indigo-600 to-purple-600 hover:from-violet-500 hover:to-indigo-500 border border-white/20 shadow-[0_0_25px_rgba(139,92,246,0.5)] flex items-center justify-center text-white transition-all duration-300 transform active:scale-95 cursor-pointer relative overflow-hidden group"
+    [class.rotate-45]="isOpen()"
+    aria-label="Toggle Floating Quick Actions"
+  >
+    <!-- Background pulse effect -->
+    <span
+      class="absolute inset-0 bg-white/20 rounded-2xl animate-ping opacity-25 pointer-events-none group-hover:opacity-40"
+    ></span>
+
+    <i class="fi fi-rr-add text-xl font-black transition-transform duration-300"></i>
+  </button>
+</div>
+
+<!-- QR Code Scanner Modal -->
+@if (isQrModalOpen()) {
+  <div
+    class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[10000] flex items-center justify-center p-4 animate-fadeIn"
+    (click)="closeQrScanner()"
+  >
+    <div
+      class="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-md p-6 shadow-2xl relative overflow-hidden flex flex-col gap-4 text-left"
+      (click)="$event.stopPropagation()"
+    >
+      <!-- Top gradient line -->
+      <div
+        class="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-pink-500 via-violet-500 to-indigo-500"
+      ></div>
+
+      <!-- Header -->
+      <div class="flex items-center justify-between border-b border-white/5 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div
+            class="w-9 h-9 rounded-xl bg-pink-500/15 border border-pink-500/30 flex items-center justify-center text-pink-400"
+          >
+            <i class="fi fi-rr-qr-scan text-base"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-white">Scan QR Code / Pass</h3>
+            <p class="text-[11px] text-slate-400">Validate spectator tickets, passes &amp; codes</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          (click)="closeQrScanner()"
+          class="text-slate-400 hover:text-white transition cursor-pointer bg-transparent border-0"
+        >
+          <i class="fi fi-rr-cross text-xs"></i>
+        </button>
+      </div>
+
+      <!-- Scanner Body -->
+      <div class="flex flex-col gap-4">
+        <app-qr-scanner
+          label="Start Camera Scanner"
+          [showManualEntry]="true"
+          manualPlaceholder="Enter code (e.g. PASS-89A4-2026)"
+          (scanned)="onQrScanned($event)"
+        />
+
+        @if (lastScannedResult()) {
+          <div
+            class="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex flex-col gap-1.5 animate-fadeIn"
+          >
+            <div class="flex items-center gap-2 text-emerald-400 font-bold text-xs">
+              <i class="fi fi-rr-check-circle text-sm"></i>
+              Valid Code Detected!
+            </div>
+            <p class="text-xs text-white font-mono bg-slate-950/60 p-2 rounded-lg break-all">
+              {{ lastScannedResult() }}
+            </p>
+          </div>
+        }
+      </div>
+
+      <!-- Footer -->
+      <div class="flex justify-end border-t border-white/5 pt-3">
+        <button
+          type="button"
+          (click)="closeQrScanner()"
+          class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+}

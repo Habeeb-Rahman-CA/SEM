@@ -34,7 +34,7 @@
 <app-recycle-bin />
 
 <!-- Floating Accessibility & Density Toolbar -->
-<div class="fixed bottom-6 right-6 z-[999] flex items-center gap-2 pointer-events-auto">
+<div class="fixed bottom-6 right-24 z-[999] hidden sm:flex items-center gap-2 pointer-events-auto">
   <!-- Recycle Bin Trigger Button -->
   <button
     type="button"
@@ -87,6 +87,9 @@
     <span class="hidden md:inline">{{ uiService.isCompactMode() ? 'Standard' : 'Compact' }}</span>
   </button>
 </div>
+
+<!-- Floating Action Button (FAB) Speed Dial -->
+<app-floating-action-button />
 
 <!-- Floating Undo Action Toast -->
 <app-undo-toast />
