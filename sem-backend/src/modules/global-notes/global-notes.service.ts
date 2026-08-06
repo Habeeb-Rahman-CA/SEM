@@ -5,6 +5,7 @@ import { GlobalNote, NoteEntityType } from './entities/global-note.entity';
 import { CreateNoteDto } from './dto/create-note.dto';
 import { UpdateNoteDto } from './dto/update-note.dto';
 import { WorkspacesService } from '../workspaces/workspaces.service';
+import { NotificationCenterService } from '../notification-center/notification-center.service';
 
 @Injectable()
 export class GlobalNotesService {
@@ -12,6 +13,7 @@ export class GlobalNotesService {
     @InjectRepository(GlobalNote)
     private readonly repo: Repository<GlobalNote>,
     private readonly workspacesService: WorkspacesService,
+    private readonly notificationCenterService: NotificationCenterService,
   ) {}
 
   async getNotes(
@@ -48,7 +50,17 @@ export class GlobalNotesService {
       color: dto.color ?? 'amber',
     });
 
-    return this.repo.save(note);
+    const saved = await this.repo.save(note);
+
+    await this.processMentions(
+      workspaceId,
+      userId,
+      saved.content,
+      saved.entityType,
+      saved.entityId,
+    );
+
+    return saved;
   }
 
   async updateNote(
@@ -70,7 +82,19 @@ export class GlobalNotesService {
     if (dto.isPinned !== undefined) note.isPinned = dto.isPinned;
     if (dto.color !== undefined) note.color = dto.color;
 
-    return this.repo.save(note);
+    const saved = await this.repo.save(note);
+
+    if (dto.content !== undefined) {
+      await this.processMentions(
+        workspaceId,
+        userId,
+        saved.content,
+        saved.entityType,
+        saved.entityId,
+      );
+    }
+
+    return saved;
   }
 
   async deleteNote(
@@ -82,6 +106,30 @@ export class GlobalNotesService {
     const result = await this.repo.delete({ id: noteId, workspaceId });
     if (result.affected === 0) {
       throw new NotFoundException(`Note with ID ${noteId} not found`);
+    }
+  }
+
+  private async processMentions(
+    workspaceId: string,
+    authorUserId: string,
+    content: string,
+    entityType: string,
+    entityId: string,
+  ) {
+    const mentionRegex = /@([a-zA-Z0-9_\-\.]+)/g;
+    const matches = Array.from(content.matchAll(mentionRegex), (m) => m[1]);
+    if (!matches || matches.length === 0) return;
+
+    const uniqueUsernames = Array.from(new Set(matches));
+
+    for (const username of uniqueUsernames) {
+      await this.notificationCenterService.createNotification(workspaceId, {
+        title: `Mentioned in ${entityType.toUpperCase()} note`,
+        message: `@${username} you were mentioned in a note: "${content.length > 80 ? content.slice(0, 80) + '...' : content}"`,
+        category: 'mention',
+        authorName: 'Note Discussion',
+        linkUrl: `/workspaces/${workspaceId}`,
+      });
     }
   }
 }

@@ -248,4 +248,33 @@ export class NotificationCenterService {
     this.notificationsStore.set(workspaceId, updated);
     return { success: true, count: updatedCount };
   }
+
+  async createNotification(
+    workspaceId: string,
+    notification: {
+      title: string;
+      message: string;
+      category: NotificationCategory;
+      authorName?: string;
+      linkUrl?: string;
+    },
+  ): Promise<CenterNotificationItem> {
+    const list = this.notificationsStore.get(workspaceId) || [];
+    const newItem: CenterNotificationItem = {
+      id: `notif-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      workspaceId,
+      title: notification.title,
+      message: notification.message,
+      category: notification.category,
+      isRead: false,
+      isArchived: false,
+      snoozedUntil: null,
+      createdAt: new Date().toISOString(),
+      authorName: notification.authorName,
+      linkUrl: notification.linkUrl,
+    };
+    list.unshift(newItem);
+    this.notificationsStore.set(workspaceId, list);
+    return newItem;
+  }
 }
