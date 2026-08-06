@@ -38,6 +38,17 @@ export class CommandPaletteComponent {
   commands = computed<CommandItem[]>(() => [
     // ⚡ Actions
     {
+      id: 'view-keyboard-shortcuts',
+      label: 'View Keyboard Shortcuts Cheat Sheet',
+      category: 'Actions',
+      icon: 'fi fi-rr-keyboard',
+      shortcut: '?',
+      action: () => {
+        this.close();
+        this.ui.openShortcutsModal();
+      },
+    },
+    {
       id: 'create-event',
       label: 'Create New Event',
       category: 'Actions',

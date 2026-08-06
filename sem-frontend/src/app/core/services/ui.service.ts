@@ -32,6 +32,21 @@ export class UiService {
   confirmOptions = signal<ConfirmOptions | null>(null);
   private confirmResolve: ((value: boolean) => void) | null = null;
 
+  // Keyboard Shortcuts Cheat Sheet Modal
+  shortcutsModalOpen = signal(false);
+
+  openShortcutsModal() {
+    this.shortcutsModalOpen.set(true);
+  }
+
+  closeShortcutsModal() {
+    this.shortcutsModalOpen.set(false);
+  }
+
+  toggleShortcutsModal() {
+    this.shortcutsModalOpen.update((v) => !v);
+  }
+
   constructor() {
     if (typeof window !== 'undefined') {
       window.addEventListener('online', () => {
