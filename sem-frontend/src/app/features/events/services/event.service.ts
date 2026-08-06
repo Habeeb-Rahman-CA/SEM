@@ -277,4 +277,12 @@ export class EventService {
       },
     );
   }
+
+  getSeasonHistoryTimeline(eventId?: string): Observable<any[]> {
+    const params: Record<string, string> = {};
+    if (eventId) params['eventId'] = eventId;
+    return this.http.get<any[]>(`${environment.apiUrl}/public/events/seasons/timeline`, {
+      params,
+    });
+  }
 }

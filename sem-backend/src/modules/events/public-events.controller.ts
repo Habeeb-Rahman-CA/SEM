@@ -51,6 +51,20 @@ export class PublicEventsController {
     return this.competitionsService.getPublicLiveMatches({ sport, eventId });
   }
 
+  @Get('seasons/timeline')
+  @ApiOperation({
+    summary: 'Get season history timeline (2022-2025 Champions)',
+    description:
+      'Returns historical season champion records with clickable squads, stats, awards, and photo galleries.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Array of season history timeline objects',
+  })
+  async getSeasonHistoryTimeline(@Query('eventId') eventId?: string) {
+    return this.competitionsService.getSeasonHistoryTimeline(eventId);
+  }
+
   @Get()
   @ApiOperation({
     summary: 'Browse published events (public portal)',

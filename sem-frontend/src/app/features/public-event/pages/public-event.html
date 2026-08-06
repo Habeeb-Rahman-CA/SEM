@@ -144,6 +144,13 @@
         <!-- Action / Share Button -->
         <div class="flex-shrink-0 md:self-center flex flex-wrap items-center gap-2.5">
           <button
+            (click)="openSeasonTimelineModal()"
+            class="px-4 py-3 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-black text-sm rounded-2xl shadow-lg shadow-indigo-600/20 transition-all flex items-center gap-2 cursor-pointer border border-indigo-400/50"
+          >
+            <i class="fi fi-rr-time-past text-base"></i>
+            Season History Timeline
+          </button>
+          <button
             (click)="openStoryModal()"
             class="px-4 py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-sm rounded-2xl shadow-lg shadow-amber-500/20 transition-all flex items-center gap-2 cursor-pointer border border-amber-400/50"
           >
@@ -3902,6 +3909,313 @@
             <i class="fi fi-rr-copy"></i>
             Copy Story for Social Media
           </button>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- ─── SEASON HISTORY TIMELINE MODAL ─── -->
+  @if (isSeasonTimelineModalOpen()) {
+    <div
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fade-in"
+      (click)="closeSeasonTimelineModal()"
+    >
+      <div
+        class="bg-slate-900 border border-violet-500/30 rounded-3xl max-w-4xl w-full p-6 sm:p-8 shadow-2xl relative overflow-hidden flex flex-col gap-6 max-h-[90vh]"
+        (click)="$event.stopPropagation()"
+      >
+        <!-- Modal Glow -->
+        <div
+          class="absolute top-0 right-0 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"
+        ></div>
+
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between border-b border-white/10 pb-4">
+          <div class="flex items-center gap-3">
+            <div
+              class="w-11 h-11 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300 shadow-md text-xl"
+            >
+              🏆
+            </div>
+            <div>
+              <h3 class="text-lg sm:text-xl font-black text-white">Season History Timeline</h3>
+              <p class="text-xs text-slate-400">Historical Champions Roll of Honor (2022 – 2025)</p>
+            </div>
+          </div>
+          <button
+            (click)="closeSeasonTimelineModal()"
+            class="w-8 h-8 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center cursor-pointer transition"
+          >
+            <i class="fi fi-rr-cross text-xs"></i>
+          </button>
+        </div>
+
+        @if (isLoadingSeasonTimeline()) {
+          <div class="py-16 flex flex-col items-center justify-center gap-3">
+            <div
+              class="w-8 h-8 rounded-full border-2 border-violet-400/20 border-t-violet-400 animate-spin"
+            ></div>
+            <span class="text-xs font-bold text-slate-400">Loading season history timeline...</span>
+          </div>
+        } @else {
+          <!-- Season Cards Timeline Bar -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            @for (s of seasonsTimeline(); track s.year) {
+              <button
+                type="button"
+                (click)="selectSeason(s)"
+                [class]="
+                  'p-3.5 rounded-2xl border text-left transition-all cursor-pointer relative overflow-hidden flex flex-col gap-1.5 ' +
+                  (selectedSeason()?.year === s.year
+                    ? 'bg-gradient-to-br from-amber-500/20 to-slate-900 border-amber-500 shadow-lg shadow-amber-500/10'
+                    : 'bg-slate-950/60 border-white/10 hover:border-violet-500/40')
+                "
+              >
+                <div class="flex items-center justify-between">
+                  <span
+                    class="text-xs font-mono font-black text-amber-400 uppercase tracking-wider"
+                  >
+                    {{ s.year }}
+                  </span>
+                  <i class="fi fi-sr-trophy text-amber-400 text-xs"></i>
+                </div>
+                <span class="text-sm font-black text-white truncate">{{ s.championTeamName }}</span>
+                <span class="text-[10px] font-medium text-slate-400 truncate">{{
+                  s.finalScore
+                }}</span>
+              </button>
+            }
+          </div>
+
+          <!-- Active Season Detail View -->
+          @if (selectedSeason(); as activeSeason) {
+            <div class="flex flex-col gap-5 overflow-y-auto pr-1">
+              <!-- Banner Card -->
+              <div
+                class="rounded-2xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-slate-950 to-slate-950 p-5 flex flex-col md:flex-row md:items-center justify-between gap-4"
+              >
+                <div class="flex items-center gap-4">
+                  <div
+                    class="w-14 h-14 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-2xl font-black text-amber-300 flex-shrink-0 shadow-lg"
+                  >
+                    🥇
+                  </div>
+                  <div>
+                    <div class="flex items-center gap-2">
+                      <span class="text-xs font-mono font-bold text-amber-400 uppercase">{{
+                        activeSeason.title
+                      }}</span>
+                      <span
+                        class="text-[10px] font-bold text-slate-400 bg-slate-800 px-2 py-0.5 rounded-full font-mono"
+                        >{{ activeSeason.championCode }}</span
+                      >
+                    </div>
+                    <h4 class="text-xl font-black text-white mt-0.5">
+                      {{ activeSeason.championTeamName }}
+                    </h4>
+                    <p class="text-xs text-slate-300 mt-1 max-w-xl leading-relaxed italic">
+                      "{{ activeSeason.seasonSummary }}"
+                    </p>
+                  </div>
+                </div>
+
+                <div
+                  class="flex md:flex-col items-end justify-between md:justify-center border-t md:border-t-0 md:border-l border-white/10 pt-3 md:pt-0 md:pl-5"
+                >
+                  <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest"
+                    >Final Match Score</span
+                  >
+                  <span class="text-base font-black text-amber-300 font-mono mt-0.5">{{
+                    activeSeason.finalScore
+                  }}</span>
+                </div>
+              </div>
+
+              <!-- 4 Interactive Sub-Tabs: Squads, Stats, Awards, Photos -->
+              <div class="flex items-center border-b border-white/10 gap-2">
+                <button
+                  type="button"
+                  (click)="selectSeasonTab('squads')"
+                  [class]="
+                    'px-4 py-2.5 text-xs font-bold transition-all border-b-2 flex items-center gap-2 cursor-pointer ' +
+                    (activeSeasonTab() === 'squads'
+                      ? 'border-amber-400 text-amber-400 font-black'
+                      : 'border-transparent text-slate-400 hover:text-white')
+                  "
+                >
+                  <i class="fi fi-rr-users-alt"></i> Squads ({{ activeSeason.squads.length }})
+                </button>
+                <button
+                  type="button"
+                  (click)="selectSeasonTab('stats')"
+                  [class]="
+                    'px-4 py-2.5 text-xs font-bold transition-all border-b-2 flex items-center gap-2 cursor-pointer ' +
+                    (activeSeasonTab() === 'stats'
+                      ? 'border-amber-400 text-amber-400 font-black'
+                      : 'border-transparent text-slate-400 hover:text-white')
+                  "
+                >
+                  <i class="fi fi-rr-chart-histogram"></i> Stats
+                </button>
+                <button
+                  type="button"
+                  (click)="selectSeasonTab('awards')"
+                  [class]="
+                    'px-4 py-2.5 text-xs font-bold transition-all border-b-2 flex items-center gap-2 cursor-pointer ' +
+                    (activeSeasonTab() === 'awards'
+                      ? 'border-amber-400 text-amber-400 font-black'
+                      : 'border-transparent text-slate-400 hover:text-white')
+                  "
+                >
+                  <i class="fi fi-sr-trophy"></i> Awards ({{ activeSeason.awards.length }})
+                </button>
+                <button
+                  type="button"
+                  (click)="selectSeasonTab('photos')"
+                  [class]="
+                    'px-4 py-2.5 text-xs font-bold transition-all border-b-2 flex items-center gap-2 cursor-pointer ' +
+                    (activeSeasonTab() === 'photos'
+                      ? 'border-amber-400 text-amber-400 font-black'
+                      : 'border-transparent text-slate-400 hover:text-white')
+                  "
+                >
+                  <i class="fi fi-rr-picture"></i> Photos ({{ activeSeason.photos.length }})
+                </button>
+              </div>
+
+              <!-- TAB 1: SQUADS -->
+              @if (activeSeasonTab() === 'squads') {
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  @for (player of activeSeason.squads; track player.id) {
+                    <div
+                      class="p-3.5 bg-slate-950/60 rounded-2xl border border-white/5 flex items-center gap-3.5"
+                    >
+                      <div
+                        class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center font-black text-amber-300 text-sm flex-shrink-0"
+                      >
+                        #{{ player.jerseyNumber }}
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <div class="text-sm font-bold text-white truncate">{{ player.name }}</div>
+                        <div class="text-[10px] text-amber-300 font-medium truncate">
+                          {{ player.position }}
+                        </div>
+                      </div>
+                      <div class="flex items-center gap-2 font-mono text-xs">
+                        @if (player.goals) {
+                          <span
+                            class="text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-md"
+                            >⚽ {{ player.goals }}</span
+                          >
+                        }
+                        @if (player.mvpAwards) {
+                          <span
+                            class="text-amber-300 font-bold bg-amber-500/10 px-2 py-0.5 rounded-md"
+                            >⭐ {{ player.mvpAwards }}</span
+                          >
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+
+              <!-- TAB 2: STATS -->
+              @if (activeSeasonTab() === 'stats') {
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div
+                    class="p-4 bg-slate-950/60 rounded-2xl border border-white/5 flex flex-col gap-1"
+                  >
+                    <span class="text-[10px] uppercase font-bold text-slate-500 tracking-wider"
+                      >Total Matches</span
+                    >
+                    <span class="text-2xl font-black text-white font-mono">{{
+                      activeSeason.stats.totalMatches
+                    }}</span>
+                  </div>
+                  <div
+                    class="p-4 bg-slate-950/60 rounded-2xl border border-white/5 flex flex-col gap-1"
+                  >
+                    <span class="text-[10px] uppercase font-bold text-slate-500 tracking-wider"
+                      >Goals Scored</span
+                    >
+                    <span class="text-2xl font-black text-emerald-400 font-mono">{{
+                      activeSeason.stats.totalGoals
+                    }}</span>
+                  </div>
+                  <div
+                    class="p-4 bg-slate-950/60 rounded-2xl border border-white/5 flex flex-col gap-1"
+                  >
+                    <span class="text-[10px] uppercase font-bold text-slate-500 tracking-wider"
+                      >Avg Goals / Match</span
+                    >
+                    <span class="text-2xl font-black text-violet-300 font-mono">{{
+                      activeSeason.stats.avgGoalsPerGame
+                    }}</span>
+                  </div>
+                  <div
+                    class="p-4 bg-slate-950/60 rounded-2xl border border-white/5 flex flex-col gap-1"
+                  >
+                    <span class="text-[10px] uppercase font-bold text-slate-500 tracking-wider"
+                      >Clean Sheets</span
+                    >
+                    <span class="text-2xl font-black text-blue-400 font-mono">{{
+                      activeSeason.stats.cleanSheets
+                    }}</span>
+                  </div>
+                </div>
+              }
+
+              <!-- TAB 3: AWARDS -->
+              @if (activeSeasonTab() === 'awards') {
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  @for (award of activeSeason.awards; track award.title) {
+                    <div
+                      class="p-4 bg-slate-950/60 rounded-2xl border border-amber-500/20 flex items-start gap-3.5"
+                    >
+                      <span class="text-2xl flex-shrink-0 mt-0.5">{{ award.icon }}</span>
+                      <div class="min-w-0 flex-1">
+                        <span class="text-xs font-black uppercase text-amber-400 tracking-wider">{{
+                          award.title
+                        }}</span>
+                        <h5 class="text-sm font-bold text-white mt-0.5 truncate">
+                          {{ award.winnerName }}
+                        </h5>
+                        <p class="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                          {{ award.description }}
+                        </p>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+
+              <!-- TAB 4: PHOTOS -->
+              @if (activeSeasonTab() === 'photos') {
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  @for (photo of activeSeason.photos; track photo.id) {
+                    <div
+                      class="group rounded-2xl border border-white/10 bg-slate-950 overflow-hidden flex flex-col"
+                    >
+                      <div class="h-36 w-full overflow-hidden bg-slate-800 relative">
+                        <img
+                          [src]="photo.url"
+                          [alt]="photo.title"
+                          class="w-full h-full object-cover group-hover:scale-105 transition-all duration-300"
+                        />
+                      </div>
+                      <div class="p-3 flex flex-col gap-1">
+                        <span class="text-xs font-bold text-white truncate">{{ photo.title }}</span>
+                        <span class="text-[10px] text-slate-400 leading-normal">{{
+                          photo.caption
+                        }}</span>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
         }
       </div>
     </div>

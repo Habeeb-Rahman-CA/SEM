@@ -153,6 +153,57 @@ export class PublicEventComponent implements OnInit, OnDestroy {
     setTimeout(() => this.storyCopySuccess.set(false), 2000);
   }
 
+  // Season History Timeline State
+  seasonsTimeline = signal<any[]>([]);
+  isSeasonTimelineModalOpen = signal<boolean>(false);
+  selectedSeason = signal<any | null>(null);
+  activeSeasonTab = signal<'squads' | 'stats' | 'awards' | 'photos'>('squads');
+  isLoadingSeasonTimeline = signal<boolean>(false);
+
+  openSeasonTimelineModal(seasonYear?: number) {
+    this.isSeasonTimelineModalOpen.set(true);
+    if (this.seasonsTimeline().length === 0) {
+      this.loadSeasonTimeline(seasonYear);
+    } else if (seasonYear) {
+      const match = this.seasonsTimeline().find((s) => s.year === seasonYear);
+      if (match) this.selectedSeason.set(match);
+    }
+  }
+
+  closeSeasonTimelineModal() {
+    this.isSeasonTimelineModalOpen.set(false);
+  }
+
+  selectSeason(season: any) {
+    this.selectedSeason.set(season);
+  }
+
+  selectSeasonTab(tab: 'squads' | 'stats' | 'awards' | 'photos') {
+    this.activeSeasonTab.set(tab);
+  }
+
+  private loadSeasonTimeline(autoSelectYear?: number) {
+    this.isLoadingSeasonTimeline.set(true);
+    const eventId = this.eventId() || undefined;
+    this.eventService.getSeasonHistoryTimeline(eventId).subscribe({
+      next: (data) => {
+        this.seasonsTimeline.set(data);
+        if (autoSelectYear) {
+          const match = data.find((s) => s.year === autoSelectYear);
+          if (match) this.selectedSeason.set(match);
+          else if (data.length > 0) this.selectedSeason.set(data[0]);
+        } else if (data.length > 0 && !this.selectedSeason()) {
+          this.selectedSeason.set(data[0]);
+        }
+        this.isLoadingSeasonTimeline.set(false);
+      },
+      error: (err) => {
+        console.error('Failed to load season history timeline', err);
+        this.isLoadingSeasonTimeline.set(false);
+      },
+    });
+  }
+
   shareUrl = computed(() => {
     const base = window.location.origin + window.location.pathname;
     const tab = this.shareTab();
