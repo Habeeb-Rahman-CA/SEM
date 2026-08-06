@@ -9,11 +9,12 @@ import {
 } from '../../workspaces/services/workspace.service';
 import { CompetitionService } from '../services/competition.service';
 import { DuplicateDetectionService } from '../../../core/services/duplicate-detection.service';
+import { HelpTooltipComponent } from '../../../shared/components/help-tooltip/help-tooltip';
 
 @Component({
   selector: 'app-competition-modal',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, HelpTooltipComponent],
   template: `
     @if (isOpen()) {
       <div
@@ -150,9 +151,12 @@ import { DuplicateDetectionService } from '../../../core/services/duplicate-dete
                 <div class="flex flex-col gap-1.5">
                   <label
                     for="c-status"
-                    class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
-                    >Status</label
-                  >
+                    class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"
+                    >Status
+                    <app-help-tooltip
+                      text="Upcoming: not yet started. Ongoing: currently in progress. Completed: all matches finished. Cancelled: competition abandoned."
+                      position="top"
+                  /></label>
                   <select
                     id="c-status"
                     class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-all w-full"
@@ -171,12 +175,16 @@ import { DuplicateDetectionService } from '../../../core/services/duplicate-dete
               <!-- Right: Overall Points Config (Optional) -->
               <div class="flex flex-col gap-3 md:border-l border-white/5 md:pl-6">
                 <div class="flex items-center justify-between">
-                  <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+                  <label
+                    class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"
                     >Points Breakdown Configuration
                     <span class="text-slate-500 normal-case font-normal"
                       >(for overall standings)</span
-                    ></label
-                  >
+                    >
+                    <app-help-tooltip
+                      text="Define how many points each finishing position earns in the overall event leaderboard. E.g. Winner=10pts, Runner-up=6pts. Teams competing in this competition will accumulate these points across all events."
+                      position="left"
+                  /></label>
                   <button
                     type="button"
                     (click)="addPointsRow()"

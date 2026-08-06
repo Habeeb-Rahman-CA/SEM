@@ -2,13 +2,17 @@ import { Component, input, output, signal, effect, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms';
 import { PlayerService } from '../services/player.service';
 import { Player, Team, WorkspaceMember } from '../../workspaces/services/workspace.service';
-import { AutoSaveDirective, SmartDefaultsBannerComponent } from '../../../shared';
+import {
+  AutoSaveDirective,
+  SmartDefaultsBannerComponent,
+  HelpTooltipComponent,
+} from '../../../shared';
 import { DuplicateDetectionService } from '../../../core/services/duplicate-detection.service';
 
 @Component({
   selector: 'app-player-modal',
   standalone: true,
-  imports: [FormsModule, AutoSaveDirective, SmartDefaultsBannerComponent],
+  imports: [FormsModule, AutoSaveDirective, SmartDefaultsBannerComponent, HelpTooltipComponent],
   templateUrl: './player-modal.html',
 })
 export class PlayerModalComponent {

@@ -4,7 +4,13 @@
   </h4>
   <div class="flex flex-col gap-3">
     <div class="flex flex-col gap-1.5 text-left max-w-xs">
-      <label class="text-[10px] font-bold text-slate-400 uppercase">Half Duration (Minutes)</label>
+      <label class="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1.5">
+        Half Duration (Minutes)
+        <app-help-tooltip
+          text="Duration of each half in minutes. Standard football uses 45-minute halves. Adjust this for shorter youth matches or custom formats."
+          position="right"
+        />
+      </label>
       <input
         #halfDuration
         type="number"
@@ -17,7 +23,13 @@
 
     @if (supportsKnockoutOptions()) {
       <div class="flex flex-col gap-2.5 text-left border-t border-white/5 pt-2 max-w-xs">
-        <label class="text-[10px] font-bold text-slate-400 uppercase">Knockout Options</label>
+        <label class="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1.5">
+          Knockout Options
+          <app-help-tooltip
+            text="Extra Time and Penalty Shootout options are only available in Knockout and Group+Knockout stages. These are used to resolve tied matches in elimination rounds."
+            position="right"
+          />
+        </label>
         <div class="flex flex-col gap-2">
           <label class="text-xs text-white flex items-center gap-2 cursor-pointer">
             <input
@@ -27,12 +39,20 @@
               class="accent-violet-500 rounded border-white/10"
             />
             Enable Extra Time
+            <app-help-tooltip
+              text="If the match is tied after normal time, play two additional periods (e.g. 2×15 minutes) before deciding the winner."
+              position="right"
+            />
           </label>
           @if (enableExtraTime()) {
             <div class="flex flex-col gap-1 text-left pl-6 mt-1">
-              <label class="text-[9px] font-bold text-slate-400 uppercase"
-                >Extra Time Half Duration (Mins)</label
-              >
+              <label class="text-[9px] font-bold text-slate-400 uppercase flex items-center gap-1.5"
+                >Extra Time Half Duration (Mins)
+                <app-help-tooltip
+                  text="Duration of each extra time period. FIFA standard is 15 minutes per half. Must be between 1 and 45 minutes."
+                  position="right"
+                />
+              </label>
               <input
                 #extraTimeHalfDurationInput
                 type="number"
@@ -52,6 +72,10 @@
               class="accent-violet-500 rounded border-white/10"
             />
             Enable Penalty Shootout
+            <app-help-tooltip
+              text="If the match is still tied after Extra Time, a penalty shootout determines the winner. Each team takes alternating penalty kicks from the spot."
+              position="right"
+            />
           </label>
         </div>
       </div>

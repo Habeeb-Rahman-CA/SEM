@@ -125,9 +125,13 @@
               <div class="flex flex-col gap-1.5">
                 <label
                   for="modal-p-user"
-                  class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
-                  >Member / User <span class="text-rose-400">*</span></label
-                >
+                  class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"
+                  >Member / User <span class="text-rose-400">*</span>
+                  <app-help-tooltip
+                    text="Select a workspace member to register as a player. Only members already added to this workspace will appear here."
+                    position="top"
+                  />
+                </label>
                 <select
                   id="modal-p-user"
                   class="bg-slate-950 border border-white/10 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-all w-full"
@@ -169,10 +173,14 @@
               <div class="flex flex-col gap-1.5">
                 <label
                   for="modal-p-jersey"
-                  class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+                  class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"
                   >Jersey #
-                  <span class="text-slate-600 font-normal normal-case">(optional)</span></label
-                >
+                  <span class="text-slate-600 font-normal normal-case">(optional)</span>
+                  <app-help-tooltip
+                    text="The player's shirt/jersey number. Must be unique within the team. E.g., 10 for a captain, 1 for a goalkeeper."
+                    position="top"
+                  />
+                </label>
                 <input
                   id="modal-p-jersey"
                   type="text"
@@ -188,10 +196,14 @@
               <div class="flex flex-col gap-1.5">
                 <label
                   for="modal-p-pos"
-                  class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+                  class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"
                   >Position
-                  <span class="text-slate-600 font-normal normal-case">(optional)</span></label
-                >
+                  <span class="text-slate-600 font-normal normal-case">(optional)</span>
+                  <app-help-tooltip
+                    text="The player's on-field role. Examples: Forward, Midfielder, Goalkeeper, Batsman, Bowler. This appears on public player profiles."
+                    position="top"
+                  />
+                </label>
                 <input
                   id="modal-p-pos"
                   type="text"
@@ -208,10 +220,14 @@
             <div class="flex flex-col gap-1.5">
               <label
                 for="modal-p-bio"
-                class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+                class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"
                 >Biography
-                <span class="text-slate-600 font-normal normal-case">(optional)</span></label
-              >
+                <span class="text-slate-600 font-normal normal-case">(optional)</span>
+                <app-help-tooltip
+                  text="A short public biography shown on the player's profile page. Keep it concise — 2 to 3 sentences about their career, playing style, or background."
+                  position="top"
+                />
+              </label>
               <textarea
                 id="modal-p-bio"
                 placeholder="Short bio, playing style, career highlights..."
@@ -225,11 +241,17 @@
 
             <!-- Achievements editor -->
             <div class="flex flex-col gap-2">
-              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              <span
+                class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"
+              >
                 Achievements
                 <span class="text-slate-600 font-normal normal-case"
                   >(awards, honours, records)</span
                 >
+                <app-help-tooltip
+                  text="List the player's notable career awards, medals, and records. Each achievement can include a title, year, and optional description. These are displayed publicly on the player's profile."
+                  position="right"
+                />
               </span>
               <div class="p-3 bg-slate-950/40 border border-white/5 rounded-xl flex flex-col gap-2">
                 <div class="grid grid-cols-1 sm:grid-cols-[1fr_100px] gap-2">

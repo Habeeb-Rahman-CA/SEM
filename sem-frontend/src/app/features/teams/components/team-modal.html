@@ -124,9 +124,13 @@
           <div class="flex flex-col gap-1.5">
             <label
               for="team-code"
-              class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
-              >Team Code <span class="text-rose-400">*</span></label
-            >
+              class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"
+              >Team Code <span class="text-rose-400">*</span>
+              <app-help-tooltip
+                text="A short unique identifier for this team. Usually 2–5 uppercase letters. Used in standings, scoreboards, and match schedules. E.g. WAR for Warriors FC."
+                position="top"
+              />
+            </label>
             <input
               id="team-code"
               type="text"
@@ -145,9 +149,13 @@
             <div class="flex flex-col gap-1.5">
               <label
                 for="team-primary-color"
-                class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
-                >Primary Color</label
-              >
+                class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"
+                >Primary Color
+                <app-help-tooltip
+                  text="The main team color shown on jerseys, avatars, and match score cards. Used as the primary brand color across all public pages."
+                  position="top"
+                />
+              </label>
               <div
                 class="flex items-center gap-2 bg-slate-950 border border-white/10 rounded-xl px-3.5 py-2"
               >
@@ -167,9 +175,13 @@
             <div class="flex flex-col gap-1.5">
               <label
                 for="team-secondary-color"
-                class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
-                >Secondary Color</label
-              >
+                class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"
+                >Secondary Color
+                <app-help-tooltip
+                  text="A complementary accent color for kit strips, badges, and secondary UI elements. Defaults to indigo if left unchanged."
+                  position="top"
+                />
+              </label>
               <div
                 class="flex items-center gap-2 bg-slate-950 border border-white/10 rounded-xl px-3.5 py-2"
               >
@@ -209,8 +221,14 @@
           <!-- Coaches editor -->
           <div class="flex flex-col gap-2 border-t border-white/5 pt-4">
             <div class="flex flex-col gap-0.5">
-              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              <span
+                class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"
+              >
                 Coaches &amp; staff
+                <app-help-tooltip
+                  text="Add coaching staff like head coaches, assistant coaches, and physios. These appear on the public team profile page visible to spectators."
+                  position="right"
+                />
               </span>
               <span class="text-[10px] text-slate-500">
                 Head coach, assistants, physios — shown on the public team profile.
@@ -309,8 +327,14 @@
           <!-- Achievements/trophies editor -->
           <div class="flex flex-col gap-2 border-t border-white/5 pt-4">
             <div class="flex flex-col gap-0.5">
-              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              <span
+                class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"
+              >
                 Trophies &amp; achievements
+                <app-help-tooltip
+                  text="Record titles won, tournament placements, and historical records for this team. Shown as a trophy cabinet on the public team profile."
+                  position="right"
+                />
               </span>
               <span class="text-[10px] text-slate-500">
                 Titles won, tournament finishes, records — highlights on the public profile.
