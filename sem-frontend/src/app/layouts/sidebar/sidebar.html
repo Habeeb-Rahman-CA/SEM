@@ -71,6 +71,46 @@
     aria-label="Workspace Navigation"
     class="flex-1 overflow-y-auto px-4 py-6 flex flex-col gap-1"
   >
+    <!-- Pinned Favorites Section -->
+    @if (favoritesService.favorites().length > 0) {
+      <div class="mb-2 pb-2 border-b border-white/5">
+        <div
+          [class.lg:hidden]="!isSidebarOpen()"
+          class="px-4 py-1 flex items-center justify-between text-[10px] font-black tracking-wider uppercase text-amber-400"
+        >
+          <span class="flex items-center gap-1.5">
+            <i class="fi fi-sr-star text-xs text-amber-400"></i> Favorites
+          </span>
+          <span class="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300">{{
+            favoritesService.favoritesCount()
+          }}</span>
+        </div>
+        @for (fav of favoritesService.favorites(); track fav.id) {
+          <a
+            [routerLink]="fav.url"
+            (click)="closeSidebarOnMobile()"
+            [class.lg:justify-center]="!isSidebarOpen()"
+            [class.lg:px-0]="!isSidebarOpen()"
+            class="w-full flex items-center justify-between px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white hover:bg-amber-500/10 rounded-xl transition group text-left"
+            [title]="fav.title"
+          >
+            <span class="flex items-center gap-3 truncate min-w-0 pr-1">
+              <i [class]="fav.icon + ' text-amber-400 text-sm shrink-0'"></i>
+              <span [class.lg:hidden]="!isSidebarOpen()" class="truncate">{{ fav.title }}</span>
+            </span>
+            <button
+              [class.lg:hidden]="!isSidebarOpen()"
+              (click)="removeFavorite($event, fav.id)"
+              class="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-rose-400 p-1 transition cursor-pointer border-0 bg-transparent"
+              title="Unfavorite"
+            >
+              <i class="fi fi-rr-cross-small text-xs"></i>
+            </button>
+          </a>
+        }
+      </div>
+    }
+
     <button
       (click)="activeTab.set('overview'); closeSidebarOnMobile()"
       [attr.aria-current]="activeTab() === 'overview' ? 'page' : null"

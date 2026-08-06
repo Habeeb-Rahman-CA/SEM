@@ -34,6 +34,18 @@
       </span>
     </div>
 
+    <!-- Favorite Current View Button -->
+    @if (workspace()?.id) {
+      <app-favorite-button
+        [workspaceId]="workspace()!.id"
+        [entityType]="favEntityType()"
+        [entityId]="workspace()!.id + '-' + activeTab()"
+        [title]="favTitle()"
+        [subtitle]="'Workspace Tab'"
+        [url]="favUrl()"
+      />
+    }
+
     <!-- Notification Panel Component -->
     <app-notification-panel
       [(isNotificationOpen)]="isNotificationOpen"

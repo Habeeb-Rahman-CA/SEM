@@ -1,0 +1,20 @@
+<button
+  type="button"
+  (click)="toggle($event)"
+  [attr.aria-label]="isFav() ? 'Remove from favorites' : 'Add to favorites'"
+  [title]="isFav() ? 'Remove from favorites' : 'Favorite this ' + entityType()"
+  class="inline-flex items-center justify-center w-8 h-8 rounded-lg transition-all border-0 cursor-pointer outline-none group relative"
+  [class.bg-amber-500\/10]="isFav()"
+  [class.text-amber-400]="isFav()"
+  [class.hover:bg-amber-500\/20]="isFav()"
+  [class.bg-slate-800\/60]="!isFav()"
+  [class.text-slate-400]="!isFav()"
+  [class.hover:text-amber-300]="!isFav()"
+  [class.hover:bg-slate-800]="!isFav()"
+>
+  @if (isFav()) {
+    <i class="fi fi-sr-star text-sm scale-110 transition-transform group-hover:scale-125"></i>
+  } @else {
+    <i class="fi fi-rr-star text-sm transition-transform group-hover:scale-110"></i>
+  }
+</button>

@@ -1,5 +1,6 @@
-import { Component, input, model, output } from '@angular/core';
+import { Component, input, model, output, inject, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import {
   Workspace,
   Team,
@@ -14,16 +15,27 @@ import {
 import { GlobalSearchComponent } from '../global-search/global-search';
 import { NotificationPanelComponent } from '../notification-panel/notification-panel';
 import { UserDropdownComponent } from '../user-dropdown/user-dropdown';
+import { FavoriteButtonComponent } from '../../shared/components/favorite-button/favorite-button';
+import { FavoriteEntityType } from '../../core/services/favorites.service';
 
 @Component({
   selector: 'app-topbar',
   standalone: true,
-  imports: [FormsModule, GlobalSearchComponent, NotificationPanelComponent, UserDropdownComponent],
+  imports: [
+    FormsModule,
+    GlobalSearchComponent,
+    NotificationPanelComponent,
+    UserDropdownComponent,
+    FavoriteButtonComponent,
+  ],
   templateUrl: './topbar.html',
 })
 export class TopbarComponent {
+  private router = inject(Router);
+
   workspace = input<Workspace | null>(null);
   allWorkspaces = input<Workspace[]>([]);
+  activeTab = input<string>('overview');
 
   globalSearchQuery = model<string>('');
   showGlobalSearchResults = model<boolean>(false);
@@ -62,6 +74,26 @@ export class TopbarComponent {
   markNotificationsRead = output<void>();
   signOut = output<void>();
   avatarUpload = output<Event>();
+
+  favEntityType = computed<FavoriteEntityType>(() => {
+    const tab = this.activeTab();
+    if (tab === 'overview') return 'dashboard';
+    if (tab === 'teams') return 'team';
+    if (tab === 'events') return 'event';
+    if (tab === 'reports') return 'report';
+    return 'custom';
+  });
+
+  favTitle = computed(() => {
+    const wsName = this.workspace()?.name || 'Workspace';
+    const tab = this.activeTab();
+    const capitalizedTab = tab.charAt(0).toUpperCase() + tab.slice(1);
+    return `${wsName} - ${capitalizedTab}`;
+  });
+
+  favUrl = computed(() => {
+    return this.router.url;
+  });
 
   onSwitchWorkspace(wsId: string) {
     this.switchWorkspace.emit(wsId);
