@@ -1,6 +1,6 @@
 {
   "name": "taisen-backend",
-  "version": "5.0.0",
+  "version": "5.5.0",
   "description": "NestJS Backend API service for the Taisen Sports Event Management Platform, supplying live scoring gateways, concurrency locks, and advanced reporting exports.",
   "author": "Taisen Team",
   "private": true,
