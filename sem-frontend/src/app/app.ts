@@ -8,6 +8,7 @@ import { KeyboardShortcutsModalComponent } from './shared/components/keyboard-sh
 import { OfflineBannerComponent } from './shared/components/offline-banner/offline-banner';
 import { OfflineSyncModalComponent } from './shared/components/offline-sync-modal/offline-sync-modal';
 import { BackgroundJobsWidgetComponent } from './shared/components/background-jobs-widget/background-jobs-widget';
+import { DraftRecoveryModalComponent } from './shared/components/draft-recovery-modal/draft-recovery-modal';
 
 @Component({
   selector: 'app-root',
@@ -20,6 +21,7 @@ import { BackgroundJobsWidgetComponent } from './shared/components/background-jo
     OfflineBannerComponent,
     OfflineSyncModalComponent,
     BackgroundJobsWidgetComponent,
+    DraftRecoveryModalComponent,
   ],
   templateUrl: './app.html',
   styleUrl: './app.css',

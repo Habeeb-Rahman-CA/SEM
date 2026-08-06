@@ -25,6 +25,7 @@ export { OfflineSyncModalComponent } from './components/offline-sync-modal/offli
 export { BackgroundJobsWidgetComponent } from './components/background-jobs-widget/background-jobs-widget';
 export { BreadcrumbComponent } from './components/breadcrumb/breadcrumb';
 export { AutoSaveBadgeComponent } from './components/auto-save-badge/auto-save-badge';
+export { DraftRecoveryModalComponent } from './components/draft-recovery-modal/draft-recovery-modal';
 
 // ── Type re-exports ───────────────────────────────────────────────────────────
 export type { ButtonVariant, ButtonSize } from './components/button/button';

@@ -1,35 +1,51 @@
 <!-- ─── AUTO SAVE RECTANGULAR STATUS INDICATOR ─── -->
-<div
-  class="inline-flex items-center gap-2 py-1 px-3 rounded-xl border text-xs font-semibold transition-all duration-300 select-none shadow-sm"
->
-  @if (autoSaveService.status() === 'saving') {
-    <span
-      class="inline-flex items-center gap-1.5 text-violet-300 bg-violet-500/10 border-violet-500/30"
+<div class="inline-flex items-center gap-2">
+  <div
+    class="inline-flex items-center gap-2 py-1 px-3 rounded-xl border border-white/5 text-xs font-semibold transition-all duration-300 select-none shadow-sm"
+  >
+    @if (autoSaveService.status() === 'saving') {
+      <span
+        class="inline-flex items-center gap-1.5 text-violet-300 bg-violet-500/10 border-violet-500/30"
+      >
+        <i class="fi fi-rr-refresh animate-spin text-xs"></i>
+        <span>Saving changes...</span>
+      </span>
+    } @else if (autoSaveService.status() === 'saved') {
+      <span
+        class="inline-flex items-center gap-1.5 text-emerald-400 bg-emerald-500/10 border-emerald-500/20 px-2 py-0.5 rounded-lg"
+      >
+        <i class="fi fi-rr-check text-xs text-emerald-400"></i>
+        <span class="font-bold">✓ Saved automatically</span>
+        @if (autoSaveService.lastSavedAt(); as lastTime) {
+          <span class="text-[10px] text-slate-400 font-mono hidden sm:inline">
+            ({{ lastTime | date: 'shortTime' }})
+          </span>
+        }
+      </span>
+    } @else if (autoSaveService.status() === 'error') {
+      <span
+        class="inline-flex items-center gap-1.5 text-rose-300 bg-rose-500/10 border-rose-500/30"
+      >
+        <i class="fi fi-rr-cross-circle text-xs text-rose-400"></i>
+        <span>Save failed (Retrying)</span>
+      </span>
+    } @else {
+      <span class="inline-flex items-center gap-1.5 text-slate-400 bg-slate-800/40 border-white/5">
+        <i class="fi fi-rr-cloud-check text-xs"></i>
+        <span>Draft synced</span>
+      </span>
+    }
+  </div>
+
+  @if (autoSaveService.draftCount() > 0) {
+    <button
+      type="button"
+      (click)="autoSaveService.openRecoveryModal()"
+      class="px-2.5 py-1 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-sm"
+      title="View Unfinished Drafts"
     >
-      <i class="fi fi-rr-refresh animate-spin text-xs"></i>
-      <span>Saving changes...</span>
-    </span>
-  } @else if (autoSaveService.status() === 'saved') {
-    <span
-      class="inline-flex items-center gap-1.5 text-emerald-400 bg-emerald-500/10 border-emerald-500/20 px-2 py-0.5 rounded-lg"
-    >
-      <i class="fi fi-rr-check text-xs text-emerald-400"></i>
-      <span class="font-bold">✓ Saved automatically</span>
-      @if (autoSaveService.lastSavedAt(); as lastTime) {
-        <span class="text-[10px] text-slate-400 font-mono hidden sm:inline">
-          ({{ lastTime | date: 'shortTime' }})
-        </span>
-      }
-    </span>
-  } @else if (autoSaveService.status() === 'error') {
-    <span class="inline-flex items-center gap-1.5 text-rose-300 bg-rose-500/10 border-rose-500/30">
-      <i class="fi fi-rr-cross-circle text-xs text-rose-400"></i>
-      <span>Save failed (Retrying)</span>
-    </span>
-  } @else {
-    <span class="inline-flex items-center gap-1.5 text-slate-400 bg-slate-800/40 border-white/5">
-      <i class="fi fi-rr-cloud-check text-xs"></i>
-      <span>Draft synced</span>
-    </span>
+      <i class="fi fi-rr-time-past text-xs"></i>
+      <span>Drafts ({{ autoSaveService.draftCount() }})</span>
+    </button>
   }
 </div>
