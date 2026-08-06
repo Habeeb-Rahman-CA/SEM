@@ -15,6 +15,7 @@ import { ToastItemComponent } from './shared/components/toast-item/toast-item';
 import { CelebrationModalComponent } from './shared/components/celebration-modal/celebration-modal';
 import { ActivityFeedComponent } from './shared/components/activity-feed/activity-feed';
 import { RecycleBinComponent } from './shared/components/recycle-bin/recycle-bin';
+import { SmartSuggestionToastComponent } from './shared/components/smart-suggestion-toast/smart-suggestion-toast';
 
 @Component({
   selector: 'app-root',
@@ -34,6 +35,7 @@ import { RecycleBinComponent } from './shared/components/recycle-bin/recycle-bin
     CelebrationModalComponent,
     ActivityFeedComponent,
     RecycleBinComponent,
+    SmartSuggestionToastComponent,
   ],
   templateUrl: './app.html',
   styleUrl: './app.css',

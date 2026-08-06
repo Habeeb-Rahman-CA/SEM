@@ -38,11 +38,13 @@ export { RecordCommentsComponent } from './components/record-comments/record-com
 export { ActivityFeedComponent } from './components/activity-feed/activity-feed';
 export { CopyButtonComponent } from './components/copy-button/copy-button';
 export { RecycleBinComponent } from './components/recycle-bin/recycle-bin';
+export { SmartSuggestionToastComponent } from './components/smart-suggestion-toast/smart-suggestion-toast';
 export { CopyDirective } from './directives/copy.directive';
 export { ConfettiService } from '../core/services/confetti.service';
 export { RecordCommentsService } from '../core/services/record-comments.service';
 export { ActivityFeedService } from '../core/services/activity-feed.service';
 export { RecycleBinService } from '../core/services/recycle-bin.service';
+export { SmartSuggestionsService } from '../core/services/smart-suggestions.service';
 
 // ── Type re-exports ───────────────────────────────────────────────────────────
 export type { ButtonVariant, ButtonSize } from './components/button/button';

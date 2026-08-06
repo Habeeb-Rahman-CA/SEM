@@ -76,6 +76,19 @@
   }
 }
 
+@keyframes shrinkProgress {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+.animate-shrink-5s {
+  animation: shrinkProgress 5s linear forwards;
+}
+
 body {
   font-family: var(--font-sans);
   background-color: var(--color-canvas);
