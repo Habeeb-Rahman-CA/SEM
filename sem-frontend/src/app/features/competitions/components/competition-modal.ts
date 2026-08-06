@@ -8,6 +8,7 @@ import {
   PointsConfigEntry,
 } from '../../workspaces/services/workspace.service';
 import { CompetitionService } from '../services/competition.service';
+import { DuplicateDetectionService } from '../../../core/services/duplicate-detection.service';
 
 @Component({
   selector: 'app-competition-modal',
@@ -271,11 +272,13 @@ import { CompetitionService } from '../services/competition.service';
 })
 export class CompetitionModalComponent {
   private competitionService = inject(CompetitionService);
+  private duplicateService = inject(DuplicateDetectionService);
 
   workspace = input.required<Workspace | null>();
   selectedEvent = input.required<WorkspaceEvent | null>();
   editingCompetition = input<Competition | null>(null);
   sports = input<Sport[]>([]);
+  existingCompetitions = input<Competition[]>([]);
 
   isOpen = model<boolean>(false);
   competitionSaved = output<Competition>();
@@ -353,6 +356,29 @@ export class CompetitionModalComponent {
     const event = this.selectedEvent();
     if (!ws || !event || !this.name().trim() || !this.sportId()) return;
 
+    const comp = this.editingCompetition();
+
+    // On create mode only: run duplicate detection
+    if (!comp) {
+      const newRecord = { name: this.name().trim() };
+      this.duplicateService
+        .confirmCreationWithDuplicateCheck(
+          newRecord,
+          this.existingCompetitions(),
+          ['name'],
+          'Competition',
+        )
+        .then((proceed) => {
+          if (!proceed) return;
+          this.doSave(ws, event, comp);
+        });
+      return;
+    }
+
+    this.doSave(ws, event, comp);
+  }
+
+  private doSave(ws: any, event: any, comp: Competition | null) {
     this.isSaving.set(true);
     this.error.set('');
     this.success.set('');
@@ -365,7 +391,6 @@ export class CompetitionModalComponent {
       pointsConfig: points.length > 0 ? points : null,
     };
 
-    const comp = this.editingCompetition();
     const request$ = comp
       ? this.competitionService.updateCompetition(ws.id, event.id, comp.id, payload)
       : this.competitionService.createCompetition(ws.id, event.id, payload);

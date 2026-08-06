@@ -16,6 +16,7 @@ import { CelebrationModalComponent } from './shared/components/celebration-modal
 import { ActivityFeedComponent } from './shared/components/activity-feed/activity-feed';
 import { RecycleBinComponent } from './shared/components/recycle-bin/recycle-bin';
 import { SmartSuggestionToastComponent } from './shared/components/smart-suggestion-toast/smart-suggestion-toast';
+import { DuplicateWarningModalComponent } from './shared/components/duplicate-warning-modal/duplicate-warning-modal';
 
 @Component({
   selector: 'app-root',
@@ -36,6 +37,7 @@ import { SmartSuggestionToastComponent } from './shared/components/smart-suggest
     ActivityFeedComponent,
     RecycleBinComponent,
     SmartSuggestionToastComponent,
+    DuplicateWarningModalComponent,
   ],
   templateUrl: './app.html',
   styleUrl: './app.css',

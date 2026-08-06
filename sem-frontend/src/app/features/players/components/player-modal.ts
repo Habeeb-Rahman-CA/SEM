@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { PlayerService } from '../services/player.service';
 import { Player, Team, WorkspaceMember } from '../../workspaces/services/workspace.service';
 import { AutoSaveDirective, SmartDefaultsBannerComponent } from '../../../shared';
+import { DuplicateDetectionService } from '../../../core/services/duplicate-detection.service';
 
 @Component({
   selector: 'app-player-modal',
@@ -21,6 +22,10 @@ export class PlayerModalComponent {
   save = output<Player>();
 
   private playerService = inject(PlayerService);
+  private duplicateService = inject(DuplicateDetectionService);
+
+  // Full list of existing players in workspace for duplicate detection
+  existingPlayers = input<Player[]>([]);
 
   userId = signal('');
   teamId = signal('');
@@ -133,28 +138,39 @@ export class PlayerModalComponent {
         },
       });
     } else {
-      // Create mode
-      const payload = {
-        userId: userVal,
-        teamId: teamVal,
-        jerseyNumber: jerseyVal || null,
-        bio: this.bio().trim(),
-        position: this.position().trim(),
-        achievements: this.achievements(),
-      };
+      // Create mode — run duplicate check first
+      const newRecord = { userId: userVal, jerseyNumber: jerseyVal };
+      this.duplicateService
+        .confirmCreationWithDuplicateCheck(
+          newRecord,
+          this.existingPlayers(),
+          ['userId', 'jerseyNumber'],
+          'Player',
+        )
+        .then((proceed) => {
+          if (!proceed) return;
+          const payload = {
+            userId: userVal,
+            teamId: teamVal,
+            jerseyNumber: jerseyVal || null,
+            bio: this.bio().trim(),
+            position: this.position().trim(),
+            achievements: this.achievements(),
+          };
 
-      this.playerService.createPlayer(wsId, payload).subscribe({
-        next: (res) => {
-          this.isSaving.set(false);
-          this.saveSuccess.set('Player registered successfully!');
-          this.save.emit(res);
-          setTimeout(() => this.closeModal(), 1000);
-        },
-        error: (err) => {
-          this.isSaving.set(false);
-          this.saveError.set(err.error?.message ?? 'Failed to register player.');
-        },
-      });
+          this.playerService.createPlayer(wsId, payload).subscribe({
+            next: (res) => {
+              this.isSaving.set(false);
+              this.saveSuccess.set('Player registered successfully!');
+              this.save.emit(res);
+              setTimeout(() => this.closeModal(), 1000);
+            },
+            error: (err) => {
+              this.isSaving.set(false);
+              this.saveError.set(err.error?.message ?? 'Failed to register player.');
+            },
+          });
+        });
     }
   }
 }

@@ -8,6 +8,7 @@ import { UiService } from '../../../core/services/ui.service';
 import { AvatarComponent } from '../../../shared/components/avatar/avatar';
 import { PhotoCaptureComponent } from '../../../shared/components/photo-capture/photo-capture';
 import { GalleryManagerComponent } from '../../gallery/components/gallery-manager';
+import { DuplicateDetectionService } from '../../../core/services/duplicate-detection.service';
 
 @Component({
   selector: 'app-event-modal',
@@ -860,10 +861,12 @@ import { GalleryManagerComponent } from '../../gallery/components/gallery-manage
 export class EventModalComponent {
   private eventService = inject(EventService);
   private uiService = inject(UiService);
+  private duplicateService = inject(DuplicateDetectionService);
 
   workspace = input.required<Workspace | null>();
   teams = input<Team[]>([]);
   editingEvent = input<WorkspaceEvent | null>(null);
+  existingEvents = input<WorkspaceEvent[]>([]);
 
   isOpen = model<boolean>(false);
   eventSaved = output<WorkspaceEvent>();
@@ -1062,6 +1065,24 @@ export class EventModalComponent {
     const ws = this.workspace();
     if (!ws || !this.name().trim()) return;
 
+    const event = this.editingEvent();
+
+    // On create mode only: run duplicate name detection
+    if (!event) {
+      const newRecord = { name: this.name().trim() };
+      this.duplicateService
+        .confirmCreationWithDuplicateCheck(newRecord, this.existingEvents(), ['name'], 'Event')
+        .then((proceed) => {
+          if (!proceed) return;
+          this.doSaveEvent(ws, event);
+        });
+      return;
+    }
+
+    this.doSaveEvent(ws, event);
+  }
+
+  private doSaveEvent(ws: Workspace, event: WorkspaceEvent | null) {
     this.isSaving.set(true);
     this.error.set('');
     this.success.set('');
@@ -1084,7 +1105,6 @@ export class EventModalComponent {
       organizers: this.organizers().trim() || undefined,
     };
 
-    const event = this.editingEvent();
     const request$ = event
       ? this.eventService.updateEvent(ws.id, event.id, payload)
       : this.eventService.createEvent(ws.id, payload);
