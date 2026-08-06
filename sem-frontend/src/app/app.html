@@ -1,13 +1,5 @@
-@if (uiService.isOffline()) {
-  <div
-    role="status"
-    aria-live="assertive"
-    class="bg-amber-600 border-b border-amber-700 text-white text-xs font-bold py-2 px-4 text-center flex items-center justify-center gap-2 animate-fadeIn z-[10000] relative"
-  >
-    <i class="fi fi-rr-wifi-slash text-sm"></i>
-    <span>You are currently offline. Running in offline read-only mode.</span>
-  </div>
-}
+<!-- Global Dynamic Offline & Auto-Sync Banner -->
+<app-offline-banner />
 
 <router-outlet></router-outlet>
 
@@ -16,6 +8,9 @@
 
 <!-- Keyboard Shortcuts Cheat Sheet Modal (?) -->
 <app-keyboard-shortcuts-modal />
+
+<!-- Offline Queue & Storage Inspector Modal -->
+<app-offline-sync-modal />
 
 <!-- Toaster Container -->
 <div

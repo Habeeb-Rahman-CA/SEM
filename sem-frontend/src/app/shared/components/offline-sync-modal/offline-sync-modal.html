@@ -1,0 +1,294 @@
+@if (syncService.showQueueModal()) {
+  <div
+    class="fixed inset-0 z-[9998] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4"
+    role="dialog"
+    aria-modal="true"
+  >
+    <div
+      class="bg-slate-900 border border-white/10 rounded-3xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+    >
+      <!-- Header -->
+      <div
+        class="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-slate-950/50"
+      >
+        <div class="flex items-center gap-3">
+          <div
+            class="w-10 h-10 rounded-2xl bg-violet-600/10 border border-violet-500/20 text-violet-400 flex items-center justify-center text-lg"
+          >
+            <i class="fi fi-rr-disk"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-extrabold text-white flex items-center gap-2">
+              <span>Offline Operations & Storage Queue</span>
+              @if (syncService.isOffline()) {
+                <span
+                  class="text-[10px] bg-amber-500/20 border border-amber-500/30 text-amber-300 px-2 py-0.5 rounded-full font-bold"
+                >
+                  OFFLINE
+                </span>
+              } @else {
+                <span
+                  class="text-[10px] bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 px-2 py-0.5 rounded-full font-bold"
+                >
+                  ONLINE
+                </span>
+              }
+            </h3>
+            <p class="text-xs text-slate-400">
+              Inspect pending local changes stored in IndexedDB waiting to auto-sync.
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          (click)="close()"
+          class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition flex items-center justify-center cursor-pointer border-0"
+        >
+          <i class="fi fi-rr-cross text-xs"></i>
+        </button>
+      </div>
+
+      <!-- Tabs Navigation -->
+      <div class="px-6 border-b border-white/10 flex items-center justify-between bg-slate-950/30">
+        <div class="flex items-center gap-4">
+          <button
+            type="button"
+            (click)="activeTab.set('queue')"
+            class="py-3 text-xs font-bold transition border-b-2 cursor-pointer bg-transparent"
+            [class.border-violet-500]="activeTab() === 'queue'"
+            [class.text-violet-400]="activeTab() === 'queue'"
+            [class.border-transparent]="activeTab() !== 'queue'"
+            [class.text-slate-400]="activeTab() !== 'queue'"
+          >
+            <i class="fi fi-rr-list-check mr-1.5"></i>
+            Pending Queue ({{ syncService.pendingCount() }})
+          </button>
+          <button
+            type="button"
+            (click)="activeTab.set('history')"
+            class="py-3 text-xs font-bold transition border-b-2 cursor-pointer bg-transparent"
+            [class.border-violet-500]="activeTab() === 'history'"
+            [class.text-violet-400]="activeTab() === 'history'"
+            [class.border-transparent]="activeTab() !== 'history'"
+            [class.text-slate-400]="activeTab() !== 'history'"
+          >
+            <i class="fi fi-rr-time-past mr-1.5"></i>
+            Sync History Log
+          </button>
+        </div>
+
+        @if (activeTab() === 'queue' && syncService.pendingCount() > 0) {
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              (click)="clearQueue()"
+              class="px-2.5 py-1 text-[11px] font-bold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-lg transition cursor-pointer bg-transparent border-0"
+            >
+              Clear All
+            </button>
+            <button
+              type="button"
+              (click)="triggerSync()"
+              [disabled]="syncService.isOffline() || syncService.isSyncing()"
+              class="px-3 py-1 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-lg border-0"
+            >
+              <i class="fi fi-rr-refresh text-xs"></i>
+              <span>Sync Now</span>
+            </button>
+          </div>
+        }
+      </div>
+
+      <!-- Tab Content -->
+      <div class="flex-1 overflow-y-auto p-6 space-y-4">
+        @if (activeTab() === 'queue') {
+          @if (syncService.pendingItems().length === 0) {
+            <div class="py-16 text-center text-slate-500 flex flex-col items-center gap-3">
+              <div
+                class="w-16 h-16 rounded-3xl bg-slate-800/50 border border-white/5 flex items-center justify-center text-2xl text-slate-600"
+              >
+                <i class="fi fi-rr-check-circle"></i>
+              </div>
+              <div class="text-sm font-bold text-slate-300">All Changes Synced!</div>
+              <div class="text-xs max-w-sm text-slate-500">
+                No pending offline operations stored in IndexedDB. New edits created offline will
+                automatically queue here.
+              </div>
+            </div>
+          } @else {
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+              <!-- Queue Items List -->
+              <div class="md:col-span-7 space-y-2">
+                @for (item of syncService.pendingItems(); track item.id) {
+                  <div
+                    (click)="selectItem(item)"
+                    class="p-3 rounded-2xl border transition cursor-pointer relative flex flex-col gap-2"
+                    [class.border-violet-500]="selectedItem()?.id === item.id"
+                    [class.bg-slate-950]="selectedItem()?.id === item.id"
+                    [class.border-white\/10]="selectedItem()?.id !== item.id"
+                    [class.bg-slate-900\/60]="selectedItem()?.id !== item.id"
+                  >
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center gap-2">
+                        <span
+                          class="px-2 py-0.5 text-[9px] font-black uppercase rounded-md border"
+                          [class.bg-emerald-500\/10]="item.method === 'POST'"
+                          [class.text-emerald-400]="item.method === 'POST'"
+                          [class.border-emerald-500\/20]="item.method === 'POST'"
+                          [class.bg-sky-500\/10]="item.method === 'PATCH' || item.method === 'PUT'"
+                          [class.text-sky-400]="item.method === 'PATCH' || item.method === 'PUT'"
+                          [class.border-sky-500\/20]="
+                            item.method === 'PATCH' || item.method === 'PUT'
+                          "
+                          [class.bg-rose-500\/10]="item.method === 'DELETE'"
+                          [class.text-rose-400]="item.method === 'DELETE'"
+                          [class.border-rose-500\/20]="item.method === 'DELETE'"
+                        >
+                          {{ item.method }}
+                        </span>
+                        <span class="text-xs font-bold text-white truncate max-w-[200px]">
+                          {{ item.entityName }}
+                        </span>
+                      </div>
+                      <span class="text-[10px] font-mono text-slate-500">
+                        {{ item.timestamp | date: 'mediumTime' }}
+                      </span>
+                    </div>
+
+                    <p class="text-xs text-slate-400 line-clamp-1">
+                      {{ item.description }}
+                    </p>
+
+                    <div
+                      class="flex items-center justify-between text-[10px] pt-1 text-slate-500 font-mono"
+                    >
+                      <span class="truncate max-w-[220px]">{{ item.url }}</span>
+                      <button
+                        type="button"
+                        (click)="removeItem(item.id); $event.stopPropagation()"
+                        class="text-rose-400 hover:text-rose-300 font-bold cursor-pointer bg-transparent border-0"
+                      >
+                        Discard
+                      </button>
+                    </div>
+                  </div>
+                }
+              </div>
+
+              <!-- Selected Item Inspector Details -->
+              <div
+                class="md:col-span-5 bg-slate-950 border border-white/10 rounded-2xl p-4 flex flex-col gap-3"
+              >
+                @if (selectedItem(); as current) {
+                  <div class="flex items-center justify-between border-b border-white/10 pb-2">
+                    <span class="text-xs font-bold text-white">Item Payload Details</span>
+                    <span class="text-[10px] font-mono text-violet-400">{{ current.id }}</span>
+                  </div>
+
+                  <div class="space-y-1 text-xs">
+                    <div class="text-slate-500">
+                      Target Entity:
+                      <span class="text-white font-bold">{{ current.entityName }}</span>
+                    </div>
+                    <div class="text-slate-500 truncate">
+                      URL:
+                      <span class="text-slate-300 font-mono text-[11px]">{{ current.url }}</span>
+                    </div>
+                    <div class="text-slate-500">
+                      Recorded At:
+                      <span class="text-slate-300">{{ current.timestamp | date: 'medium' }}</span>
+                    </div>
+                  </div>
+
+                  <div class="flex flex-col gap-1">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+                      >JSON Payload</span
+                    >
+                    <pre
+                      class="p-3 bg-slate-900 border border-white/5 rounded-xl text-[11px] font-mono text-violet-300 overflow-x-auto max-h-48 leading-relaxed"
+                      >{{ current.payload | json }}</pre>
+                  </div>
+                } @else {
+                  <div
+                    class="py-12 text-center text-xs text-slate-500 flex flex-col items-center justify-center gap-2"
+                  >
+                    <i class="fi fi-rr-eye text-2xl text-slate-600"></i>
+                    <div>Select an offline queue item to view payload details</div>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        } @else {
+          <!-- History Log Tab -->
+          @if (syncService.syncLogs().length === 0) {
+            <div class="py-16 text-center text-slate-500 flex flex-col items-center gap-2">
+              <i class="fi fi-rr-time-past text-3xl text-slate-600"></i>
+              <div>No sync history logs recorded yet.</div>
+            </div>
+          } @else {
+            <div class="space-y-2">
+              @for (log of syncService.syncLogs(); track log.id) {
+                <div
+                  class="p-3 bg-slate-950/80 border border-white/5 rounded-2xl flex items-center justify-between gap-3 text-xs"
+                >
+                  <div class="flex items-center gap-3">
+                    <div
+                      class="w-7 h-7 rounded-xl flex items-center justify-center text-xs"
+                      [class.bg-emerald-500\/10]="log.status === 'success'"
+                      [class.text-emerald-400]="log.status === 'success'"
+                      [class.bg-rose-500\/10]="log.status === 'failed'"
+                      [class.text-rose-400]="log.status === 'failed'"
+                    >
+                      <i
+                        [class]="
+                          log.status === 'success'
+                            ? 'fi fi-rr-check-circle'
+                            : 'fi fi-rr-cross-circle'
+                        "
+                      ></i>
+                    </div>
+                    <div>
+                      <div class="font-bold text-white">{{ log.description }}</div>
+                      <div class="text-[10px] font-mono text-slate-500 truncate max-w-sm">
+                        {{ log.url }}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="text-[10px] font-mono text-slate-500 text-right">
+                    <div>Synced {{ log.syncedAt | date: 'mediumTime' }}</div>
+                    <div
+                      class="uppercase text-[9px] font-bold"
+                      [class.text-emerald-400]="log.status === 'success'"
+                      [class.text-rose-400]="log.status === 'failed'"
+                    >
+                      {{ log.status }}
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        }
+      </div>
+
+      <!-- Footer -->
+      <div
+        class="px-6 py-3 border-t border-white/10 bg-slate-950/50 flex items-center justify-between text-xs text-slate-500"
+      >
+        <div class="flex items-center gap-2">
+          <i class="fi fi-rr-database text-violet-400"></i>
+          <span>Database: IndexedDB (TaisenOfflineDB v1)</span>
+        </div>
+        <button
+          type="button"
+          (click)="close()"
+          class="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl transition cursor-pointer border-0"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+}

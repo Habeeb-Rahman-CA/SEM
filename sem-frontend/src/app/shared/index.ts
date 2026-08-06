@@ -20,6 +20,8 @@ export type {
   BulkAssignOption,
   BulkStatusOption,
 } from './components/bulk-operations-bar/bulk-operations-bar';
+export { OfflineBannerComponent } from './components/offline-banner/offline-banner';
+export { OfflineSyncModalComponent } from './components/offline-sync-modal/offline-sync-modal';
 
 // ── Type re-exports ───────────────────────────────────────────────────────────
 export type { ButtonVariant, ButtonSize } from './components/button/button';

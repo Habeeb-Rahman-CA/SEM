@@ -5,11 +5,20 @@ import { UiService } from './core/services/ui.service';
 import { BrandingService } from './features/branding/services/branding.service';
 import { CommandPaletteComponent } from './shared/components/command-palette/command-palette';
 import { KeyboardShortcutsModalComponent } from './shared/components/keyboard-shortcuts-modal/keyboard-shortcuts-modal';
+import { OfflineBannerComponent } from './shared/components/offline-banner/offline-banner';
+import { OfflineSyncModalComponent } from './shared/components/offline-sync-modal/offline-sync-modal';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, NgClass, CommandPaletteComponent, KeyboardShortcutsModalComponent],
+  imports: [
+    RouterOutlet,
+    NgClass,
+    CommandPaletteComponent,
+    KeyboardShortcutsModalComponent,
+    OfflineBannerComponent,
+    OfflineSyncModalComponent,
+  ],
   templateUrl: './app.html',
   styleUrl: './app.css',
 })

@@ -11,13 +11,20 @@ import { routes } from './app.routes';
 import { cacheInterceptor } from './core/interceptors/cache.interceptor';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { retryInterceptor } from './core/interceptors/retry.interceptor';
+import { offlineInterceptor } from './core/interceptors/offline.interceptor';
 import { AuthService } from './features/auth/services/auth.service';
 import { CapacitorService } from './core/services/capacitor.service';
 
 export function initializeApp(authService: AuthService, capacitor: CapacitorService) {
   return async () => {
-    // Native shell (status bar, hardware back, platform CSS classes) is
-    // orthogonal to auth — fire and forget so it never blocks bootstrap.
+    // Register Service Worker for offline PWA asset caching
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      navigator.serviceWorker
+        .register('/sw.js')
+        .then((reg) => console.log('[ServiceWorker] Registered:', reg.scope))
+        .catch((err) => console.warn('[ServiceWorker] Registration failed:', err));
+    }
+
     void capacitor.initNativeShell();
     await authService.init();
   };
@@ -37,7 +44,7 @@ export const appConfig: ApplicationConfig = {
     ),
     provideHttpClient(
       withFetch(), // Use Fetch API (HTTP/2 multiplexing)
-      withInterceptors([authInterceptor, retryInterceptor, cacheInterceptor]), // Auth token + auto retry + in-memory GET cache
+      withInterceptors([authInterceptor, retryInterceptor, cacheInterceptor, offlineInterceptor]), // Auth token + auto retry + in-memory GET cache + IndexedDB offline interceptor
     ),
     {
       provide: APP_INITIALIZER,

@@ -1,0 +1,101 @@
+<!-- ─── OFFLINE & AUTO-SYNC GLOBAL STATUS BANNER ─── -->
+@if (syncService.isOffline()) {
+  <div
+    role="status"
+    aria-live="assertive"
+    class="bg-gradient-to-r from-amber-950 via-slate-900 to-amber-950 border-b border-amber-500/30 text-white text-xs py-2 px-4 flex flex-wrap items-center justify-between gap-3 shadow-lg z-[10000] relative animate-in slide-in-from-top duration-300"
+  >
+    <div class="flex items-center gap-2 font-medium">
+      <span class="relative flex h-2.5 w-2.5">
+        <span
+          class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"
+        ></span>
+        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+      </span>
+      <i class="fi fi-rr-wifi-slash text-amber-400 text-sm"></i>
+      <span class="font-bold text-amber-200">Offline Mode Active</span>
+      <span class="text-slate-300 hidden sm:inline">
+        • Working locally via IndexedDB. Changes are cached & will auto-sync when online.
+      </span>
+    </div>
+
+    <div class="flex items-center gap-2 ml-auto sm:ml-0">
+      @if (syncService.pendingCount() > 0) {
+        <button
+          type="button"
+          (click)="openInspector()"
+          class="px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 hover:text-amber-200 font-bold text-[11px] rounded-lg transition flex items-center gap-1.5 cursor-pointer"
+        >
+          <i class="fi fi-rr-disk text-xs"></i>
+          <span>{{ syncService.pendingCount() }} Pending</span>
+        </button>
+      }
+
+      <button
+        type="button"
+        (click)="openInspector()"
+        class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-[11px] rounded-lg transition cursor-pointer"
+      >
+        Queue Details
+      </button>
+    </div>
+  </div>
+} @else if (syncService.isSyncing()) {
+  <div
+    role="status"
+    aria-live="polite"
+    class="bg-gradient-to-r from-violet-950 via-slate-900 to-violet-950 border-b border-violet-500/30 text-white text-xs py-2 px-4 flex items-center justify-between gap-3 shadow-lg z-[10000] relative animate-in slide-in-from-top duration-300"
+  >
+    <div class="flex items-center gap-2 font-medium">
+      <i class="fi fi-rr-refresh text-violet-400 animate-spin text-sm"></i>
+      <span class="font-bold text-violet-200">Auto-Syncing Pending Changes...</span>
+      <span class="text-slate-300">Replaying offline queue to server.</span>
+    </div>
+  </div>
+} @else if (syncService.justSyncedCount()) {
+  <div
+    role="status"
+    aria-live="polite"
+    class="bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-950 border-b border-emerald-500/30 text-white text-xs py-2 px-4 flex items-center justify-between gap-3 shadow-lg z-[10000] relative animate-in slide-in-from-top duration-300"
+  >
+    <div class="flex items-center gap-2 font-medium">
+      <i class="fi fi-rr-check-circle text-emerald-400 text-sm"></i>
+      <span class="font-bold text-emerald-200">Sync Complete!</span>
+      <span class="text-slate-300">
+        Successfully auto-synced {{ syncService.justSyncedCount() }} offline change(s) with the
+        server.
+      </span>
+    </div>
+  </div>
+} @else if (syncService.pendingCount() > 0) {
+  <div
+    role="status"
+    aria-live="polite"
+    class="bg-gradient-to-r from-sky-950 via-slate-900 to-sky-950 border-b border-sky-500/30 text-white text-xs py-2 px-4 flex items-center justify-between gap-3 shadow-lg z-[10000] relative"
+  >
+    <div class="flex items-center gap-2 font-medium">
+      <i class="fi fi-rr-cloud-upload text-sky-400 text-sm"></i>
+      <span class="font-bold text-sky-200">Pending Sync Items</span>
+      <span class="text-slate-300">
+        You have {{ syncService.pendingCount() }} change(s) waiting to sync with the server.
+      </span>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <button
+        type="button"
+        (click)="triggerSync()"
+        class="px-3 py-1 bg-sky-600 hover:bg-sky-500 text-white font-bold text-[11px] rounded-lg transition flex items-center gap-1 cursor-pointer"
+      >
+        <i class="fi fi-rr-refresh text-xs"></i> Sync Now
+      </button>
+      <button
+        type="button"
+        (click)="openInspector()"
+        class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-[11px] rounded-lg transition cursor-pointer"
+      >
+        Inspect Queue
+      </button>
+    </div>
+  </div>
+}
