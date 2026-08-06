@@ -1,0 +1,605 @@
+<div class="max-w-6xl mx-auto p-5 sm:p-8 text-white">
+  <!-- Back to Workspace Navigation -->
+  <div class="flex items-center gap-3 mb-6">
+    <a
+      [routerLink]="['/workspaces', workspaceId()]"
+      class="text-xs font-bold text-slate-400 hover:text-white transition inline-flex items-center gap-1"
+    >
+      <i class="fi fi-rr-arrow-small-left text-sm"></i>
+      Back to workspace
+    </a>
+  </div>
+
+  <!-- Page Header -->
+  <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-black tracking-tight flex items-center gap-2">
+        <i class="fi fi-sr-diploma text-amber-400"></i> Digital Certificate Generator
+      </h1>
+      <p class="text-sm text-slate-400 mt-1 max-w-2xl">
+        Automatically issue tamper-proof digital certificates for Winners, Participants, Referees,
+        Volunteers, and Organizers with instant QR verification.
+      </p>
+    </div>
+
+    <div class="flex items-center gap-2.5">
+      <button
+        type="button"
+        (click)="activeTab.set('issued')"
+        [class]="
+          'px-4 py-2 text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5 border ' +
+          (activeTab() === 'issued'
+            ? 'bg-violet-600 text-white border-violet-500 shadow-md shadow-violet-500/20'
+            : 'bg-slate-900 text-slate-400 border-white/10 hover:text-white')
+        "
+      >
+        <i class="fi fi-rr-document text-xs"></i>
+        Issued Certificates ({{ counts().total }})
+      </button>
+
+      <button
+        type="button"
+        (click)="activeTab.set('auto-generate')"
+        [class]="
+          'px-4 py-2 text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5 border ' +
+          (activeTab() === 'auto-generate'
+            ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md shadow-amber-500/20'
+            : 'bg-slate-900 text-slate-400 border-white/10 hover:text-white')
+        "
+      >
+        <i class="fi fi-rr-magic-wand text-xs"></i>
+        Auto-Generator Batch
+      </button>
+
+      <button
+        type="button"
+        (click)="openCreateModal()"
+        class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-bold rounded-xl transition cursor-pointer shadow-md shadow-indigo-600/20 border border-indigo-400/50"
+      >
+        <i class="fi fi-rr-plus text-xs"></i>
+        Issue Certificate
+      </button>
+    </div>
+  </div>
+
+  <!-- ─── STAT STRIP ─── -->
+  <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
+    <div
+      class="rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 to-slate-900 p-4"
+    >
+      <div
+        class="text-[10px] uppercase tracking-wider text-amber-400 font-bold flex items-center gap-1"
+      >
+        <i class="fi fi-sr-trophy text-xs"></i> Winners
+      </div>
+      <div class="text-2xl font-black text-amber-300 font-mono mt-1 tabular-nums">
+        {{ counts().winners }}
+      </div>
+    </div>
+    <div class="rounded-2xl border border-violet-500/30 bg-slate-900 p-4">
+      <div
+        class="text-[10px] uppercase tracking-wider text-violet-400 font-bold flex items-center gap-1"
+      >
+        <i class="fi fi-rr-medal text-xs"></i> Participation
+      </div>
+      <div class="text-2xl font-black text-violet-300 font-mono mt-1 tabular-nums">
+        {{ counts().participation }}
+      </div>
+    </div>
+    <div class="rounded-2xl border border-rose-500/30 bg-slate-900 p-4">
+      <div
+        class="text-[10px] uppercase tracking-wider text-rose-400 font-bold flex items-center gap-1"
+      >
+        <i class="fi fi-rr-whistle text-xs"></i> Referees
+      </div>
+      <div class="text-2xl font-black text-rose-300 font-mono mt-1 tabular-nums">
+        {{ counts().referee }}
+      </div>
+    </div>
+    <div class="rounded-2xl border border-emerald-500/30 bg-slate-900 p-4">
+      <div
+        class="text-[10px] uppercase tracking-wider text-emerald-400 font-bold flex items-center gap-1"
+      >
+        <i class="fi fi-rr-hand-holding-heart text-xs"></i> Volunteers
+      </div>
+      <div class="text-2xl font-black text-emerald-300 font-mono mt-1 tabular-nums">
+        {{ counts().volunteer }}
+      </div>
+    </div>
+    <div class="rounded-2xl border border-blue-500/30 bg-slate-900 p-4 col-span-2 sm:col-span-1">
+      <div
+        class="text-[10px] uppercase tracking-wider text-blue-400 font-bold flex items-center gap-1"
+      >
+        <i class="fi fi-rr-user-tie text-xs"></i> Organizers
+      </div>
+      <div class="text-2xl font-black text-blue-300 font-mono mt-1 tabular-nums">
+        {{ counts().organizer }}
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 1: ISSUED CERTIFICATES DIRECTORY -->
+  @if (activeTab() === 'issued') {
+    <!-- Search & Filter Strip -->
+    <div
+      class="flex flex-col sm:flex-row sm:items-center gap-3 mb-5 p-3 bg-slate-900/60 border border-white/5 rounded-xl"
+    >
+      <div class="relative flex-1">
+        <i
+          class="fi fi-rr-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs pointer-events-none"
+        ></i>
+        <input
+          type="search"
+          placeholder="Search by recipient name, certificate ID, or event…"
+          [ngModel]="searchQuery()"
+          (ngModelChange)="searchQuery.set($event)"
+          class="w-full pl-9 pr-3 py-2 bg-slate-950 border border-white/10 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 rounded-lg text-xs text-white outline-none transition-all"
+        />
+      </div>
+
+      <select
+        [ngModel]="typeFilter()"
+        (ngModelChange)="typeFilter.set($event)"
+        class="bg-slate-950 border border-white/10 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 rounded-lg px-3 py-2 text-xs text-white outline-none transition-all"
+      >
+        <option value="all">All Certificate Types</option>
+        <option value="winners">Winners Certificates</option>
+        <option value="participation">Participation Certificates</option>
+        <option value="referee">Referee Certificates</option>
+        <option value="volunteer">Volunteer Certificates</option>
+        <option value="organizer">Organizer Certificates</option>
+      </select>
+    </div>
+
+    @if (isLoading()) {
+      <div class="py-20 flex flex-col items-center justify-center gap-3">
+        <div
+          class="w-8 h-8 rounded-full border-2 border-amber-400/20 border-t-amber-400 animate-spin"
+        ></div>
+        <span class="text-xs font-bold text-slate-400">Loading digital certificates...</span>
+      </div>
+    } @else if (error()) {
+      <div class="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-rose-200">
+        <i class="fi fi-rr-triangle-warning text-2xl block mb-2"></i>
+        {{ error() }}
+      </div>
+    } @else if (filteredCertificates().length === 0) {
+      <div
+        class="py-16 rounded-3xl border border-dashed border-white/10 text-center text-xs text-slate-500 flex flex-col items-center gap-2"
+      >
+        <i class="fi fi-sr-diploma text-4xl text-slate-600"></i>
+        <div>No certificates match your search filters.</div>
+      </div>
+    } @else {
+      <!-- Certificates Cards Grid -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        @for (cert of filteredCertificates(); track cert.id) {
+          <div
+            class="rounded-2xl border border-white/10 bg-slate-900 p-5 flex flex-col justify-between gap-4 hover:border-amber-500/40 transition group relative overflow-hidden"
+          >
+            <!-- Glow background -->
+            <div
+              class="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-2xl pointer-events-none"
+            ></div>
+
+            <div class="flex flex-col gap-2.5">
+              <div class="flex items-center justify-between">
+                <span
+                  [class]="
+                    'text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border flex items-center gap-1 ' +
+                    badgeClass(cert.certificateType)
+                  "
+                >
+                  <i [class]="typeIcon(cert.certificateType)"></i>
+                  {{ cert.certificateType }}
+                </span>
+                <span
+                  class="text-[10px] font-mono text-emerald-400 font-bold flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20"
+                >
+                  <i class="fi fi-rr-check-circle text-[10px]"></i> QR Verified
+                </span>
+              </div>
+
+              <div>
+                <h3
+                  class="text-base font-black text-white group-hover:text-amber-300 transition truncate"
+                >
+                  {{ cert.recipientName }}
+                </h3>
+                <p class="text-xs text-slate-400 mt-0.5 line-clamp-1">
+                  {{ cert.certificateTitle }}
+                </p>
+              </div>
+
+              <div
+                class="p-2.5 bg-slate-950/80 rounded-xl border border-white/5 flex flex-col gap-1 text-[10px]"
+              >
+                <div class="flex justify-between text-slate-400">
+                  <span>Event:</span>
+                  <span class="font-bold text-slate-200 truncate max-w-[160px]">{{
+                    cert.eventName
+                  }}</span>
+                </div>
+                @if (cert.position) {
+                  <div class="flex justify-between text-slate-400">
+                    <span>Honor / Role:</span>
+                    <span class="font-bold text-amber-300 truncate max-w-[160px]">{{
+                      cert.position
+                    }}</span>
+                  </div>
+                }
+                <div class="flex justify-between text-slate-400">
+                  <span>Issue Date:</span>
+                  <span class="font-mono text-slate-300">{{ cert.issueDate }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Footer Actions -->
+            <div
+              class="flex items-center justify-between border-t border-white/5 pt-3 gap-2 text-xs"
+            >
+              <span
+                class="font-mono text-[9px] text-slate-500 truncate max-w-[120px]"
+                [title]="cert.code"
+              >
+                {{ cert.code }}
+              </span>
+
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  (click)="copyVerificationLink(cert.code)"
+                  class="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition text-xs cursor-pointer"
+                  title="Copy QR Verification Link"
+                >
+                  <i class="fi fi-rr-share"></i>
+                </button>
+                <button
+                  type="button"
+                  (click)="viewCertificate(cert)"
+                  class="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs rounded-xl shadow-md transition flex items-center gap-1 cursor-pointer"
+                >
+                  <i class="fi fi-rr-eye"></i> View Certificate
+                </button>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  }
+
+  <!-- TAB 2: AUTO-GENERATOR BATCH -->
+  @if (activeTab() === 'auto-generate') {
+    <div class="bg-slate-900 border border-amber-500/30 rounded-3xl p-6 sm:p-8 flex flex-col gap-6">
+      <div class="flex items-start gap-4">
+        <div
+          class="w-14 h-14 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-3xl flex-shrink-0"
+        >
+          ⚡
+        </div>
+        <div>
+          <span class="text-xs font-mono font-bold text-amber-400 uppercase tracking-widest"
+            >Automated Event Certification</span
+          >
+          <h3 class="text-xl font-black text-white mt-0.5">
+            1-Click Auto Certificate Generation Batch
+          </h3>
+          <p class="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
+            Automatically compile and generate official digital certificates with QR verification
+            codes for all tournament participants, winning teams, referees, volunteers, and
+            committee members.
+          </p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 border-t border-white/10 pt-6">
+        <button
+          type="button"
+          (click)="runAutoGenerateBatch()"
+          class="p-5 bg-gradient-to-br from-amber-500/20 via-slate-950 to-slate-950 border border-amber-500/40 rounded-2xl flex flex-col gap-3 text-left hover:border-amber-400 transition cursor-pointer group"
+        >
+          <div class="flex items-center justify-between">
+            <span class="text-2xl">🏆🏅</span>
+            <i class="fi fi-rr-arrow-right text-amber-400 group-hover:translate-x-1 transition"></i>
+          </div>
+          <div>
+            <h4 class="text-sm font-black text-white">Full Event Batch Issue</h4>
+            <p class="text-[11px] text-slate-400 mt-1">
+              Issue certificates for Winners, Participants, Referees, Volunteers & Organizers
+              simultaneously.
+            </p>
+          </div>
+        </button>
+
+        <button
+          type="button"
+          (click)="runAutoGenerateBatch(['winners', 'participation'])"
+          class="p-5 bg-gradient-to-br from-violet-500/20 via-slate-950 to-slate-950 border border-violet-500/40 rounded-2xl flex flex-col gap-3 text-left hover:border-violet-400 transition cursor-pointer group"
+        >
+          <div class="flex items-center justify-between">
+            <span class="text-2xl">🥇⚽</span>
+            <i
+              class="fi fi-rr-arrow-right text-violet-400 group-hover:translate-x-1 transition"
+            ></i>
+          </div>
+          <div>
+            <h4 class="text-sm font-black text-white">Athletes & Winners Only</h4>
+            <p class="text-[11px] text-slate-400 mt-1">
+              Issue championship trophy certificates and participant honors to roster players.
+            </p>
+          </div>
+        </button>
+
+        <button
+          type="button"
+          (click)="runAutoGenerateBatch(['referee', 'volunteer', 'organizer'])"
+          class="p-5 bg-gradient-to-br from-emerald-500/20 via-slate-950 to-slate-950 border border-emerald-500/40 rounded-2xl flex flex-col gap-3 text-left hover:border-emerald-400 transition cursor-pointer group"
+        >
+          <div class="flex items-center justify-between">
+            <span class="text-2xl">🤝🎖️</span>
+            <i
+              class="fi fi-rr-arrow-right text-emerald-400 group-hover:translate-x-1 transition"
+            ></i>
+          </div>
+          <div>
+            <h4 class="text-sm font-black text-white">Staff & Officials Only</h4>
+            <p class="text-[11px] text-slate-400 mt-1">
+              Issue certificates for referees, volunteer staff, and tournament committee leadership.
+            </p>
+          </div>
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- ─── ISSUE CUSTOM CERTIFICATE MODAL ─── -->
+  @if (isCreateModalOpen()) {
+    <div
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fade-in"
+      (click)="closeCreateModal()"
+    >
+      <div
+        class="bg-slate-900 border border-amber-500/30 rounded-3xl max-w-lg w-full p-6 shadow-2xl relative flex flex-col gap-5"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="flex items-center justify-between border-b border-white/10 pb-3">
+          <h3 class="text-base font-black text-white flex items-center gap-2">
+            <i class="fi fi-rr-plus text-amber-400"></i> Issue Digital Certificate
+          </h3>
+          <button (click)="closeCreateModal()" class="text-slate-400 hover:text-white transition">
+            <i class="fi fi-rr-cross text-xs"></i>
+          </button>
+        </div>
+
+        <div class="flex flex-col gap-4 text-xs">
+          <div>
+            <label class="block text-slate-300 font-bold mb-1">Recipient Name *</label>
+            <input
+              type="text"
+              [(ngModel)]="newRecipientName"
+              placeholder="e.g. Marcus Rashford"
+              class="w-full px-3 py-2 bg-slate-950 border border-white/10 rounded-xl text-white outline-none focus:border-amber-400"
+            />
+          </div>
+
+          <div>
+            <label class="block text-slate-300 font-bold mb-1">Recipient Email (Optional)</label>
+            <input
+              type="email"
+              [(ngModel)]="newRecipientEmail"
+              placeholder="recipient@example.com"
+              class="w-full px-3 py-2 bg-slate-950 border border-white/10 rounded-xl text-white outline-none focus:border-amber-400"
+            />
+          </div>
+
+          <div>
+            <label class="block text-slate-300 font-bold mb-1">Certificate Type *</label>
+            <select
+              [(ngModel)]="newCertType"
+              class="w-full px-3 py-2 bg-slate-950 border border-white/10 rounded-xl text-white outline-none focus:border-amber-400"
+            >
+              <option value="winners">Winners Certificate</option>
+              <option value="participation">Participation Certificate</option>
+              <option value="referee">Referee Certificate</option>
+              <option value="volunteer">Volunteer Certificate</option>
+              <option value="organizer">Organizer Certificate</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-slate-300 font-bold mb-1">Event Name *</label>
+            <input
+              type="text"
+              [(ngModel)]="newEventName"
+              placeholder="Taisen League Championship 2025"
+              class="w-full px-3 py-2 bg-slate-950 border border-white/10 rounded-xl text-white outline-none focus:border-amber-400"
+            />
+          </div>
+
+          <div>
+            <label class="block text-slate-300 font-bold mb-1">Honor / Position (Optional)</label>
+            <input
+              type="text"
+              [(ngModel)]="newPosition"
+              placeholder="e.g. 1st Place Golden Boot / Lead Referee"
+              class="w-full px-3 py-2 bg-slate-950 border border-white/10 rounded-xl text-white outline-none focus:border-amber-400"
+            />
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 border-t border-white/10 pt-4">
+          <button
+            (click)="closeCreateModal()"
+            class="px-4 py-2 text-xs font-bold text-slate-400 hover:text-white transition"
+          >
+            Cancel
+          </button>
+          <button
+            (click)="submitGenerate()"
+            class="px-5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs rounded-xl shadow-lg transition"
+          >
+            Generate Certificate
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ─── DIGITAL CERTIFICATE HIGH-RES MODAL VIEWER ─── -->
+  @if (isCertModalOpen() && selectedCert(); as cert) {
+    <div
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md animate-fade-in"
+      (click)="closeCertModal()"
+    >
+      <div
+        class="bg-slate-900 border border-amber-500/40 rounded-3xl max-w-3xl w-full p-6 sm:p-8 shadow-2xl relative flex flex-col gap-6 max-h-[92vh] overflow-y-auto"
+        (click)="$event.stopPropagation()"
+      >
+        <!-- Action bar -->
+        <div class="flex items-center justify-between border-b border-white/10 pb-4 print:hidden">
+          <div class="flex items-center gap-2">
+            <span
+              [class]="
+                'text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md border flex items-center gap-1 ' +
+                badgeClass(cert.certificateType)
+              "
+            >
+              <i [class]="typeIcon(cert.certificateType)"></i>
+              {{ cert.certificateType }}
+            </span>
+            <span
+              class="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-md border border-emerald-500/30 flex items-center gap-1"
+            >
+              <i class="fi fi-rr-check-circle"></i> VERIFIED AUTHENTIC
+            </span>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button
+              (click)="copyVerificationLink(cert.code)"
+              class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold rounded-xl transition flex items-center gap-1"
+            >
+              <i class="fi fi-rr-share"></i> Copy QR Link
+            </button>
+            <button
+              (click)="printCertificate()"
+              class="px-4 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black rounded-xl transition flex items-center gap-1 shadow-md"
+            >
+              <i class="fi fi-rr-print"></i> Print / Save PDF
+            </button>
+            <button
+              (click)="closeCertModal()"
+              class="w-8 h-8 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center transition"
+            >
+              <i class="fi fi-rr-cross text-xs"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- 📜 OFFICIAL CERTIFICATE TEMPLATE FRAME -->
+        <div
+          class="p-8 sm:p-12 rounded-2xl border-4 border-amber-500/60 bg-slate-950 text-center relative overflow-hidden flex flex-col items-center justify-between gap-6 shadow-2xl"
+        >
+          <!-- Outer Decorative Border -->
+          <div
+            class="absolute inset-2 border border-amber-500/30 rounded-xl pointer-events-none"
+          ></div>
+
+          <!-- Header Seal -->
+          <div class="flex flex-col items-center gap-2">
+            <div
+              class="w-16 h-16 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 border-2 border-amber-300 flex items-center justify-center text-slate-950 text-3xl font-black shadow-xl"
+            >
+              🏆
+            </div>
+            <span class="text-xs font-mono font-bold tracking-widest text-amber-400 uppercase mt-1">
+              {{ cert.metadata.workspaceName }}
+            </span>
+          </div>
+
+          <!-- Title -->
+          <div class="flex flex-col items-center gap-1">
+            <h2 class="text-2xl sm:text-3xl font-serif font-black text-amber-200 tracking-wide">
+              {{ cert.certificateTitle }}
+            </h2>
+            <p class="text-xs text-slate-400 italic">
+              This official digital credential is proudly presented to
+            </p>
+          </div>
+
+          <!-- Recipient Name -->
+          <div class="my-2 border-b-2 border-amber-500/50 pb-2 px-8">
+            <h1 class="text-3xl sm:text-4xl font-serif font-black text-white tracking-tight">
+              {{ cert.recipientName }}
+            </h1>
+          </div>
+
+          <!-- Achievement Text -->
+          <p class="text-xs text-slate-300 max-w-lg leading-relaxed italic">
+            "{{ cert.metadata.achievementSummary }}"
+          </p>
+
+          <!-- Details Grid -->
+          <div
+            class="grid grid-cols-2 gap-6 w-full max-w-md border-t border-b border-white/10 py-3 text-xs"
+          >
+            <div>
+              <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block"
+                >Tournament Event</span
+              >
+              <span class="font-bold text-white">{{ cert.eventName }}</span>
+            </div>
+            <div>
+              <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block"
+                >Official Honor / Role</span
+              >
+              <span class="font-bold text-amber-300">{{
+                cert.position || cert.certificateType
+              }}</span>
+            </div>
+          </div>
+
+          <!-- Signature & QR Verification Footer -->
+          <div
+            class="flex flex-col sm:flex-row items-center justify-between w-full border-t border-white/10 pt-6 gap-6"
+          >
+            <!-- Signature -->
+            <div class="flex flex-col items-center text-center">
+              <div class="font-serif italic text-base text-amber-300 font-bold">Marcus Vance</div>
+              <div class="w-32 border-b border-white/20 my-1"></div>
+              <span class="text-[10px] text-slate-400 font-bold uppercase">{{
+                cert.metadata.signatoryTitle
+              }}</span>
+            </div>
+
+            <!-- Issue Date -->
+            <div class="flex flex-col items-center text-center">
+              <span class="text-xs font-mono font-bold text-white">{{ cert.issueDate }}</span>
+              <span class="text-[10px] text-slate-400 uppercase">Date of Issuance</span>
+            </div>
+
+            <!-- QR Verification Badge -->
+            <div
+              class="flex items-center gap-3 bg-slate-900 p-2.5 rounded-xl border border-amber-500/30"
+            >
+              <div
+                class="w-12 h-12 bg-white rounded-lg p-1 flex items-center justify-center flex-shrink-0"
+              >
+                <i class="fi fi-rr-qr-code text-slate-950 text-2xl"></i>
+              </div>
+              <div class="text-left text-[9px] font-mono">
+                <div class="font-bold text-emerald-400 flex items-center gap-1">
+                  <i class="fi fi-rr-shield-check"></i> QR Verified
+                </div>
+                <div class="text-slate-300 font-bold mt-0.5">{{ cert.code }}</div>
+                <div class="text-slate-500">Scan to verify authenticity</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</div>

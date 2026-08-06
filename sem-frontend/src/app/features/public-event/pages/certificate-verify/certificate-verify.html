@@ -1,0 +1,160 @@
+<div
+  class="min-h-screen bg-slate-950 text-white p-4 sm:p-8 flex flex-col items-center justify-center relative overflow-hidden"
+>
+  <!-- Glow effect -->
+  <div
+    class="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"
+  ></div>
+
+  <div class="max-w-2xl w-full z-10 flex flex-col gap-6">
+    <!-- Header Logo -->
+    <div class="flex items-center justify-center gap-2 mb-2">
+      <img src="assets/TAISEN_LIGHT_NEW.png" alt="Taisen" class="h-10 object-contain" />
+      <span
+        class="text-xs font-mono font-bold uppercase tracking-widest text-amber-400 bg-amber-500/10 border border-amber-500/30 px-3 py-1 rounded-full"
+      >
+        Public Verification Portal
+      </span>
+    </div>
+
+    @if (isLoading()) {
+      <div
+        class="p-12 bg-slate-900 border border-white/10 rounded-3xl text-center flex flex-col items-center gap-3"
+      >
+        <div
+          class="w-10 h-10 rounded-full border-2 border-amber-400/20 border-t-amber-400 animate-spin"
+        ></div>
+        <span class="text-xs font-bold text-slate-400"
+          >Verifying digital certificate authenticity...</span
+        >
+      </div>
+    } @else if (error()) {
+      <div
+        class="p-8 bg-slate-900 border border-rose-500/30 rounded-3xl text-center flex flex-col items-center gap-3 shadow-2xl"
+      >
+        <div
+          class="w-14 h-14 rounded-2xl bg-rose-500/20 text-rose-400 flex items-center justify-center text-3xl"
+        >
+          <i class="fi fi-rr-cross-circle"></i>
+        </div>
+        <h3 class="text-lg font-black text-white">Certificate Not Found or Invalid</h3>
+        <p class="text-xs text-slate-400 max-w-md">{{ error() }}</p>
+        <a
+          [routerLink]="['/']"
+          class="mt-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl transition"
+        >
+          Return to Taisen Platform
+        </a>
+      </div>
+    } @else if (certificate(); as cert) {
+      <!-- VERIFIED CERTIFICATE CARD -->
+      <div
+        class="p-6 sm:p-10 bg-slate-900 border-2 border-amber-500/50 rounded-3xl shadow-2xl flex flex-col gap-6 relative overflow-hidden"
+      >
+        <!-- Verified Banner Top -->
+        <div class="flex items-center justify-between border-b border-white/10 pb-4">
+          <div class="flex items-center gap-2">
+            <span
+              class="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-base"
+            >
+              <i class="fi fi-rr-check"></i>
+            </span>
+            <div>
+              <h4 class="text-xs font-black text-emerald-400 uppercase tracking-wider">
+                OFFICIALLY VERIFIED CREDENTIAL
+              </h4>
+              <span class="text-[10px] text-slate-400 font-mono"
+                >Issued by {{ cert.metadata.workspaceName }}</span
+              >
+            </div>
+          </div>
+          <button
+            (click)="printCertificate()"
+            class="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black rounded-xl transition flex items-center gap-1 shadow-md"
+          >
+            <i class="fi fi-rr-print"></i> Print / PDF
+          </button>
+        </div>
+
+        <!-- Certificate Content Summary -->
+        <div class="flex flex-col items-center text-center gap-3">
+          <span
+            [class]="
+              'text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-md border flex items-center gap-1 ' +
+              badgeClass(cert.certificateType)
+            "
+          >
+            <i [class]="typeIcon(cert.certificateType)"></i>
+            {{ cert.certificateType }} Certificate
+          </span>
+
+          <h2 class="text-2xl sm:text-3xl font-serif font-black text-amber-200">
+            {{ cert.certificateTitle }}
+          </h2>
+
+          <div class="my-1">
+            <span class="text-xs text-slate-400 block">Awarded To</span>
+            <h1 class="text-3xl font-serif font-black text-white mt-0.5">
+              {{ cert.recipientName }}
+            </h1>
+          </div>
+
+          <p class="text-xs text-slate-300 italic max-w-lg">
+            "{{ cert.metadata.achievementSummary }}"
+          </p>
+
+          <!-- Key Details Grid -->
+          <div
+            class="grid grid-cols-2 gap-4 w-full bg-slate-950/80 p-4 rounded-2xl border border-white/10 text-xs text-left mt-2"
+          >
+            <div>
+              <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block"
+                >Tournament Event</span
+              >
+              <span class="font-bold text-white">{{ cert.eventName }}</span>
+            </div>
+            <div>
+              <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block"
+                >Honor / Role</span
+              >
+              <span class="font-bold text-amber-300">{{
+                cert.position || cert.certificateType
+              }}</span>
+            </div>
+            <div>
+              <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block"
+                >Date of Issue</span
+              >
+              <span class="font-mono text-slate-300">{{ cert.issueDate }}</span>
+            </div>
+            <div>
+              <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block"
+                >Verification ID</span
+              >
+              <span
+                class="font-mono font-bold text-emerald-400 truncate block"
+                [title]="cert.code"
+                >{{ cert.code }}</span
+              >
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer Seal -->
+        <div
+          class="flex items-center justify-between text-[11px] border-t border-white/10 pt-4 text-slate-400"
+        >
+          <span
+            >Authorized by:
+            <strong class="text-slate-200">{{ cert.metadata.signatoryName }}</strong> ({{
+              cert.metadata.signatoryTitle
+            }})</span
+          >
+          <span class="font-mono text-[10px] text-emerald-400 font-bold"
+            >Tamper-Proof Block Audit: PASSED</span
+          >
+        </div>
+      </div>
+    }
+  </div>
+</div>

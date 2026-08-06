@@ -73,6 +73,14 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
   {
+    path: 'workspaces/:id/certificates',
+    loadComponent: () =>
+      import('./features/certificates/pages/certificate-generator/certificate-generator').then(
+        (m) => m.CertificateGeneratorComponent,
+      ),
+    canActivate: [authGuard],
+  },
+  {
     path: 'workspaces/:id/ads',
     loadComponent: () =>
       import('./features/ads/pages/ad-list/ad-list').then((m) => m.AdListComponent),
@@ -171,6 +179,15 @@ export const routes: Routes = [
     path: 'public/streaming/:id',
     loadComponent: () =>
       import('./features/streaming/pages/public-spectator').then((m) => m.PublicSpectatorComponent),
+  },
+
+  // Public QR Certificate Verification Portal
+  {
+    path: 'public/certificates/verify/:code',
+    loadComponent: () =>
+      import('./features/public-event/pages/certificate-verify/certificate-verify').then(
+        (m) => m.CertificateVerifyComponent,
+      ),
   },
 
   // Dedicated 404 (also the catch-all target — no silent redirect, so
