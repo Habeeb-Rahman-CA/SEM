@@ -158,6 +158,17 @@ export class CommandPaletteComponent {
       },
     },
     {
+      id: 'open-custom-dashboard',
+      label: 'Open Custom Workspace Dashboard (Drag & Drop Widgets)',
+      category: 'Navigation',
+      icon: 'fi fi-rr-apps',
+      shortcut: '⌘B',
+      action: () => {
+        this.close();
+        this.router.navigate(['/workspaces/default-ws/custom-dashboard']);
+      },
+    },
+    {
       id: 'open-hall-of-fame',
       label: 'Open Hall of Fame & Legends',
       category: 'Navigation',

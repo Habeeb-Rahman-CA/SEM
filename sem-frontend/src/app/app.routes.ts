@@ -111,6 +111,14 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
   {
+    path: 'workspaces/:id/custom-dashboard',
+    loadComponent: () =>
+      import('./features/custom-dashboard/pages/custom-dashboard/custom-dashboard').then(
+        (m) => m.CustomDashboardComponent,
+      ),
+    canActivate: [authGuard],
+  },
+  {
     path: 'workspaces/:id/ads',
     loadComponent: () =>
       import('./features/ads/pages/ad-list/ad-list').then((m) => m.AdListComponent),

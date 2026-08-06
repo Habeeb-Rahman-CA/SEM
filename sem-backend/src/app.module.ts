@@ -52,6 +52,7 @@ import { CertificatesModule } from './modules/certificates/certificates.module';
 import { TrashModule } from './modules/trash/trash.module';
 import { DraftsModule } from './modules/drafts/drafts.module';
 import { SavedFiltersModule } from './modules/saved-filters/saved-filters.module';
+import { CustomDashboardModule } from './modules/custom-dashboard/custom-dashboard.module';
 import { RealtimeModule } from './common/realtime/realtime.module';
 
 @Module({
@@ -159,6 +160,7 @@ import { RealtimeModule } from './common/realtime/realtime.module';
     TrashModule,
     DraftsModule,
     SavedFiltersModule,
+    CustomDashboardModule,
   ],
   controllers: [AppController],
   providers: [
