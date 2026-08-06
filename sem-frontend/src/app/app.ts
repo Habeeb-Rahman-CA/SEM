@@ -7,6 +7,7 @@ import { CommandPaletteComponent } from './shared/components/command-palette/com
 import { KeyboardShortcutsModalComponent } from './shared/components/keyboard-shortcuts-modal/keyboard-shortcuts-modal';
 import { OfflineBannerComponent } from './shared/components/offline-banner/offline-banner';
 import { OfflineSyncModalComponent } from './shared/components/offline-sync-modal/offline-sync-modal';
+import { BackgroundJobsWidgetComponent } from './shared/components/background-jobs-widget/background-jobs-widget';
 
 @Component({
   selector: 'app-root',
@@ -18,6 +19,7 @@ import { OfflineSyncModalComponent } from './shared/components/offline-sync-moda
     KeyboardShortcutsModalComponent,
     OfflineBannerComponent,
     OfflineSyncModalComponent,
+    BackgroundJobsWidgetComponent,
   ],
   templateUrl: './app.html',
   styleUrl: './app.css',

@@ -60,6 +60,7 @@ import { WorkflowBuilderModule } from './modules/workflow-builder/workflow-build
 import { FavoritesModule } from './modules/favorites/favorites.module';
 import { RecentlyViewedModule } from './modules/recently-viewed/recently-viewed.module';
 import { GlobalNotesModule } from './modules/global-notes/global-notes.module';
+import { BackgroundJobsModule } from './modules/background-jobs/background-jobs.module';
 import { RealtimeModule } from './common/realtime/realtime.module';
 
 @Module({
@@ -175,6 +176,7 @@ import { RealtimeModule } from './common/realtime/realtime.module';
     FavoritesModule,
     RecentlyViewedModule,
     GlobalNotesModule,
+    BackgroundJobsModule,
   ],
   controllers: [AppController],
   providers: [
