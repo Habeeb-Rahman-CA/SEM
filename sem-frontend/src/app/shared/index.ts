@@ -35,8 +35,10 @@ export { ToastItemComponent } from './components/toast-item/toast-item';
 export { CelebrationModalComponent } from './components/celebration-modal/celebration-modal';
 export { CustomizableTableComponent } from './components/customizable-table/customizable-table';
 export { RecordCommentsComponent } from './components/record-comments/record-comments';
+export { ActivityFeedComponent } from './components/activity-feed/activity-feed';
 export { ConfettiService } from '../core/services/confetti.service';
 export { RecordCommentsService } from '../core/services/record-comments.service';
+export { ActivityFeedService } from '../core/services/activity-feed.service';
 
 // ── Type re-exports ───────────────────────────────────────────────────────────
 export type { ButtonVariant, ButtonSize } from './components/button/button';

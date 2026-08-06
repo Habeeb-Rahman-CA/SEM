@@ -13,6 +13,7 @@ import { UndoToastComponent } from './shared/components/undo-toast/undo-toast';
 import { VersionHistoryDrawerComponent } from './shared/components/version-history-drawer/version-history-drawer';
 import { ToastItemComponent } from './shared/components/toast-item/toast-item';
 import { CelebrationModalComponent } from './shared/components/celebration-modal/celebration-modal';
+import { ActivityFeedComponent } from './shared/components/activity-feed/activity-feed';
 
 @Component({
   selector: 'app-root',
@@ -30,6 +31,7 @@ import { CelebrationModalComponent } from './shared/components/celebration-modal
     VersionHistoryDrawerComponent,
     ToastItemComponent,
     CelebrationModalComponent,
+    ActivityFeedComponent,
   ],
   templateUrl: './app.html',
   styleUrl: './app.css',
