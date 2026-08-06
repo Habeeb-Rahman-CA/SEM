@@ -59,6 +59,13 @@
     }
   </div>
 
+  <!-- Saved Filter Presets Bar -->
+  <app-saved-filters-bar
+    [scope]="'files'"
+    [currentQuery]="searchQuery()"
+    (applyPreset)="onApplyPreset($event)"
+  />
+
   <!-- Search, Tabs & Tag Filter -->
   <div
     class="flex flex-col sm:flex-row gap-4 justify-between items-center bg-slate-900/60 p-4 border border-white/10 rounded-2xl"

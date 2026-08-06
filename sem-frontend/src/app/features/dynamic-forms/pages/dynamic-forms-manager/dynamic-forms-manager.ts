@@ -22,6 +22,8 @@ import {
 import { UiService } from '../../../../core/services/ui.service';
 import { BulkOperationsBarComponent } from '../../../../shared/components/bulk-operations-bar/bulk-operations-bar';
 
+import { BackgroundJobsService } from '../../../../core/services/background-jobs.service';
+
 @Component({
   selector: 'app-dynamic-forms-manager',
   standalone: true,
@@ -32,6 +34,7 @@ import { BulkOperationsBarComponent } from '../../../../shared/components/bulk-o
 export class DynamicFormsManagerComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private formsService = inject(FrontendDynamicFormsService);
+  private jobsService = inject(BackgroundJobsService);
   private ui = inject(UiService);
 
   workspaceId = signal<string>('');
@@ -333,6 +336,16 @@ export class DynamicFormsManagerComponent implements OnInit {
 
   placementLabel(p: FormPlacement): string {
     return this.formsService.getPlacementLabel(p);
+  }
+
+  exportSubmissionsJob() {
+    const form = this.selectedForm();
+    const title = form ? `Export Submissions (${form.title})` : 'Export Form Submissions Dataset';
+    this.jobsService
+      .triggerJob(this.workspaceId() || 'default-ws', 'export', title)
+      .subscribe(() => {
+        this.jobsService.openDrawer();
+      });
   }
 
   placementIcon(p: FormPlacement): string {

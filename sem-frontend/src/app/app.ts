@@ -9,6 +9,8 @@ import { OfflineBannerComponent } from './shared/components/offline-banner/offli
 import { OfflineSyncModalComponent } from './shared/components/offline-sync-modal/offline-sync-modal';
 import { BackgroundJobsWidgetComponent } from './shared/components/background-jobs-widget/background-jobs-widget';
 import { DraftRecoveryModalComponent } from './shared/components/draft-recovery-modal/draft-recovery-modal';
+import { UndoToastComponent } from './shared/components/undo-toast/undo-toast';
+import { VersionHistoryDrawerComponent } from './shared/components/version-history-drawer/version-history-drawer';
 
 @Component({
   selector: 'app-root',
@@ -22,6 +24,8 @@ import { DraftRecoveryModalComponent } from './shared/components/draft-recovery-
     OfflineSyncModalComponent,
     BackgroundJobsWidgetComponent,
     DraftRecoveryModalComponent,
+    UndoToastComponent,
+    VersionHistoryDrawerComponent,
   ],
   templateUrl: './app.html',
   styleUrl: './app.css',

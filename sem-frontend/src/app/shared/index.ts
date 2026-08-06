@@ -26,6 +26,11 @@ export { BackgroundJobsWidgetComponent } from './components/background-jobs-widg
 export { BreadcrumbComponent } from './components/breadcrumb/breadcrumb';
 export { AutoSaveBadgeComponent } from './components/auto-save-badge/auto-save-badge';
 export { DraftRecoveryModalComponent } from './components/draft-recovery-modal/draft-recovery-modal';
+export { SmartDefaultsBannerComponent } from './components/smart-defaults-banner/smart-defaults-banner';
+export { AutoSaveDirective } from './directives/auto-save.directive';
+export { UndoToastComponent } from './components/undo-toast/undo-toast';
+export { SavedFiltersBarComponent } from './components/saved-filters-bar/saved-filters-bar';
+export { VersionHistoryDrawerComponent } from './components/version-history-drawer/version-history-drawer';
 
 // ── Type re-exports ───────────────────────────────────────────────────────────
 export type { ButtonVariant, ButtonSize } from './components/button/button';

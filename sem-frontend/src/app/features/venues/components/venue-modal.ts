@@ -3,13 +3,14 @@ import { FormsModule } from '@angular/forms';
 import { VenueService, Venue } from '../services/venue.service';
 import { UiService } from '../../../core/services/ui.service';
 import { PhotoCaptureComponent } from '../../../shared/components/photo-capture/photo-capture';
+import { AutoSaveDirective, SmartDefaultsBannerComponent } from '../../../shared';
 
 declare const L: any;
 
 @Component({
   selector: 'app-venue-modal',
   standalone: true,
-  imports: [FormsModule, PhotoCaptureComponent],
+  imports: [FormsModule, PhotoCaptureComponent, AutoSaveDirective, SmartDefaultsBannerComponent],
   template: `
     @if (isOpen()) {
       <div
@@ -107,7 +108,14 @@ declare const L: any;
               </div>
             }
 
+            <app-smart-defaults-banner
+              [formType]="'venue_setup'"
+              (applyDefaults)="onApplyDefaults($event)"
+            />
+
             <form
+              [appAutoSave]="'venue_setup'"
+              [formTitle]="venue() ? 'Edit Venue' : 'Register Venue'"
               (submit)="onSubmit(); $event.preventDefault()"
               class="flex flex-col gap-4 text-left"
             >
@@ -271,6 +279,12 @@ export class VenueModalComponent implements OnDestroy {
 
   map: any = null;
   marker: any = null;
+
+  onApplyDefaults(defaults: Record<string, any>) {
+    if (defaults['venueName'] && !this.name()) {
+      this.name.set(defaults['venueName']);
+    }
+  }
 
   constructor() {
     effect(() => {

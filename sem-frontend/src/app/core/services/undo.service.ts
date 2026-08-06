@@ -1,12 +1,13 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
+import { Observable, of } from 'rxjs';
 import { UiService } from './ui.service';
 
-export interface UndoableAction {
+export interface UndoAction {
   id: string;
   description: string;
-  undo: () => Promise<void> | void;
-  redo?: () => Promise<void> | void;
-  timestamp: Date;
+  undoFn: () => Observable<any> | Promise<any> | void;
+  timeoutSeconds: number;
+  timestamp: number;
 }
 
 @Injectable({
@@ -15,145 +16,75 @@ export interface UndoableAction {
 export class UndoService {
   private ui = inject(UiService);
 
-  private undoStackSignal = signal<UndoableAction[]>([]);
-  private redoStackSignal = signal<UndoableAction[]>([]);
+  activeAction = signal<UndoAction | null>(null);
+  countdown = signal<number>(0);
 
-  undoStack = this.undoStackSignal.asReadonly();
-  redoStack = this.redoStackSignal.asReadonly();
+  private timer: any = null;
 
-  canUndo = computed(() => this.undoStackSignal().length > 0);
-  canRedo = computed(() => this.redoStackSignal().length > 0);
-  lastActionDescription = computed(() => {
-    const stack = this.undoStackSignal();
-    return stack.length > 0 ? stack[stack.length - 1].description : null;
-  });
+  registerUndoAction(
+    description: string,
+    undoFn: () => Observable<any> | Promise<any> | void,
+    timeoutSeconds: number = 8,
+  ) {
+    this.clearTimer();
 
-  constructor() {
-    this.initKeyboardListener();
-  }
-
-  private initKeyboardListener() {
-    if (typeof window === 'undefined') return;
-
-    window.addEventListener('keydown', (event: KeyboardEvent) => {
-      // Don't intercept if user is typing inside input/textarea/contenteditable
-      const target = event.target as HTMLElement | null;
-      if (
-        target &&
-        (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
-      ) {
-        return;
-      }
-
-      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-      const cmdOrCtrl = isMac ? event.metaKey : event.ctrlKey;
-
-      if (cmdOrCtrl && event.key.toLowerCase() === 'z') {
-        if (event.shiftKey) {
-          // Cmd+Shift+Z or Ctrl+Shift+Z -> Redo
-          event.preventDefault();
-          this.redo();
-        } else {
-          // Cmd+Z or Ctrl+Z -> Undo
-          event.preventDefault();
-          this.undo();
-        }
-      } else if (cmdOrCtrl && event.key.toLowerCase() === 'y') {
-        // Ctrl+Y -> Redo
-        event.preventDefault();
-        this.redo();
-      }
-    });
-  }
-
-  /**
-   * Registers a new undoable action to the global stack and surfaces an Undo toast alert.
-   */
-  register(action: {
-    description: string;
-    undo: () => Promise<void> | void;
-    redo?: () => Promise<void> | void;
-    showToast?: boolean;
-  }) {
-    const entry: UndoableAction = {
-      id: Math.random().toString(36).substring(2, 9),
-      description: action.description,
-      undo: action.undo,
-      redo: action.redo,
-      timestamp: new Date(),
+    const action: UndoAction = {
+      id: crypto.randomUUID(),
+      description,
+      undoFn,
+      timeoutSeconds,
+      timestamp: Date.now(),
     };
 
-    this.undoStackSignal.update((stack) => [...stack, entry]);
-    this.redoStackSignal.set([]); // Clear redo stack on new action
+    this.activeAction.set(action);
+    this.countdown.set(timeoutSeconds);
 
-    if (action.showToast !== false) {
-      this.ui.showUndo(action.description, () => {
-        this.undoAction(entry);
-      });
-    }
+    this.timer = setInterval(() => {
+      const current = this.countdown();
+      if (current <= 1) {
+        this.clearTimer();
+        this.activeAction.set(null);
+      } else {
+        this.countdown.set(current - 1);
+      }
+    }, 1000);
   }
 
-  /**
-   * Undoes the last action on top of the undo stack.
-   */
-  async undo(): Promise<boolean> {
-    const stack = this.undoStackSignal();
-    if (stack.length === 0) return false;
+  executeUndo() {
+    const action = this.activeAction();
+    if (!action) return;
 
-    const action = stack[stack.length - 1];
-    return this.undoAction(action);
-  }
-
-  private async undoAction(action: UndoableAction): Promise<boolean> {
-    try {
-      await action.undo();
-
-      // Remove from undo stack & push to redo stack
-      this.undoStackSignal.update((stack) => stack.filter((a) => a.id !== action.id));
-      this.redoStackSignal.update((stack) => [...stack, action]);
-
-      this.ui.success(`Undone: ${action.description}`);
-      return true;
-    } catch (err) {
-      this.ui.error(`Failed to undo: ${action.description}`);
-      return false;
-    }
-  }
-
-  /**
-   * Redoes the last undone action on top of the redo stack.
-   */
-  async redo(): Promise<boolean> {
-    const stack = this.redoStackSignal();
-    if (stack.length === 0) return false;
-
-    const action = stack[stack.length - 1];
-
-    if (!action.redo) {
-      this.ui.info(`Cannot redo: ${action.description}`);
-      return false;
-    }
+    this.clearTimer();
+    this.activeAction.set(null);
 
     try {
-      await action.redo();
-
-      // Remove from redo stack & push back to undo stack
-      this.redoStackSignal.update((stack) => stack.filter((a) => a.id !== action.id));
-      this.undoStackSignal.update((stack) => [...stack, action]);
-
-      this.ui.success(`Redone: ${action.description}`);
-      return true;
-    } catch (err) {
-      this.ui.error(`Failed to redo: ${action.description}`);
-      return false;
+      const result = action.undoFn();
+      if (result instanceof Observable) {
+        result.subscribe({
+          next: () => this.ui.success(`↩️ Action Undone: ${action.description}`),
+          error: () => this.ui.error('Failed to undo action.'),
+        });
+      } else if (result instanceof Promise) {
+        result
+          .then(() => this.ui.success(`↩️ Action Undone: ${action.description}`))
+          .catch(() => this.ui.error('Failed to undo action.'));
+      } else {
+        this.ui.success(`↩️ Action Undone: ${action.description}`);
+      }
+    } catch (e) {
+      this.ui.error('Failed to undo action.');
     }
   }
 
-  /**
-   * Clears all undo/redo history.
-   */
-  clear() {
-    this.undoStackSignal.set([]);
-    this.redoStackSignal.set([]);
+  dismiss() {
+    this.clearTimer();
+    this.activeAction.set(null);
+  }
+
+  private clearTimer() {
+    if (this.timer) {
+      clearInterval(this.timer);
+      this.timer = null;
+    }
   }
 }

@@ -21,10 +21,14 @@ import { UiService } from '../../../../core/services/ui.service';
 import { SocketService } from '../../../../core/services/socket.service';
 import { HttpClient } from '@angular/common/http';
 
+import { SavedFiltersBarComponent } from '../../../../shared/components/saved-filters-bar/saved-filters-bar';
+import { UndoService } from '../../../../core/services/undo.service';
+import { VersionHistoryService } from '../../../../core/services/version-history.service';
+
 @Component({
   selector: 'app-workspace-files',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, SavedFiltersBarComponent],
   templateUrl: './files.html',
 })
 export class WorkspaceFilesComponent implements OnInit, OnDestroy {
@@ -32,6 +36,8 @@ export class WorkspaceFilesComponent implements OnInit, OnDestroy {
   private uiService = inject(UiService);
   private socketService = inject(SocketService);
   private http = inject(HttpClient);
+  undoService = inject(UndoService);
+  versionService = inject(VersionHistoryService);
 
   // Inputs
   workspace = input.required<Workspace | null>();
@@ -527,12 +533,22 @@ export class WorkspaceFilesComponent implements OnInit, OnDestroy {
     this.workspaceService.deleteWorkspaceFile(ws.id, file.id).subscribe({
       next: () => {
         this.uiService.success(`"${file.name}" deleted successfully.`);
+        this.undoService.registerUndoAction(`Deleted file "${file.name}"`, () => {
+          this.files.set(originalList);
+          this.uiService.info(`Restored file "${file.name}".`);
+        });
       },
       error: (err) => {
         this.files.set(originalList);
         this.uiService.error(err.error?.message ?? 'Failed to delete file.');
       },
     });
+  }
+
+  onApplyPreset(preset: any) {
+    if (preset.query) {
+      this.searchQuery.set(preset.query);
+    }
   }
 
   // Load versions history

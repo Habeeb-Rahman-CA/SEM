@@ -110,7 +110,14 @@
             </div>
           }
 
+          <app-smart-defaults-banner
+            [formType]="'player_registration'"
+            (applyDefaults)="onApplyDefaults($event)"
+          />
+
           <form
+            [appAutoSave]="'player_registration'"
+            [formTitle]="player() ? 'Edit Player' : 'Register Player'"
             (submit)="onSubmit(); $event.preventDefault()"
             class="flex flex-col gap-4 text-left"
           >

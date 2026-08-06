@@ -18,6 +18,9 @@ import {
 } from '../../../shared/components/bulk-import/bulk-import';
 import { PaginatorComponent } from '../../../shared';
 import { BulkOperationsBarComponent } from '../../../shared/components/bulk-operations-bar/bulk-operations-bar';
+import { SavedFiltersBarComponent } from '../../../shared/components/saved-filters-bar/saved-filters-bar';
+import { UndoService } from '../../../core/services/undo.service';
+import { VersionHistoryService } from '../../../core/services/version-history.service';
 import { UiService } from '../../../core/services/ui.service';
 
 @Component({
@@ -38,6 +41,7 @@ import { UiService } from '../../../core/services/ui.service';
     BulkImportComponent,
     PaginatorComponent,
     BulkOperationsBarComponent,
+    SavedFiltersBarComponent,
   ],
   templateUrl: './team-list.html',
 })
@@ -52,6 +56,8 @@ export class TeamListComponent {
 
   private teamService = inject(TeamService);
   private ui = inject(UiService);
+  undoService = inject(UndoService);
+  versionService = inject(VersionHistoryService);
 
   workspaceId = input.required<string>();
   teams = input.required<Team[]>();
@@ -252,7 +258,20 @@ export class TeamListComponent {
   handleBulkArchive() {
     const count = this.selectedCount();
     this.ui.info(`Bulk Operation: Archived ${count} selected teams.`);
+    this.undoService.registerUndoAction(`Archived ${count} teams`, () => {
+      this.ui.info(`Restored ${count} archived teams.`);
+    });
     this.selectedTeamIds.set(new Set());
+  }
+
+  onApplyPreset(preset: any) {
+    if (preset.query) {
+      this.teamSearchQuery.set(preset.query);
+    }
+  }
+
+  openTeamVersionHistory(team: Team) {
+    this.versionService.openVersionHistory('team', team.id, `Team Roster: ${team.name}`);
   }
 
   handleBulkUpdateStatus(statusKey: string) {

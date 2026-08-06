@@ -1119,7 +1119,13 @@
           />
         </app-empty-state>
       </div>
-    } @else {
+      <!-- Saved Filter Presets Bar -->
+      <app-saved-filters-bar
+        [scope]="'teams'"
+        [currentQuery]="teamSearchQuery()"
+        (applyPreset)="onApplyPreset($event)"
+      />
+
       <!-- Search and Filter Bar -->
       <div
         class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-slate-900/20 border border-white/5 p-4 rounded-2xl mb-4 flex-shrink-0"
@@ -1273,6 +1279,14 @@
                       size="xs"
                       (clicked)="selectedTeamId.set(team.id)"
                     />
+                    <button
+                      type="button"
+                      (click)="openTeamVersionHistory(team)"
+                      class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-indigo-300 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer border border-indigo-500/20"
+                      title="View Team Version History"
+                    >
+                      <i class="fi fi-rr-time-past text-xs"></i> History
+                    </button>
                     @if (canUpdate()) {
                       <app-button
                         label="Edit"
