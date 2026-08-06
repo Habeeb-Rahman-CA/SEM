@@ -47,6 +47,7 @@ import { PoliciesModule } from './modules/policies/policies.module';
 import { TeamAlertsModule } from './modules/team-alerts/team-alerts.module';
 import { BootstrapModule } from './modules/bootstrap/bootstrap.module';
 import { CacheModule } from './common/cache/cache.module';
+import { ActivityTimelineModule } from './modules/activity-timeline/activity-timeline.module';
 import { CertificatesModule } from './modules/certificates/certificates.module';
 import { RealtimeModule } from './common/realtime/realtime.module';
 
@@ -151,6 +152,7 @@ import { RealtimeModule } from './common/realtime/realtime.module';
     CacheModule,
     RealtimeModule,
     CertificatesModule,
+    ActivityTimelineModule,
   ],
   controllers: [AppController],
   providers: [

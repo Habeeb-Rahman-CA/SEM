@@ -81,6 +81,14 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
   {
+    path: 'workspaces/:id/activity',
+    loadComponent: () =>
+      import('./features/activity-timeline/pages/activity-timeline/activity-timeline').then(
+        (m) => m.ActivityTimelineComponent,
+      ),
+    canActivate: [authGuard],
+  },
+  {
     path: 'workspaces/:id/ads',
     loadComponent: () =>
       import('./features/ads/pages/ad-list/ad-list').then((m) => m.AdListComponent),

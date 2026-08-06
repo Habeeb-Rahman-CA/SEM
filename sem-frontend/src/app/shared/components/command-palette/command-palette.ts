@@ -114,6 +114,17 @@ export class CommandPaletteComponent {
       },
     },
     {
+      id: 'open-activity-timeline',
+      label: 'Open Global Activity Timeline',
+      category: 'Navigation',
+      icon: 'fi fi-rr-time-past',
+      shortcut: '⌘A',
+      action: () => {
+        this.close();
+        this.router.navigate(['/workspaces/default-ws/activity']);
+      },
+    },
+    {
       id: 'open-hall-of-fame',
       label: 'Open Hall of Fame & Legends',
       category: 'Navigation',
