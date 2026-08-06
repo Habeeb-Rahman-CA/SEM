@@ -21,7 +21,7 @@ import { BulkOperationsBarComponent } from '../../../shared/components/bulk-oper
 import { SavedFiltersBarComponent } from '../../../shared/components/saved-filters-bar/saved-filters-bar';
 import { UndoService } from '../../../core/services/undo.service';
 import { VersionHistoryService } from '../../../core/services/version-history.service';
-import { UiService } from '../../../core/services/ui.service';
+import { ConfettiService } from '../../../core/services/confetti.service';
 
 @Component({
   selector: 'app-team-list',
@@ -56,6 +56,7 @@ export class TeamListComponent {
 
   private teamService = inject(TeamService);
   private ui = inject(UiService);
+  private confetti = inject(ConfettiService);
   undoService = inject(UndoService);
   versionService = inject(VersionHistoryService);
 
@@ -512,6 +513,11 @@ export class TeamListComponent {
     this.isImportingBulk.set(false);
     if (importedList.length > 0) {
       this.teamsImported.emit(importedList);
+      this.confetti.celebrate(
+        'registration_completed',
+        'Teams Registration Completed!',
+        `Successfully registered ${importedList.length} teams in the workspace.`,
+      );
     }
 
     if (failCount === 0 && existCount === 0) {

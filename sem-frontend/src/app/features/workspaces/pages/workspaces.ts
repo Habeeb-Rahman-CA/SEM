@@ -12,6 +12,7 @@ import {
 import { AuthService } from '../../auth/services/auth.service';
 import { UiService } from '../../../core/services/ui.service';
 import { SocketService } from '../../../core/services/socket.service';
+import { ConfettiService } from '../../../core/services/confetti.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AvatarComponent } from '../../../shared/components/avatar/avatar';
 import { ButtonComponent } from '../../../shared/components/button/button';
@@ -42,6 +43,7 @@ export class WorkspacesComponent implements OnInit {
   private router = inject(Router);
   private uiService = inject(UiService);
   private socketService = inject(SocketService);
+  private confetti = inject(ConfettiService);
   private destroyRef = inject(DestroyRef);
 
   workspaces = signal<Workspace[]>([]);
@@ -173,6 +175,11 @@ export class WorkspacesComponent implements OnInit {
         next: (ws) => {
           this.isCreating.set(false);
           this.closeCreateModal();
+          this.confetti.celebrate(
+            'first_workspace_created',
+            'Workspace Created!',
+            `Created "${ws.name}" workspace. Welcome to Taisen!`,
+          );
           this.router.navigate(['/workspaces', ws.id]);
         },
         error: (err) => {

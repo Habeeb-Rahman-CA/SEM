@@ -32,6 +32,8 @@ export { UndoToastComponent } from './components/undo-toast/undo-toast';
 export { SavedFiltersBarComponent } from './components/saved-filters-bar/saved-filters-bar';
 export { VersionHistoryDrawerComponent } from './components/version-history-drawer/version-history-drawer';
 export { ToastItemComponent } from './components/toast-item/toast-item';
+export { CelebrationModalComponent } from './components/celebration-modal/celebration-modal';
+export { ConfettiService } from '../core/services/confetti.service';
 
 // ── Type re-exports ───────────────────────────────────────────────────────────
 export type { ButtonVariant, ButtonSize } from './components/button/button';

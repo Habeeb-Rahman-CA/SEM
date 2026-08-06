@@ -15,6 +15,7 @@ import {
   DigitalCertificate,
 } from '../../services/certificate.service';
 import { UiService } from '../../../../core/services/ui.service';
+import { ConfettiService } from '../../../../core/services/confetti.service';
 
 @Component({
   selector: 'app-certificate-generator',
@@ -27,6 +28,7 @@ export class CertificateGeneratorComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private certService = inject(CertificateService);
   private ui = inject(UiService);
+  private confetti = inject(ConfettiService);
 
   workspaceId = signal<string>('');
   certificates = signal<DigitalCertificate[]>([]);
@@ -127,6 +129,11 @@ export class CertificateGeneratorComponent implements OnInit {
         next: (cert) => {
           this.certificates.update((list) => [cert, ...list]);
           this.ui.success(`Certificate for "${cert.recipientName}" generated successfully!`);
+          this.confetti.celebrate(
+            'certificate_issued',
+            'Certificate Issued!',
+            `Digital Certificate generated for ${cert.recipientName}.`,
+          );
           this.closeCreateModal();
           this.viewCertificate(cert);
         },
@@ -147,6 +154,11 @@ export class CertificateGeneratorComponent implements OnInit {
         next: (res) => {
           this.ui.success(
             `Successfully auto-generated ${res.generatedCount} digital certificates!`,
+          );
+          this.confetti.celebrate(
+            'championship_won',
+            'Batch Certificates Generated!',
+            `Issued ${res.generatedCount} digital certificates across all categories.`,
           );
           this.load();
           this.activeTab.set('issued');

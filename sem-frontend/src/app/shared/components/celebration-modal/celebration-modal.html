@@ -1,0 +1,48 @@
+@if (confettiService.currentCelebration(); as celebration) {
+  <div
+    class="fixed top-8 left-1/2 -translate-x-1/2 z-[10000] w-full max-w-md px-4 pointer-events-none"
+  >
+    <div
+      #banner
+      class="bg-gradient-to-r from-slate-900 via-amber-950/40 to-slate-900 border-2 border-amber-500/50 backdrop-blur-xl rounded-3xl p-5 shadow-2xl shadow-amber-500/20 flex items-center gap-4 pointer-events-auto relative overflow-hidden"
+    >
+      <!-- Ambient Glow & Animated Shimmer -->
+      <div
+        class="absolute -inset-1 bg-gradient-to-r from-amber-500/20 via-yellow-500/10 to-amber-500/20 blur-xl opacity-75 pointer-events-none"
+      ></div>
+
+      <!-- Trophy / Badge Icon -->
+      <div
+        class="w-14 h-14 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shrink-0 shadow-lg text-amber-400 text-2xl relative z-10"
+      >
+        <i [class]="'fi ' + celebration.badge"></i>
+      </div>
+
+      <!-- Text -->
+      <div class="flex-1 min-w-0 relative z-10 text-left">
+        <div class="flex items-center gap-2">
+          <span
+            class="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 bg-amber-500/20 border border-amber-500/30 text-amber-300 rounded-md"
+          >
+            Milestone Reached 🎉
+          </span>
+        </div>
+        <h3 class="text-sm font-extrabold text-white mt-1 truncate">
+          {{ celebration.title }}
+        </h3>
+        <p class="text-xs text-amber-200/80 mt-0.5 leading-snug line-clamp-2">
+          {{ celebration.subtitle }}
+        </p>
+      </div>
+
+      <!-- Close Action -->
+      <button
+        type="button"
+        (click)="onDismiss()"
+        class="px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl shadow-lg transition cursor-pointer shrink-0 border-0 relative z-10"
+      >
+        Awesome!
+      </button>
+    </div>
+  </div>
+}
