@@ -119,6 +119,14 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
   {
+    path: 'workspaces/:id/notifications',
+    loadComponent: () =>
+      import('./features/notification-center/pages/notification-center/notification-center').then(
+        (m) => m.NotificationCenterComponent,
+      ),
+    canActivate: [authGuard],
+  },
+  {
     path: 'workspaces/:id/ads',
     loadComponent: () =>
       import('./features/ads/pages/ad-list/ad-list').then((m) => m.AdListComponent),

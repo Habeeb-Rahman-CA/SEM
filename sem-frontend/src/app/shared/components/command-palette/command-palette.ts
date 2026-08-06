@@ -169,6 +169,17 @@ export class CommandPaletteComponent {
       },
     },
     {
+      id: 'open-notification-center',
+      label: 'Open Notification Center (Mentions, Support & Alerts)',
+      category: 'Navigation',
+      icon: 'fi fi-rr-bell',
+      shortcut: '⌘N',
+      action: () => {
+        this.close();
+        this.router.navigate(['/workspaces/default-ws/notifications']);
+      },
+    },
+    {
       id: 'open-hall-of-fame',
       label: 'Open Hall of Fame & Legends',
       category: 'Navigation',
