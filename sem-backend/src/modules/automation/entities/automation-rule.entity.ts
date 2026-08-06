@@ -16,20 +16,34 @@ import { AutomationRun } from './automation-run.entity';
 export type TriggerType =
   | 'manual'
   | 'schedule'
+  | 'payment_completed'
+  | 'payment_failed'
+  | 'form_submitted'
+  | 'workflow_approved'
+  | 'workflow_rejected'
   | 'event_created'
   | 'event_started'
   | 'event_ended'
   | 'competition_started'
   | 'competition_ended'
-  | 'match_completed';
+  | 'match_completed'
+  | 'transfer_requested'
+  | 'equipment_booking_requested'
+  | 'accreditation_granted';
 
 export type ActionType =
   | 'send_notification'
+  | 'generate_invoice'
+  | 'send_email'
+  | 'notify_admin'
+  | 'send_webhook'
   | 'generate_fixtures'
   | 'allocate_referees'
   | 'reserve_equipment'
   | 'issue_certificates'
   | 'generate_report'
+  | 'auto_grant_accreditation'
+  | 'trigger_workflow_stage'
   | 'archive_event';
 
 export interface AutomationAction {
@@ -64,7 +78,7 @@ export class AutomationRule {
   @Column({
     name: 'trigger_type',
     type: 'varchar',
-    length: 30,
+    length: 50,
     default: 'manual',
   })
   triggerType: TriggerType;
@@ -76,6 +90,7 @@ export class AutomationRule {
     competitionId?: string;
     eventId?: string;
     matchStatus?: string;
+    [key: string]: any;
   } | null;
 
   @Column({ type: 'jsonb', nullable: true })

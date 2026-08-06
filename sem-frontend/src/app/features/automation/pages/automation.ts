@@ -2,16 +2,27 @@ import { Component, OnInit, computed, effect, inject, input, signal } from '@ang
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
+  ACTION_CATALOG,
+  ActionMeta,
   ActionType,
   AutomationAction,
   AutomationRule,
   AutomationRun,
   AutomationService,
   AutomationSummary,
+  TRIGGER_CATALOG,
+  TriggerMeta,
   TriggerType,
 } from '../services/automation.service';
 
-type AutoTab = 'rules' | 'runs' | 'library';
+type AutoTab = 'rules' | 'runs' | 'builder' | 'library';
+type BuilderStep = 'trigger' | 'conditions' | 'actions' | 'review';
+
+interface ConditionRow {
+  field: string;
+  operator: 'equals' | 'not_equals' | 'contains' | 'gt' | 'lt';
+  value: string;
+}
 
 @Component({
   selector: 'app-automation',
@@ -21,19 +32,21 @@ type AutoTab = 'rules' | 'runs' | 'library';
 })
 export class AutomationComponent implements OnInit {
   workspaceId = input.required<string>();
-
   private service = inject(AutomationService);
 
+  // ─── Data ────────────────────────────────────────────────────────────────
   summary = signal<AutomationSummary | null>(null);
   rules = signal<AutomationRule[]>([]);
   runs = signal<AutomationRun[]>([]);
   isLoading = signal(true);
   error = signal<string | null>(null);
 
+  // ─── Tab & selection ─────────────────────────────────────────────────────
   currentTab = signal<AutoTab>('rules');
   selectedRuleId = signal<string | null>(null);
   runsFilterRuleId = signal<string>('');
 
+  // ─── Old modal (edit only) ────────────────────────────────────────────────
   isRuleModalOpen = signal(false);
   editingRuleId = signal<string | null>(null);
   ruleForm = signal({
@@ -45,81 +58,54 @@ export class AutomationComponent implements OnInit {
     actionsJson: '[]',
   });
 
-  allTriggers: TriggerType[] = [
-    'manual',
-    'schedule',
-    'event_created',
-    'event_started',
-    'event_ended',
-    'competition_started',
-    'competition_ended',
-    'match_completed',
-  ];
-
-  actionCatalog: {
-    type: ActionType;
-    label: string;
+  // ─── Visual Builder State ─────────────────────────────────────────────────
+  builderStep = signal<BuilderStep>('trigger');
+  builderRule = signal<{
+    name: string;
     description: string;
-    template: any;
-  }[] = [
-    {
-      type: 'send_notification',
-      label: 'Send notification',
-      description: 'Push an in-app notification to selected users.',
-      template: {
-        title: 'Automation update',
-        message: 'A scheduled task just ran.',
-        userIds: [],
-      },
-    },
-    {
-      type: 'generate_fixtures',
-      label: 'Generate fixtures',
-      description: 'Create matches for a competition using a fixture template.',
-      template: {
-        eventId: '',
-        competitionId: '',
-        fixtureTemplateId: null,
-      },
-    },
-    {
-      type: 'allocate_referees',
-      label: 'Allocate referees',
-      description: 'Auto-assign referees to unassigned matches.',
-      template: { competitionId: '', strategy: 'round_robin' },
-    },
-    {
-      type: 'reserve_equipment',
-      label: 'Reserve equipment',
-      description: 'Create equipment bookings for an event window.',
-      template: {
-        equipmentIds: [],
-        eventId: '',
-        startAt: '',
-        endAt: '',
-        notes: 'Auto-reserved',
-      },
-    },
-    {
-      type: 'issue_certificates',
-      label: 'Issue certificates',
-      description: 'Queue certificate generation for participants/winners of an event.',
-      template: { eventId: '', template: 'default' },
-    },
-    {
-      type: 'generate_report',
-      label: 'Generate report',
-      description: 'Compile a summary report for an event.',
-      template: { eventId: '', reportType: 'summary', format: 'pdf' },
-    },
-    {
-      type: 'archive_event',
-      label: 'Archive event',
-      description: 'Mark an event as archived once completed.',
-      template: { eventId: '' },
-    },
-  ];
+    triggerType: TriggerType | null;
+    cron: string;
+    conditions: ConditionRow[];
+    actions: AutomationAction[];
+    status: 'active' | 'paused';
+  }>({
+    name: '',
+    description: '',
+    triggerType: null,
+    cron: '',
+    conditions: [],
+    actions: [],
+    status: 'active',
+  });
 
+  // ─── Catalogs ─────────────────────────────────────────────────────────────
+  readonly triggerCatalog: TriggerMeta[] = TRIGGER_CATALOG;
+  readonly actionCatalog: ActionMeta[] = ACTION_CATALOG;
+
+  readonly triggerCategories = computed(() => {
+    const cats = new Set(this.triggerCatalog.map((t) => t.category));
+    return Array.from(cats);
+  });
+
+  readonly actionCategories = computed(() => {
+    const cats = new Set(this.actionCatalog.map((a) => a.category));
+    return Array.from(cats);
+  });
+
+  triggersInCategory(cat: string) {
+    return this.triggerCatalog.filter((t) => t.category === cat);
+  }
+
+  actionsInCategory(cat: string) {
+    return this.actionCatalog.filter((a) => a.category === cat);
+  }
+
+  selectedTriggerMeta = computed(() => {
+    const t = this.builderRule().triggerType;
+    return t ? (this.triggerCatalog.find((x) => x.type === t) ?? null) : null;
+  });
+
+  // ─── Computed ─────────────────────────────────────────────────────────────
   selectedRule = computed<AutomationRule | null>(() => {
     const id = this.selectedRuleId();
     if (!id) return null;
@@ -130,6 +116,13 @@ export class AutomationComponent implements OnInit {
     const id = this.runsFilterRuleId();
     return id ? this.runs().filter((r) => r.ruleId === id) : this.runs();
   });
+
+  builderSteps: { key: BuilderStep; label: string; icon: string }[] = [
+    { key: 'trigger', label: 'Trigger', icon: 'fi-rr-bolt' },
+    { key: 'conditions', label: 'Conditions', icon: 'fi-rr-filter' },
+    { key: 'actions', label: 'Actions', icon: 'fi-rr-layers' },
+    { key: 'review', label: 'Review & Save', icon: 'fi-rr-check-circle' },
+  ];
 
   constructor() {
     effect(
@@ -172,8 +165,138 @@ export class AutomationComponent implements OnInit {
     });
   }
 
-  // ─── Rule Modal ──────────────────────────────────────────────────────
+  // ─── Visual Builder Navigation ────────────────────────────────────────────
+  openBuilder() {
+    this.builderRule.set({
+      name: '',
+      description: '',
+      triggerType: null,
+      cron: '',
+      conditions: [],
+      actions: [],
+      status: 'active',
+    });
+    this.builderStep.set('trigger');
+    this.currentTab.set('builder');
+  }
 
+  selectTrigger(type: TriggerType) {
+    this.builderRule.set({ ...this.builderRule(), triggerType: type });
+  }
+
+  nextStep() {
+    const steps: BuilderStep[] = ['trigger', 'conditions', 'actions', 'review'];
+    const cur = this.builderStep();
+    const idx = steps.indexOf(cur);
+    if (idx < steps.length - 1) this.builderStep.set(steps[idx + 1]);
+  }
+
+  prevStep() {
+    const steps: BuilderStep[] = ['trigger', 'conditions', 'actions', 'review'];
+    const cur = this.builderStep();
+    const idx = steps.indexOf(cur);
+    if (idx > 0) this.builderStep.set(steps[idx - 1]);
+  }
+
+  isStepDone(step: BuilderStep): boolean {
+    const steps: BuilderStep[] = ['trigger', 'conditions', 'actions', 'review'];
+    return steps.indexOf(step) < steps.indexOf(this.builderStep());
+  }
+
+  canProceedFromTrigger() {
+    return this.builderRule().triggerType !== null;
+  }
+
+  canProceedFromActions() {
+    return this.builderRule().actions.length > 0 && this.builderRule().name.trim().length > 0;
+  }
+
+  // ─── Conditions ───────────────────────────────────────────────────────────
+  addCondition() {
+    const r = this.builderRule();
+    this.builderRule.set({
+      ...r,
+      conditions: [...r.conditions, { field: '', operator: 'equals', value: '' }],
+    });
+  }
+
+  updateCondition(idx: number, patch: Partial<ConditionRow>) {
+    const r = this.builderRule();
+    const conditions = r.conditions.map((c, i) => (i === idx ? { ...c, ...patch } : c));
+    this.builderRule.set({ ...r, conditions });
+  }
+
+  removeCondition(idx: number) {
+    const r = this.builderRule();
+    this.builderRule.set({ ...r, conditions: r.conditions.filter((_, i) => i !== idx) });
+  }
+
+  // ─── Actions ─────────────────────────────────────────────────────────────
+  addAction(meta: ActionMeta) {
+    const r = this.builderRule();
+    this.builderRule.set({
+      ...r,
+      actions: [...r.actions, { type: meta.type, config: { ...meta.configTemplate } }],
+    });
+  }
+
+  removeAction(idx: number) {
+    const r = this.builderRule();
+    this.builderRule.set({ ...r, actions: r.actions.filter((_, i) => i !== idx) });
+  }
+
+  updateActionConfig(idx: number, json: string) {
+    try {
+      const parsed = JSON.parse(json);
+      const r = this.builderRule();
+      const actions = r.actions.map((a, i) => (i === idx ? { ...a, config: parsed } : a));
+      this.builderRule.set({ ...r, actions });
+    } catch {
+      // ignore invalid JSON while typing
+    }
+  }
+
+  toggleActionContinueOnError(idx: number) {
+    const r = this.builderRule();
+    const actions = r.actions.map((a, i) =>
+      i === idx ? { ...a, continueOnError: !a.continueOnError } : a,
+    );
+    this.builderRule.set({ ...r, actions });
+  }
+
+  // ─── Save Builder Rule ────────────────────────────────────────────────────
+  saveBuilderRule() {
+    const r = this.builderRule();
+    if (!r.triggerType || !r.name.trim() || r.actions.length === 0) return;
+
+    const conditions: Record<string, any> = {};
+    for (const c of r.conditions) {
+      if (c.field && c.value) conditions[c.field] = c.value;
+    }
+
+    const payload: any = {
+      name: r.name.trim(),
+      description: r.description || null,
+      triggerType: r.triggerType,
+      actions: r.actions,
+      conditions: Object.keys(conditions).length > 0 ? conditions : null,
+      status: r.status,
+    };
+    if (r.triggerType === 'schedule' && r.cron) {
+      payload.triggerConfig = { cron: r.cron };
+    }
+
+    this.service.createRule(this.workspaceId(), payload).subscribe({
+      next: (rule) => {
+        this.loadAll();
+        this.selectedRuleId.set(rule.id);
+        this.currentTab.set('rules');
+      },
+      error: (err) => alert(err?.error?.message || 'Failed to save rule'),
+    });
+  }
+
+  // ─── Old Modal (for editing) ───────────────────────────────────────────────
   openRuleModal(rule?: AutomationRule) {
     if (rule) {
       this.editingRuleId.set(rule.id);
@@ -185,53 +308,18 @@ export class AutomationComponent implements OnInit {
         status: rule.status === 'error' ? 'active' : rule.status,
         actionsJson: JSON.stringify(rule.actions || [], null, 2),
       });
-    } else {
-      this.editingRuleId.set(null);
-      this.ruleForm.set({
-        name: '',
-        description: '',
-        triggerType: 'manual',
-        cron: '0 9 * * *',
-        status: 'active',
-        actionsJson: JSON.stringify(
-          [
-            {
-              type: 'send_notification',
-              config: this.actionCatalog[0].template,
-            },
-          ],
-          null,
-          2,
-        ),
-      });
+      this.isRuleModalOpen.set(true);
     }
-    this.isRuleModalOpen.set(true);
   }
 
   closeRuleModal() {
     this.isRuleModalOpen.set(false);
   }
 
-  appendActionTemplate(a: (typeof this.actionCatalog)[number]) {
-    let current: AutomationAction[] = [];
-    try {
-      current = JSON.parse(this.ruleForm().actionsJson || '[]');
-      if (!Array.isArray(current)) current = [];
-    } catch {
-      current = [];
-    }
-    current.push({ type: a.type, config: a.template });
-    this.ruleForm.set({
-      ...this.ruleForm(),
-      actionsJson: JSON.stringify(current, null, 2),
-    });
-  }
-
   saveRule() {
     const form = this.ruleForm();
     const wsId = this.workspaceId();
     const id = this.editingRuleId();
-
     let actions: AutomationAction[];
     try {
       actions = JSON.parse(form.actionsJson);
@@ -239,38 +327,30 @@ export class AutomationComponent implements OnInit {
         alert('Actions must be a non-empty JSON array.');
         return;
       }
-    } catch (e) {
+    } catch {
       alert('Invalid JSON in actions field.');
       return;
     }
-
     const payload: any = {
       name: form.name,
       description: form.description || null,
       actions,
       status: form.status,
     };
-    if (form.triggerType === 'schedule') {
-      payload.triggerConfig = { cron: form.cron };
-    }
-    if (!id) {
-      payload.triggerType = form.triggerType;
-    }
+    if (form.triggerType === 'schedule') payload.triggerConfig = { cron: form.cron };
 
-    const req = id
-      ? this.service.updateRule(wsId, id, payload)
-      : this.service.createRule(wsId, payload);
-
-    req.subscribe({
-      next: (r) => {
-        this.closeRuleModal();
-        this.loadAll();
-        this.selectedRuleId.set(r.id);
-      },
-      error: (err) => alert(err?.error?.message || 'Failed to save rule'),
-    });
+    if (id) {
+      this.service.updateRule(wsId, id, payload).subscribe({
+        next: () => {
+          this.closeRuleModal();
+          this.loadAll();
+        },
+        error: (err) => alert(err?.error?.message || 'Failed to update'),
+      });
+    }
   }
 
+  // ─── Rule Actions ─────────────────────────────────────────────────────────
   pauseRule(rule: AutomationRule) {
     this.service
       .updateRule(this.workspaceId(), rule.id, {
@@ -300,38 +380,57 @@ export class AutomationComponent implements OnInit {
     });
   }
 
-  // ─── Helpers ─────────────────────────────────────────────────────────
-
+  // ─── Helpers ──────────────────────────────────────────────────────────────
   statusBadgeClass(status: string): string {
     switch (status) {
       case 'active':
       case 'success':
-        return 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30';
+        return 'badge-success';
       case 'paused':
       case 'skipped':
-        return 'bg-slate-500/15 text-slate-300 border-slate-500/30';
+        return 'badge-neutral';
       case 'failed':
       case 'error':
-        return 'bg-red-500/15 text-red-400 border-red-500/30';
+        return 'badge-danger';
       case 'partial':
-        return 'bg-amber-500/15 text-amber-400 border-amber-500/30';
+        return 'badge-warning';
       case 'running':
-        return 'bg-sky-500/15 text-sky-400 border-sky-500/30';
+        return 'badge-info';
       default:
-        return 'bg-slate-500/15 text-slate-300 border-slate-500/30';
+        return 'badge-neutral';
     }
   }
 
-  triggerLabel(t: TriggerType): string {
-    return t.replace(/_/g, ' ');
+  triggerMeta(t: TriggerType): TriggerMeta {
+    return (
+      this.triggerCatalog.find((x) => x.type === t) ?? {
+        type: t,
+        label: t.replace(/_/g, ' '),
+        icon: 'fi-rr-bolt',
+        category: '',
+        description: '',
+      }
+    );
+  }
+
+  actionMeta(t: ActionType): ActionMeta {
+    return (
+      this.actionCatalog.find((x) => x.type === t) ?? {
+        type: t,
+        label: t.replace(/_/g, ' '),
+        icon: 'fi-rr-layers',
+        category: '',
+        description: '',
+        configTemplate: {},
+      }
+    );
   }
 
   selectRule(id: string) {
     this.selectedRuleId.set(id);
   }
 
-  actionTypeLabel(type: string): string {
-    const found = this.actionCatalog.find((a) => a.type === type);
-    return found?.label || type;
+  configJson(action: AutomationAction): string {
+    return JSON.stringify(action.config, null, 2);
   }
 }
