@@ -207,3 +207,17 @@ body.qr-scanner-active .hide-on-scan {
 .compact-mode h2 {
   font-size: 1.15rem !important;
 }
+
+/* ── Accessibility Font Size Controls ── */
+html.font-scale-small {
+  font-size: 87.5%; /* ~14px base */
+}
+html.font-scale-medium {
+  font-size: 100%; /* ~16px base */
+}
+html.font-scale-large {
+  font-size: 112.5%; /* ~18px base */
+}
+html.font-scale-xlarge {
+  font-size: 125%; /* ~20px base */
+}

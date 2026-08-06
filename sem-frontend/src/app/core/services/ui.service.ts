@@ -72,12 +72,54 @@ export class UiService {
     }
   }
 
+  // Font Size Accessibility Scaling Signal
+  fontSizeScale = signal<'small' | 'medium' | 'large' | 'xlarge'>('medium');
+
+  setFontSize(scale: 'small' | 'medium' | 'large' | 'xlarge') {
+    this.fontSizeScale.set(scale);
+    this.applyFontSize();
+    this.info(`Font size set to ${scale.toUpperCase()}`);
+  }
+
+  cycleFontSize() {
+    const current = this.fontSizeScale();
+    let next: 'small' | 'medium' | 'large' | 'xlarge' = 'medium';
+    if (current === 'small') next = 'medium';
+    else if (current === 'medium') next = 'large';
+    else if (current === 'large') next = 'xlarge';
+    else if (current === 'xlarge') next = 'small';
+
+    this.setFontSize(next);
+  }
+
+  private applyFontSize() {
+    if (typeof document !== 'undefined') {
+      const scale = this.fontSizeScale();
+      const html = document.documentElement;
+      html.classList.remove(
+        'font-scale-small',
+        'font-scale-medium',
+        'font-scale-large',
+        'font-scale-xlarge',
+      );
+      html.classList.add(`font-scale-${scale}`);
+      localStorage.setItem('sem_font_size', scale);
+    }
+  }
+
   constructor() {
     if (typeof window !== 'undefined') {
       const savedCompact = localStorage.getItem('sem_compact_mode') === 'true';
       if (savedCompact) {
         this.isCompactMode.set(true);
         this.applyCompactMode();
+      }
+
+      const savedFontSize = localStorage.getItem('sem_font_size') as
+        'small' | 'medium' | 'large' | 'xlarge' | null;
+      if (savedFontSize && ['small', 'medium', 'large', 'xlarge'].includes(savedFontSize)) {
+        this.fontSizeScale.set(savedFontSize);
+        this.applyFontSize();
       }
 
       window.addEventListener('online', () => {
