@@ -721,6 +721,13 @@
                     class="flex items-center justify-end gap-1.5 pt-2 border-t border-white/5 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity"
                   >
                     <app-button
+                      label="Preview"
+                      iconClass="fi-rr-eye"
+                      variant="ghost"
+                      size="xs"
+                      (clicked)="openQuickPreview(player)"
+                    />
+                    <app-button
                       label="Stats"
                       iconClass="fi-rr-stats"
                       variant="outline"

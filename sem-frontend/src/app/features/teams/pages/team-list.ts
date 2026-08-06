@@ -22,6 +22,7 @@ import { SavedFiltersBarComponent } from '../../../shared/components/saved-filte
 import { UndoService } from '../../../core/services/undo.service';
 import { VersionHistoryService } from '../../../core/services/version-history.service';
 import { ConfettiService } from '../../../core/services/confetti.service';
+import { QuickPreviewService } from '../../../core/services/quick-preview.service';
 
 import { RecordCommentsComponent } from '../../../shared/components/record-comments/record-comments';
 
@@ -62,6 +63,7 @@ export class TeamListComponent {
   private confetti = inject(ConfettiService);
   undoService = inject(UndoService);
   versionService = inject(VersionHistoryService);
+  quickPreviewService = inject(QuickPreviewService);
 
   workspaceId = input.required<string>();
   teams = input.required<Team[]>();
@@ -323,6 +325,12 @@ export class TeamListComponent {
   onBackToTeams() {
     this.selectedTeamId.set(null);
     this.selectedTeamAnalytics.set(null);
+  }
+
+  openQuickPreview(team: Team) {
+    this.quickPreviewService.previewTeam(team, () => {
+      this.selectedTeamId.set(team.id);
+    });
   }
 
   // Bulk import actions

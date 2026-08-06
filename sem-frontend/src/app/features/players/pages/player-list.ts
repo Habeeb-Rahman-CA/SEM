@@ -17,6 +17,7 @@ import {
 import { PaginatorComponent } from '../../../shared';
 import { BulkOperationsBarComponent } from '../../../shared/components/bulk-operations-bar/bulk-operations-bar';
 import { UiService } from '../../../core/services/ui.service';
+import { QuickPreviewService } from '../../../core/services/quick-preview.service';
 
 @Component({
   selector: 'app-player-list',
@@ -48,6 +49,7 @@ export class PlayerListComponent {
 
   private playerService = inject(PlayerService);
   private ui = inject(UiService);
+  quickPreviewService = inject(QuickPreviewService);
 
   workspaceId = input.required<string>();
   players = input.required<Player[]>();
@@ -308,6 +310,12 @@ export class PlayerListComponent {
   onBackToPlayers() {
     this.selectedPlayerId.set(null);
     this.selectedPlayerInsights.set(null);
+  }
+
+  openQuickPreview(player: Player) {
+    this.quickPreviewService.previewPlayer(player, () => {
+      this.selectedPlayerId.set(player.id);
+    });
   }
 
   // Bulk import actions

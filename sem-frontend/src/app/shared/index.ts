@@ -42,6 +42,7 @@ export { SmartSuggestionToastComponent } from './components/smart-suggestion-toa
 export { DuplicateWarningModalComponent } from './components/duplicate-warning-modal/duplicate-warning-modal';
 export { HelpTooltipComponent } from './components/help-tooltip/help-tooltip';
 export { FloatingActionButtonComponent } from './components/floating-action-button/floating-action-button';
+export { QuickPreviewModalComponent } from './components/quick-preview-modal/quick-preview-modal';
 export { CopyDirective } from './directives/copy.directive';
 export { TippyDirective } from './directives/tippy.directive';
 export { ConfettiService } from '../core/services/confetti.service';
@@ -50,6 +51,7 @@ export { ActivityFeedService } from '../core/services/activity-feed.service';
 export { RecycleBinService } from '../core/services/recycle-bin.service';
 export { SmartSuggestionsService } from '../core/services/smart-suggestions.service';
 export { DuplicateDetectionService } from '../core/services/duplicate-detection.service';
+export { QuickPreviewService } from '../core/services/quick-preview.service';
 
 // ── Type re-exports ───────────────────────────────────────────────────────────
 export type { ButtonVariant, ButtonSize } from './components/button/button';
