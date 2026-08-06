@@ -33,6 +33,7 @@ export { SavedFiltersBarComponent } from './components/saved-filters-bar/saved-f
 export { VersionHistoryDrawerComponent } from './components/version-history-drawer/version-history-drawer';
 export { ToastItemComponent } from './components/toast-item/toast-item';
 export { CelebrationModalComponent } from './components/celebration-modal/celebration-modal';
+export { CustomizableTableComponent } from './components/customizable-table/customizable-table';
 export { ConfettiService } from '../core/services/confetti.service';
 
 // ── Type re-exports ───────────────────────────────────────────────────────────
