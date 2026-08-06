@@ -59,6 +59,7 @@ import { DynamicFormsModule } from './modules/dynamic-forms/dynamic-forms.module
 import { WorkflowBuilderModule } from './modules/workflow-builder/workflow-builder.module';
 import { FavoritesModule } from './modules/favorites/favorites.module';
 import { RecentlyViewedModule } from './modules/recently-viewed/recently-viewed.module';
+import { GlobalNotesModule } from './modules/global-notes/global-notes.module';
 import { RealtimeModule } from './common/realtime/realtime.module';
 
 @Module({
@@ -173,6 +174,7 @@ import { RealtimeModule } from './common/realtime/realtime.module';
     WorkflowBuilderModule,
     FavoritesModule,
     RecentlyViewedModule,
+    GlobalNotesModule,
   ],
   controllers: [AppController],
   providers: [

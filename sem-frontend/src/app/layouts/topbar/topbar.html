@@ -44,6 +44,24 @@
         [subtitle]="'Workspace Tab'"
         [url]="favUrl()"
       />
+
+      <!-- Global Record Notes Button -->
+      <button
+        (click)="isNotesOpen.set(true)"
+        class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-white/10 hover:border-violet-500/50 hover:bg-violet-500/10 text-xs font-bold text-slate-300 hover:text-white transition cursor-pointer shadow-sm"
+        title="Open Record Notes"
+      >
+        <i class="fi fi-rr-notebook text-violet-400"></i>
+        <span class="hidden sm:inline">Notes</span>
+      </button>
+
+      <app-global-notes
+        [(isOpen)]="isNotesOpen"
+        [workspaceId]="workspace()!.id"
+        [entityType]="noteEntityType()"
+        [entityId]="workspace()!.id + '-' + activeTab()"
+        [entityTitle]="favTitle()"
+      />
     }
 
     <!-- Notification Panel Component -->

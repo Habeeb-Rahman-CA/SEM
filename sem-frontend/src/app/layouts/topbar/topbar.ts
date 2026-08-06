@@ -1,4 +1,4 @@
-import { Component, input, model, output, inject, computed } from '@angular/core';
+import { Component, input, model, output, inject, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import {
@@ -16,7 +16,9 @@ import { GlobalSearchComponent } from '../global-search/global-search';
 import { NotificationPanelComponent } from '../notification-panel/notification-panel';
 import { UserDropdownComponent } from '../user-dropdown/user-dropdown';
 import { FavoriteButtonComponent } from '../../shared/components/favorite-button/favorite-button';
+import { GlobalNotesComponent } from '../../shared/components/global-notes/global-notes';
 import { FavoriteEntityType } from '../../core/services/favorites.service';
+import { NoteEntityType } from '../../core/services/global-notes.service';
 
 @Component({
   selector: 'app-topbar',
@@ -27,6 +29,7 @@ import { FavoriteEntityType } from '../../core/services/favorites.service';
     NotificationPanelComponent,
     UserDropdownComponent,
     FavoriteButtonComponent,
+    GlobalNotesComponent,
   ],
   templateUrl: './topbar.html',
 })
@@ -36,6 +39,8 @@ export class TopbarComponent {
   workspace = input<Workspace | null>(null);
   allWorkspaces = input<Workspace[]>([]);
   activeTab = input<string>('overview');
+
+  isNotesOpen = signal<boolean>(false);
 
   globalSearchQuery = model<string>('');
   showGlobalSearchResults = model<boolean>(false);
@@ -81,6 +86,18 @@ export class TopbarComponent {
     if (tab === 'teams') return 'team';
     if (tab === 'events') return 'event';
     if (tab === 'reports') return 'report';
+    return 'custom';
+  });
+
+  noteEntityType = computed<NoteEntityType>(() => {
+    const tab = this.activeTab();
+    if (tab === 'players') return 'player';
+    if (tab === 'teams') return 'team';
+    if (tab === 'equipment') return 'asset';
+    if (tab === 'events') return 'event';
+    if (tab === 'venues') return 'venue';
+    if (tab === 'reports') return 'report';
+    if (tab === 'governance') return 'form';
     return 'custom';
   });
 
