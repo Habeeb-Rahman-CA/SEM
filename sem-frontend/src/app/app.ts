@@ -19,7 +19,7 @@ export class App implements OnInit {
   ngOnInit() {
     // Resolve workspace branding for this window (custom domain / ?workspace=)
     // and apply the CSS custom properties + favicon + title. Silent failure —
-    // the SPA falls back to the default SEM look when no verified branding
+    // the SPA falls back to the default Taisen look when no verified branding
     // is available.
     this.brandingService.resolveForCurrentWindow().subscribe({
       error: () => undefined,

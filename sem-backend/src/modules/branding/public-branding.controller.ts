@@ -12,7 +12,7 @@ import { BrandingService } from './branding.service';
  *   2. `Host` header — matches a verified custom domain
  *
  * Returns `null` when no verified branding is available so the caller
- * falls back to the default SEM look.
+ * falls back to the default Taisen look.
  */
 @ApiTags('public-branding')
 @Controller('public/branding')

@@ -34,7 +34,7 @@ export class EmailService {
   async sendEmail(to: string, subject: string, html: string): Promise<boolean> {
     const from = this.configService.get<string>(
       'SMTP_FROM',
-      '"SEM Platform" <noreply@sem-event.com>',
+      '"Taisen Platform" <noreply@taisen.app>',
     );
     if (this.transporter) {
       try {
@@ -104,7 +104,7 @@ export class EmailService {
             </div>
             <div class="footer">
               <p style="margin: 0 0 4px 0;">This notification was sent on behalf of ${workspaceName}.</p>
-              <p style="margin: 0;">Powered by Sports Event Management Platform.</p>
+              <p style="margin: 0;">Powered by Taisen Sports Event Management Platform.</p>
             </div>
           </div>
         </body>

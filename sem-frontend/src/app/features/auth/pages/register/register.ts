@@ -4,12 +4,11 @@ import { FormsModule } from '@angular/forms';
 import { QuicklinkDirective } from 'ngx-quicklink';
 import { AuthService } from '../../services/auth.service';
 import { ModalComponent } from '../../../../shared/components/modal/modal';
-import { LanguageSelectorComponent } from '../../../../shared/components/language-selector/language-selector';
 
 @Component({
   selector: 'app-register',
   standalone: true,
-  imports: [FormsModule, RouterLink, QuicklinkDirective, ModalComponent, LanguageSelectorComponent],
+  imports: [FormsModule, RouterLink, QuicklinkDirective, ModalComponent],
   templateUrl: './register.html',
   styleUrl: './register.css',
 })

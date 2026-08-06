@@ -101,7 +101,7 @@ async function generateWithOpenRouter(
         Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
         'HTTP-Referer': 'http://localhost:3001',
-        'X-Title': 'SEM Platform',
+        'X-Title': 'Taisen Platform',
       },
       body: JSON.stringify({
         model: 'google/gemini-2.5-flash:free',

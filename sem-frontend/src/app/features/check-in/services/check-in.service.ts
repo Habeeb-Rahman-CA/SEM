@@ -65,7 +65,7 @@ export class CheckInService {
   }
 
   /**
-   * Try to interpret a scanned code as an SEM URL or JSON payload. Falls back
+   * Try to interpret a scanned code as a Taisen URL or JSON payload. Falls back
    * to treating the string itself as a subject id — that way admins can print
    * plain-text badges with a member/player id and it still resolves.
    */
@@ -88,7 +88,7 @@ export class CheckInService {
       }
     }
 
-    // sem://player/<id> or sem://pass/<id> or https://.../check-in?kind=&id=
+    // taisen://player/<id> or taisen://pass/<id> or https://.../check-in?kind=&id=
     try {
       const url = new URL(raw);
       const kindParam = url.searchParams.get('kind') as CheckInSubjectKind | null;

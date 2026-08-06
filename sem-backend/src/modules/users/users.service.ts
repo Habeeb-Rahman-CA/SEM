@@ -62,7 +62,7 @@ export class UsersService {
       await this.sendNotification(
         savedUser.id,
         NotificationType.WELCOME,
-        `Welcome to SEM! Start by creating or joining a workspace.`,
+        `Welcome to Taisen! Start by creating or joining a workspace.`,
       );
     }
 

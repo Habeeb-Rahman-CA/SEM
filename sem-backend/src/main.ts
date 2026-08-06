@@ -135,9 +135,9 @@ async function bootstrap() {
   // ── Swagger (non-production only) ─────────────────────────────────────────
   if (process.env.NODE_ENV !== 'production') {
     const config = new DocumentBuilder()
-      .setTitle('SEM — Sports Event Manager API')
+      .setTitle('Taisen — Sports Event Manager API')
       .setDescription(
-        '## Sports Event Manager\n\n' +
+        '## Taisen Sports Event Manager\n\n' +
           'Full-stack platform for managing sports events, workspaces, competitions, teams, and players.\n\n' +
           '### Authentication\n' +
           'Most endpoints require a **Bearer JWT** access token. Obtain one via `POST /api/auth/login`.\n\n' +
@@ -149,7 +149,7 @@ async function bootstrap() {
           '`Health & Monitoring`, `Admin — Logs`, `Admin — Backups`, and `Admin — Recovery` tags.',
       )
       .setVersion('1.0')
-      .setContact('SEM Team', '', '')
+      .setContact('Taisen Team', '', '')
       .setLicense('UNLICENSED', '')
       .addBearerAuth(
         {
@@ -194,7 +194,7 @@ async function bootstrap() {
         filter: true, // enable search box
         tryItOutEnabled: true, // open "Try it out" by default
       },
-      customSiteTitle: 'SEM API Docs',
+      customSiteTitle: 'Taisen API Docs',
     });
   }
 

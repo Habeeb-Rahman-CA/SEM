@@ -71,7 +71,7 @@ export class ShareService {
     image?: string | null;
     url?: string | null;
   }) {
-    this.title.setTitle(`${opts.title} · SEM`);
+    this.title.setTitle(`${opts.title} · Taisen`);
 
     const set = (name: string, value: string, isProperty = false) => {
       const selector = isProperty ? `property="${name}"` : `name="${name}"`;

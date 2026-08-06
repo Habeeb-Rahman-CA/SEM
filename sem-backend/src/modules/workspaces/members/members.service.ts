@@ -185,7 +185,7 @@ export class WorkspaceMembersService {
           await this.notificationsService.sendNotification(
             user.id,
             NotificationType.BULK_IMPORT_CHANGE_PASSWORD,
-            `Welcome to SEM! You've been added to ${wsName}. Please change your default password for security.`,
+            `Welcome to Taisen! You've been added to ${wsName}. Please change your default password for security.`,
             workspaceId,
             { workspaceName: wsName, role: item.role },
           );

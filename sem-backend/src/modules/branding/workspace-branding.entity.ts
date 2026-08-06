@@ -11,7 +11,7 @@ import { Workspace } from '../workspaces/entities/workspace.entity';
 
 /**
  * One branding config per workspace. Ships in "not enabled" mode — every
- * field can be filled in, but `isEnabled=false` means the default SEM
+ * field can be filled in, but `isEnabled=false` means the default Taisen
  * branding is used everywhere. This lets orgs prepare their look before
  * flipping the switch.
  *
