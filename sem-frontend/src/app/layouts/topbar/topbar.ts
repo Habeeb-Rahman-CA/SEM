@@ -20,6 +20,7 @@ import { GlobalNotesComponent } from '../../shared/components/global-notes/globa
 import { FavoriteEntityType } from '../../core/services/favorites.service';
 import { NoteEntityType } from '../../core/services/global-notes.service';
 import { BreadcrumbComponent } from '../../shared/components/breadcrumb/breadcrumb';
+import { AutoSaveBadgeComponent } from '../../shared/components/auto-save-badge/auto-save-badge';
 
 @Component({
   selector: 'app-topbar',
@@ -32,6 +33,7 @@ import { BreadcrumbComponent } from '../../shared/components/breadcrumb/breadcru
     FavoriteButtonComponent,
     GlobalNotesComponent,
     BreadcrumbComponent,
+    AutoSaveBadgeComponent,
   ],
   templateUrl: './topbar.html',
 })
