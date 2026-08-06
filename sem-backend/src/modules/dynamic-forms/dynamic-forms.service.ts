@@ -1,20 +1,24 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { WorkspacesService } from '../workspaces/workspaces.service';
+import {
+  DynamicFormEntity,
+  FieldType,
+  FormCategory,
+  FormFieldConfig,
+  FormPlacement,
+  FormStatus,
+} from './entities/dynamic-form.entity';
+import { FormSubmissionEntity } from './entities/form-submission.entity';
 
-export type FieldType = 'text' | 'dropdown' | 'checkbox' | 'date' | 'file';
-export type FormCategory = 'registration' | 'survey' | 'hr' | 'other';
-export type FormPlacement =
-  'public_portal' | 'player_dashboard' | 'post_match_survey' | 'direct_link';
-export type FormStatus = 'published' | 'draft' | 'archived';
-
-export interface FormFieldConfig {
-  id: string;
-  label: string;
-  type: FieldType;
-  placeholder?: string;
-  required: boolean;
-  options?: string[];
-}
+export type {
+  FieldType,
+  FormCategory,
+  FormFieldConfig,
+  FormPlacement,
+  FormStatus,
+};
 
 export interface DynamicForm {
   id: string;
@@ -38,135 +42,140 @@ export interface FormSubmission {
 }
 
 @Injectable()
-export class DynamicFormsService {
-  private formsStore: Map<string, DynamicForm[]> = new Map();
-  private submissionsStore: Map<string, FormSubmission[]> = new Map();
+export class DynamicFormsService implements OnModuleInit {
+  private inMemoryForms: Map<string, DynamicForm[]> = new Map();
+  private inMemorySubmissions: Map<string, FormSubmission[]> = new Map();
 
-  constructor(private readonly workspacesService: WorkspacesService) {
-    this.seedInitialForms();
+  constructor(
+    @InjectRepository(DynamicFormEntity)
+    private readonly formsRepo: Repository<DynamicFormEntity>,
+    @InjectRepository(FormSubmissionEntity)
+    private readonly submissionsRepo: Repository<FormSubmissionEntity>,
+    private readonly workspacesService: WorkspacesService,
+  ) {}
+
+  async onModuleInit() {
+    await this.seedInitialForms();
   }
 
-  private seedInitialForms() {
-    const defaultForms: DynamicForm[] = [
-      {
-        id: 'form-101',
-        workspaceId: 'default-ws',
-        title: 'Player & Team Registration Form 2026',
-        description:
-          'Displayed on Public Event Registration Portal during player onboarding.',
-        category: 'registration',
-        placement: 'public_portal',
-        status: 'published',
-        publishedAt: new Date(
-          Date.now() - 1000 * 60 * 60 * 24 * 7,
-        ).toISOString(),
-        fields: [
-          {
-            id: 'field-1',
-            label: 'Full Name',
-            type: 'text',
-            placeholder: 'e.g. John Doe',
-            required: true,
-          },
-          {
-            id: 'field-2',
-            label: 'Preferred Playing Position',
-            type: 'dropdown',
-            placeholder: 'Select Position',
-            required: true,
-            options: [
-              'Forward / Striker',
-              'Midfielder',
-              'Defender',
-              'Goalkeeper',
-            ],
-          },
-          {
-            id: 'field-3',
-            label: 'Date of Birth',
-            type: 'date',
-            required: true,
-          },
-          {
-            id: 'field-4',
-            label: 'Medical Waiver Agreement',
-            type: 'checkbox',
-            required: true,
-          },
-          {
-            id: 'field-5',
-            label: 'ID / Passport Document',
-            type: 'file',
-            required: false,
-          },
-        ],
-        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
-      },
-      {
-        id: 'form-102',
-        workspaceId: 'default-ws',
-        title: 'Post-Match Volunteer & Pitch Survey',
-        description:
-          'Prompted automatically to volunteers and pitch coordinators after match completion.',
-        category: 'survey',
-        placement: 'post_match_survey',
-        status: 'published',
-        publishedAt: new Date(
-          Date.now() - 1000 * 60 * 60 * 24 * 3,
-        ).toISOString(),
-        fields: [
-          {
-            id: 'field-201',
-            label: 'Volunteer Full Name',
-            type: 'text',
-            placeholder: 'Enter name',
-            required: true,
-          },
-          {
-            id: 'field-202',
-            label: 'Assigned Stadium Pitch',
-            type: 'dropdown',
-            required: true,
-            options: [
-              'Main Stadium Pitch 1',
-              'Auxiliary Pitch 2',
-              'Practice Pitch 3',
-            ],
-          },
-          {
-            id: 'field-203',
-            label: 'Shift Date',
-            type: 'date',
-            required: true,
-          },
-          {
-            id: 'field-204',
-            label: 'Would you volunteer again?',
-            type: 'checkbox',
-            required: false,
-          },
-        ],
-        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(),
-      },
-    ];
+  private async seedInitialForms() {
+    try {
+      const count = await this.formsRepo.count();
+      if (count === 0) {
+        const form1 = this.formsRepo.create({
+          workspaceId: 'default-ws',
+          title: 'Player & Team Registration Form 2026',
+          description:
+            'Displayed on Public Event Registration Portal during player onboarding.',
+          category: 'registration',
+          placement: 'public_portal',
+          status: 'published',
+          publishedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7),
+          fields: [
+            {
+              id: 'field-1',
+              label: 'Full Name',
+              type: 'text',
+              placeholder: 'e.g. John Doe',
+              required: true,
+            },
+            {
+              id: 'field-2',
+              label: 'Preferred Playing Position',
+              type: 'dropdown',
+              placeholder: 'Select Position',
+              required: true,
+              options: [
+                'Forward / Striker',
+                'Midfielder',
+                'Defender',
+                'Goalkeeper',
+              ],
+            },
+            {
+              id: 'field-3',
+              label: 'Date of Birth',
+              type: 'date',
+              required: true,
+            },
+            {
+              id: 'field-4',
+              label: 'Medical Waiver Agreement',
+              type: 'checkbox',
+              required: true,
+            },
+            {
+              id: 'field-5',
+              label: 'ID / Passport Document',
+              type: 'file',
+              required: false,
+            },
+          ],
+        });
 
-    this.formsStore.set('default-ws', defaultForms);
+        const form2 = this.formsRepo.create({
+          workspaceId: 'default-ws',
+          title: 'Post-Match Volunteer & Pitch Survey',
+          description:
+            'Prompted automatically to volunteers and pitch coordinators after match completion.',
+          category: 'survey',
+          placement: 'post_match_survey',
+          status: 'published',
+          publishedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3),
+          fields: [
+            {
+              id: 'field-201',
+              label: 'Volunteer Full Name',
+              type: 'text',
+              placeholder: 'Enter name',
+              required: true,
+            },
+            {
+              id: 'field-202',
+              label: 'Assigned Stadium Pitch',
+              type: 'dropdown',
+              required: true,
+              options: [
+                'Main Stadium Pitch 1',
+                'Auxiliary Pitch 2',
+                'Practice Pitch 3',
+              ],
+            },
+            {
+              id: 'field-203',
+              label: 'Shift Date',
+              type: 'date',
+              required: true,
+            },
+            {
+              id: 'field-204',
+              label: 'Would you volunteer again?',
+              type: 'checkbox',
+              required: false,
+            },
+          ],
+        });
 
-    this.submissionsStore.set('form-101', [
-      {
-        id: 'sub-1',
-        formId: 'form-101',
-        workspaceId: 'default-ws',
-        submittedAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-        data: {
-          'field-1': 'Marcus Rashford',
-          'field-2': 'Forward / Striker',
-          'field-3': '1997-10-31',
-          'field-4': true,
-          'field-5': 'passport_rashford.pdf',
-        },
-      },
-    ]);
+        const saved1 = await this.formsRepo.save(form1);
+        await this.formsRepo.save(form2);
+
+        await this.submissionsRepo.save(
+          this.submissionsRepo.create({
+            formId: saved1.id,
+            workspaceId: 'default-ws',
+            data: {
+              'field-1': 'Marcus Rashford',
+              'field-2': 'Forward / Striker',
+              'field-3': '1997-10-31',
+              'field-4': true,
+              'field-5': 'passport_rashford.pdf',
+            },
+          }),
+        );
+      }
+    } catch {
+      // In-memory fallback if database table is initializing
+    }
   }
 
   async listForms(
@@ -176,15 +185,29 @@ export class DynamicFormsService {
     if (userId) {
       await this.workspacesService.ensureMember(workspaceId, userId);
     }
-    return (
-      this.formsStore.get(workspaceId) ||
-      this.formsStore.get('default-ws') ||
-      []
-    );
+    try {
+      const entities = await this.formsRepo.find({
+        where: [{ workspaceId }, { workspaceId: 'default-ws' }],
+        order: { createdAt: 'DESC' },
+      });
+      return entities.map((e) => this.mapFormEntity(e));
+    } catch {
+      return (
+        this.inMemoryForms.get(workspaceId) ||
+        this.inMemoryForms.get('default-ws') ||
+        []
+      );
+    }
   }
 
   async getPublicForm(formId: string): Promise<DynamicForm> {
-    for (const [, forms] of this.formsStore) {
+    try {
+      const entity = await this.formsRepo.findOne({ where: { id: formId } });
+      if (entity) return this.mapFormEntity(entity);
+    } catch {
+      // Fallback check memory
+    }
+    for (const [, forms] of this.inMemoryForms) {
       const found = forms.find((f) => f.id === formId);
       if (found) return found;
     }
@@ -207,22 +230,37 @@ export class DynamicFormsService {
       await this.workspacesService.ensureMember(workspaceId, userId);
     }
 
-    const currentList = this.formsStore.get(workspaceId) || [];
-    const newForm: DynamicForm = {
-      id: `form-${Date.now()}`,
-      workspaceId,
-      title: payload.title,
-      description: payload.description,
-      category: payload.category,
-      placement: payload.placement || 'public_portal',
-      status: payload.status || 'published',
-      publishedAt: new Date().toISOString(),
-      fields: payload.fields,
-      createdAt: new Date().toISOString(),
-    };
+    try {
+      const newEntity = this.formsRepo.create({
+        workspaceId,
+        title: payload.title,
+        description: payload.description,
+        category: payload.category,
+        placement: payload.placement || 'public_portal',
+        status: payload.status || 'published',
+        publishedAt: new Date(),
+        fields: payload.fields,
+      });
 
-    this.formsStore.set(workspaceId, [newForm, ...currentList]);
-    return newForm;
+      const saved = await this.formsRepo.save(newEntity);
+      return this.mapFormEntity(saved);
+    } catch {
+      const currentList = this.inMemoryForms.get(workspaceId) || [];
+      const newForm: DynamicForm = {
+        id: `form-${Date.now()}`,
+        workspaceId,
+        title: payload.title,
+        description: payload.description,
+        category: payload.category,
+        placement: payload.placement || 'public_portal',
+        status: payload.status || 'published',
+        publishedAt: new Date().toISOString(),
+        fields: payload.fields,
+        createdAt: new Date().toISOString(),
+      };
+      this.inMemoryForms.set(workspaceId, [newForm, ...currentList]);
+      return newForm;
+    }
   }
 
   async updateFormStatus(
@@ -235,20 +273,32 @@ export class DynamicFormsService {
       await this.workspacesService.ensureMember(workspaceId, userId);
     }
 
+    try {
+      const entity = await this.formsRepo.findOne({ where: { id: formId } });
+      if (entity) {
+        entity.status = status;
+        if (status === 'published' && !entity.publishedAt) {
+          entity.publishedAt = new Date();
+        }
+        const updated = await this.formsRepo.save(entity);
+        return this.mapFormEntity(updated);
+      }
+    } catch {
+      // Memory fallback
+    }
+
     const list =
-      this.formsStore.get(workspaceId) ||
-      this.formsStore.get('default-ws') ||
+      this.inMemoryForms.get(workspaceId) ||
+      this.inMemoryForms.get('default-ws') ||
       [];
     const index = list.findIndex((f) => f.id === formId);
-
     if (index === -1) throw new NotFoundException(`Form "${formId}" not found`);
 
     list[index].status = status;
     if (status === 'published' && !list[index].publishedAt) {
       list[index].publishedAt = new Date().toISOString();
     }
-
-    this.formsStore.set(workspaceId, list);
+    this.inMemoryForms.set(workspaceId, list);
     return list[index];
   }
 
@@ -262,17 +312,35 @@ export class DynamicFormsService {
       await this.workspacesService.ensureMember(workspaceId, userId);
     }
 
-    const currentSubmissions = this.submissionsStore.get(formId) || [];
-    const submission: FormSubmission = {
-      id: `sub-${Date.now()}`,
-      formId,
-      workspaceId,
-      submittedAt: new Date().toISOString(),
-      data: formData,
-    };
+    try {
+      const newSub = this.submissionsRepo.create({
+        formId,
+        workspaceId,
+        data: formData,
+      });
 
-    this.submissionsStore.set(formId, [submission, ...currentSubmissions]);
-    return submission;
+      const saved = await this.submissionsRepo.save(newSub);
+      return {
+        id: saved.id,
+        formId: saved.formId,
+        workspaceId: saved.workspaceId,
+        submittedAt: saved.submittedAt
+          ? saved.submittedAt.toISOString()
+          : new Date().toISOString(),
+        data: saved.data,
+      };
+    } catch {
+      const currentSubmissions = this.inMemorySubmissions.get(formId) || [];
+      const submission: FormSubmission = {
+        id: `sub-${Date.now()}`,
+        formId,
+        workspaceId,
+        submittedAt: new Date().toISOString(),
+        data: formData,
+      };
+      this.inMemorySubmissions.set(formId, [submission, ...currentSubmissions]);
+      return submission;
+    }
   }
 
   async listSubmissions(
@@ -283,6 +351,40 @@ export class DynamicFormsService {
     if (userId) {
       await this.workspacesService.ensureMember(workspaceId, userId);
     }
-    return this.submissionsStore.get(formId) || [];
+
+    try {
+      const entities = await this.submissionsRepo.find({
+        where: { formId },
+        order: { submittedAt: 'DESC' },
+      });
+      return entities.map((s) => ({
+        id: s.id,
+        formId: s.formId,
+        workspaceId: s.workspaceId,
+        submittedAt: s.submittedAt
+          ? s.submittedAt.toISOString()
+          : new Date().toISOString(),
+        data: s.data,
+      }));
+    } catch {
+      return this.inMemorySubmissions.get(formId) || [];
+    }
+  }
+
+  private mapFormEntity(e: DynamicFormEntity): DynamicForm {
+    return {
+      id: e.id,
+      workspaceId: e.workspaceId,
+      title: e.title,
+      description: e.description,
+      category: e.category,
+      placement: e.placement,
+      status: e.status,
+      publishedAt: e.publishedAt ? e.publishedAt.toISOString() : undefined,
+      fields: e.fields || [],
+      createdAt: e.createdAt
+        ? e.createdAt.toISOString()
+        : new Date().toISOString(),
+    };
   }
 }

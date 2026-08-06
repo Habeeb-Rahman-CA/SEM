@@ -143,6 +143,14 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
   {
+    path: 'workspaces/:id/workflows',
+    loadComponent: () =>
+      import('./features/workflow-builder/pages/workflow-builder-manager/workflow-builder-manager').then(
+        (m) => m.WorkflowBuilderManagerComponent,
+      ),
+    canActivate: [authGuard],
+  },
+  {
     path: 'public/forms/:formId',
     loadComponent: () =>
       import('./features/dynamic-forms/pages/public-dynamic-form/public-dynamic-form').then(

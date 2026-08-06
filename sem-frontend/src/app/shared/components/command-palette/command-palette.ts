@@ -202,6 +202,17 @@ export class CommandPaletteComponent {
       },
     },
     {
+      id: 'open-workflow-builder',
+      label: 'Open Reusable Workflow Builder (Create → Review → Approve → Publish)',
+      category: 'Navigation',
+      icon: 'fi fi-rr-site-alt',
+      shortcut: '⌘W',
+      action: () => {
+        this.close();
+        this.router.navigate(['/workspaces/default-ws/workflows']);
+      },
+    },
+    {
       id: 'open-hall-of-fame',
       label: 'Open Hall of Fame & Legends',
       category: 'Navigation',

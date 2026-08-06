@@ -56,6 +56,7 @@ import { CustomDashboardModule } from './modules/custom-dashboard/custom-dashboa
 import { NotificationCenterModule } from './modules/notification-center/notification-center.module';
 import { VersionHistoryModule } from './modules/version-history/version-history.module';
 import { DynamicFormsModule } from './modules/dynamic-forms/dynamic-forms.module';
+import { WorkflowBuilderModule } from './modules/workflow-builder/workflow-builder.module';
 import { RealtimeModule } from './common/realtime/realtime.module';
 
 @Module({
@@ -167,6 +168,7 @@ import { RealtimeModule } from './common/realtime/realtime.module';
     NotificationCenterModule,
     VersionHistoryModule,
     DynamicFormsModule,
+    WorkflowBuilderModule,
   ],
   controllers: [AppController],
   providers: [

@@ -17,6 +17,12 @@ import {
   FormStatus,
 } from './dynamic-forms.service';
 
+interface AuthenticatedRequest {
+  user?: {
+    id?: string;
+  };
+}
+
 @ApiTags('dynamic-forms')
 @ApiBearerAuth()
 @Controller('workspaces/:workspaceId/dynamic-forms')
@@ -28,7 +34,7 @@ export class DynamicFormsController {
   @ApiOperation({ summary: 'List workspace custom no-code dynamic forms' })
   async listForms(
     @Param('workspaceId') workspaceId: string,
-    @Request() req?: any,
+    @Request() req?: AuthenticatedRequest,
   ) {
     return this.dynamicFormsService.listForms(workspaceId, req?.user?.id);
   }
@@ -46,7 +52,7 @@ export class DynamicFormsController {
       status?: FormStatus;
       fields: FormFieldConfig[];
     },
-    @Request() req?: any,
+    @Request() req?: AuthenticatedRequest,
   ) {
     return this.dynamicFormsService.createForm(workspaceId, dto, req?.user?.id);
   }
@@ -57,7 +63,7 @@ export class DynamicFormsController {
     @Param('workspaceId') workspaceId: string,
     @Param('formId') formId: string,
     @Body() dto: { status: FormStatus },
-    @Request() req?: any,
+    @Request() req?: AuthenticatedRequest,
   ) {
     return this.dynamicFormsService.updateFormStatus(
       workspaceId,
@@ -72,7 +78,7 @@ export class DynamicFormsController {
   async listSubmissions(
     @Param('workspaceId') workspaceId: string,
     @Param('formId') formId: string,
-    @Request() req?: any,
+    @Request() req?: AuthenticatedRequest,
   ) {
     return this.dynamicFormsService.listSubmissions(
       workspaceId,
@@ -87,7 +93,7 @@ export class DynamicFormsController {
     @Param('workspaceId') workspaceId: string,
     @Param('formId') formId: string,
     @Body() dto: { data: Record<string, any> },
-    @Request() req?: any,
+    @Request() req?: AuthenticatedRequest,
   ) {
     return this.dynamicFormsService.submitForm(
       workspaceId,
