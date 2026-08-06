@@ -15,6 +15,7 @@ import {
   WorkspaceFile,
   WorkspaceFileVersion,
   WorkspaceService,
+  FileAccessLevel,
 } from '../../services/workspace.service';
 import { UiService } from '../../../../core/services/ui.service';
 import { SocketService } from '../../../../core/services/socket.service';
@@ -40,7 +41,9 @@ export class WorkspaceFilesComponent implements OnInit, OnDestroy {
   files = signal<WorkspaceFile[]>([]);
   isLoading = signal<boolean>(false);
   searchQuery = signal<string>('');
-  selectedTab = signal<string>('all'); // 'all' | 'images' | 'documents' | 'other'
+  selectedTab = signal<string>('all'); // 'all' | 'folders' | 'images' | 'documents' | 'other'
+  selectedTagFilter = signal<string>('all');
+  currentFolderPath = signal<string>('/');
   isUploading = signal<boolean>(false);
 
   // Compression config
@@ -51,6 +54,10 @@ export class WorkspaceFilesComponent implements OnInit, OnDestroy {
   // Rename states
   renamingFileId = signal<string | null>(null);
   renamingName = signal<string>('');
+
+  // Folder states
+  isCreateFolderModalOpen = signal<boolean>(false);
+  newFolderName = signal<string>('');
 
   // Version history states
   selectedFile = signal<WorkspaceFile | null>(null);
@@ -63,18 +70,65 @@ export class WorkspaceFilesComponent implements OnInit, OnDestroy {
   isPreviewModalOpen = signal<boolean>(false);
   previewTextContent = signal<string>('');
   isLoadingPreview = signal<boolean>(false);
+  newTagInput = signal<string>('');
 
-  // Filtered files
+  // Folder Breadcrumbs
+  folderBreadcrumbs = computed(() => {
+    const path = this.currentFolderPath();
+    const parts = path.split('/').filter(Boolean);
+    const crumbs = [{ name: 'Root Repository 📁', path: '/' }];
+    let acc = '';
+    for (const p of parts) {
+      acc += `/${p}`;
+      crumbs.push({ name: p, path: `${acc}/` });
+    }
+    return crumbs;
+  });
+
+  // All Unique Tags in Workspace
+  allTags = computed(() => {
+    const set = new Set<string>();
+    for (const f of this.files()) {
+      if (f.tags) {
+        for (const t of f.tags) {
+          if (t.trim()) set.add(t.trim());
+        }
+      }
+    }
+    return Array.from(set);
+  });
+
+  // Filtered files & folders
   filteredFiles = computed(() => {
     const query = this.searchQuery().toLowerCase().trim();
     const tab = this.selectedTab();
+    const tagFilter = this.selectedTagFilter();
+    const folder = this.currentFolderPath();
     let list = this.files();
 
-    if (query) {
-      list = list.filter((f) => f.name.toLowerCase().includes(query));
+    // If searching globally, include all files, else filter by current folder
+    if (!query) {
+      list = list.filter((f) => {
+        const fileFolder = f.folderPath || '/';
+        return fileFolder === folder || (f.isFolder && fileFolder.startsWith(folder));
+      });
     }
 
-    if (tab === 'images') {
+    if (query) {
+      list = list.filter(
+        (f) =>
+          f.name.toLowerCase().includes(query) ||
+          (f.tags && f.tags.some((t) => t.toLowerCase().includes(query))),
+      );
+    }
+
+    if (tagFilter !== 'all') {
+      list = list.filter((f) => f.tags && f.tags.includes(tagFilter));
+    }
+
+    if (tab === 'folders') {
+      list = list.filter((f) => f.isFolder || f.mimeType === 'folder');
+    } else if (tab === 'images') {
       list = list.filter((f) => f.mimeType.startsWith('image/'));
     } else if (tab === 'documents') {
       list = list.filter(
@@ -90,6 +144,7 @@ export class WorkspaceFilesComponent implements OnInit, OnDestroy {
     } else if (tab === 'other') {
       list = list.filter(
         (f) =>
+          !f.isFolder &&
           !f.mimeType.startsWith('image/') &&
           !f.mimeType.includes('pdf') &&
           !f.mimeType.includes('word') &&
@@ -105,7 +160,6 @@ export class WorkspaceFilesComponent implements OnInit, OnDestroy {
   });
 
   constructor() {
-    // Reload files whenever the active workspace changes
     effect(() => {
       const ws = this.workspace();
       if (ws) {
@@ -113,7 +167,6 @@ export class WorkspaceFilesComponent implements OnInit, OnDestroy {
       }
     });
 
-    // Auto-open preview when a file is selected from global search
     effect(() => {
       const fileId = this.selectedFileId();
       const list = this.files();
@@ -133,9 +186,7 @@ export class WorkspaceFilesComponent implements OnInit, OnDestroy {
       this.loadFiles(ws.id);
     }
 
-    // Subscribe to background virus scanning complete events
     this.socketService.onFileScanned((data: any) => {
-      // Update scan status dynamically
       this.files.update((prev) =>
         prev.map((f) => {
           if (f.id === data.fileId) {
@@ -149,13 +200,11 @@ export class WorkspaceFilesComponent implements OnInit, OnDestroy {
         }),
       );
 
-      // Reload versions if open
       const activeFile = this.selectedFile();
       if (activeFile && activeFile.id === data.fileId) {
         this.loadVersionHistory(activeFile);
       }
 
-      // Display warning/success toast
       if (data.status === 'infected') {
         this.uiService.error(
           `Virus scanner flagged file "${data.filename}" as infected! Placed in quarantine.`,
@@ -189,6 +238,38 @@ export class WorkspaceFilesComponent implements OnInit, OnDestroy {
     });
   }
 
+  // ── Folder Navigation & Creation ───────────────────────────────────────────
+  navigateToFolder(path: string) {
+    this.currentFolderPath.set(path);
+  }
+
+  openCreateFolderModal() {
+    this.newFolderName.set('');
+    this.isCreateFolderModalOpen.set(true);
+  }
+
+  closeCreateFolderModal() {
+    this.isCreateFolderModalOpen.set(false);
+    this.newFolderName.set('');
+  }
+
+  createFolder() {
+    const name = this.newFolderName().trim();
+    const ws = this.workspace();
+    if (!ws || !name) return;
+
+    this.workspaceService.createFolder(ws.id, name, this.currentFolderPath()).subscribe({
+      next: (folder) => {
+        this.files.update((prev) => [folder, ...prev]);
+        this.uiService.success(`Folder "${name}" created.`);
+        this.closeCreateFolderModal();
+      },
+      error: (err) => {
+        this.uiService.error(err.error?.message ?? 'Failed to create folder.');
+      },
+    });
+  }
+
   // Frontend image compressor
   async compressImage(file: File, quality: number): Promise<File> {
     return new Promise((resolve) => {
@@ -200,7 +281,6 @@ export class WorkspaceFilesComponent implements OnInit, OnDestroy {
           let width = img.width;
           let height = img.height;
 
-          // Standard Max resolution boundaries
           const MAX_WIDTH = 1920;
           const MAX_HEIGHT = 1080;
           if (width > height) {
@@ -266,7 +346,6 @@ export class WorkspaceFilesComponent implements OnInit, OnDestroy {
 
     this.isUploading.set(true);
 
-    // Apply client-side compression
     if (this.compressOnClient() && isImage) {
       this.uiService.info('Compressing image on client-side...');
       fileToUpload = await this.compressImage(fileToUpload, this.compressionQuality());
@@ -276,10 +355,24 @@ export class WorkspaceFilesComponent implements OnInit, OnDestroy {
       .uploadWorkspaceFile(ws.id, fileToUpload, this.compressOnServer(), this.compressionQuality())
       .subscribe({
         next: (newFile) => {
-          this.files.update((prev) => [newFile, ...prev]);
+          // Set folder path to current folder
+          if (this.currentFolderPath() !== '/') {
+            this.workspaceService
+              .updateFileMetadata(ws.id, newFile.id, {
+                folderPath: this.currentFolderPath(),
+              })
+              .subscribe({
+                next: (updated) => {
+                  this.files.update((prev) => [updated, ...prev]);
+                },
+              });
+          } else {
+            this.files.update((prev) => [newFile, ...prev]);
+          }
+
           this.isUploading.set(false);
           this.uiService.success(`"${fileToUpload.name}" uploaded. Virus scanning in progress...`);
-          input.value = ''; // clear input
+          input.value = '';
         },
         error: (err) => {
           this.isUploading.set(false);
@@ -317,13 +410,10 @@ export class WorkspaceFilesComponent implements OnInit, OnDestroy {
       )
       .subscribe({
         next: (updatedFile) => {
-          // Update files list
           this.files.update((prev) => prev.map((f) => (f.id === fileId ? updatedFile : f)));
           this.isUploading.set(false);
           this.uiService.success(`New version of "${updatedFile.name}" uploaded. Scanning...`);
           input.value = '';
-
-          // Update version history modal
           this.loadVersionHistory(updatedFile);
         },
         error: (err) => {
@@ -333,6 +423,55 @@ export class WorkspaceFilesComponent implements OnInit, OnDestroy {
           input.value = '';
         },
       });
+  }
+
+  // ── Tagging & Metadata ─────────────────────────────────────────────────────
+  addTag(file: WorkspaceFile, tagText: string) {
+    const ws = this.workspace();
+    const tag = tagText.trim().toLowerCase();
+    if (!ws || !tag) return;
+
+    const currentTags = file.tags || [];
+    if (currentTags.includes(tag)) return;
+
+    const newTags = [...currentTags, tag];
+
+    this.workspaceService.updateFileMetadata(ws.id, file.id, { tags: newTags }).subscribe({
+      next: (updated) => {
+        this.files.update((prev) => prev.map((f) => (f.id === file.id ? updated : f)));
+        if (this.previewFile()?.id === file.id) this.previewFile.set(updated);
+        this.newTagInput.set('');
+        this.uiService.success(`Tag #${tag} added.`);
+      },
+    });
+  }
+
+  removeTag(file: WorkspaceFile, tagToRemove: string) {
+    const ws = this.workspace();
+    if (!ws || !file.tags) return;
+
+    const newTags = file.tags.filter((t) => t !== tagToRemove);
+
+    this.workspaceService.updateFileMetadata(ws.id, file.id, { tags: newTags }).subscribe({
+      next: (updated) => {
+        this.files.update((prev) => prev.map((f) => (f.id === file.id ? updated : f)));
+        if (this.previewFile()?.id === file.id) this.previewFile.set(updated);
+        this.uiService.info(`Tag #${tagToRemove} removed.`);
+      },
+    });
+  }
+
+  updateFileAccess(file: WorkspaceFile, accessLevel: FileAccessLevel) {
+    const ws = this.workspace();
+    if (!ws) return;
+
+    this.workspaceService.updateFileMetadata(ws.id, file.id, { accessLevel }).subscribe({
+      next: (updated) => {
+        this.files.update((prev) => prev.map((f) => (f.id === file.id ? updated : f)));
+        if (this.previewFile()?.id === file.id) this.previewFile.set(updated);
+        this.uiService.success(`Access level changed to ${accessLevel}.`);
+      },
+    });
   }
 
   // Rename File
@@ -383,7 +522,6 @@ export class WorkspaceFilesComponent implements OnInit, OnDestroy {
     if (!confirmed) return;
 
     const originalList = this.files();
-    // Optimistic Update
     this.files.update((prev) => prev.filter((f) => f.id !== file.id));
 
     this.workspaceService.deleteWorkspaceFile(ws.id, file.id).subscribe({
@@ -391,7 +529,7 @@ export class WorkspaceFilesComponent implements OnInit, OnDestroy {
         this.uiService.success(`"${file.name}" deleted successfully.`);
       },
       error: (err) => {
-        this.files.set(originalList); // Rollback
+        this.files.set(originalList);
         this.uiService.error(err.error?.message ?? 'Failed to delete file.');
       },
     });
@@ -430,6 +568,11 @@ export class WorkspaceFilesComponent implements OnInit, OnDestroy {
 
   // File Previews
   openPreview(file: WorkspaceFile) {
+    if (file.isFolder) {
+      this.navigateToFolder(`${this.currentFolderPath()}${file.name}/`);
+      return;
+    }
+
     if (file.virusScanStatus === 'infected') {
       this.uiService.error('Cannot preview infected file. Quarantined for safety.');
       return;
@@ -454,7 +597,7 @@ export class WorkspaceFilesComponent implements OnInit, OnDestroy {
           this.previewTextContent.set(content);
           this.isLoadingPreview.set(false);
         },
-        error: (err) => {
+        error: () => {
           this.previewTextContent.set('Failed to read file preview content.');
           this.isLoadingPreview.set(false);
         },
@@ -470,7 +613,7 @@ export class WorkspaceFilesComponent implements OnInit, OnDestroy {
 
   // Helpers
   formatBytes(bytes: number, decimals = 2): string {
-    if (bytes === 0) return '0 Bytes';
+    if (!bytes || bytes === 0) return '0 Bytes';
     const k = 1024;
     const dm = decimals < 0 ? 0 : decimals;
     const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
@@ -478,7 +621,8 @@ export class WorkspaceFilesComponent implements OnInit, OnDestroy {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
   }
 
-  getFileIconClass(mimeType: string, filename: string): string {
+  getFileIconClass(mimeType: string, filename: string, isFolder?: boolean): string {
+    if (isFolder || mimeType === 'folder') return 'fi-sr-folder text-amber-400';
     const lower = (mimeType || '').toLowerCase();
     if (lower.startsWith('image/')) return 'fi-rr-picture text-cyan-400';
     if (lower.includes('pdf')) return 'fi-rr-file-pdf text-rose-500';
