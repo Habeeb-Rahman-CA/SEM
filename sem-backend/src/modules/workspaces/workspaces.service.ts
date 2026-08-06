@@ -1107,6 +1107,10 @@ export class WorkspacesService implements OnModuleInit {
     );
   }
 
+  async triggerGlobalLogout(userId?: string, userName?: string) {
+    return this.systemConfigService.triggerGlobalLogout(userId, userName);
+  }
+
   async getTeamPlayerUserIds(teamId: string): Promise<string[]> {
     const players = await this.playerRepo.find({
       where: { teamId },

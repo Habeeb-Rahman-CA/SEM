@@ -693,6 +693,14 @@ export class WorkspaceService {
     );
   }
 
+  triggerGlobalLogout(): Observable<{ message: string; logoutEventId: string }> {
+    return this.http.post<{ message: string; logoutEventId: string }>(
+      `${environment.apiUrl}/system-settings/force-global-logout`,
+      {},
+      { headers: this.headers },
+    );
+  }
+
   getCommerceConfig(): Observable<CommerceConfigView> {
     return this.http.get<CommerceConfigView>(`${environment.apiUrl}/system-settings/commerce`, {
       headers: this.headers,

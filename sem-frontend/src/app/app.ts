@@ -1,8 +1,11 @@
-import { Component, inject, effect, HostListener, OnInit } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { Component, inject, effect, HostListener, OnInit, DestroyRef } from '@angular/core';
+import { Router, RouterOutlet } from '@angular/router';
 import { NgClass } from '@angular/common';
 import { UiService } from './core/services/ui.service';
+import { SocketService } from './core/services/socket.service';
+import { AuthService } from './features/auth/services/auth.service';
 import { BrandingService } from './features/branding/services/branding.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommandPaletteComponent } from './shared/components/command-palette/command-palette';
 import { KeyboardShortcutsModalComponent } from './shared/components/keyboard-shortcuts-modal/keyboard-shortcuts-modal';
 import { OfflineBannerComponent } from './shared/components/offline-banner/offline-banner';
@@ -17,6 +20,7 @@ import { ActivityFeedComponent } from './shared/components/activity-feed/activit
 import { RecycleBinComponent } from './shared/components/recycle-bin/recycle-bin';
 import { SmartSuggestionToastComponent } from './shared/components/smart-suggestion-toast/smart-suggestion-toast';
 import { DuplicateWarningModalComponent } from './shared/components/duplicate-warning-modal/duplicate-warning-modal';
+import { FloatingActionButtonComponent } from './shared/components/floating-action-button/floating-action-button';
 import { QuickPreviewModalComponent } from './shared/components/quick-preview-modal/quick-preview-modal';
 import { SessionRestoreService } from './core/services/session-restore.service';
 
@@ -50,12 +54,25 @@ export class App implements OnInit {
   uiService = inject(UiService);
   recycleBinService = inject(RecycleBinService);
   sessionRestoreService = inject(SessionRestoreService);
+  private socketService = inject(SocketService);
+  private authService = inject(AuthService);
+  private router = inject(Router);
+  private destroyRef = inject(DestroyRef);
   private brandingService = inject(BrandingService);
   private previouslyFocusedElement: HTMLElement | null = null;
 
   ngOnInit() {
     this.brandingService.resolveForCurrentWindow().subscribe({
       error: () => undefined,
+    });
+
+    this.socketService.globalLogout$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((data) => {
+      this.authService.logout();
+      void this.router.navigate(['/login']);
+      this.uiService.warning(
+        data?.message ||
+          'Your session has been terminated by a Global Force Logout event. Please sign in again.',
+      );
     });
   }
 
