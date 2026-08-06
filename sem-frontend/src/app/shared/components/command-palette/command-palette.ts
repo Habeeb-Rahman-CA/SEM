@@ -136,6 +136,17 @@ export class CommandPaletteComponent {
       },
     },
     {
+      id: 'open-drafts-manager',
+      label: 'Open Drafts Manager (Save & Resume Unfinished Work)',
+      category: 'Navigation',
+      icon: 'fi fi-rr-document',
+      shortcut: '⌘D',
+      action: () => {
+        this.close();
+        this.router.navigate(['/workspaces/default-ws/drafts']);
+      },
+    },
+    {
       id: 'open-hall-of-fame',
       label: 'Open Hall of Fame & Legends',
       category: 'Navigation',

@@ -95,6 +95,14 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
   {
+    path: 'workspaces/:id/drafts',
+    loadComponent: () =>
+      import('./features/drafts/pages/drafts-manager/drafts-manager').then(
+        (m) => m.DraftsManagerComponent,
+      ),
+    canActivate: [authGuard],
+  },
+  {
     path: 'workspaces/:id/ads',
     loadComponent: () =>
       import('./features/ads/pages/ad-list/ad-list').then((m) => m.AdListComponent),

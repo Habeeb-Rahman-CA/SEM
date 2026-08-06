@@ -50,6 +50,7 @@ import { CacheModule } from './common/cache/cache.module';
 import { ActivityTimelineModule } from './modules/activity-timeline/activity-timeline.module';
 import { CertificatesModule } from './modules/certificates/certificates.module';
 import { TrashModule } from './modules/trash/trash.module';
+import { DraftsModule } from './modules/drafts/drafts.module';
 import { RealtimeModule } from './common/realtime/realtime.module';
 
 @Module({
@@ -155,6 +156,7 @@ import { RealtimeModule } from './common/realtime/realtime.module';
     CertificatesModule,
     ActivityTimelineModule,
     TrashModule,
+    DraftsModule,
   ],
   controllers: [AppController],
   providers: [
