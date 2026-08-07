@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ScheduledChatMessageEntity } from './entities/scheduled-chat-message.entity';
+import { DEFAULT_SCHEDULED_MESSAGES_SEED } from './data';
 
 @Injectable()
 export class ScheduledMessagesService {
@@ -17,17 +18,14 @@ export class ScheduledMessagesService {
     });
 
     if (list.length === 0) {
-      // Return initial defaults
-      const defaults = [
-        {
-          workspaceId,
-          senderId,
-          senderName: 'Habeeb Rahman',
-          content: '📣 Scheduled Notice: Pitch lighting check at 5:00 PM IST.',
-          scheduledFor: new Date(Date.now() + 3600000),
-          status: 'pending' as const,
-        },
-      ];
+      const defaults = DEFAULT_SCHEDULED_MESSAGES_SEED.map((seed) => ({
+        workspaceId,
+        senderId,
+        senderName: seed.senderName,
+        content: seed.content,
+        scheduledFor: new Date(Date.now() + seed.offsetMs),
+        status: 'pending' as const,
+      }));
       return await this.scheduledRepo.save(this.scheduledRepo.create(defaults));
     }
     return list;

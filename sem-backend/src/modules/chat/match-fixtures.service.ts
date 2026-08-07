@@ -1,7 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { MatchFixtureEntity } from './entities/match-fixture.entity';
+import { DEFAULT_MATCH_FIXTURE_SEED } from './data';
 
 @Injectable()
 export class MatchFixturesService {
@@ -15,20 +16,10 @@ export class MatchFixturesService {
       where: { workspaceId, matchId },
     });
     if (!match) {
-      // Seed default master match fixture
       match = this.matchRepo.create({
         matchId,
         workspaceId,
-        sportType: 'Cricket',
-        title: 'Premier League - Quarter Final #2',
-        teamA: 'Royal Strikers',
-        teamB: 'Thunderbolts XI',
-        scoreA: '184/6 (20.0)',
-        scoreB: '142/8 (16.4)',
-        venue: 'National Sports Complex, Pitch #1',
-        matchTime: 'Today, 4:00 PM IST',
-        status: 'LIVE',
-        refereeName: 'David Warner',
+        ...DEFAULT_MATCH_FIXTURE_SEED,
       });
       match = await this.matchRepo.save(match);
     }

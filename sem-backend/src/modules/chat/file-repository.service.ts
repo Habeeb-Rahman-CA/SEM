@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { WorkspaceFileRepositoryFolder } from './entities/workspace-file-repository-folder.entity';
 import { WorkspaceFileRepositoryItem } from './entities/workspace-file-repository-item.entity';
 import { MatchDiscussionNoteEntity } from './entities/match-discussion-note.entity';
+import { DEFAULT_WORKSPACE_FOLDERS_SEED } from './data';
 
 @Injectable()
 export class FileRepositoryService {
@@ -24,33 +25,10 @@ export class FileRepositoryService {
     });
 
     if (folders.length === 0) {
-      // Seed default master folders for new workspaces
-      const defaults = [
-        {
-          workspaceId,
-          name: 'Match Reports 2026',
-          icon: 'fi-rr-folder',
-          color: 'text-violet-400 bg-violet-500/20',
-        },
-        {
-          workspaceId,
-          name: 'Tournament Media & Photos',
-          icon: 'fi-rr-folder-image',
-          color: 'text-emerald-400 bg-emerald-500/20',
-        },
-        {
-          workspaceId,
-          name: 'Tactical Playbooks & Specs',
-          icon: 'fi-rr-folder-download',
-          color: 'text-cyan-400 bg-cyan-500/20',
-        },
-        {
-          workspaceId,
-          name: 'Official Permits & Certificates',
-          icon: 'fi-rr-folder-lock',
-          color: 'text-amber-400 bg-amber-500/20',
-        },
-      ];
+      const defaults = DEFAULT_WORKSPACE_FOLDERS_SEED.map((folder) => ({
+        workspaceId,
+        ...folder,
+      }));
       return await this.folderRepo.save(this.folderRepo.create(defaults));
     }
 
