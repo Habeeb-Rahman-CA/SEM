@@ -66,6 +66,19 @@ export class ChatRichMessageInputComponent {
   showStickerPicker = signal<boolean>(false);
   activeEmojiCategory = signal<string>('sports');
 
+  // Audio Recording State (Hold-to-Record, Waveform & Noise Reduction)
+  isRecordingAudio = signal<boolean>(false);
+  recordingDuration = signal<number>(0);
+  isNoiseSuppressionEnabled = signal<boolean>(true);
+  liveWaveformLevels = signal<number[]>([20, 45, 70, 30, 85, 40, 60, 90, 50, 30, 65, 80]);
+
+  private mediaRecorder?: MediaRecorder;
+  private audioChunks: Blob[] = [];
+  private recordingTimer?: any;
+  private audioCtx?: AudioContext;
+  private analyserNode?: AnalyserNode;
+  private animFrameId?: number;
+
   // Mention Autocomplete state
   showMentionPicker = signal<boolean>(false);
   mentionQuery = signal<string>('');
@@ -702,5 +715,132 @@ export class ChatRichMessageInputComponent {
     this.showGifPicker.set(false);
     this.showStickerPicker.set(false);
     this.showMentionPicker.set(false);
+  }
+
+  // AUDIO RECORDING & WAVEFORM HANDLERS
+  formattedRecordingTime = computed(() => {
+    const sec = this.recordingDuration();
+    const mins = Math.floor(sec / 60);
+    const secs = sec % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  });
+
+  toggleNoiseSuppression() {
+    this.isNoiseSuppressionEnabled.update((v) => !v);
+  }
+
+  async startAudioRecording(): Promise<void> {
+    if (this.isRecordingAudio()) return;
+
+    try {
+      const constraints: MediaStreamConstraints = {
+        audio: {
+          noiseSuppression: this.isNoiseSuppressionEnabled(),
+          echoCancellation: this.isNoiseSuppressionEnabled(),
+          autoGainControl: true,
+        },
+      };
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      this.audioChunks = [];
+      this.mediaRecorder = new MediaRecorder(stream);
+
+      this.mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          this.audioChunks.push(event.data);
+        }
+      };
+
+      // Set up AnalyserNode for live waveform
+      const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioCtxClass) {
+        this.audioCtx = new AudioCtxClass();
+        const source = this.audioCtx.createMediaStreamSource(stream);
+        this.analyserNode = this.audioCtx.createAnalyser();
+        this.analyserNode.fftSize = 64;
+        source.connect(this.analyserNode);
+        this.updateLiveWaveform();
+      }
+
+      this.mediaRecorder.start();
+      this.isRecordingAudio.set(true);
+      this.recordingDuration.set(0);
+
+      this.recordingTimer = setInterval(() => {
+        this.recordingDuration.update((d) => d + 1);
+      }, 1000);
+    } catch (err) {
+      console.error('Microphone access denied or error:', err);
+    }
+  }
+
+  stopAndSendAudioRecording(): void {
+    if (!this.mediaRecorder || !this.isRecordingAudio()) return;
+
+    this.mediaRecorder.onstop = () => {
+      const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const fileName = `Voice_Message_${new Date().getTime().toString().slice(-4)}.webm`;
+      const sizeFormatted = `${(audioBlob.size / 1024).toFixed(1)} KB`;
+
+      // Create audio attachment
+      const attItem: AttachmentItem = {
+        id: 'audio-' + Math.random().toString(36).substring(2, 9),
+        file: new File([audioBlob], fileName, { type: 'audio/webm' }),
+        name: fileName,
+        sizeFormatted,
+        category: 'audio',
+        previewUrl: audioUrl,
+        progress: 100,
+        status: 'completed',
+        url: audioUrl,
+      };
+
+      this.attachments.update((list) => [...list, attItem]);
+      this.cleanupAudioRecording();
+    };
+
+    this.mediaRecorder.stop();
+  }
+
+  cancelAudioRecording(): void {
+    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+      this.mediaRecorder.stop();
+    }
+    this.cleanupAudioRecording();
+  }
+
+  private updateLiveWaveform(): void {
+    if (!this.analyserNode || !this.isRecordingAudio()) return;
+
+    const dataArray = new Uint8Array(this.analyserNode.frequencyBinCount);
+    this.analyserNode.getByteFrequencyData(dataArray);
+
+    const levels: number[] = [];
+    const step = Math.floor(dataArray.length / 12);
+    for (let i = 0; i < 12; i++) {
+      const val = dataArray[i * step] || 10;
+      levels.push(Math.max(15, Math.min(100, Math.floor((val / 255) * 100))));
+    }
+    this.liveWaveformLevels.set(levels);
+
+    this.animFrameId = requestAnimationFrame(() => this.updateLiveWaveform());
+  }
+
+  private cleanupAudioRecording(): void {
+    if (this.recordingTimer) {
+      clearInterval(this.recordingTimer);
+    }
+    if (this.animFrameId) {
+      cancelAnimationFrame(this.animFrameId);
+    }
+    if (this.audioCtx && this.audioCtx.state !== 'closed') {
+      this.audioCtx.close().catch(() => {});
+    }
+    if (this.mediaRecorder?.stream) {
+      this.mediaRecorder.stream.getTracks().forEach((t) => t.stop());
+    }
+    this.isRecordingAudio.set(false);
+    this.recordingDuration.set(0);
   }
 }

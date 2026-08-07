@@ -257,35 +257,121 @@
     </div>
   }
 
-  <!-- Text Input Area -->
+  <!-- Text Input Area & Voice Recording Overlay Surface -->
   <div class="relative">
-    <textarea
-      #textareaRef
-      [ngModel]="content()"
-      (ngModelChange)="onContentChange($event)"
-      (keydown)="onKeydown($event)"
-      (paste)="onPaste($event)"
-      [placeholder]="placeholder"
-      [disabled]="disabled"
-      rows="2"
-      class="w-full bg-transparent px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none resize-none leading-relaxed"
-    ></textarea>
-
-    <div class="flex items-center justify-end px-2 pt-1 pb-1">
-      <button
-        type="button"
-        (click)="submitMessage()"
-        [disabled]="(!content().trim() && attachments().length === 0) || disabled || isSending"
-        class="px-4 py-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 disabled:opacity-40 text-white text-xs font-semibold rounded-xl flex items-center gap-2 shadow-lg shadow-violet-600/20 transition-all cursor-pointer"
+    @if (isRecordingAudio()) {
+      <!-- Live Voice Recording Active Overlay -->
+      <div
+        class="px-4 py-3 bg-slate-950/90 border border-emerald-500/30 rounded-xl flex items-center justify-between gap-4 animate-in fade-in duration-150"
       >
-        @if (isSending) {
-          <i class="fi fi-rr-spinner animate-spin"></i>
-        } @else {
-          <i class="fi fi-rr-paper-plane"></i>
-          <span>Send</span>
-        }
-      </button>
-    </div>
+        <div class="flex items-center gap-3">
+          <!-- Pulsing Red Recording Indicator -->
+          <div class="relative flex items-center justify-center">
+            <span
+              class="animate-ping absolute inline-flex h-4 w-4 rounded-full bg-rose-500 opacity-75"
+            ></span>
+            <span class="relative inline-flex rounded-full h-3 w-3 bg-rose-600"></span>
+          </div>
+
+          <!-- Timer -->
+          <span class="text-xs font-mono font-bold text-white tracking-wider">
+            {{ formattedRecordingTime() }}
+          </span>
+
+          <!-- Real-Time Waveform Visualizer -->
+          <div class="flex items-center gap-0.5 h-5 px-2 py-0.5 border-l border-r border-white/10">
+            @for (level of liveWaveformLevels(); track $index) {
+              <div
+                [style.height.%]="level"
+                class="w-1 bg-gradient-to-t from-emerald-500 to-teal-400 rounded-full transition-all duration-75"
+              ></div>
+            }
+          </div>
+
+          <!-- Noise Reduction Badge Toggle -->
+          <button
+            type="button"
+            (click)="toggleNoiseSuppression()"
+            [title]="
+              isNoiseSuppressionEnabled() ? 'Noise Reduction Enabled' : 'Noise Reduction Disabled'
+            "
+            [class.bg-emerald-500\/20]="isNoiseSuppressionEnabled()"
+            [class.text-emerald-300]="isNoiseSuppressionEnabled()"
+            class="px-2 py-0.5 rounded-lg bg-white/5 text-[10px] font-bold text-slate-400 border border-white/10 hover:text-white transition-colors cursor-pointer flex items-center gap-1"
+          >
+            <i class="fi fi-rr-headset text-[10px]"></i>
+            <span>Noise Reduction</span>
+          </button>
+        </div>
+
+        <!-- Recording Actions: Cancel or Finish & Attach -->
+        <div class="flex items-center gap-2">
+          <!-- Cancel Button -->
+          <button
+            type="button"
+            (click)="cancelAudioRecording()"
+            title="Cancel Recording"
+            class="p-2 rounded-xl bg-white/5 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-white/10 transition-colors cursor-pointer"
+          >
+            <i class="fi fi-rr-cross text-xs"></i>
+          </button>
+
+          <!-- Done & Attach Audio Button -->
+          <button
+            type="button"
+            (click)="stopAndSendAudioRecording()"
+            title="Attach Voice Message"
+            class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-emerald-600/30 transition-all cursor-pointer"
+          >
+            <i class="fi fi-rr-check text-xs"></i>
+            <span>Done</span>
+          </button>
+        </div>
+      </div>
+    } @else {
+      <textarea
+        #textareaRef
+        [ngModel]="content()"
+        (ngModelChange)="onContentChange($event)"
+        (keydown)="onKeydown($event)"
+        (paste)="onPaste($event)"
+        [placeholder]="placeholder"
+        [disabled]="disabled"
+        rows="2"
+        class="w-full bg-transparent px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none resize-none leading-relaxed"
+      ></textarea>
+
+      <div class="flex items-center justify-between px-2 pt-1 pb-1">
+        <!-- Hold-to-Record Mic Button -->
+        <button
+          type="button"
+          (mousedown)="startAudioRecording()"
+          (mouseup)="stopAndSendAudioRecording()"
+          (touchstart)="startAudioRecording()"
+          (touchend)="stopAndSendAudioRecording()"
+          (click)="startAudioRecording()"
+          title="Hold to Record Voice Message (or Click to start)"
+          class="p-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 transition-all text-xs cursor-pointer flex items-center gap-1.5 active:scale-95"
+        >
+          <i class="fi fi-rr-microphone text-xs"></i>
+          <span class="text-[10px] font-bold hidden sm:inline">Voice Note</span>
+        </button>
+
+        <button
+          type="button"
+          (click)="submitMessage()"
+          [disabled]="(!content().trim() && attachments().length === 0) || disabled || isSending"
+          class="px-4 py-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 disabled:opacity-40 text-white text-xs font-semibold rounded-xl flex items-center gap-2 shadow-lg shadow-violet-600/20 transition-all cursor-pointer"
+        >
+          @if (isSending) {
+            <i class="fi fi-rr-spinner animate-spin"></i>
+          } @else {
+            <i class="fi fi-rr-paper-plane"></i>
+            <span>Send</span>
+          }
+        </button>
+      </div>
+    }
   </div>
 
   <!-- MENTION AUTOCOMPLETE POPUP -->

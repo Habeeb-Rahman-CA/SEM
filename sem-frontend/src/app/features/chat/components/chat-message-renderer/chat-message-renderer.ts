@@ -8,19 +8,28 @@ import {
   SimpleChanges,
   ChangeDetectionStrategy,
   inject,
+  signal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
+import { AudioPlayerComponent } from '../audio-player/audio-player';
+
 @Component({
   selector: 'app-chat-message-renderer',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, AudioPlayerComponent],
   template: `
-    <div
-      class="rich-message-content leading-relaxed font-sans text-xs break-words"
-      [innerHTML]="renderedContent"
-    ></div>
+    <div class="rich-message-content leading-relaxed font-sans text-xs break-words">
+      @if (renderedContent) {
+        <div [innerHTML]="renderedContent"></div>
+      }
+      @if (audioSource(); as audio) {
+        <div class="mt-2">
+          <app-audio-player [src]="audio.url" [title]="audio.name" [size]="audio.size" />
+        </div>
+      }
+    </div>
   `,
   styles: [
     `
@@ -201,6 +210,7 @@ export class ChatMessageRendererComponent implements OnChanges {
 
   private sanitizer = inject(DomSanitizer);
   renderedContent: SafeHtml = '';
+  audioSource = signal<{ url: string; name: string; size: string } | null>(null);
 
   @HostListener('click', ['$event'])
   onHostClick(event: MouseEvent) {
@@ -223,6 +233,7 @@ export class ChatMessageRendererComponent implements OnChanges {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['content']) {
+      this.audioSource.set(null);
       this.renderedContent = this.sanitizer.bypassSecurityTrustHtml(
         this.parseRichMessage(this.content || ''),
       );
@@ -259,7 +270,8 @@ export class ChatMessageRendererComponent implements OnChanges {
           return `<video src="${safeUrl}" controls class="msg-att-video"></video>`;
         }
         if (category === 'audio') {
-          return `<audio src="${safeUrl}" controls class="msg-att-audio"></audio>`;
+          this.audioSource.set({ url: safeUrl, name: safeName, size: safeSize });
+          return '';
         }
 
         let iconClass = 'fi fi-rr-file text-slate-400';
