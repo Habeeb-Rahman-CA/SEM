@@ -35,6 +35,7 @@ import {
   ScheduledMessagesDrawerComponent,
   ScheduledMessageItem,
 } from '../../components/scheduled-messages-drawer/scheduled-messages-drawer';
+import { AdvancedSearchModalComponent } from '../../components/advanced-search-modal/advanced-search-modal';
 
 @Component({
   selector: 'app-group-chats',
@@ -53,6 +54,7 @@ import {
     PollCardComponent,
     AnnouncementCardComponent,
     ScheduledMessagesDrawerComponent,
+    AdvancedSearchModalComponent,
   ],
   templateUrl: './group-chats.html',
   styleUrls: ['./group-chats.css'],
@@ -88,6 +90,7 @@ export class GroupChatsComponent implements OnInit, OnDestroy {
 
   scheduledMessages = signal<ScheduledMessageItem[]>([]);
   isScheduledDrawerOpen = signal<boolean>(false);
+  isAdvancedSearchOpen = signal<boolean>(false);
 
   isLoadingGroups = signal<boolean>(true);
   isLoadingMessages = signal<boolean>(false);
@@ -412,6 +415,11 @@ export class GroupChatsComponent implements OnInit, OnDestroy {
   onCancelScheduled(id: string): void {
     this.scheduledMessages.update((list) => list.filter((s) => s.id !== id));
     this.showToast('Scheduled message cancelled');
+  }
+
+  onJumpToMessage(msg: any): void {
+    this.scrollToBottom();
+    this.showToast(`Jumped to message from ${msg.senderName || 'Member'}`);
   }
 
   // Group Templates Preset

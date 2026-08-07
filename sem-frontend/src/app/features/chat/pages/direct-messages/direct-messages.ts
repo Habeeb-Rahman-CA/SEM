@@ -35,6 +35,7 @@ import {
   ScheduledMessagesDrawerComponent,
   ScheduledMessageItem,
 } from '../../components/scheduled-messages-drawer/scheduled-messages-drawer';
+import { AdvancedSearchModalComponent } from '../../components/advanced-search-modal/advanced-search-modal';
 
 @Component({
   selector: 'app-direct-messages',
@@ -53,6 +54,7 @@ import {
     PollCardComponent,
     AnnouncementCardComponent,
     ScheduledMessagesDrawerComponent,
+    AdvancedSearchModalComponent,
   ],
   templateUrl: './direct-messages.html',
   styleUrls: ['./direct-messages.css'],
@@ -88,6 +90,7 @@ export class DirectMessagesComponent implements OnInit, OnDestroy {
 
   scheduledMessages = signal<ScheduledMessageItem[]>([]);
   isScheduledDrawerOpen = signal<boolean>(false);
+  isAdvancedSearchOpen = signal<boolean>(false);
 
   isPartnerTyping = signal<boolean>(false);
   private typingTimeout: any = null;
@@ -375,6 +378,11 @@ export class DirectMessagesComponent implements OnInit, OnDestroy {
   onCancelScheduled(id: string): void {
     this.scheduledMessages.update((list) => list.filter((s) => s.id !== id));
     this.showToast('Scheduled message cancelled');
+  }
+
+  onJumpToMessage(msg: any): void {
+    this.scrollToBottom();
+    this.showToast(`Jumped to message from ${msg.senderName || 'Member'}`);
   }
 
   filteredConversations = computed(() => {
