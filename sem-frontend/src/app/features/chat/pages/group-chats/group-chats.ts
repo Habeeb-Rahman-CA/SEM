@@ -42,6 +42,11 @@ import {
 } from '../../components/attachment-details-modal/attachment-details-modal';
 import { ReadReceiptIndicatorComponent } from '../../components/read-receipt-indicator/read-receipt-indicator';
 import { TypingIndicatorComponent } from '../../components/typing-indicator/typing-indicator';
+import {
+  UserPresenceBadgeComponent,
+  UserPresenceSelectorComponent,
+  UserPresenceState,
+} from '../../components/user-presence/user-presence';
 
 @Component({
   selector: 'app-group-chats',
@@ -64,6 +69,8 @@ import { TypingIndicatorComponent } from '../../components/typing-indicator/typi
     AttachmentDetailsModalComponent,
     ReadReceiptIndicatorComponent,
     TypingIndicatorComponent,
+    UserPresenceBadgeComponent,
+    UserPresenceSelectorComponent,
   ],
   templateUrl: './group-chats.html',
   styleUrls: ['./group-chats.css'],
@@ -102,6 +109,11 @@ export class GroupChatsComponent implements OnInit, OnDestroy {
   isAdvancedSearchOpen = signal<boolean>(false);
   selectedAttachmentDetails = signal<AttachmentFileDetails | null>(null);
   typingUsers = signal<{ userId: string; username: string }[]>([]);
+  userPresence = signal<UserPresenceState>({
+    status: 'online',
+    customStatusText: 'Focusing on code',
+  });
+  isPresenceModalOpen = signal<boolean>(false);
 
   activeTypingUserNames = computed(() => this.typingUsers().map((u) => u.username));
 

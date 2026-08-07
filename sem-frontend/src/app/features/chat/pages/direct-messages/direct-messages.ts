@@ -42,6 +42,11 @@ import {
 } from '../../components/attachment-details-modal/attachment-details-modal';
 import { ReadReceiptIndicatorComponent } from '../../components/read-receipt-indicator/read-receipt-indicator';
 import { TypingIndicatorComponent } from '../../components/typing-indicator/typing-indicator';
+import {
+  UserPresenceBadgeComponent,
+  UserPresenceSelectorComponent,
+  UserPresenceState,
+} from '../../components/user-presence/user-presence';
 
 @Component({
   selector: 'app-direct-messages',
@@ -64,6 +69,8 @@ import { TypingIndicatorComponent } from '../../components/typing-indicator/typi
     AttachmentDetailsModalComponent,
     ReadReceiptIndicatorComponent,
     TypingIndicatorComponent,
+    UserPresenceBadgeComponent,
+    UserPresenceSelectorComponent,
   ],
   templateUrl: './direct-messages.html',
   styleUrls: ['./direct-messages.css'],
@@ -101,6 +108,11 @@ export class DirectMessagesComponent implements OnInit, OnDestroy {
   isScheduledDrawerOpen = signal<boolean>(false);
   isAdvancedSearchOpen = signal<boolean>(false);
   selectedAttachmentDetails = signal<AttachmentFileDetails | null>(null);
+  userPresence = signal<UserPresenceState>({
+    status: 'online',
+    customStatusText: 'Working remotely',
+  });
+  isPresenceModalOpen = signal<boolean>(false);
 
   isPartnerTyping = signal<boolean>(false);
   private typingTimeout: any = null;

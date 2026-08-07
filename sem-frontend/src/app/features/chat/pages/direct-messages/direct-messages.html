@@ -17,13 +17,29 @@
       </div>
     </div>
 
-    <button
-      (click)="isNewDmModalOpen.set(true)"
-      class="px-4 py-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-semibold rounded-xl flex items-center gap-2 shadow-lg shadow-violet-600/20 transition-all cursor-pointer"
-    >
-      <i class="fi fi-rr-plus"></i>
-      <span>New Message</span>
-    </button>
+    <div class="flex items-center gap-3">
+      <!-- User Presence Status Badge Button -->
+      <button
+        type="button"
+        (click)="isPresenceModalOpen.set(true)"
+        class="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center gap-2 text-xs text-slate-300 hover:text-white transition-all cursor-pointer shadow-sm"
+      >
+        <app-user-presence-badge [status]="userPresence().status" />
+        <span class="font-bold capitalize">{{ userPresence().status }}</span>
+        @if (userPresence().customStatusText; as cText) {
+          <span class="text-[10px] text-slate-400 truncate max-w-[100px]">({{ cText }})</span>
+        }
+        <i class="fi fi-rr-angle-small-down text-slate-400 text-xs"></i>
+      </button>
+
+      <button
+        (click)="isNewDmModalOpen.set(true)"
+        class="px-4 py-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-semibold rounded-xl flex items-center gap-2 shadow-lg shadow-violet-600/20 transition-all cursor-pointer"
+      >
+        <i class="fi fi-rr-plus"></i>
+        <span>New Message</span>
+      </button>
+    </div>
   </div>
 
   <!-- Main Split Layout -->
@@ -591,6 +607,17 @@
   <app-attachment-details-modal
     [attachment]="attDetails"
     (close)="selectedAttachmentDetails.set(null)"
+  />
+}
+
+<!-- User Presence Selector Modal -->
+@if (isPresenceModalOpen()) {
+  <app-user-presence-selector
+    [currentState]="userPresence()"
+    (statusChange)="
+      userPresence.set($event); showToast('Presence status updated to ' + $event.status)
+    "
+    (close)="isPresenceModalOpen.set(false)"
   />
 }
 
