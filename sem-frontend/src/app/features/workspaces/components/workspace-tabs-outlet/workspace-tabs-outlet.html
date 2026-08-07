@@ -164,4 +164,11 @@
   @case ('governance') {
     <app-governance class="h-full block min-h-0" [workspaceId]="workspaceId()" />
   }
+  @case ('chat') {
+    <app-channels
+      class="h-full block min-h-0"
+      [workspaceId]="workspaceId()"
+      [members]="members()"
+    />
+  }
 }

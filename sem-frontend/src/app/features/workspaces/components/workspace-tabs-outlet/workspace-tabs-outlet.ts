@@ -21,6 +21,7 @@ import { TransfersComponent } from '../../../transfers/pages/transfers';
 import { RostersComponent } from '../../../rosters/pages/rosters';
 import { FinanceComponent } from '../../../finance/pages/finance';
 import { GovernanceComponent } from '../../../governance/pages/governance';
+import { ChannelsComponent } from '../../../chat/pages/channels/channels';
 
 import type {
   Workspace,
@@ -68,6 +69,7 @@ import type {
     RostersComponent,
     FinanceComponent,
     GovernanceComponent,
+    ChannelsComponent,
   ],
   templateUrl: './workspace-tabs-outlet.html',
   changeDetection: ChangeDetectionStrategy.OnPush,

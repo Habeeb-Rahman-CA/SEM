@@ -1,6 +1,7 @@
 import { Component, input, model, output, computed } from '@angular/core';
 import { NgClass, DatePipe } from '@angular/common';
 import { Workspace } from '../../services/workspace.service';
+import { WorkspaceTab } from '../../models/workspace-tab.type';
 import { getSportBadgeClass, getSportIconClass, formatMatchStatusDetail } from '../../../../shared';
 
 @Component({
@@ -11,28 +12,7 @@ import { getSportBadgeClass, getSportIconClass, formatMatchStatusDetail } from '
 })
 export class WorkspaceDashboardComponent {
   workspace = input.required<Workspace | null>();
-  activeTab = model<
-    | 'overview'
-    | 'members'
-    | 'settings'
-    | 'teams'
-    | 'players'
-    | 'events'
-    | 'venues'
-    | 'reports'
-    | 'files'
-    | 'volunteers'
-    | 'equipment'
-    | 'medical'
-    | 'accreditation'
-    | 'streaming'
-    | 'automation'
-    | 'auctions'
-    | 'transfers'
-    | 'rosters'
-    | 'finance'
-    | 'governance'
-  >();
+  activeTab = model<WorkspaceTab>();
 
   liveMatches = input<any[]>([]);
   upcomingMatches = input<any[]>([]);

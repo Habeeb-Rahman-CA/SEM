@@ -28,7 +28,8 @@ export type WorkspaceTab =
   | 'transfers'
   | 'rosters'
   | 'finance'
-  | 'governance';
+  | 'governance'
+  | 'chat';
 
 export interface ServerSearchResults {
   files: WorkspaceFile[];
