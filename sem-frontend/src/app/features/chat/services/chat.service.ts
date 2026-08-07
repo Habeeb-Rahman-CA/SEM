@@ -769,4 +769,29 @@ export class ChatService {
       `${this.apiUrl}/workspaces/${workspaceId}/chat/productivity/recent-files?limit=${limit}`,
     );
   }
+
+  // Mobile API Endpoints
+  registerPushToken(
+    deviceToken: string,
+    platform: 'ios' | 'android' | 'web' = 'web',
+  ): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/chat/mobile/push-tokens`, {
+      deviceToken,
+      platform,
+    });
+  }
+
+  sendPushNotification(
+    targetUserId: string,
+    title: string,
+    body: string,
+    payload?: any,
+  ): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/chat/mobile/push-notifications/send`, {
+      targetUserId,
+      title,
+      body,
+      payload,
+    });
+  }
 }

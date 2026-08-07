@@ -31,6 +31,7 @@ import { ChatStarredMessageEntity } from './entities/chat-starred-message.entity
 import { ChatMessageReminderEntity } from './entities/chat-message-reminder.entity';
 import { ChatMessageTaskEntity } from './entities/chat-message-task.entity';
 import { ChatBookmarkedConversationEntity } from './entities/chat-bookmarked-conversation.entity';
+import { UserPushTokenEntity } from './entities/user-push-token.entity';
 
 import { ChannelsService } from './channels.service';
 import { ChannelsController } from './channels.controller';
@@ -60,6 +61,8 @@ import { ChatSecurityService } from './chat-security.service';
 import { ChatSecurityController } from './chat-security.controller';
 import { ChatProductivityService } from './chat-productivity.service';
 import { ChatProductivityController } from './chat-productivity.controller';
+import { ChatMobileService } from './chat-mobile.service';
+import { ChatMobileController } from './chat-mobile.controller';
 import { WorkspacesModule } from '../workspaces/workspaces.module';
 
 @Module({
@@ -96,6 +99,7 @@ import { WorkspacesModule } from '../workspaces/workspaces.module';
       ChatMessageReminderEntity,
       ChatMessageTaskEntity,
       ChatBookmarkedConversationEntity,
+      UserPushTokenEntity,
     ]),
     WorkspacesModule,
   ],
@@ -114,6 +118,7 @@ import { WorkspacesModule } from '../workspaces/workspaces.module';
     ChatModerationController,
     ChatSecurityController,
     ChatProductivityController,
+    ChatMobileController,
   ],
   providers: [
     ChannelsService,
@@ -130,6 +135,7 @@ import { WorkspacesModule } from '../workspaces/workspaces.module';
     ChatModerationService,
     ChatSecurityService,
     ChatProductivityService,
+    ChatMobileService,
   ],
   exports: [
     ChannelsService,
@@ -146,6 +152,7 @@ import { WorkspacesModule } from '../workspaces/workspaces.module';
     ChatModerationService,
     ChatSecurityService,
     ChatProductivityService,
+    ChatMobileService,
   ],
 })
 export class ChatModule {}
