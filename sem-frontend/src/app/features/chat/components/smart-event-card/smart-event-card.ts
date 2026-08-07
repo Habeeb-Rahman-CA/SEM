@@ -1,4 +1,11 @@
-import { Component, Input, ChangeDetectionStrategy, signal } from '@angular/core';
+import {
+  Component,
+  Input,
+  Output,
+  EventEmitter,
+  ChangeDetectionStrategy,
+  signal,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 export interface SmartMatchData {
@@ -25,6 +32,7 @@ export interface SmartMatchData {
 })
 export class SmartEventCardComponent {
   @Input() matchData!: SmartMatchData;
+  @Output() openDiscussion = new EventEmitter<SmartMatchData>();
 
   isExpanded = signal<boolean>(false);
 

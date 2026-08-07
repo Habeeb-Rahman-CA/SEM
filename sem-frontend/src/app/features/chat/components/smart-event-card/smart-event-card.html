@@ -153,7 +153,14 @@
         <span>{{ isExpanded() ? 'Hide Officials' : 'View Officials & Referees' }}</span>
       </button>
 
-      <span class="text-slate-400 text-[9px] italic">Smart Event Card Preview</span>
+      <button
+        type="button"
+        (click)="openDiscussion.emit(matchData)"
+        class="px-2 py-0.5 rounded-lg bg-cyan-600/20 border border-cyan-500/40 hover:bg-cyan-600/30 text-cyan-300 font-bold flex items-center gap-1 cursor-pointer transition-all"
+      >
+        <i class="fi fi-rr-comments-question-check text-xs"></i>
+        <span>Match Discussion Log</span>
+      </button>
     </div>
   </div>
 }

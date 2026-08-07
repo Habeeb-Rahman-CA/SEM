@@ -276,6 +276,32 @@
               }
             </button>
             <button
+              (click)="
+                activeDiscussionMatch.set({
+                  matchId: 'MATCH-101',
+                  title: 'Semi-Finals: Royal Strikers vs Titan Kings',
+                  tournamentName: 'Cricket Premier Cup 2026',
+                  status: 'live',
+                  sportType: 'cricket',
+                  homeTeam: { name: 'Royal Strikers', code: 'RSC', score: '184/4 (18.2 ov)' },
+                  awayTeam: { name: 'Titan Kings', code: 'TKS', score: '180/8 (20.0 ov)' },
+                  venue: 'National Sports Complex, Pitch 1',
+                  startTime: 'Today, 4:30 PM IST',
+                  officials: [
+                    { role: 'Field Umpire 1', name: 'Alex Miller' },
+                    { role: 'Field Umpire 2', name: 'David Warner' },
+                    { role: 'Match Referee', name: 'Robert Hawkins' },
+                    { role: 'TV / 3rd Umpire', name: 'Sarah Jenkins' },
+                  ],
+                })
+              "
+              title="Open Official Match Discussion Feed (Referees, Coaches, Officials & Organizers Log)"
+              class="px-3 py-1.5 rounded-xl bg-cyan-600/20 border border-cyan-500/30 hover:bg-cyan-600/30 text-cyan-300 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+            >
+              <i class="fi fi-rr-comments-question-check"></i>
+              <span>Match Discussion Log</span>
+            </button>
+            <button
               (click)="isAddMemberModalOpen.set(true)"
               title="Add Member"
               class="px-3 py-1.5 rounded-xl bg-violet-600/20 border border-violet-500/30 hover:bg-violet-600/30 text-violet-300 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
@@ -388,6 +414,7 @@
                         (imageClick)="onImageClick($event)"
                         (videoClick)="onVideoClick($event)"
                         (fileDetailsClick)="onFileDetailsClick($event, msg.senderName)"
+                        (openMatchDiscussion)="activeDiscussionMatch.set($event)"
                       />
                     }
 
@@ -928,6 +955,11 @@
     (generateEvent)="onGenerateEventChannels($event)"
     (close)="isGenerateEventModalOpen.set(false)"
   />
+}
+
+<!-- Match Discussion Side Drawer -->
+@if (activeDiscussionMatch(); as match) {
+  <app-match-discussion-drawer [matchData]="match" (close)="activeDiscussionMatch.set(null)" />
 }
 
 <!-- Action Toast Notification Banner -->

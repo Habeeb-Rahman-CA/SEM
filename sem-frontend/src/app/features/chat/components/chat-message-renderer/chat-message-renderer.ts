@@ -37,7 +37,10 @@ import {
         <div [innerHTML]="renderedContent"></div>
       }
       @if (smartMatchCard(); as match) {
-        <app-smart-event-card [matchData]="match" />
+        <app-smart-event-card
+          [matchData]="match"
+          (openDiscussion)="openMatchDiscussion.emit($event)"
+        />
       }
       @if (audioSource(); as audio) {
         <div class="mt-2">
@@ -229,6 +232,7 @@ export class ChatMessageRendererComponent implements OnChanges {
   @Output() imageClick = new EventEmitter<{ url: string; title?: string }>();
   @Output() videoClick = new EventEmitter<{ url: string; title?: string }>();
   @Output() fileDetailsClick = new EventEmitter<{ name: string; url?: string; category: string }>();
+  @Output() openMatchDiscussion = new EventEmitter<SmartMatchData>();
 
   private sanitizer = inject(DomSanitizer);
   renderedContent: SafeHtml = '';
