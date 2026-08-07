@@ -41,6 +41,7 @@ import {
   AttachmentFileDetails,
 } from '../../components/attachment-details-modal/attachment-details-modal';
 import { ReadReceiptIndicatorComponent } from '../../components/read-receipt-indicator/read-receipt-indicator';
+import { TypingIndicatorComponent } from '../../components/typing-indicator/typing-indicator';
 
 @Component({
   selector: 'app-direct-messages',
@@ -62,6 +63,7 @@ import { ReadReceiptIndicatorComponent } from '../../components/read-receipt-ind
     AdvancedSearchModalComponent,
     AttachmentDetailsModalComponent,
     ReadReceiptIndicatorComponent,
+    TypingIndicatorComponent,
   ],
   templateUrl: './direct-messages.html',
   styleUrls: ['./direct-messages.css'],
@@ -102,6 +104,14 @@ export class DirectMessagesComponent implements OnInit, OnDestroy {
 
   isPartnerTyping = signal<boolean>(false);
   private typingTimeout: any = null;
+
+  activeTypingUsers = computed(() => {
+    if (this.isPartnerTyping()) {
+      const partnerName = this.selectedConversation()?.partner?.username || 'Partner';
+      return [partnerName];
+    }
+    return [];
+  });
 
   // Image Viewer Lightbox State
   isImageViewerOpen = signal<boolean>(false);

@@ -393,14 +393,9 @@
           }
 
           <!-- Typing Indicator -->
-          @if (getTypingUserNames()) {
-            <div class="flex items-center gap-2 text-slate-400 text-xs italic animate-pulse">
-              <div
-                class="w-6 h-6 rounded-full bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-400 text-[10px]"
-              >
-                <i class="fi fi-rr-comment-dots"></i>
-              </div>
-              <span>{{ getTypingUserNames() }}</span>
+          @if (activeTypingUserNames().length > 0) {
+            <div class="mb-2">
+              <app-typing-indicator [typingUsers]="activeTypingUserNames()" />
             </div>
           }
         </div>

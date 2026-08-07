@@ -1,0 +1,21 @@
+@if (typingUsers.length > 0) {
+  <div
+    class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/90 border border-violet-500/30 text-xs text-violet-300 font-medium shadow-md animate-in fade-in duration-200"
+  >
+    <!-- 3 Animated Bouncing Dots -->
+    <div class="flex items-center gap-1 shrink-0">
+      <span
+        class="w-1.5 h-1.5 rounded-full bg-violet-400 animate-bounce [animation-delay:-0.3s]"
+      ></span>
+      <span
+        class="w-1.5 h-1.5 rounded-full bg-violet-400 animate-bounce [animation-delay:-0.15s]"
+      ></span>
+      <span class="w-1.5 h-1.5 rounded-full bg-violet-400 animate-bounce"></span>
+    </div>
+
+    <!-- Formatted User Typing String -->
+    <span class="text-[11px] font-semibold tracking-wide">
+      {{ formattedText() }}
+    </span>
+  </div>
+}

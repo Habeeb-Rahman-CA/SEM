@@ -41,6 +41,7 @@ import {
   AttachmentFileDetails,
 } from '../../components/attachment-details-modal/attachment-details-modal';
 import { ReadReceiptIndicatorComponent } from '../../components/read-receipt-indicator/read-receipt-indicator';
+import { TypingIndicatorComponent } from '../../components/typing-indicator/typing-indicator';
 
 @Component({
   selector: 'app-group-chats',
@@ -62,6 +63,7 @@ import { ReadReceiptIndicatorComponent } from '../../components/read-receipt-ind
     AdvancedSearchModalComponent,
     AttachmentDetailsModalComponent,
     ReadReceiptIndicatorComponent,
+    TypingIndicatorComponent,
   ],
   templateUrl: './group-chats.html',
   styleUrls: ['./group-chats.css'],
@@ -99,6 +101,9 @@ export class GroupChatsComponent implements OnInit, OnDestroy {
   isScheduledDrawerOpen = signal<boolean>(false);
   isAdvancedSearchOpen = signal<boolean>(false);
   selectedAttachmentDetails = signal<AttachmentFileDetails | null>(null);
+  typingUsers = signal<{ userId: string; username: string }[]>([]);
+
+  activeTypingUserNames = computed(() => this.typingUsers().map((u) => u.username));
 
   isLoadingGroups = signal<boolean>(true);
   isLoadingMessages = signal<boolean>(false);
@@ -138,7 +143,6 @@ export class GroupChatsComponent implements OnInit, OnDestroy {
   }
 
   // Typing indicator state
-  typingUsers = signal<{ userId: string; username: string }[]>([]);
   private typingTimeouts = new Map<string, any>();
 
   // Image Viewer Lightbox State
