@@ -31,6 +31,10 @@ import { PollCardComponent } from '../../components/poll-card/poll-card';
 import { PollData } from '../../components/create-poll-modal/create-poll-modal';
 import { AnnouncementCardComponent } from '../../components/announcement-card/announcement-card';
 import { AnnouncementData } from '../../components/create-announcement-modal/create-announcement-modal';
+import {
+  ScheduledMessagesDrawerComponent,
+  ScheduledMessageItem,
+} from '../../components/scheduled-messages-drawer/scheduled-messages-drawer';
 
 @Component({
   selector: 'app-direct-messages',
@@ -48,6 +52,7 @@ import { AnnouncementData } from '../../components/create-announcement-modal/cre
     ShareMessageModalComponent,
     PollCardComponent,
     AnnouncementCardComponent,
+    ScheduledMessagesDrawerComponent,
   ],
   templateUrl: './direct-messages.html',
   styleUrls: ['./direct-messages.css'],
@@ -80,6 +85,9 @@ export class DirectMessagesComponent implements OnInit, OnDestroy {
   isNewDmModalOpen = signal<boolean>(false);
   isSearchingMessages = signal<boolean>(false);
   searchResults = signal<any[]>([]);
+
+  scheduledMessages = signal<ScheduledMessageItem[]>([]);
+  isScheduledDrawerOpen = signal<boolean>(false);
 
   isPartnerTyping = signal<boolean>(false);
   private typingTimeout: any = null;
@@ -342,6 +350,31 @@ export class DirectMessagesComponent implements OnInit, OnDestroy {
       }),
     );
     this.showToast('Read confirmation acknowledged');
+  }
+
+  onScheduleMessage(event: { content: string; scheduledFor: string }): void {
+    const newItem: ScheduledMessageItem = {
+      id: 'sch-' + Math.random().toString(36).substring(2, 9),
+      content: event.content,
+      scheduledFor: event.scheduledFor,
+      createdAt: new Date().toISOString(),
+    };
+    this.scheduledMessages.update((list) => [...list, newItem]);
+    const sendDateStr = new Date(event.scheduledFor).toLocaleString();
+    this.showToast(`Message scheduled for ${sendDateStr}`);
+  }
+
+  onSendScheduledNow(id: string): void {
+    const item = this.scheduledMessages().find((s) => s.id === id);
+    if (!item) return;
+    this.scheduledMessages.update((list) => list.filter((s) => s.id !== id));
+    this.onSendRichMessage({ content: item.content });
+    this.showToast('Scheduled message sent now!');
+  }
+
+  onCancelScheduled(id: string): void {
+    this.scheduledMessages.update((list) => list.filter((s) => s.id !== id));
+    this.showToast('Scheduled message cancelled');
   }
 
   filteredConversations = computed(() => {

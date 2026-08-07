@@ -1,0 +1,121 @@
+<div
+  class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200"
+>
+  <div
+    class="w-full max-w-md bg-slate-900 border border-sky-500/30 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200"
+  >
+    <!-- Modal Header -->
+    <div
+      class="px-6 py-4 bg-gradient-to-r from-sky-950/80 via-slate-900 to-indigo-950/80 border-b border-sky-500/20 flex items-center justify-between"
+    >
+      <div class="flex items-center gap-3">
+        <div
+          class="w-10 h-10 rounded-2xl bg-sky-500/20 border border-sky-500/40 text-sky-400 flex items-center justify-center text-lg shadow-lg shadow-sky-500/10"
+        >
+          <i class="fi fi-rr-calendar-clock"></i>
+        </div>
+        <div>
+          <h3 class="text-base font-bold text-white tracking-wide">Schedule Message</h3>
+          <p class="text-xs text-sky-200/80">Automate message delivery at a future date & time</p>
+        </div>
+      </div>
+      <button
+        type="button"
+        (click)="close.emit()"
+        class="w-8 h-8 rounded-full hover:bg-white/10 text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+      >
+        <i class="fi fi-rr-cross text-xs"></i>
+      </button>
+    </div>
+
+    <!-- Scrollable Body -->
+    <div class="p-6 overflow-y-auto space-y-5 scrollbar-thin scrollbar-thumb-white/10">
+      <!-- Message Content Preview -->
+      @if (messagePreview) {
+        <div class="space-y-1.5">
+          <label
+            class="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1"
+          >
+            <i class="fi fi-rr-paper-plane text-sky-400"></i>
+            <span>Message to Schedule</span>
+          </label>
+          <div
+            class="p-3 rounded-2xl bg-slate-950 border border-white/10 text-xs text-slate-200 line-clamp-3 italic bg-white/5"
+          >
+            "{{ messagePreview }}"
+          </div>
+        </div>
+      }
+
+      <!-- Quick Presets -->
+      <div class="space-y-2">
+        <label
+          class="text-[11px] font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5"
+        >
+          <i class="fi fi-rr-magic-wand text-sky-400"></i>
+          <span>Quick Presets</span>
+        </label>
+        <div class="grid grid-cols-2 gap-2">
+          @for (preset of presets; track preset.name) {
+            <button
+              type="button"
+              (click)="applyPreset(preset)"
+              class="px-3 py-2.5 rounded-2xl bg-white/5 hover:bg-sky-600/15 border border-white/10 hover:border-sky-500/40 text-left transition-all cursor-pointer group flex items-center gap-2.5"
+            >
+              <i
+                [class]="
+                  'fi ' +
+                  preset.icon +
+                  ' text-sky-400 text-sm group-hover:scale-110 transition-transform'
+                "
+              ></i>
+              <div>
+                <div class="text-xs font-bold text-slate-200 group-hover:text-white">
+                  {{ preset.name }}
+                </div>
+              </div>
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Custom Date & Time Picker -->
+      <div class="space-y-1.5 pt-1">
+        <label
+          class="text-[11px] font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1"
+        >
+          <i class="fi fi-rr-clock text-amber-400"></i>
+          <span>Custom Delivery Date & Time <span class="text-rose-400">*</span></span>
+        </label>
+        <input
+          type="datetime-local"
+          [ngModel]="customDateTime()"
+          (ngModelChange)="customDateTime.set($event)"
+          class="w-full px-4 py-2.5 rounded-2xl bg-slate-950/80 border border-white/15 text-white text-xs focus:outline-none focus:border-sky-500 transition-colors font-medium cursor-pointer"
+        />
+      </div>
+    </div>
+
+    <!-- Modal Footer Actions -->
+    <div
+      class="px-6 py-4 bg-slate-950/80 border-t border-white/10 flex items-center justify-end gap-3"
+    >
+      <button
+        type="button"
+        (click)="close.emit()"
+        class="px-4 py-2 rounded-2xl hover:bg-white/10 text-slate-300 text-xs font-bold transition-colors cursor-pointer"
+      >
+        Cancel
+      </button>
+      <button
+        type="button"
+        (click)="onSubmit()"
+        [disabled]="!customDateTime()"
+        class="px-5 py-2 rounded-2xl bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-xs shadow-lg shadow-sky-600/30 transition-all cursor-pointer flex items-center gap-1.5"
+      >
+        <i class="fi fi-rr-calendar-clock text-xs"></i>
+        <span>Schedule Message</span>
+      </button>
+    </div>
+  </div>
+</div>

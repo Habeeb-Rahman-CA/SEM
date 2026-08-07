@@ -17,6 +17,7 @@ import {
   CreateAnnouncementModalComponent,
   AnnouncementData,
 } from '../create-announcement-modal/create-announcement-modal';
+import { ScheduleMessageModalComponent } from '../schedule-message-modal/schedule-message-modal';
 
 export interface MentionSuggestion {
   id: string;
@@ -42,7 +43,13 @@ export interface AttachmentItem {
 @Component({
   selector: 'app-chat-rich-message-input',
   standalone: true,
-  imports: [CommonModule, FormsModule, CreatePollModalComponent, CreateAnnouncementModalComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    CreatePollModalComponent,
+    CreateAnnouncementModalComponent,
+    ScheduleMessageModalComponent,
+  ],
   templateUrl: './chat-rich-message-input.html',
   styleUrls: ['./chat-rich-message-input.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -64,12 +71,14 @@ export class ChatRichMessageInputComponent {
   }>();
   @Output() sendPoll = new EventEmitter<PollData>();
   @Output() sendAnnouncement = new EventEmitter<AnnouncementData>();
+  @Output() scheduleMessage = new EventEmitter<{ content: string; scheduledFor: string }>();
   @Output() typing = new EventEmitter<void>();
   @Output() cancelReply = new EventEmitter<void>();
   @Output() cancelEdit = new EventEmitter<void>();
 
   isCreatePollOpen = signal<boolean>(false);
   isCreateAnnouncementOpen = signal<boolean>(false);
+  isScheduleModalOpen = signal<boolean>(false);
 
   handleCreatePoll(poll: PollData) {
     this.isCreatePollOpen.set(false);
@@ -79,6 +88,14 @@ export class ChatRichMessageInputComponent {
   handleCreateAnnouncement(announcement: AnnouncementData) {
     this.isCreateAnnouncementOpen.set(false);
     this.sendAnnouncement.emit(announcement);
+  }
+
+  handleScheduleMessage(scheduledFor: string) {
+    const text = this.content().trim();
+    if (!text) return;
+    this.isScheduleModalOpen.set(false);
+    this.scheduleMessage.emit({ content: text, scheduledFor });
+    this.content.set('');
   }
 
   @ViewChild('textareaRef') textareaRef!: ElementRef<HTMLTextAreaElement>;

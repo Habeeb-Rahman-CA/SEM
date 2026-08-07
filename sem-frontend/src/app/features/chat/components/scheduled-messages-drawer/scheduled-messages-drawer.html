@@ -1,0 +1,96 @@
+<div
+  class="fixed inset-0 z-50 flex items-center justify-end bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200"
+>
+  <div
+    class="w-full max-w-md h-full bg-slate-900 border-l border-white/15 shadow-2xl flex flex-col animate-in slide-in-from-right duration-200"
+  >
+    <!-- Drawer Header -->
+    <div
+      class="px-6 py-4 bg-gradient-to-r from-slate-900 via-slate-900 to-sky-950/60 border-b border-white/10 flex items-center justify-between shrink-0"
+    >
+      <div class="flex items-center gap-3">
+        <div
+          class="w-10 h-10 rounded-2xl bg-sky-500/20 border border-sky-500/40 text-sky-400 flex items-center justify-center text-lg shadow-md"
+        >
+          <i class="fi fi-rr-clock-three"></i>
+        </div>
+        <div>
+          <h3 class="text-base font-bold text-white tracking-wide">Scheduled Messages</h3>
+          <p class="text-xs text-slate-400">Manage queue of automated future deliveries</p>
+        </div>
+      </div>
+      <button
+        type="button"
+        (click)="close.emit()"
+        class="w-8 h-8 rounded-full hover:bg-white/10 text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+      >
+        <i class="fi fi-rr-cross text-xs"></i>
+      </button>
+    </div>
+
+    <!-- Drawer Content / Message List -->
+    <div class="flex-1 overflow-y-auto p-6 space-y-4 scrollbar-thin scrollbar-thumb-white/10">
+      @if (scheduledMessages.length === 0) {
+        <div
+          class="flex flex-col items-center justify-center py-16 text-center text-slate-500 space-y-3"
+        >
+          <div
+            class="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-2xl text-slate-400"
+          >
+            <i class="fi fi-rr-calendar-clock"></i>
+          </div>
+          <div>
+            <h4 class="text-sm font-bold text-slate-300">No Pending Scheduled Messages</h4>
+            <p class="text-xs text-slate-500 max-w-xs mt-1">
+              Use the schedule button in the chat input bar to send messages later.
+            </p>
+          </div>
+        </div>
+      } @else {
+        @for (item of scheduledMessages; track item.id) {
+          <div
+            class="p-4 rounded-3xl bg-slate-950/80 border border-sky-500/30 space-y-3 shadow-lg relative group transition-all hover:border-sky-500/60"
+          >
+            <!-- Schedule Header -->
+            <div class="flex items-center justify-between text-xs">
+              <span
+                class="px-2.5 py-0.5 rounded-full bg-sky-500/20 border border-sky-500/40 text-sky-300 text-[10px] font-bold flex items-center gap-1"
+              >
+                <i class="fi fi-rr-clock text-[9px]"></i>
+                <span>Sends {{ item.scheduledFor | date: 'medium' }}</span>
+              </span>
+              <span class="text-[10px] text-slate-400 font-medium">Pending</span>
+            </div>
+
+            <!-- Message Preview Content -->
+            <div
+              class="text-xs text-slate-200 line-clamp-4 bg-white/5 p-3 rounded-2xl border border-white/10"
+            >
+              {{ item.content }}
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex items-center justify-end gap-2 pt-1">
+              <button
+                type="button"
+                (click)="cancelScheduled.emit(item.id)"
+                class="px-3 py-1.5 rounded-xl hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 border border-transparent hover:border-rose-500/30 text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1"
+              >
+                <i class="fi fi-rr-trash text-[10px]"></i>
+                <span>Cancel</span>
+              </button>
+              <button
+                type="button"
+                (click)="sendNow.emit(item.id)"
+                class="px-3.5 py-1.5 rounded-xl bg-sky-600/30 hover:bg-sky-600/50 text-sky-200 border border-sky-500/40 text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1 shadow-sm"
+              >
+                <i class="fi fi-rr-paper-plane text-[10px]"></i>
+                <span>Send Now</span>
+              </button>
+            </div>
+          </div>
+        }
+      }
+    </div>
+  </div>
+</div>
