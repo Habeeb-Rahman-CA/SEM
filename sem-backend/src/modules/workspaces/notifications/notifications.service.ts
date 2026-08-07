@@ -167,7 +167,7 @@ export class NotificationsService {
       : `${user.username}@sem-event.com`;
 
     // 2. Fetch workspace branding
-    let workspaceName = 'Sports Event Management';
+    let workspaceName = 'Taisen Workspace';
     let logoUrl: string | null = null;
     if (workspaceId) {
       const ws = await this.workspaceRepo.findOne({
@@ -387,7 +387,7 @@ export class NotificationsService {
       const workspaceId = event?.workspaceId;
 
       // Get workspace details for branding
-      let workspaceName = 'Sports Event Management';
+      let workspaceName = 'Taisen Workspace';
       let logoUrl: string | null = null;
       if (workspaceId) {
         const ws = await this.workspaceRepo.findOne({

@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Sports Event Management</string>
-    <string name="title_activity_main">Sports Event Management</string>
-    <string name="package_name">com.sports.event.management</string>
-    <string name="custom_url_scheme">com.sports.event.management</string>
+    <string name="app_name">Taisen</string>
+    <string name="title_activity_main">Taisen</string>
+    <string name="package_name">app.taisen.workspace</string>
+    <string name="custom_url_scheme">app.taisen.workspace</string>
 </resources>

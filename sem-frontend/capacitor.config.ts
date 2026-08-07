@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.sports.event.management',
-  appName: 'Sports Event Management',
+  appId: 'app.taisen.workspace',
+  appName: 'Taisen',
   webDir: 'dist/sem-frontend/browser',
 };
 

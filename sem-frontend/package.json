@@ -1,7 +1,7 @@
 {
   "name": "taisen-frontend",
-  "version": "5.5.0",
-  "description": "Angular Front-End application for the Taisen Sports Event Management Platform, featuring live scoreboard widgets, real-time sync with websockets, and organizers/referees scoring console.",
+  "version": "6.0.0",
+  "description": "Angular Front-End application for the Taisen Workspace Platform, featuring live scoreboard widgets, real-time sync with websockets, and organizers/referees scoring console.",
   "author": "Taisen Team",
   "license": "MIT",
   "scripts": {
