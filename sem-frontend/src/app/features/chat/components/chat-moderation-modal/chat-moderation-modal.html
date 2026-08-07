@@ -1,0 +1,125 @@
+<div *ngIf="isOpen" class="moderation-modal-overlay" (click)="closeModal()">
+  <div class="moderation-modal-card" (click)="$event.stopPropagation()">
+    <!-- Modal Header -->
+    <div class="moderation-modal-header">
+      <div class="header-title">
+        <i class="fi fi-rr-shield-check title-icon"></i>
+        <div>
+          <h3>Admin Chat Moderation</h3>
+          <p>Manage member mutes, bans, channel security, and view audit history</p>
+        </div>
+      </div>
+      <button class="close-btn" (click)="closeModal()">
+        <i class="fi fi-rr-cross"></i>
+      </button>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="moderation-tabs">
+      <button [class.active]="activeTab() === 'actions'" (click)="activeTab.set('actions')">
+        <i class="fi fi-rr-settings"></i> Admin Controls
+      </button>
+      <button [class.active]="activeTab() === 'audit_logs'" (click)="activeTab.set('audit_logs')">
+        <i class="fi fi-rr-time-past"></i> Audit Logs
+      </button>
+    </div>
+
+    <!-- Feedback Banner -->
+    <div *ngIf="statusMessage()" class="status-banner">
+      <i class="fi fi-rr-info"></i> {{ statusMessage() }}
+    </div>
+
+    <!-- Actions Tab -->
+    <div *ngIf="activeTab() === 'actions'" class="moderation-body">
+      <div class="mod-section">
+        <h4>User Discipline Controls</h4>
+        <div class="form-group">
+          <label>Target User ID or Handle</label>
+          <input
+            type="text"
+            [(ngModel)]="targetUserId"
+            placeholder="e.g. user-102 or @alex.morgan"
+          />
+        </div>
+        <div class="form-group">
+          <label>Reason / Note</label>
+          <input
+            type="text"
+            [(ngModel)]="moderationReason"
+            placeholder="Violation of community guidelines..."
+          />
+        </div>
+
+        <div class="action-buttons">
+          <button class="btn btn-warning" (click)="onMuteUser()" [disabled]="isSubmitting()">
+            <i class="fi fi-rr-volume-mute"></i> Mute User ({{ muteDuration }}m)
+          </button>
+          <button class="btn btn-danger" (click)="onBanUser()" [disabled]="isSubmitting()">
+            <i class="fi fi-rr-user-delete"></i> Ban User
+          </button>
+        </div>
+      </div>
+
+      <div class="mod-section" *ngIf="activeChannelId">
+        <h4>Channel Security & Governance</h4>
+        <p class="section-desc">Channel ID: {{ activeChannelId }}</p>
+        <div class="action-buttons">
+          <button
+            class="btn btn-secondary"
+            (click)="onLockChannel(true)"
+            [disabled]="isSubmitting()"
+          >
+            <i class="fi fi-rr-lock"></i> Lock Channel
+          </button>
+          <button
+            class="btn btn-secondary"
+            (click)="onLockChannel(false)"
+            [disabled]="isSubmitting()"
+          >
+            <i class="fi fi-rr-unlock"></i> Unlock Channel
+          </button>
+          <button
+            class="btn btn-danger"
+            (click)="onArchiveChannel(true)"
+            [disabled]="isSubmitting()"
+          >
+            <i class="fi fi-rr-box-alt"></i> Archive Channel
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Audit Logs Tab -->
+    <div *ngIf="activeTab() === 'audit_logs'" class="moderation-body">
+      <div class="audit-logs-table-container">
+        <table class="audit-table">
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Action</th>
+              <th>Moderator ID</th>
+              <th>Target User</th>
+              <th>Reason</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let log of auditLogs()">
+              <td>{{ log.createdAt | date: 'short' }}</td>
+              <td>
+                <span class="action-badge {{ log.actionType }}">
+                  {{ log.actionType }}
+                </span>
+              </td>
+              <td>{{ log.performedById }}</td>
+              <td>{{ log.targetUserId || '-' }}</td>
+              <td>{{ log.reason || 'N/A' }}</td>
+            </tr>
+            <tr *ngIf="auditLogs().length === 0">
+              <td colspan="5" class="empty-row">No moderation audit events recorded.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

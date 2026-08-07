@@ -22,6 +22,9 @@ import { WorkspaceChannelCategoryEntity } from './entities/workspace-channel-cat
 import { ChatEmojiMasterEntity } from './entities/chat-emoji-master.entity';
 import { MatchFixtureEntity } from './entities/match-fixture.entity';
 import { LinkPreviewCacheEntity } from './entities/link-preview-cache.entity';
+import { ChatModerationAuditLogEntity } from './entities/chat-moderation-audit-log.entity';
+import { ChatMutedUserEntity } from './entities/chat-muted-user.entity';
+import { ChatBannedUserEntity } from './entities/chat-banned-user.entity';
 
 import { ChannelsService } from './channels.service';
 import { ChannelsController } from './channels.controller';
@@ -45,6 +48,8 @@ import { MatchFixturesService } from './match-fixtures.service';
 import { MatchFixturesController } from './match-fixtures.controller';
 import { LinkPreviewsService } from './link-previews.service';
 import { LinkPreviewsController } from './link-previews.controller';
+import { ChatModerationService } from './chat-moderation.service';
+import { ChatModerationController } from './chat-moderation.controller';
 import { WorkspacesModule } from '../workspaces/workspaces.module';
 
 @Module({
@@ -72,6 +77,9 @@ import { WorkspacesModule } from '../workspaces/workspaces.module';
       ChatEmojiMasterEntity,
       MatchFixtureEntity,
       LinkPreviewCacheEntity,
+      ChatModerationAuditLogEntity,
+      ChatMutedUserEntity,
+      ChatBannedUserEntity,
     ]),
     WorkspacesModule,
   ],
@@ -87,6 +95,7 @@ import { WorkspacesModule } from '../workspaces/workspaces.module';
     EventPresetsController,
     MatchFixturesController,
     LinkPreviewsController,
+    ChatModerationController,
   ],
   providers: [
     ChannelsService,
@@ -100,6 +109,7 @@ import { WorkspacesModule } from '../workspaces/workspaces.module';
     EventPresetsService,
     MatchFixturesService,
     LinkPreviewsService,
+    ChatModerationService,
   ],
   exports: [
     ChannelsService,
@@ -113,6 +123,7 @@ import { WorkspacesModule } from '../workspaces/workspaces.module';
     EventPresetsService,
     MatchFixturesService,
     LinkPreviewsService,
+    ChatModerationService,
   ],
 })
 export class ChatModule {}

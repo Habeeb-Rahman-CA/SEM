@@ -535,4 +535,92 @@ export class ChatService {
   getLinkPreview(url: string): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}/link-previews?url=${encodeURIComponent(url)}`);
   }
+
+  // Moderation API Endpoints
+  deleteMedia(workspaceId: string, fileId: string, reason?: string): Observable<any> {
+    return this.http.request<any>(
+      'delete',
+      `${this.apiUrl}/workspaces/${workspaceId}/chat/moderation/media/${fileId}`,
+      {
+        body: { reason },
+      },
+    );
+  }
+
+  muteUser(
+    workspaceId: string,
+    targetUserId: string,
+    durationMinutes?: number,
+    reason?: string,
+    channelId?: string,
+  ): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/workspaces/${workspaceId}/chat/moderation/mute`, {
+      targetUserId,
+      durationMinutes,
+      reason,
+      channelId,
+    });
+  }
+
+  unmuteUser(workspaceId: string, targetUserId: string, channelId?: string): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/workspaces/${workspaceId}/chat/moderation/unmute`, {
+      targetUserId,
+      channelId,
+    });
+  }
+
+  banUser(
+    workspaceId: string,
+    targetUserId: string,
+    reason?: string,
+    channelId?: string,
+  ): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/workspaces/${workspaceId}/chat/moderation/ban`, {
+      targetUserId,
+      reason,
+      channelId,
+    });
+  }
+
+  unbanUser(workspaceId: string, targetUserId: string, channelId?: string): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/workspaces/${workspaceId}/chat/moderation/unban`, {
+      targetUserId,
+      channelId,
+    });
+  }
+
+  lockChannel(
+    workspaceId: string,
+    channelId: string,
+    isLocked: boolean,
+    reason?: string,
+  ): Observable<any> {
+    return this.http.post<any>(
+      `${this.apiUrl}/workspaces/${workspaceId}/chat/moderation/channels/${channelId}/lock`,
+      { isLocked, reason },
+    );
+  }
+
+  archiveChannel(
+    workspaceId: string,
+    channelId: string,
+    isArchived: boolean,
+    reason?: string,
+  ): Observable<any> {
+    return this.http.post<any>(
+      `${this.apiUrl}/workspaces/${workspaceId}/chat/moderation/channels/${channelId}/archive`,
+      { isArchived, reason },
+    );
+  }
+
+  getModerationAuditLogs(
+    workspaceId: string,
+    channelId?: string,
+    limit: number = 50,
+  ): Observable<any[]> {
+    const channelParam = channelId ? `&channelId=${channelId}` : '';
+    return this.http.get<any[]>(
+      `${this.apiUrl}/workspaces/${workspaceId}/chat/moderation/audit-logs?limit=${limit}${channelParam}`,
+    );
+  }
 }

@@ -70,6 +70,9 @@ export class WorkspaceChannel {
   @Column({ default: false })
   isArchived: boolean;
 
+  @Column({ default: false })
+  isLocked: boolean;
+
   @Column({ nullable: true })
   createdById: string;
 
