@@ -23,6 +23,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   server: Server;
 
   private readonly logger = new Logger(EventsGateway.name);
+  private readonly activeOnlineUsers = new Map<string, Set<string>>();
 
   constructor(
     private readonly jwtService: JwtService,
@@ -31,7 +32,6 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   async handleConnection(client: Socket) {
     try {
-      // Extract token from multiple possible places
       const token =
         client.handshake.auth?.token ||
         client.handshake.query?.token ||
@@ -42,7 +42,6 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
         return;
       }
 
-      // Verify token
       const secret = this.configService.get<string>(
         'JWT_SECRET',
         'super-secret-key-12345',
@@ -53,11 +52,24 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
         const userId = payload.sub || payload.id;
         if (userId) {
-          // Join a room for the user to receive private notifications
           await client.join(`user:${userId}`);
+
+          if (!this.activeOnlineUsers.has(userId)) {
+            this.activeOnlineUsers.set(userId, new Set());
+          }
+          this.activeOnlineUsers.get(userId)!.add(client.id);
+
           this.logger.log(
             `Client authenticated: ${client.id} (User: ${userId})`,
           );
+
+          if (this.server) {
+            this.server.emit('user_presence_change', {
+              userId,
+              status: 'online',
+              timestamp: new Date().toISOString(),
+            });
+          }
         }
       } catch (authErr) {
         this.logger.warn(
@@ -73,6 +85,28 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   handleDisconnect(client: Socket) {
     this.logger.log(`Client disconnected: ${client.id}`);
+    const userId = client.data?.user?.sub || client.data?.user?.id;
+    if (userId && this.activeOnlineUsers.has(userId)) {
+      const userSockets = this.activeOnlineUsers.get(userId)!;
+      userSockets.delete(client.id);
+      if (userSockets.size === 0) {
+        this.activeOnlineUsers.delete(userId);
+        if (this.server) {
+          this.server.emit('user_presence_change', {
+            userId,
+            status: 'offline',
+            timestamp: new Date().toISOString(),
+          });
+        }
+      }
+    }
+  }
+
+  isUserOnline(userId: string): boolean {
+    return (
+      this.activeOnlineUsers.has(userId) &&
+      this.activeOnlineUsers.get(userId)!.size > 0
+    );
   }
 
   @SubscribeMessage('subscribeMatch')
@@ -131,6 +165,78 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
+  // Real-time Direct Messages Socket Subscriptions
+  @SubscribeMessage('dm_typing')
+  handleDmTyping(
+    @ConnectedSocket() client: Socket,
+    @MessageBody()
+    data: {
+      workspaceId: string;
+      conversationId: string;
+      recipientUserId: string;
+    },
+  ) {
+    const senderId = client.data?.user?.sub || client.data?.user?.id;
+    if (senderId && data.recipientUserId) {
+      this.server.to(`user:${data.recipientUserId}`).emit('dm_user_typing', {
+        senderId,
+        conversationId: data.conversationId,
+        workspaceId: data.workspaceId,
+      });
+    }
+  }
+
+  @SubscribeMessage('dm_stop_typing')
+  handleDmStopTyping(
+    @ConnectedSocket() client: Socket,
+    @MessageBody()
+    data: {
+      workspaceId: string;
+      conversationId: string;
+      recipientUserId: string;
+    },
+  ) {
+    const senderId = client.data?.user?.sub || client.data?.user?.id;
+    if (senderId && data.recipientUserId) {
+      this.server
+        .to(`user:${data.recipientUserId}`)
+        .emit('dm_user_stop_typing', {
+          senderId,
+          conversationId: data.conversationId,
+          workspaceId: data.workspaceId,
+        });
+    }
+  }
+
+  @SubscribeMessage('dm_read')
+  handleDmRead(
+    @ConnectedSocket() client: Socket,
+    @MessageBody()
+    data: {
+      workspaceId: string;
+      conversationId: string;
+      partnerUserId: string;
+      readAt: string;
+    },
+  ) {
+    const readerUserId = client.data?.user?.sub || client.data?.user?.id;
+    if (readerUserId && data.partnerUserId) {
+      this.server.to(`user:${data.partnerUserId}`).emit('dm_read_receipt', {
+        readerUserId,
+        conversationId: data.conversationId,
+        workspaceId: data.workspaceId,
+        readAt: data.readAt,
+      });
+    }
+  }
+
+  // Helper method to emit direct messages
+  sendDirectMessage(recipientUserId: string, message: any) {
+    if (this.server) {
+      this.server.to(`user:${recipientUserId}`).emit('dm_received', message);
+    }
+  }
+
   // Helper method to emit notifications
   sendNotification(userId: string, notification: any) {
     if (this.server) {
@@ -141,9 +247,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   // Helper method to emit match updates
   sendMatchUpdate(matchId: string, workspaceId: string, match: any) {
     if (this.server) {
-      // Emit to match room
       this.server.to(`match:${matchId}`).emit('matchUpdated', match);
-      // Emit to workspace room
       if (workspaceId) {
         this.server.to(`workspace:${workspaceId}`).emit('matchUpdated', match);
       }

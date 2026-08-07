@@ -171,4 +171,11 @@
       [members]="members()"
     />
   }
+  @case ('direct-messages') {
+    <app-direct-messages
+      class="h-full block min-h-0"
+      [workspaceId]="workspaceId()"
+      [members]="members()"
+    />
+  }
 }

@@ -29,7 +29,8 @@ export type WorkspaceTab =
   | 'rosters'
   | 'finance'
   | 'governance'
-  | 'chat';
+  | 'chat'
+  | 'direct-messages';
 
 export interface ServerSearchResults {
   files: WorkspaceFile[];

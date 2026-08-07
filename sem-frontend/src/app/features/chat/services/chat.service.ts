@@ -51,6 +51,42 @@ export interface UpdateChannelDto {
   isArchived?: boolean;
 }
 
+export interface DirectMessagePartner {
+  id: string;
+  username: string;
+  avatarUrl?: string;
+  isOnline: boolean;
+  lastSeen?: string;
+}
+
+export interface DirectMessageConversation {
+  id: string;
+  workspaceId: string;
+  lastMessageAt?: string;
+  lastMessageText?: string;
+  createdAt: string;
+  partner: DirectMessagePartner;
+  isPinned: boolean;
+  isMuted: boolean;
+  lastReadAt?: string;
+  unreadCount: number;
+}
+
+export interface DirectMessage {
+  id: string;
+  conversationId: string;
+  workspaceId: string;
+  senderId: string;
+  senderName?: string;
+  senderAvatarUrl?: string;
+  content: string;
+  attachments?: string[];
+  isEdited: boolean;
+  isDeleted: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -58,6 +94,7 @@ export class ChatService {
   private http = inject(HttpClient);
   private apiUrl = environment.apiUrl;
 
+  // ─── Channel Endpoints ───
   getChannels(workspaceId: string): Observable<Channel[]> {
     return this.http.get<Channel[]>(`${this.apiUrl}/workspaces/${workspaceId}/channels`);
   }
@@ -130,6 +167,72 @@ export class ChatService {
   ): Observable<{ success: boolean }> {
     return this.http.delete<{ success: boolean }>(
       `${this.apiUrl}/workspaces/${workspaceId}/channels/${channelId}/members/${userId}`,
+    );
+  }
+
+  // ─── Direct Message Endpoints ───
+  listDmConversations(workspaceId: string): Observable<DirectMessageConversation[]> {
+    return this.http.get<DirectMessageConversation[]>(
+      `${this.apiUrl}/workspaces/${workspaceId}/direct-messages/conversations`,
+    );
+  }
+
+  getOrCreateDmConversation(
+    workspaceId: string,
+    recipientUserId: string,
+  ): Observable<DirectMessageConversation> {
+    return this.http.post<DirectMessageConversation>(
+      `${this.apiUrl}/workspaces/${workspaceId}/direct-messages/conversations`,
+      { recipientUserId },
+    );
+  }
+
+  getDmMessages(
+    workspaceId: string,
+    conversationId: string,
+    limit: number = 50,
+  ): Observable<DirectMessage[]> {
+    return this.http.get<DirectMessage[]>(
+      `${this.apiUrl}/workspaces/${workspaceId}/direct-messages/conversations/${conversationId}/messages?limit=${limit}`,
+    );
+  }
+
+  sendDirectMessage(
+    workspaceId: string,
+    recipientUserId: string,
+    content: string,
+    attachments: string[] = [],
+  ): Observable<DirectMessage> {
+    return this.http.post<DirectMessage>(
+      `${this.apiUrl}/workspaces/${workspaceId}/direct-messages/messages`,
+      { recipientUserId, content, attachments },
+    );
+  }
+
+  updateDmSettings(
+    workspaceId: string,
+    conversationId: string,
+    settings: { isPinned?: boolean; isMuted?: boolean },
+  ): Observable<any> {
+    return this.http.patch<any>(
+      `${this.apiUrl}/workspaces/${workspaceId}/direct-messages/conversations/${conversationId}/settings`,
+      settings,
+    );
+  }
+
+  markDmAsRead(
+    workspaceId: string,
+    conversationId: string,
+  ): Observable<{ success: boolean; lastReadAt: string }> {
+    return this.http.post<{ success: boolean; lastReadAt: string }>(
+      `${this.apiUrl}/workspaces/${workspaceId}/direct-messages/conversations/${conversationId}/read`,
+      {},
+    );
+  }
+
+  searchDmMessages(workspaceId: string, query: string): Observable<any[]> {
+    return this.http.get<any[]>(
+      `${this.apiUrl}/workspaces/${workspaceId}/direct-messages/search?q=${encodeURIComponent(query)}`,
     );
   }
 }
