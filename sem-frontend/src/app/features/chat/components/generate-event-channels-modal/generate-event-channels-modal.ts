@@ -1,6 +1,15 @@
-import { Component, Output, EventEmitter, signal, ChangeDetectionStrategy } from '@angular/core';
+import {
+  Component,
+  Output,
+  EventEmitter,
+  signal,
+  OnInit,
+  inject,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ChatService } from '../../services/chat.service';
 
 export interface GeneratedEventPayload {
   eventName: string;
@@ -15,12 +24,15 @@ export interface GeneratedEventPayload {
   styleUrls: ['./generate-event-channels-modal.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class GenerateEventChannelsModalComponent {
+export class GenerateEventChannelsModalComponent implements OnInit {
   @Output() generateEvent = new EventEmitter<GeneratedEventPayload>();
   @Output() close = new EventEmitter<void>();
 
+  private chatService = inject(ChatService);
+
   eventName = signal<string>('Cricket Tournament');
   selectedPreset = signal<'tournament' | 'league' | 'corporate'>('tournament');
+  presetsList = signal<any[]>([]);
 
   subChannelsList = signal<
     { name: string; icon: string; description: string; selected: boolean }[]
@@ -57,8 +69,33 @@ export class GenerateEventChannelsModalComponent {
     },
   ]);
 
+  ngOnInit(): void {
+    this.chatService.getEventPresets().subscribe({
+      next: (dbPresets) => {
+        if (dbPresets && dbPresets.length > 0) {
+          this.presetsList.set(dbPresets);
+          const current = dbPresets.find((p) => p.presetKey === this.selectedPreset());
+          if (current) {
+            this.eventName.set(current.title);
+            this.subChannelsList.set(current.subChannels);
+          }
+        }
+      },
+      error: () => {},
+    });
+  }
+
   selectPreset(preset: 'tournament' | 'league' | 'corporate') {
     this.selectedPreset.set(preset);
+    const dbList = this.presetsList();
+    const found = dbList.find((p) => p.presetKey === preset);
+
+    if (found) {
+      this.eventName.set(found.title);
+      this.subChannelsList.set(found.subChannels);
+      return;
+    }
+
     if (preset === 'tournament') {
       this.eventName.set('Cricket Tournament');
       this.subChannelsList.set([

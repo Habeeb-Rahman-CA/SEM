@@ -20,6 +20,7 @@ import {
   PlayerCardPopoverComponent,
   PlayerProfileData,
 } from '../player-card-popover/player-card-popover';
+import { ChatService } from '../../services/chat.service';
 
 @Component({
   selector: 'app-chat-message-renderer',
@@ -235,6 +236,7 @@ export class ChatMessageRendererComponent implements OnChanges {
   @Output() openMatchDiscussion = new EventEmitter<SmartMatchData>();
 
   private sanitizer = inject(DomSanitizer);
+  private chatService = inject(ChatService);
   renderedContent: SafeHtml = '';
   audioSource = signal<{ url: string; name: string; size: string } | null>(null);
   linkPreview = signal<LinkPreviewData | null>(null);
@@ -249,12 +251,46 @@ export class ChatMessageRendererComponent implements OnChanges {
         target.getAttribute('data-player-handle') || target.textContent?.replace('@', '') || '';
       const rect = target.getBoundingClientRect();
 
-      const playerData = this.getPlayerProfileData(handle);
-      this.hoveredPlayer.set({
-        player: playerData,
-        pos: {
-          x: Math.min(rect.left, window.innerWidth - 300),
-          y: rect.bottom + 8,
+      this.chatService.getPlayerProfile(handle).subscribe({
+        next: (dbPlayer) => {
+          if (dbPlayer) {
+            const mapped: PlayerProfileData = {
+              id: dbPlayer.id || 'p-101',
+              name: dbPlayer.name,
+              handle: dbPlayer.handle,
+              jerseyNumber: dbPlayer.jerseyNumber,
+              position: dbPlayer.position,
+              teamName: dbPlayer.teamName,
+              teamCode: dbPlayer.teamName.substring(0, 3).toUpperCase(),
+              rating: dbPlayer.rating,
+              stats: {
+                matchesPlayed: dbPlayer.matchesPlayed,
+                goalsOrRuns: dbPlayer.runsOrGoals ? dbPlayer.runsOrGoals.toString() : '0',
+                assistsOrWickets: dbPlayer.wicketsOrAssists
+                  ? dbPlayer.wicketsOrAssists.toString()
+                  : '0',
+                mvpCount: 5,
+              },
+              attendancePercentage: dbPlayer.attendanceRate,
+            };
+            this.hoveredPlayer.set({
+              player: mapped,
+              pos: {
+                x: Math.min(rect.left, window.innerWidth - 300),
+                y: rect.bottom + 8,
+              },
+            });
+          }
+        },
+        error: () => {
+          const playerData = this.getPlayerProfileData(handle);
+          this.hoveredPlayer.set({
+            player: playerData,
+            pos: {
+              x: Math.min(rect.left, window.innerWidth - 300),
+              y: rect.bottom + 8,
+            },
+          });
         },
       });
     }

@@ -11,6 +11,17 @@ import { GroupChatMessage } from './entities/group-chat-message.entity';
 import { WorkspaceFileRepositoryFolder } from './entities/workspace-file-repository-folder.entity';
 import { WorkspaceFileRepositoryItem } from './entities/workspace-file-repository-item.entity';
 import { MatchDiscussionNoteEntity } from './entities/match-discussion-note.entity';
+import { ScheduledChatMessageEntity } from './entities/scheduled-chat-message.entity';
+import { UserNotificationPreferenceEntity } from './entities/user-notification-preference.entity';
+import { PlayerProfileEntity } from './entities/player-profile.entity';
+import { ChatPollEntity } from './entities/chat-poll.entity';
+import { ChatPollVoteEntity } from './entities/chat-poll-vote.entity';
+import { ChatAnnouncementEntity } from './entities/chat-announcement.entity';
+import { EventChannelPresetEntity } from './entities/event-channel-preset.entity';
+import { WorkspaceChannelCategoryEntity } from './entities/workspace-channel-category.entity';
+import { ChatEmojiMasterEntity } from './entities/chat-emoji-master.entity';
+import { MatchFixtureEntity } from './entities/match-fixture.entity';
+import { LinkPreviewCacheEntity } from './entities/link-preview-cache.entity';
 
 import { ChannelsService } from './channels.service';
 import { ChannelsController } from './channels.controller';
@@ -20,6 +31,20 @@ import { GroupChatsService } from './group-chats.service';
 import { GroupChatsController } from './group-chats.controller';
 import { FileRepositoryService } from './file-repository.service';
 import { FileRepositoryController } from './file-repository.controller';
+import { ScheduledMessagesService } from './scheduled-messages.service';
+import { ScheduledMessagesController } from './scheduled-messages.controller';
+import { UserPreferencesService } from './user-preferences.service';
+import { UserPreferencesController } from './user-preferences.controller';
+import { PlayerProfilesService } from './player-profiles.service';
+import { PlayerProfilesController } from './player-profiles.controller';
+import { PollsAnnouncementsService } from './polls-announcements.service';
+import { PollsAnnouncementsController } from './polls-announcements.controller';
+import { EventPresetsService } from './event-presets.service';
+import { EventPresetsController } from './event-presets.controller';
+import { MatchFixturesService } from './match-fixtures.service';
+import { MatchFixturesController } from './match-fixtures.controller';
+import { LinkPreviewsService } from './link-previews.service';
+import { LinkPreviewsController } from './link-previews.controller';
 import { WorkspacesModule } from '../workspaces/workspaces.module';
 
 @Module({
@@ -36,6 +61,17 @@ import { WorkspacesModule } from '../workspaces/workspaces.module';
       WorkspaceFileRepositoryFolder,
       WorkspaceFileRepositoryItem,
       MatchDiscussionNoteEntity,
+      ScheduledChatMessageEntity,
+      UserNotificationPreferenceEntity,
+      PlayerProfileEntity,
+      ChatPollEntity,
+      ChatPollVoteEntity,
+      ChatAnnouncementEntity,
+      EventChannelPresetEntity,
+      WorkspaceChannelCategoryEntity,
+      ChatEmojiMasterEntity,
+      MatchFixtureEntity,
+      LinkPreviewCacheEntity,
     ]),
     WorkspacesModule,
   ],
@@ -44,18 +80,39 @@ import { WorkspacesModule } from '../workspaces/workspaces.module';
     DirectMessagesController,
     GroupChatsController,
     FileRepositoryController,
+    ScheduledMessagesController,
+    UserPreferencesController,
+    PlayerProfilesController,
+    PollsAnnouncementsController,
+    EventPresetsController,
+    MatchFixturesController,
+    LinkPreviewsController,
   ],
   providers: [
     ChannelsService,
     DirectMessagesService,
     GroupChatsService,
     FileRepositoryService,
+    ScheduledMessagesService,
+    UserPreferencesService,
+    PlayerProfilesService,
+    PollsAnnouncementsService,
+    EventPresetsService,
+    MatchFixturesService,
+    LinkPreviewsService,
   ],
   exports: [
     ChannelsService,
     DirectMessagesService,
     GroupChatsService,
     FileRepositoryService,
+    ScheduledMessagesService,
+    UserPreferencesService,
+    PlayerProfilesService,
+    PollsAnnouncementsService,
+    EventPresetsService,
+    MatchFixturesService,
+    LinkPreviewsService,
   ],
 })
 export class ChatModule {}

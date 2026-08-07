@@ -464,4 +464,75 @@ export class ChatService {
       noteData,
     );
   }
+
+  // Scheduled Messages API Endpoints
+  getScheduledMessages(workspaceId: string, senderId: string): Observable<any[]> {
+    return this.http.get<any[]>(
+      `${this.apiUrl}/workspaces/${workspaceId}/scheduled-messages/${senderId}`,
+    );
+  }
+
+  createScheduledMessage(workspaceId: string, data: any): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/workspaces/${workspaceId}/scheduled-messages`, data);
+  }
+
+  cancelScheduledMessage(workspaceId: string, id: string): Observable<any> {
+    return this.http.delete<any>(
+      `${this.apiUrl}/workspaces/${workspaceId}/scheduled-messages/${id}`,
+    );
+  }
+
+  // User Notification Preferences API Endpoints
+  getUserPreferences(userId: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/users/${userId}/preferences`);
+  }
+
+  updateUserPreferences(userId: string, data: any): Observable<any> {
+    return this.http.put<any>(`${this.apiUrl}/users/${userId}/preferences`, data);
+  }
+
+  // Player Profile API Endpoint
+  getPlayerProfile(handle: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/players/profile/${handle}`);
+  }
+
+  // Polls & Announcements API Endpoints
+  createPoll(workspaceId: string, data: any): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/workspaces/${workspaceId}/polls`, data);
+  }
+
+  votePoll(workspaceId: string, pollId: string, userId: string, optionId: string): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/workspaces/${workspaceId}/polls/${pollId}/vote`, {
+      userId,
+      optionId,
+    });
+  }
+
+  createAnnouncement(workspaceId: string, data: any): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/workspaces/${workspaceId}/announcements`, data);
+  }
+
+  acknowledgeAnnouncement(workspaceId: string, id: string, userId: string): Observable<any> {
+    return this.http.patch<any>(
+      `${this.apiUrl}/workspaces/${workspaceId}/announcements/${id}/acknowledge`,
+      {
+        userId,
+      },
+    );
+  }
+
+  // Event Presets API Endpoint
+  getEventPresets(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/event-presets`);
+  }
+
+  // Match Fixture API Endpoint
+  getMatchFixture(workspaceId: string, matchId: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/workspaces/${workspaceId}/matches/${matchId}`);
+  }
+
+  // Link Preview API Endpoint
+  getLinkPreview(url: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/link-previews?url=${encodeURIComponent(url)}`);
+  }
 }

@@ -4,10 +4,13 @@ import {
   Output,
   EventEmitter,
   signal,
+  OnInit,
+  inject,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ChatService } from '../../services/chat.service';
 
 export interface NotificationPreferences {
   desktopEnabled: boolean;
@@ -27,7 +30,8 @@ export interface NotificationPreferences {
   styleUrls: ['./notification-settings-modal.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class NotificationSettingsModalComponent {
+export class NotificationSettingsModalComponent implements OnInit {
+  @Input() currentUserId: string = 'current-user';
   @Input() channels: { id: string; name: string; isMuted?: boolean }[] = [];
   @Input() users: { id: string; username: string; isMuted?: boolean }[] = [];
   @Input() preferences: NotificationPreferences = {
@@ -42,6 +46,8 @@ export class NotificationSettingsModalComponent {
 
   @Output() savePreferences = new EventEmitter<NotificationPreferences>();
   @Output() close = new EventEmitter<void>();
+
+  private chatService = inject(ChatService);
 
   desktopEnabled = signal<boolean>(true);
   browserEnabled = signal<boolean>(true);
@@ -64,6 +70,22 @@ export class NotificationSettingsModalComponent {
       this.notificationScope.set(this.preferences.notificationScope || 'all');
       this.mutedChannelIds.set(this.preferences.mutedChannelIds || []);
       this.mutedUserIds.set(this.preferences.mutedUserIds || []);
+    }
+
+    if (this.currentUserId) {
+      this.chatService.getUserPreferences(this.currentUserId).subscribe({
+        next: (dbPref) => {
+          if (dbPref) {
+            this.desktopEnabled.set(dbPref.desktopNotifications ?? true);
+            this.browserEnabled.set(dbPref.browserNotifications ?? true);
+            this.pushEnabled.set(dbPref.pushNotifications ?? true);
+            this.notificationScope.set(dbPref.mentionOnly ? 'mentions_only' : 'all');
+            this.mutedChannelIds.set(dbPref.mutedChannelIds || []);
+            this.mutedUserIds.set(dbPref.mutedUserIds || []);
+          }
+        },
+        error: () => {},
+      });
     }
 
     if (typeof window !== 'undefined' && 'Notification' in window) {
@@ -95,7 +117,7 @@ export class NotificationSettingsModalComponent {
   }
 
   save() {
-    this.savePreferences.emit({
+    const updated: NotificationPreferences = {
       desktopEnabled: this.desktopEnabled(),
       browserEnabled: this.browserEnabled(),
       pushEnabled: this.pushEnabled(),
@@ -103,7 +125,20 @@ export class NotificationSettingsModalComponent {
       notificationScope: this.notificationScope(),
       mutedChannelIds: this.mutedChannelIds(),
       mutedUserIds: this.mutedUserIds(),
-    });
+    };
+
+    this.chatService
+      .updateUserPreferences(this.currentUserId, {
+        desktopNotifications: updated.desktopEnabled,
+        browserNotifications: updated.browserEnabled,
+        pushNotifications: updated.pushEnabled,
+        mentionOnly: updated.notificationScope === 'mentions_only',
+        mutedChannelIds: updated.mutedChannelIds,
+        mutedUserIds: updated.mutedUserIds,
+      })
+      .subscribe({ error: () => {} });
+
+    this.savePreferences.emit(updated);
     this.close.emit();
   }
 }
