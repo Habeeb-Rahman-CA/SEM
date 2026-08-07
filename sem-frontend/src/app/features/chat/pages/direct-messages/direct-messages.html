@@ -17,7 +17,34 @@
       </div>
     </div>
 
-    <div class="flex items-center gap-3">
+    <div class="flex items-center gap-2">
+      <!-- Notification Inbox Summary Button -->
+      <button
+        type="button"
+        (click)="isNotificationSummaryOpen.set(true)"
+        title="Open Notification Inbox & Mentions Summary"
+        class="relative p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-amber-400 text-xs transition-all cursor-pointer shadow-sm flex items-center justify-center"
+      >
+        <i class="fi fi-rr-bell-ring"></i>
+        @if (unreadNotificationCount() > 0) {
+          <span
+            class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-extrabold flex items-center justify-center animate-pulse"
+          >
+            {{ unreadNotificationCount() }}
+          </span>
+        }
+      </button>
+
+      <!-- Notification Settings Button -->
+      <button
+        type="button"
+        (click)="isNotificationSettingsOpen.set(true)"
+        title="Configure Notification Preferences (Desktop, Push, Email & Mute)"
+        class="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white text-xs transition-all cursor-pointer shadow-sm flex items-center justify-center"
+      >
+        <i class="fi fi-rr-bell"></i>
+      </button>
+
       <!-- User Presence Status Badge Button -->
       <button
         type="button"
@@ -618,6 +645,29 @@
       userPresence.set($event); showToast('Presence status updated to ' + $event.status)
     "
     (close)="isPresenceModalOpen.set(false)"
+  />
+}
+
+<!-- Notification Preferences Modal -->
+@if (isNotificationSettingsOpen()) {
+  <app-notification-settings-modal
+    [preferences]="notificationPreferences()"
+    (savePreferences)="
+      notificationPreferences.set($event); showToast('Notification settings saved')
+    "
+    (close)="isNotificationSettingsOpen.set(false)"
+  />
+}
+
+<!-- Notification Summary Inbox Modal -->
+@if (isNotificationSummaryOpen()) {
+  <app-notification-summary-modal
+    [notifications]="notificationsList()"
+    (markAllAsRead)="
+      notificationsList.update((list) => list.map((n) => ({ ...n, isRead: true })));
+      showToast('All notifications marked as read')
+    "
+    (close)="isNotificationSummaryOpen.set(false)"
   />
 }
 

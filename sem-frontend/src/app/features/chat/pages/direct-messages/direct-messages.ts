@@ -47,6 +47,14 @@ import {
   UserPresenceSelectorComponent,
   UserPresenceState,
 } from '../../components/user-presence/user-presence';
+import {
+  NotificationSettingsModalComponent,
+  NotificationPreferences,
+} from '../../components/notification-settings-modal/notification-settings-modal';
+import {
+  NotificationSummaryModalComponent,
+  NotificationItem,
+} from '../../components/notification-summary-modal/notification-summary-modal';
 
 @Component({
   selector: 'app-direct-messages',
@@ -71,6 +79,8 @@ import {
     TypingIndicatorComponent,
     UserPresenceBadgeComponent,
     UserPresenceSelectorComponent,
+    NotificationSettingsModalComponent,
+    NotificationSummaryModalComponent,
   ],
   templateUrl: './direct-messages.html',
   styleUrls: ['./direct-messages.css'],
@@ -113,6 +123,52 @@ export class DirectMessagesComponent implements OnInit, OnDestroy {
     customStatusText: 'Working remotely',
   });
   isPresenceModalOpen = signal<boolean>(false);
+
+  // Notification Modals & Preferences
+  isNotificationSettingsOpen = signal<boolean>(false);
+  isNotificationSummaryOpen = signal<boolean>(false);
+  notificationPreferences = signal<NotificationPreferences>({
+    desktopEnabled: true,
+    browserEnabled: true,
+    pushEnabled: true,
+    emailDigest: 'hourly',
+    notificationScope: 'all',
+    mutedChannelIds: [],
+    mutedUserIds: [],
+  });
+
+  notificationsList = signal<NotificationItem[]>([
+    {
+      id: 'n1',
+      senderName: 'Habeeb Rahman',
+      content:
+        'Hey @team, please check out the newly deployed typing indicators and notification preferences.',
+      type: 'mention',
+      createdAt: '10m ago',
+      isRead: false,
+    },
+    {
+      id: 'n2',
+      senderName: 'Sarah Jenkins',
+      channelName: 'referees-announcements',
+      content: 'Match schedule for tomorrow has been updated. Please confirm your attendance.',
+      type: 'announcement',
+      createdAt: '45m ago',
+      isRead: false,
+    },
+    {
+      id: 'n3',
+      senderName: 'Alex Rivers',
+      content: 'Sent you the updated venue selection PDF attachment.',
+      type: 'direct_message',
+      createdAt: '2h ago',
+      isRead: true,
+    },
+  ]);
+
+  unreadNotificationCount = computed(
+    () => this.notificationsList().filter((n) => !n.isRead).length,
+  );
 
   isPartnerTyping = signal<boolean>(false);
   private typingTimeout: any = null;

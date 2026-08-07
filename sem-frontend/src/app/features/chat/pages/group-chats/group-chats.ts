@@ -47,6 +47,14 @@ import {
   UserPresenceSelectorComponent,
   UserPresenceState,
 } from '../../components/user-presence/user-presence';
+import {
+  NotificationSettingsModalComponent,
+  NotificationPreferences,
+} from '../../components/notification-settings-modal/notification-settings-modal';
+import {
+  NotificationSummaryModalComponent,
+  NotificationItem,
+} from '../../components/notification-summary-modal/notification-summary-modal';
 
 @Component({
   selector: 'app-group-chats',
@@ -71,6 +79,8 @@ import {
     TypingIndicatorComponent,
     UserPresenceBadgeComponent,
     UserPresenceSelectorComponent,
+    NotificationSettingsModalComponent,
+    NotificationSummaryModalComponent,
   ],
   templateUrl: './group-chats.html',
   styleUrls: ['./group-chats.css'],
@@ -114,6 +124,44 @@ export class GroupChatsComponent implements OnInit, OnDestroy {
     customStatusText: 'Focusing on code',
   });
   isPresenceModalOpen = signal<boolean>(false);
+
+  // Notification Modals & Preferences
+  isNotificationSettingsOpen = signal<boolean>(false);
+  isNotificationSummaryOpen = signal<boolean>(false);
+  notificationPreferences = signal<NotificationPreferences>({
+    desktopEnabled: true,
+    browserEnabled: true,
+    pushEnabled: true,
+    emailDigest: 'hourly',
+    notificationScope: 'all',
+    mutedChannelIds: [],
+    mutedUserIds: [],
+  });
+
+  notificationsList = signal<NotificationItem[]>([
+    {
+      id: 'gn1',
+      senderName: 'Habeeb Rahman',
+      channelName: 'captains-hub',
+      content: 'Hey @team, venue selection poll is live. Please cast your votes.',
+      type: 'mention',
+      createdAt: '15m ago',
+      isRead: false,
+    },
+    {
+      id: 'gn2',
+      senderName: 'Committee Lead',
+      channelName: 'tournament-leads',
+      content: 'Emergency Announcement: Schedule adjustments for group stage matches.',
+      type: 'announcement',
+      createdAt: '1h ago',
+      isRead: false,
+    },
+  ]);
+
+  unreadNotificationCount = computed(
+    () => this.notificationsList().filter((n) => !n.isRead).length,
+  );
 
   activeTypingUserNames = computed(() => this.typingUsers().map((u) => u.username));
 
