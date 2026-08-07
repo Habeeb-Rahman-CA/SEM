@@ -115,7 +115,7 @@ describe('CompetitionPredictionsService', () => {
       matchRepoMock.find.mockResolvedValue(mockMatches);
 
       // Mock AI client to fail / return null
-      jest.spyOn(aiService, 'generateText').mockResolvedValue(null);
+      jest.spyOn(aiService, 'generateText').mockResolvedValue('');
 
       const predictions = await service.getPredictions('comp-1');
 

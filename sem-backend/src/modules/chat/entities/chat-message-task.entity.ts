@@ -24,13 +24,13 @@ export class ChatMessageTaskEntity {
   @Column()
   taskTitle: string;
 
-  @Column({ nullable: true })
-  assigneeId: string;
+  @Column({ type: 'varchar', nullable: true })
+  assigneeId?: string | null;
 
   @Column({ type: 'timestamp', nullable: true })
-  dueDate: Date;
+  dueDate?: Date | null;
 
-  @Column({ default: 'todo' })
+  @Column({ type: 'varchar', default: 'todo' })
   status: 'todo' | 'in_progress' | 'done';
 
   @CreateDateColumn()

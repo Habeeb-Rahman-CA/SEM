@@ -14,8 +14,8 @@ export class ChatAnnouncementEntity {
   @Column()
   workspaceId: string;
 
-  @Column({ nullable: true })
-  messageId?: string;
+  @Column({ type: 'varchar', nullable: true })
+  messageId?: string | null;
 
   @Column()
   authorId: string;
@@ -29,10 +29,10 @@ export class ChatAnnouncementEntity {
   @Column('text')
   content: string;
 
-  @Column({ default: 'medium' })
+  @Column({ type: 'varchar', default: 'medium' })
   priority: 'low' | 'medium' | 'high' | 'urgent';
 
-  @Column({ default: 'all' })
+  @Column({ type: 'varchar', default: 'all' })
   targetAudience: 'all' | 'admins' | 'officials' | 'players';
 
   @Column('simple-array', { nullable: true })

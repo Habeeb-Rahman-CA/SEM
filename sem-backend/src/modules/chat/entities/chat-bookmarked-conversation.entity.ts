@@ -23,11 +23,11 @@ export class ChatBookmarkedConversationEntity {
   @Column()
   targetId: string; // channelId or conversationId
 
-  @Column({ default: 'channel' })
+  @Column({ type: 'varchar', default: 'channel' })
   targetType: string;
 
-  @Column({ nullable: true })
-  label: string;
+  @Column({ type: 'varchar', nullable: true })
+  label?: string | null;
 
   @CreateDateColumn()
   createdAt: Date;

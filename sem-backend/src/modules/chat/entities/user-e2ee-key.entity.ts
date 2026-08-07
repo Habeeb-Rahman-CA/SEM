@@ -21,8 +21,8 @@ export class UserE2EEKeyEntity {
   @Column({ default: 'ECDH-P256' })
   algorithm: string;
 
-  @Column({ nullable: true })
-  fingerprint: string;
+  @Column({ type: 'varchar', nullable: true })
+  fingerprint?: string | null;
 
   @CreateDateColumn()
   createdAt: Date;
