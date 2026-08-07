@@ -856,7 +856,7 @@ export class GroupChatsComponent implements OnInit, OnDestroy {
               senderId: 'user-admin',
               senderName: 'Habeeb Rahman',
               content:
-                'Welcome everyone! Please review the live fixture details for match #MATCH-101 below.',
+                'Welcome everyone! Mentioning @player.habeeb and @player.rahman for squad lineup verification. Check live fixture #MATCH-101 below.',
               createdAt: new Date(Date.now() - 3600000).toISOString(),
               updatedAt: new Date(Date.now() - 3600000).toISOString(),
             },
@@ -867,7 +867,7 @@ export class GroupChatsComponent implements OnInit, OnDestroy {
               senderId: 'user-referee-1',
               senderName: 'David Warner (Umpire)',
               content:
-                'Pitch conditions and ground inspection completed for match #MATCH-FT-88. Live score updates and officials list are linked.',
+                'Pitch inspection completed by @player.smith for match #MATCH-FT-88. Hover over any player name to view stats & rating card.',
               createdAt: new Date(Date.now() - 1800000).toISOString(),
               updatedAt: new Date(Date.now() - 1800000).toISOString(),
             },

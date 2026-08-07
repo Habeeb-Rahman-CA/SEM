@@ -16,11 +16,21 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { AudioPlayerComponent } from '../audio-player/audio-player';
 import { LinkPreviewCardComponent, LinkPreviewData } from '../link-preview-card/link-preview-card';
 import { SmartEventCardComponent, SmartMatchData } from '../smart-event-card/smart-event-card';
+import {
+  PlayerCardPopoverComponent,
+  PlayerProfileData,
+} from '../player-card-popover/player-card-popover';
 
 @Component({
   selector: 'app-chat-message-renderer',
   standalone: true,
-  imports: [CommonModule, AudioPlayerComponent, LinkPreviewCardComponent, SmartEventCardComponent],
+  imports: [
+    CommonModule,
+    AudioPlayerComponent,
+    LinkPreviewCardComponent,
+    SmartEventCardComponent,
+    PlayerCardPopoverComponent,
+  ],
   template: `
     <div class="rich-message-content leading-relaxed font-sans text-xs break-words">
       @if (renderedContent) {
@@ -36,6 +46,9 @@ import { SmartEventCardComponent, SmartMatchData } from '../smart-event-card/sma
       }
       @if (linkPreview(); as preview) {
         <app-link-preview-card [preview]="preview" />
+      }
+      @if (hoveredPlayer(); as pData) {
+        <app-player-card-popover [player]="pData.player" [position]="pData.pos" />
       }
     </div>
   `,
@@ -222,6 +235,34 @@ export class ChatMessageRendererComponent implements OnChanges {
   audioSource = signal<{ url: string; name: string; size: string } | null>(null);
   linkPreview = signal<LinkPreviewData | null>(null);
   smartMatchCard = signal<SmartMatchData | null>(null);
+  hoveredPlayer = signal<{ player: PlayerProfileData; pos: { x: number; y: number } } | null>(null);
+
+  @HostListener('mouseover', ['$event'])
+  onHostMouseOver(event: MouseEvent) {
+    const target = event.target as HTMLElement;
+    if (target && target.classList.contains('mention-player')) {
+      const handle =
+        target.getAttribute('data-player-handle') || target.textContent?.replace('@', '') || '';
+      const rect = target.getBoundingClientRect();
+
+      const playerData = this.getPlayerProfileData(handle);
+      this.hoveredPlayer.set({
+        player: playerData,
+        pos: {
+          x: Math.min(rect.left, window.innerWidth - 300),
+          y: rect.bottom + 8,
+        },
+      });
+    }
+  }
+
+  @HostListener('mouseout', ['$event'])
+  onHostMouseOut(event: MouseEvent) {
+    const target = event.target as HTMLElement;
+    if (target && target.classList.contains('mention-player')) {
+      this.hoveredPlayer.set(null);
+    }
+  }
 
   @HostListener('click', ['$event'])
   onHostClick(event: MouseEvent) {
@@ -257,6 +298,7 @@ export class ChatMessageRendererComponent implements OnChanges {
       this.audioSource.set(null);
       this.linkPreview.set(null);
       this.smartMatchCard.set(null);
+      this.hoveredPlayer.set(null);
 
       const parsedHtml = this.parseRichMessage(this.content || '');
       this.renderedContent = this.sanitizer.bypassSecurityTrustHtml(parsedHtml);
@@ -494,7 +536,7 @@ export class ChatMessageRendererComponent implements OnChanges {
     );
     text = text.replace(
       /@([a-zA-Z0-9_\-]+)\b/g,
-      '<span class="mention-tag mention-user">@$1</span>',
+      '<span class="mention-tag mention-user mention-player cursor-pointer hover:underline" data-player-handle="$1">@$1</span>',
     );
     text = text.replace(
       /#([a-zA-Z0-9_\-]+)\b/g,
@@ -505,6 +547,88 @@ export class ChatMessageRendererComponent implements OnChanges {
     text = text.replace(/\n/g, '<br/>');
 
     return text;
+  }
+
+  private getPlayerProfileData(handle: string): PlayerProfileData {
+    const cleanHandle = handle.toLowerCase().replace(/^player\./, '');
+
+    if (cleanHandle.includes('habeeb') || cleanHandle.includes('admin')) {
+      return {
+        id: 'p-101',
+        name: 'Habeeb Rahman',
+        handle: 'habeeb.rahman',
+        jerseyNumber: 10,
+        position: 'Captain / All-Rounder',
+        teamName: 'Royal Strikers FC',
+        teamCode: 'RSC',
+        rating: 9.6,
+        stats: {
+          matchesPlayed: 38,
+          goalsOrRuns: '1,240',
+          assistsOrWickets: '42',
+          mvpCount: 8,
+        },
+        attendancePercentage: 96,
+      };
+    } else if (cleanHandle.includes('rahman') || cleanHandle.includes('referee')) {
+      return {
+        id: 'p-102',
+        name: 'Rahman Khan',
+        handle: 'rahman.khan',
+        jerseyNumber: 7,
+        position: 'Top-Order Batter / Striker',
+        teamName: 'Titan Kings',
+        teamCode: 'TKS',
+        rating: 9.2,
+        stats: {
+          matchesPlayed: 29,
+          goalsOrRuns: '980',
+          assistsOrWickets: '18',
+          mvpCount: 5,
+        },
+        attendancePercentage: 92,
+      };
+    } else if (
+      cleanHandle.includes('smith') ||
+      cleanHandle.includes('alex') ||
+      cleanHandle.includes('umpire')
+    ) {
+      return {
+        id: 'p-103',
+        name: 'Alex Smith',
+        handle: 'alex.smith',
+        jerseyNumber: 18,
+        position: 'Fast Bowler / Defender',
+        teamName: 'Dynamo FC',
+        teamCode: 'DFC',
+        rating: 8.9,
+        stats: {
+          matchesPlayed: 24,
+          goalsOrRuns: '340',
+          assistsOrWickets: '38',
+          mvpCount: 3,
+        },
+        attendancePercentage: 88,
+      };
+    }
+
+    return {
+      id: `p-${cleanHandle}`,
+      name: handle.charAt(0).toUpperCase() + handle.slice(1).replace(/[\._]/g, ' '),
+      handle: cleanHandle,
+      jerseyNumber: 11,
+      position: 'Senior Squad Member',
+      teamName: 'League All-Stars',
+      teamCode: 'LAS',
+      rating: 8.7,
+      stats: {
+        matchesPlayed: 18,
+        goalsOrRuns: '450',
+        assistsOrWickets: '14',
+        mvpCount: 2,
+      },
+      attendancePercentage: 90,
+    };
   }
 
   private escapeHtml(str: string): string {
