@@ -15,8 +15,8 @@ export class ChatMutedUserEntity {
   @Column()
   workspaceId: string;
 
-  @Column({ nullable: true })
-  channelId: string;
+  @Column({ type: 'varchar', nullable: true })
+  channelId?: string | null;
 
   @Column()
   userId: string;
@@ -27,7 +27,7 @@ export class ChatMutedUserEntity {
   @Column({ type: 'timestamp', nullable: true })
   mutedUntil?: Date | null;
 
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true })
   reason?: string | null;
 
   @CreateDateColumn()

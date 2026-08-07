@@ -24,10 +24,10 @@ export class ChatMessageReminderEntity {
   @Column({ type: 'timestamp' })
   remindAt: Date;
 
-  @Column({ nullable: true })
-  note: string;
+  @Column({ type: 'text', nullable: true })
+  note?: string | null;
 
-  @Column({ default: 'pending' })
+  @Column({ type: 'varchar', default: 'pending' })
   status: 'pending' | 'triggered' | 'dismissed';
 
   @CreateDateColumn()

@@ -18,7 +18,7 @@
             <span
               class="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-[9px] font-mono"
             >
-              #{{ matchData?.matchId || 'MATCH-101' }}
+              #{{ matchData.matchId || 'MATCH-101' }}
             </span>
           </h3>
           <p class="text-[11px] text-slate-400">
@@ -43,10 +43,10 @@
       >
         <div>
           <span class="text-xs font-black text-white block">{{
-            matchData?.title || 'Semi-Finals: Royal Strikers vs Titan Kings'
+            matchData.title || 'Semi-Finals: Royal Strikers vs Titan Kings'
           }}</span>
           <span class="text-[10px] text-slate-400 font-medium block mt-0.5">
-            📍 {{ matchData?.venue || 'National Sports Complex, Pitch 1' }}
+            📍 {{ matchData.venue || 'National Sports Complex, Pitch 1' }}
           </span>
         </div>
         <div class="text-right shrink-0">

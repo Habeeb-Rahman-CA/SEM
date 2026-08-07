@@ -29,8 +29,8 @@ export class ChatModerationAuditLogEntity {
   @Column()
   workspaceId: string;
 
-  @Column({ nullable: true })
-  channelId: string;
+  @Column({ type: 'varchar', nullable: true })
+  channelId?: string | null;
 
   @Column({
     type: 'enum',
@@ -41,17 +41,17 @@ export class ChatModerationAuditLogEntity {
   @Column()
   performedById: string;
 
-  @Column({ nullable: true })
-  performedByName: string;
+  @Column({ type: 'varchar', nullable: true })
+  performedByName?: string | null;
 
-  @Column({ nullable: true })
-  targetUserId: string;
+  @Column({ type: 'varchar', nullable: true })
+  targetUserId?: string | null;
 
-  @Column({ nullable: true })
-  targetUserName: string;
+  @Column({ type: 'varchar', nullable: true })
+  targetUserName?: string | null;
 
-  @Column({ nullable: true })
-  reason: string;
+  @Column({ type: 'text', nullable: true })
+  reason?: string | null;
 
   @Column({ type: 'json', nullable: true })
   metadata: Record<string, any>;

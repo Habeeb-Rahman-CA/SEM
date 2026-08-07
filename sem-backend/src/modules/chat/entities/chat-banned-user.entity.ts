@@ -15,8 +15,8 @@ export class ChatBannedUserEntity {
   @Column()
   workspaceId: string;
 
-  @Column({ nullable: true })
-  channelId: string;
+  @Column({ type: 'varchar', nullable: true })
+  channelId?: string | null;
 
   @Column()
   userId: string;
@@ -24,8 +24,8 @@ export class ChatBannedUserEntity {
   @Column()
   bannedById: string;
 
-  @Column({ nullable: true })
-  reason: string;
+  @Column({ type: 'text', nullable: true })
+  reason?: string | null;
 
   @CreateDateColumn()
   createdAt: Date;

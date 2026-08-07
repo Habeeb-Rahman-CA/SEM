@@ -234,7 +234,7 @@ describe('AnalyticsService', () => {
         performedByName: 'Admin',
         performedById: 'user-1',
         createdAt: new Date(),
-      } as AuditLog;
+      } as unknown as AuditLog;
       jest.spyOn(auditLogRepo, 'find').mockResolvedValueOnce([mockAuditLog]);
 
       const result = await service.getOrganizerInsights('ws-1');

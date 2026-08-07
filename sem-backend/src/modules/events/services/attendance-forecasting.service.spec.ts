@@ -90,7 +90,7 @@ describe('AttendanceForecastingService', () => {
       eventRepoMock.findOne.mockResolvedValue(mockEvent);
       venueRepoMock.findOne.mockResolvedValue(mockVenue);
       eventRepoMock.find.mockResolvedValue([]);
-      jest.spyOn(aiService, 'generateText').mockResolvedValue(null);
+      jest.spyOn(aiService, 'generateText').mockResolvedValue('');
 
       const forecast = await service.getAttendanceForecast(
         'workspace-1',
