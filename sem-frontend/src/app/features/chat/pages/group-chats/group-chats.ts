@@ -40,6 +40,7 @@ import {
   AttachmentDetailsModalComponent,
   AttachmentFileDetails,
 } from '../../components/attachment-details-modal/attachment-details-modal';
+import { ReadReceiptIndicatorComponent } from '../../components/read-receipt-indicator/read-receipt-indicator';
 
 @Component({
   selector: 'app-group-chats',
@@ -60,6 +61,7 @@ import {
     ScheduledMessagesDrawerComponent,
     AdvancedSearchModalComponent,
     AttachmentDetailsModalComponent,
+    ReadReceiptIndicatorComponent,
   ],
   templateUrl: './group-chats.html',
   styleUrls: ['./group-chats.css'],

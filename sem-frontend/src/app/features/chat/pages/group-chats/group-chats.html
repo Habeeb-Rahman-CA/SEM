@@ -302,9 +302,16 @@
                     <div
                       [class.text-violet-200]="msg.senderId === currentUserId()"
                       [class.text-slate-400]="msg.senderId !== currentUserId()"
-                      class="mt-1 flex items-center justify-end gap-1 text-[10px] opacity-80"
+                      class="mt-1 flex items-center justify-end gap-1.5 text-[10px] opacity-80"
                     >
                       <span>{{ msg.createdAt | date: 'shortTime' }}</span>
+                      @if (msg.senderId === currentUserId()) {
+                        <app-read-receipt-indicator
+                          [status]="msg.readBy && msg.readBy.length > 0 ? 'read' : 'delivered'"
+                          [readBy]="msg.readBy || []"
+                          [isGroupChat]="true"
+                        />
+                      }
                     </div>
 
                     <!-- Full 10 Message Actions Toolbar -->

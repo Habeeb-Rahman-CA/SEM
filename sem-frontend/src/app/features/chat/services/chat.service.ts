@@ -87,6 +87,7 @@ export interface DirectMessage {
   isDeleted?: boolean;
   isPinned?: boolean;
   isBookmarked?: boolean;
+  isRead?: boolean;
   translatedText?: string;
   reactions?: { emoji: string; count: number; userReacted?: boolean; users?: string[] }[];
   poll?: PollData;
@@ -160,6 +161,8 @@ export interface GroupChatMessage {
   isDeleted?: boolean;
   isPinned?: boolean;
   isBookmarked?: boolean;
+  isRead?: boolean;
+  readBy?: { userId: string; username: string; avatarUrl?: string; readAt?: string }[];
   translatedText?: string;
   reactions?: { emoji: string; count: number; userReacted?: boolean; users?: string[] }[];
   poll?: PollData;

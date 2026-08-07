@@ -315,7 +315,7 @@
                     >
                       <span>{{ msg.createdAt | date: 'shortTime' }}</span>
                       @if (msg.senderId === currentUserId()) {
-                        <i class="fi fi-rr-check-double text-[10px]"></i>
+                        <app-read-receipt-indicator [status]="msg.isRead ? 'read' : 'delivered'" />
                       }
                     </div>
 
