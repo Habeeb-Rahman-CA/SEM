@@ -237,6 +237,68 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
+  // Real-time Group Chat Socket Subscriptions
+  @SubscribeMessage('subscribeGroupChat')
+  async handleSubscribeGroupChat(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { groupId: string },
+  ) {
+    if (data?.groupId) {
+      await client.join(`group:${data.groupId}`);
+      this.logger.log(`Client ${client.id} joined group room: ${data.groupId}`);
+      return { status: 'ok', room: `group:${data.groupId}` };
+    }
+  }
+
+  @SubscribeMessage('unsubscribeGroupChat')
+  async handleUnsubscribeGroupChat(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { groupId: string },
+  ) {
+    if (data?.groupId) {
+      await client.leave(`group:${data.groupId}`);
+      this.logger.log(`Client ${client.id} left group room: ${data.groupId}`);
+      return { status: 'ok', room: `group:${data.groupId}` };
+    }
+  }
+
+  @SubscribeMessage('group_typing')
+  handleGroupTyping(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { groupId: string; username: string },
+  ) {
+    const senderId = client.data?.user?.sub || client.data?.user?.id;
+    if (data?.groupId) {
+      client.to(`group:${data.groupId}`).emit('group_user_typing', {
+        senderId,
+        username: data.username,
+        groupId: data.groupId,
+      });
+    }
+  }
+
+  @SubscribeMessage('group_stop_typing')
+  handleGroupStopTyping(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { groupId: string },
+  ) {
+    const senderId = client.data?.user?.sub || client.data?.user?.id;
+    if (data?.groupId) {
+      client.to(`group:${data.groupId}`).emit('group_user_stop_typing', {
+        senderId,
+        groupId: data.groupId,
+      });
+    }
+  }
+
+  sendGroupMessage(groupId: string, message: any) {
+    if (this.server) {
+      this.server
+        .to(`group:${groupId}`)
+        .emit('group_message_received', message);
+    }
+  }
+
   // Helper method to emit notifications
   sendNotification(userId: string, notification: any) {
     if (this.server) {

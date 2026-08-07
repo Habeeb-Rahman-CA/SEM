@@ -178,4 +178,11 @@
       [members]="members()"
     />
   }
+  @case ('group-chats') {
+    <app-group-chats
+      class="h-full block min-h-0"
+      [workspaceId]="workspaceId()"
+      [members]="members()"
+    />
+  }
 }

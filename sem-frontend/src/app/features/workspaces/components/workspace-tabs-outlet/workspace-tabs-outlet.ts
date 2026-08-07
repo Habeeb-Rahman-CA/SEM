@@ -23,6 +23,7 @@ import { FinanceComponent } from '../../../finance/pages/finance';
 import { GovernanceComponent } from '../../../governance/pages/governance';
 import { ChannelsComponent } from '../../../chat/pages/channels/channels';
 import { DirectMessagesComponent } from '../../../chat/pages/direct-messages/direct-messages';
+import { GroupChatsComponent } from '../../../chat/pages/group-chats/group-chats';
 
 import type {
   Workspace,
@@ -72,6 +73,7 @@ import type {
     GovernanceComponent,
     ChannelsComponent,
     DirectMessagesComponent,
+    GroupChatsComponent,
   ],
   templateUrl: './workspace-tabs-outlet.html',
   changeDetection: ChangeDetectionStrategy.OnPush,

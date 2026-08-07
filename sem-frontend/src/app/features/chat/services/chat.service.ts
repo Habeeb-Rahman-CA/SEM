@@ -87,6 +87,69 @@ export interface DirectMessage {
   updatedAt: string;
 }
 
+export interface GroupChatMember {
+  id: string;
+  userId: string;
+  username?: string;
+  avatarUrl?: string;
+  role: 'admin' | 'member';
+  joinedAt: string;
+  isOnline?: boolean;
+}
+
+export interface GroupChat {
+  id: string;
+  workspaceId: string;
+  name: string;
+  description?: string;
+  icon: string;
+  isTemporary: boolean;
+  expiresAt?: string;
+  createdById: string;
+  lastMessageAt?: string;
+  lastMessageText?: string;
+  createdAt: string;
+  role?: 'admin' | 'member';
+  isPinned?: boolean;
+  isMuted?: boolean;
+  lastReadAt?: string;
+  memberCount: number;
+  unreadCount: number;
+  members?: GroupChatMember[];
+}
+
+export interface CreateGroupChatDto {
+  name: string;
+  description?: string;
+  icon?: string;
+  isTemporary?: boolean;
+  expiresAt?: string;
+  initialMemberUserIds?: string[];
+}
+
+export interface UpdateGroupChatDto {
+  name?: string;
+  description?: string;
+  icon?: string;
+  isTemporary?: boolean;
+  expiresAt?: string;
+  isPinned?: boolean;
+  isMuted?: boolean;
+}
+
+export interface GroupChatMessage {
+  id: string;
+  groupChatId: string;
+  workspaceId: string;
+  senderId: string;
+  senderName?: string;
+  senderAvatarUrl?: string;
+  content: string;
+  attachments?: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -233,6 +296,97 @@ export class ChatService {
   searchDmMessages(workspaceId: string, query: string): Observable<any[]> {
     return this.http.get<any[]>(
       `${this.apiUrl}/workspaces/${workspaceId}/direct-messages/search?q=${encodeURIComponent(query)}`,
+    );
+  }
+
+  // ─── Group Chat Endpoints ───
+  getGroupChats(workspaceId: string): Observable<GroupChat[]> {
+    return this.http.get<GroupChat[]>(`${this.apiUrl}/workspaces/${workspaceId}/group-chats`);
+  }
+
+  createGroupChat(workspaceId: string, dto: CreateGroupChatDto): Observable<GroupChat> {
+    return this.http.post<GroupChat>(`${this.apiUrl}/workspaces/${workspaceId}/group-chats`, dto);
+  }
+
+  getGroupChatDetails(workspaceId: string, groupId: string): Observable<GroupChat> {
+    return this.http.get<GroupChat>(
+      `${this.apiUrl}/workspaces/${workspaceId}/group-chats/${groupId}`,
+    );
+  }
+
+  updateGroupChat(
+    workspaceId: string,
+    groupId: string,
+    dto: UpdateGroupChatDto,
+  ): Observable<GroupChat> {
+    return this.http.patch<GroupChat>(
+      `${this.apiUrl}/workspaces/${workspaceId}/group-chats/${groupId}`,
+      dto,
+    );
+  }
+
+  deleteGroupChat(
+    workspaceId: string,
+    groupId: string,
+  ): Observable<{ success: boolean; message: string }> {
+    return this.http.delete<{ success: boolean; message: string }>(
+      `${this.apiUrl}/workspaces/${workspaceId}/group-chats/${groupId}`,
+    );
+  }
+
+  addGroupMember(workspaceId: string, groupId: string, userId: string): Observable<GroupChat> {
+    return this.http.post<GroupChat>(
+      `${this.apiUrl}/workspaces/${workspaceId}/group-chats/${groupId}/members`,
+      { userId },
+    );
+  }
+
+  removeGroupMember(
+    workspaceId: string,
+    groupId: string,
+    userId: string,
+  ): Observable<{ success: boolean }> {
+    return this.http.delete<{ success: boolean }>(
+      `${this.apiUrl}/workspaces/${workspaceId}/group-chats/${groupId}/members/${userId}`,
+    );
+  }
+
+  leaveGroupChat(workspaceId: string, groupId: string): Observable<{ success: boolean }> {
+    return this.http.post<{ success: boolean }>(
+      `${this.apiUrl}/workspaces/${workspaceId}/group-chats/${groupId}/leave`,
+      {},
+    );
+  }
+
+  getGroupMessages(
+    workspaceId: string,
+    groupId: string,
+    limit: number = 50,
+  ): Observable<GroupChatMessage[]> {
+    return this.http.get<GroupChatMessage[]>(
+      `${this.apiUrl}/workspaces/${workspaceId}/group-chats/${groupId}/messages?limit=${limit}`,
+    );
+  }
+
+  sendGroupMessage(
+    workspaceId: string,
+    groupId: string,
+    content: string,
+    attachments: string[] = [],
+  ): Observable<GroupChatMessage> {
+    return this.http.post<GroupChatMessage>(
+      `${this.apiUrl}/workspaces/${workspaceId}/group-chats/${groupId}/messages`,
+      { content, attachments },
+    );
+  }
+
+  markGroupAsRead(
+    workspaceId: string,
+    groupId: string,
+  ): Observable<{ success: boolean; lastReadAt?: string }> {
+    return this.http.post<{ success: boolean; lastReadAt?: string }>(
+      `${this.apiUrl}/workspaces/${workspaceId}/group-chats/${groupId}/read`,
+      {},
     );
   }
 }
