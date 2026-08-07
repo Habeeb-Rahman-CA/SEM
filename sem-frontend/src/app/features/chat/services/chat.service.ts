@@ -112,6 +112,10 @@ export interface GroupChat {
   name: string;
   description?: string;
   category?: string;
+  eventId?: string;
+  eventName?: string;
+  isArchived?: boolean;
+  postingPermission?: 'all_members' | 'admin_only_posting' | 'read_only';
   icon: string;
   isTemporary: boolean;
   expiresAt?: string;

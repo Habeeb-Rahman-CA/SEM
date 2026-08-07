@@ -55,6 +55,10 @@ import {
   NotificationSummaryModalComponent,
   NotificationItem,
 } from '../../components/notification-summary-modal/notification-summary-modal';
+import {
+  GenerateEventChannelsModalComponent,
+  GeneratedEventPayload,
+} from '../../components/generate-event-channels-modal/generate-event-channels-modal';
 
 @Component({
   selector: 'app-group-chats',
@@ -81,6 +85,7 @@ import {
     UserPresenceSelectorComponent,
     NotificationSettingsModalComponent,
     NotificationSummaryModalComponent,
+    GenerateEventChannelsModalComponent,
   ],
   templateUrl: './group-chats.html',
   styleUrls: ['./group-chats.css'],
@@ -162,6 +167,90 @@ export class GroupChatsComponent implements OnInit, OnDestroy {
   unreadNotificationCount = computed(
     () => this.notificationsList().filter((n) => !n.isRead).length,
   );
+
+  isGenerateEventModalOpen = signal<boolean>(false);
+
+  // Event Hierarchy Grouping
+  eventGroups = computed(() => {
+    const chats = this.groupChats();
+    const map = new Map<string, GroupChat[]>();
+
+    chats.forEach((chat) => {
+      const eName = chat.eventName || chat.category || 'General';
+      if (!map.has(eName)) {
+        map.set(eName, []);
+      }
+      map.get(eName)!.push(chat);
+    });
+
+    return Array.from(map.entries()).map(([eventName, channels]) => {
+      const isArchived = channels.every((c) => c.isArchived);
+      return { eventName, channels, isArchived };
+    });
+  });
+
+  onGenerateEventChannels(payload: GeneratedEventPayload): void {
+    const newChats: GroupChat[] = payload.subChannels.map((sub) => ({
+      id: 'group-' + Math.random().toString(36).substring(2, 9),
+      workspaceId: this.workspaceId(),
+      name: `${payload.eventName} - ${sub.name}`,
+      description: sub.description,
+      category: payload.eventName,
+      eventName: payload.eventName,
+      icon: sub.icon,
+      isTemporary: false,
+      createdById: this.currentUserId(),
+      createdAt: new Date().toISOString(),
+      memberCount: 8,
+      unreadCount: 0,
+      isArchived: false,
+      postingPermission: 'all_members',
+    }));
+
+    this.groupChats.update((list) => [...newChats, ...list]);
+    if (newChats.length > 0) {
+      this.selectGroup(newChats[0]);
+    }
+    this.showToast(`Generated ${newChats.length} sub-channels for "${payload.eventName}"`);
+  }
+
+  toggleArchiveEvent(eventName: string): void {
+    let newArchivedState = false;
+    this.groupChats.update((list) => {
+      const targetChannels = list.filter((c) => (c.eventName || c.category) === eventName);
+      newArchivedState = !targetChannels.every((c) => c.isArchived);
+
+      return list.map((c) => {
+        if ((c.eventName || c.category) === eventName) {
+          return {
+            ...c,
+            isArchived: newArchivedState,
+            postingPermission: newArchivedState ? 'read_only' : 'all_members',
+          };
+        }
+        return c;
+      });
+    });
+
+    const activeGroup = this.selectedGroup();
+    if (activeGroup && (activeGroup.eventName || activeGroup.category) === eventName) {
+      this.selectedGroup.update((g) =>
+        g
+          ? {
+              ...g,
+              isArchived: newArchivedState,
+              postingPermission: newArchivedState ? 'read_only' : 'all_members',
+            }
+          : null,
+      );
+    }
+
+    this.showToast(
+      newArchivedState
+        ? `Event "${eventName}" archived. Related channels are now READ-ONLY 🔒`
+        : `Event "${eventName}" un-archived. Channels restored to active posting!`,
+    );
+  }
 
   activeTypingUserNames = computed(() => this.typingUsers().map((u) => u.username));
 
@@ -633,7 +722,113 @@ export class GroupChatsComponent implements OnInit, OnDestroy {
     this.isLoadingGroups.set(true);
     this.chatService.getGroupChats(this.workspaceId()).subscribe({
       next: (res: GroupChat[]) => {
-        this.groupChats.set(res);
+        if (!res || res.length === 0) {
+          // Provide default Event-aware structured hierarchy
+          const defaultEventChats: GroupChat[] = [
+            {
+              id: 'gc-gen',
+              workspaceId: this.workspaceId(),
+              name: 'General Workspace Discussion',
+              description: 'Company-wide announcements and general chat',
+              eventName: 'General Workspace',
+              category: 'General Workspace',
+              icon: 'fi fi-rr-comments',
+              isTemporary: false,
+              createdById: 'admin',
+              createdAt: new Date().toISOString(),
+              memberCount: 24,
+              unreadCount: 0,
+              isArchived: false,
+              postingPermission: 'all_members',
+            },
+            {
+              id: 'gc-crick-org',
+              workspaceId: this.workspaceId(),
+              name: 'Cricket Tournament - Organizers',
+              description: 'Executive committee & tournament leads',
+              eventName: 'Cricket Tournament',
+              category: 'Cricket Tournament',
+              icon: 'fi fi-rr-user-gear',
+              isTemporary: false,
+              createdById: 'admin',
+              createdAt: new Date().toISOString(),
+              memberCount: 6,
+              unreadCount: 0,
+              isArchived: false,
+              postingPermission: 'all_members',
+            },
+            {
+              id: 'gc-crick-ref',
+              workspaceId: this.workspaceId(),
+              name: 'Cricket Tournament - Referees',
+              description: 'Match officials & referee assignments',
+              eventName: 'Cricket Tournament',
+              category: 'Cricket Tournament',
+              icon: 'fi fi-rr-whistle',
+              isTemporary: false,
+              createdById: 'admin',
+              createdAt: new Date().toISOString(),
+              memberCount: 4,
+              unreadCount: 2,
+              isArchived: false,
+              postingPermission: 'all_members',
+            },
+            {
+              id: 'gc-crick-vol',
+              workspaceId: this.workspaceId(),
+              name: 'Cricket Tournament - Volunteers',
+              description: 'Ground staff & volunteer task force',
+              eventName: 'Cricket Tournament',
+              category: 'Cricket Tournament',
+              icon: 'fi fi-rr-heart',
+              isTemporary: false,
+              createdById: 'admin',
+              createdAt: new Date().toISOString(),
+              memberCount: 12,
+              unreadCount: 0,
+              isArchived: false,
+              postingPermission: 'all_members',
+            },
+            {
+              id: 'gc-crick-team',
+              workspaceId: this.workspaceId(),
+              name: 'Cricket Tournament - Teams',
+              description: 'Team captains & squad registrations',
+              eventName: 'Cricket Tournament',
+              category: 'Cricket Tournament',
+              icon: 'fi fi-rr-users-alt',
+              isTemporary: false,
+              createdById: 'admin',
+              createdAt: new Date().toISOString(),
+              memberCount: 18,
+              unreadCount: 1,
+              isArchived: false,
+              postingPermission: 'all_members',
+            },
+            {
+              id: 'gc-foot-lead',
+              workspaceId: this.workspaceId(),
+              name: 'Football League - League Management',
+              description: 'Football league rules & standings',
+              eventName: 'Football League',
+              category: 'Football League',
+              icon: 'fi fi-rr-trophy',
+              isTemporary: false,
+              createdById: 'admin',
+              createdAt: new Date().toISOString(),
+              memberCount: 10,
+              unreadCount: 0,
+              isArchived: false,
+              postingPermission: 'all_members',
+            },
+          ];
+          this.groupChats.set(defaultEventChats);
+          if (!this.selectedGroup()) {
+            this.selectGroup(defaultEventChats[0]);
+          }
+        } else {
+          this.groupChats.set(res);
+        }
         this.isLoadingGroups.set(false);
       },
       error: (err: any) => {

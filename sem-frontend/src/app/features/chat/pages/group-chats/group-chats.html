@@ -59,6 +59,17 @@
         <i class="fi fi-rr-angle-small-down text-slate-400 text-xs"></i>
       </button>
 
+      <!-- Generate Event Channels Button -->
+      <button
+        type="button"
+        (click)="isGenerateEventModalOpen.set(true)"
+        title="Automatically generate event channel hierarchies (Organizers, Referees, Volunteers, Teams)"
+        class="px-3 py-1.5 rounded-xl bg-cyan-600/20 hover:bg-cyan-600/30 border border-cyan-500/40 text-cyan-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+      >
+        <i class="fi fi-rr-folder-tree"></i>
+        <span>Event Tree</span>
+      </button>
+
       <button
         (click)="isCreateModalOpen.set(true)"
         class="px-4 py-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-semibold rounded-xl flex items-center gap-2 shadow-lg shadow-violet-600/20 transition-all cursor-pointer"
@@ -97,98 +108,113 @@
         </button>
       </div>
 
-      <!-- Groups Scroll List -->
-      <div class="flex-1 overflow-y-auto p-2 space-y-1 scrollbar-none">
+      <!-- Groups Scroll List with Event Tree Hierarchy -->
+      <div class="flex-1 overflow-y-auto p-2 space-y-3 scrollbar-none">
         @if (isLoadingGroups()) {
           <div class="p-8 text-center text-slate-500 text-xs">
             <i class="fi fi-rr-spinner animate-spin text-lg mb-2 block"></i>
-            Loading group chats...
+            Loading event group channels...
           </div>
-        } @else if (filteredGroupChats().length === 0) {
+        } @else if (eventGroups().length === 0) {
           <div class="p-8 text-center text-slate-500 text-xs">
-            <i class="fi fi-rr-users-alt text-2xl mb-2 block text-slate-600"></i>
+            <i class="fi fi-rr-folder-tree text-2xl mb-2 block text-slate-600"></i>
             No group chats found.
             <button
-              (click)="isCreateModalOpen.set(true)"
-              class="mt-3 text-violet-400 hover:text-violet-300 font-semibold underline block mx-auto cursor-pointer"
+              (click)="isGenerateEventModalOpen.set(true)"
+              class="mt-3 text-cyan-400 hover:text-cyan-300 font-semibold underline block mx-auto cursor-pointer"
             >
-              Create your first group
+              Generate Event Channels
             </button>
           </div>
         } @else {
-          @for (group of filteredGroupChats(); track group.id) {
-            <div
-              (click)="selectGroup(group)"
-              [class.bg-violet-600\/15]="selectedGroup()?.id === group.id"
-              [class.border-violet-500\/30]="selectedGroup()?.id === group.id"
-              class="p-3 rounded-xl border border-transparent hover:border-white/10 hover:bg-white/5 transition-all cursor-pointer group relative flex items-center gap-3"
-            >
-              <!-- Icon Avatar -->
+          @for (eg of eventGroups(); track eg.eventName) {
+            <div class="space-y-1">
+              <!-- Event Category Folder Header -->
               <div
-                class="w-10 h-10 rounded-xl bg-gradient-to-tr from-violet-600/30 to-indigo-600/30 border border-violet-500/30 text-violet-300 flex items-center justify-center text-lg shrink-0 shadow-md"
+                class="px-2 py-1.5 rounded-xl bg-white/5 border border-white/5 flex items-center justify-between group/event"
               >
-                <i [class]="group.icon || 'fi fi-rr-users-alt'"></i>
-              </div>
-
-              <!-- Content -->
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center justify-between mb-0.5">
-                  <span class="text-xs font-semibold text-white truncate flex items-center gap-1.5">
-                    {{ group.name }}
-                    @if (group.isTemporary) {
-                      <span
-                        class="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[9px] font-bold"
-                        >Temp</span
-                      >
-                    }
-                    @if (group.isPinned) {
-                      <i class="fi fi-rr-thumbtack text-[10px] text-amber-400"></i>
-                    }
+                <div class="flex items-center gap-2 min-w-0">
+                  <i class="fi fi-rr-folder text-cyan-400 text-xs"></i>
+                  <span
+                    class="text-[11px] font-extrabold uppercase tracking-wider text-slate-300 truncate"
+                  >
+                    {{ eg.eventName }}
                   </span>
-                  @if (group.lastMessageAt) {
-                    <span class="text-[10px] text-slate-500 shrink-0">
-                      {{ group.lastMessageAt | date: 'shortTime' }}
+                  @if (eg.isArchived) {
+                    <span
+                      class="px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 text-[9px] font-bold flex items-center gap-1"
+                    >
+                      <i class="fi fi-rr-lock text-[8px]"></i> Archived
                     </span>
                   }
                 </div>
-                <p class="text-xs text-slate-400 truncate">
-                  {{ group.lastMessageText || group.description || 'No messages yet' }}
-                </p>
+
+                <button
+                  type="button"
+                  (click)="toggleArchiveEvent(eg.eventName)"
+                  title="{{
+                    eg.isArchived ? 'Un-archive Event' : 'Archive Event & Make Channels Read-Only'
+                  }}"
+                  class="px-2 py-0.5 rounded-lg bg-white/5 hover:bg-rose-500/20 text-[10px] font-bold text-slate-400 hover:text-rose-300 transition-all cursor-pointer opacity-70 group-hover/event:opacity-100 flex items-center gap-1"
+                >
+                  <i [class]="eg.isArchived ? 'fi fi-rr-box' : 'fi fi-rr-box-alt'"></i>
+                  <span>{{ eg.isArchived ? 'Unarchive' : 'Archive' }}</span>
+                </button>
               </div>
 
-              <!-- Unread & Quick Actions -->
-              <div class="flex items-center gap-1 shrink-0">
-                @if (group.unreadCount > 0) {
-                  <span
-                    class="px-1.5 py-0.5 rounded-full bg-violet-600 text-white text-[10px] font-bold"
+              <!-- Nested Sub-channels List -->
+              <div class="pl-2 border-l border-white/10 space-y-1">
+                @for (group of eg.channels; track group.id) {
+                  <div
+                    (click)="selectGroup(group)"
+                    [class.bg-violet-600\/15]="selectedGroup()?.id === group.id"
+                    [class.border-violet-500\/30]="selectedGroup()?.id === group.id"
+                    [class.opacity-60]="group.isArchived"
+                    class="p-2.5 rounded-xl border border-transparent hover:border-white/10 hover:bg-white/5 transition-all cursor-pointer group relative flex items-center gap-2.5"
                   >
-                    {{ group.unreadCount }}
-                  </span>
+                    <!-- Icon Avatar -->
+                    <div
+                      class="w-8 h-8 rounded-xl bg-gradient-to-tr from-violet-600/30 to-indigo-600/30 border border-violet-500/30 text-violet-300 flex items-center justify-center text-sm shrink-0 shadow-md"
+                    >
+                      <i [class]="group.icon || 'fi fi-rr-users-alt'"></i>
+                    </div>
+
+                    <!-- Content -->
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center justify-between">
+                        <span
+                          class="text-xs font-semibold text-white truncate flex items-center gap-1"
+                        >
+                          {{ group.name.includes(' - ') ? group.name.split(' - ')[1] : group.name }}
+                          @if (group.isArchived) {
+                            <i
+                              class="fi fi-rr-lock text-[9px] text-rose-400"
+                              title="Read-only archived channel"
+                            ></i>
+                          }
+                          @if (group.isTemporary) {
+                            <span
+                              class="px-1 py-0.2 rounded bg-amber-500/20 text-amber-400 text-[8px] font-bold"
+                              >Temp</span
+                            >
+                          }
+                        </span>
+                      </div>
+                      <p class="text-[10px] text-slate-400 truncate">
+                        {{ group.description || 'Event channel' }}
+                      </p>
+                    </div>
+
+                    <!-- Unread Count -->
+                    @if (group.unreadCount > 0) {
+                      <span
+                        class="px-1.5 py-0.5 rounded-full bg-violet-600 text-white text-[9px] font-bold"
+                      >
+                        {{ group.unreadCount }}
+                      </span>
+                    }
+                  </div>
                 }
-                <div class="hidden group-hover:flex items-center gap-1">
-                  <button
-                    (click)="togglePin(group, $event)"
-                    title="Pin Group"
-                    class="p-1 hover:text-amber-400 text-slate-400 transition-colors"
-                  >
-                    <i
-                      [class]="
-                        group.isPinned ? 'fi fi-sr-thumbtack text-amber-400' : 'fi fi-rr-thumbtack'
-                      "
-                    ></i>
-                  </button>
-                  <button
-                    (click)="toggleMute(group, $event)"
-                    title="Mute Group"
-                    class="p-1 hover:text-rose-400 text-slate-400 transition-colors"
-                  >
-                    <i
-                      [class]="
-                        group.isMuted ? 'fi fi-sr-bell-slash text-rose-400' : 'fi fi-rr-bell'
-                      "
-                    ></i>
-                  </button>
-                </div>
               </div>
             </div>
           }
@@ -266,6 +292,29 @@
             </button>
           </div>
         </div>
+
+        <!-- Read-Only Event Archival Banner -->
+        @if (group.isArchived || group.postingPermission === 'read_only') {
+          <div
+            class="px-6 py-2.5 bg-rose-950/80 border-b border-rose-500/30 flex items-center justify-between text-xs text-rose-200 animate-in fade-in shrink-0"
+          >
+            <div class="flex items-center gap-2">
+              <i class="fi fi-rr-lock text-rose-400 text-sm"></i>
+              <span>
+                <strong>Archived Channel</strong> — This channel is read-only because the parent
+                event (<strong>{{ group.eventName || 'Event' }}</strong
+                >) has concluded.
+              </span>
+            </div>
+            <button
+              type="button"
+              (click)="toggleArchiveEvent(group.eventName || group.category || '')"
+              class="text-[10px] font-extrabold text-rose-300 underline hover:text-white cursor-pointer"
+            >
+              Unarchive
+            </button>
+          </div>
+        }
 
         <!-- Messages Scroll View -->
         <div #messagesContainer class="flex-1 overflow-y-auto p-6 space-y-4 scrollbar-none">
@@ -443,24 +492,40 @@
           }
         </div>
 
-        <!-- Rich Chat Input Bar -->
-        <div class="p-4 border-t border-white/10 bg-slate-900/60 shrink-0">
-          <app-chat-rich-message-input
-            placeholder="Send message to {{
-              group.name
-            }} (@mentions, Markdown, Emojis, GIFs & Stickers supported)..."
-            [members]="members()"
-            [isSending]="isSending()"
-            [replyingToMessage]="replyingToMessage()"
-            [editingMessage]="editingMessage()"
-            (cancelReply)="replyingToMessage.set(null)"
-            (cancelEdit)="editingMessage.set(null)"
-            (sendMessage)="onSendRichMessage($event)"
-            (sendPoll)="onSendPoll($event)"
-            (sendAnnouncement)="onSendAnnouncement($event)"
-            (scheduleMessage)="onScheduleMessage($event)"
-          />
-        </div>
+        <!-- Rich Chat Input Bar / Locked Read-only Bar -->
+        @if (group.isArchived || group.postingPermission === 'read_only') {
+          <div class="p-4 border-t border-white/10 bg-slate-950/80 shrink-0 text-center">
+            <div
+              class="px-4 py-3 rounded-2xl bg-rose-950/30 border border-rose-500/30 text-rose-300 text-xs font-semibold flex items-center justify-center gap-2"
+            >
+              <i class="fi fi-rr-lock text-rose-400 text-sm"></i>
+              <span>
+                This channel is <strong>read-only</strong> because the parent event (<strong>{{
+                  group.eventName
+                }}</strong
+                >) is archived.
+              </span>
+            </div>
+          </div>
+        } @else {
+          <div class="p-4 border-t border-white/10 bg-slate-900/60 shrink-0">
+            <app-chat-rich-message-input
+              placeholder="Send message to {{
+                group.name
+              }} (@mentions, Markdown, Emojis, GIFs & Stickers supported)..."
+              [members]="members()"
+              [isSending]="isSending()"
+              [replyingToMessage]="replyingToMessage()"
+              [editingMessage]="editingMessage()"
+              (cancelReply)="replyingToMessage.set(null)"
+              (cancelEdit)="editingMessage.set(null)"
+              (sendMessage)="onSendRichMessage($event)"
+              (sendPoll)="onSendPoll($event)"
+              (sendAnnouncement)="onSendAnnouncement($event)"
+              (scheduleMessage)="onScheduleMessage($event)"
+            />
+          </div>
+        }
       } @else {
         <!-- Empty State -->
         <div
@@ -854,6 +919,14 @@
       showToast('All notifications marked as read')
     "
     (close)="isNotificationSummaryOpen.set(false)"
+  />
+}
+
+<!-- Generate Event Channels Modal -->
+@if (isGenerateEventModalOpen()) {
+  <app-generate-event-channels-modal
+    (generateEvent)="onGenerateEventChannels($event)"
+    (close)="isGenerateEventModalOpen.set(false)"
   />
 }
 
