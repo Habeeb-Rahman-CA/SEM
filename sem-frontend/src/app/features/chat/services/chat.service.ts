@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
+import { PollData } from '../components/create-poll-modal/create-poll-modal';
 
 export interface Channel {
   id: string;
@@ -87,6 +88,7 @@ export interface DirectMessage {
   isBookmarked?: boolean;
   translatedText?: string;
   reactions?: { emoji: string; count: number; userReacted?: boolean; users?: string[] }[];
+  poll?: PollData;
   createdAt: string;
   updatedAt: string;
 }
@@ -158,6 +160,7 @@ export interface GroupChatMessage {
   isBookmarked?: boolean;
   translatedText?: string;
   reactions?: { emoji: string; count: number; userReacted?: boolean; users?: string[] }[];
+  poll?: PollData;
   createdAt: string;
   updatedAt: string;
 }

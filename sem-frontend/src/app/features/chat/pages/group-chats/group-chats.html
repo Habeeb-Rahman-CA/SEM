@@ -251,11 +251,21 @@
                         {{ msg.senderName }}
                       </p>
                     }
-                    <app-chat-message-renderer
-                      [content]="msg.content"
-                      (imageClick)="onImageClick($event)"
-                      (videoClick)="onVideoClick($event)"
-                    />
+                    @if (msg.poll) {
+                      <div class="my-1">
+                        <app-poll-card
+                          [poll]="msg.poll"
+                          [currentUserId]="currentUserId()"
+                          (vote)="onVotePoll($event)"
+                        />
+                      </div>
+                    } @else {
+                      <app-chat-message-renderer
+                        [content]="msg.content"
+                        (imageClick)="onImageClick($event)"
+                        (videoClick)="onVideoClick($event)"
+                      />
+                    }
 
                     <div
                       [class.text-violet-200]="msg.senderId === currentUserId()"
@@ -369,6 +379,7 @@
             (cancelReply)="replyingToMessage.set(null)"
             (cancelEdit)="editingMessage.set(null)"
             (sendMessage)="onSendRichMessage($event)"
+            (sendPoll)="onSendPoll($event)"
           />
         </div>
       } @else {

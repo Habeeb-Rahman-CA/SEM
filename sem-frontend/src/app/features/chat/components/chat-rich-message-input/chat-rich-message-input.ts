@@ -12,6 +12,8 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
+import { CreatePollModalComponent, PollData } from '../create-poll-modal/create-poll-modal';
+
 export interface MentionSuggestion {
   id: string;
   name: string;
@@ -36,7 +38,7 @@ export interface AttachmentItem {
 @Component({
   selector: 'app-chat-rich-message-input',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, CreatePollModalComponent],
   templateUrl: './chat-rich-message-input.html',
   styleUrls: ['./chat-rich-message-input.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -51,10 +53,22 @@ export class ChatRichMessageInputComponent {
   @Input() replyingToMessage: any = null;
   @Input() editingMessage: any = null;
 
-  @Output() sendMessage = new EventEmitter<{ content: string; attachments?: string[] }>();
+  @Output() sendMessage = new EventEmitter<{
+    content: string;
+    attachments?: string[];
+    poll?: PollData;
+  }>();
+  @Output() sendPoll = new EventEmitter<PollData>();
   @Output() typing = new EventEmitter<void>();
   @Output() cancelReply = new EventEmitter<void>();
   @Output() cancelEdit = new EventEmitter<void>();
+
+  isCreatePollOpen = signal<boolean>(false);
+
+  handleCreatePoll(poll: PollData) {
+    this.isCreatePollOpen.set(false);
+    this.sendPoll.emit(poll);
+  }
 
   @ViewChild('textareaRef') textareaRef!: ElementRef<HTMLTextAreaElement>;
   @ViewChild('fileInputRef') fileInputRef!: ElementRef<HTMLInputElement>;

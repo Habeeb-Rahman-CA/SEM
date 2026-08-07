@@ -42,6 +42,17 @@
         <span class="text-[10px] font-bold hidden sm:inline">Attach</span>
       </button>
 
+      <!-- Create Poll Button -->
+      <button
+        type="button"
+        (click)="isCreatePollOpen.set(true)"
+        title="Create Team Poll (Anonymous, Multiple Choice & Presets supported)"
+        class="p-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 transition-colors text-xs font-semibold cursor-pointer flex items-center gap-1"
+      >
+        <i class="fi fi-rr-stats"></i>
+        <span class="text-[10px] font-bold hidden sm:inline">Poll</span>
+      </button>
+
       <div class="w-px h-4 bg-white/10 mx-1"></div>
 
       <!-- Bold -->
@@ -634,3 +645,11 @@
     </div>
   }
 </div>
+
+<!-- Create Poll Modal -->
+@if (isCreatePollOpen()) {
+  <app-create-poll-modal
+    (close)="isCreatePollOpen.set(false)"
+    (createPoll)="handleCreatePoll($event)"
+  />
+}

@@ -27,6 +27,8 @@ import {
 import { MessageActionToolbarComponent } from '../../components/message-action-toolbar/message-action-toolbar';
 import { ForwardMessageModalComponent } from '../../components/forward-message-modal/forward-message-modal';
 import { ShareMessageModalComponent } from '../../components/share-message-modal/share-message-modal';
+import { PollCardComponent } from '../../components/poll-card/poll-card';
+import { PollData } from '../../components/create-poll-modal/create-poll-modal';
 
 @Component({
   selector: 'app-group-chats',
@@ -42,6 +44,7 @@ import { ShareMessageModalComponent } from '../../components/share-message-modal
     MessageActionToolbarComponent,
     ForwardMessageModalComponent,
     ShareMessageModalComponent,
+    PollCardComponent,
   ],
   templateUrl: './group-chats.html',
   styleUrls: ['./group-chats.css'],
@@ -280,6 +283,58 @@ export class GroupChatsComponent implements OnInit, OnDestroy {
 
     this.showToast(`Message forwarded to ${event.targetName}`);
     this.forwardingMessage.set(null);
+  }
+
+  onSendPoll(poll: PollData): void {
+    const currentUser = this.authService.currentUser();
+    const activeGroup = this.selectedGroup();
+    if (!activeGroup) return;
+
+    const pollMessage: any = {
+      id: 'msg-' + Math.random().toString(36).substring(2, 9),
+      groupChatId: activeGroup.id,
+      workspaceId: this.workspaceId(),
+      senderId: this.currentUserId(),
+      senderName: currentUser?.username || 'You',
+      content: `📊 **Poll**: ${poll.question}`,
+      poll: { ...poll, createdById: this.currentUserId() },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    this.messages.update((list: any[]) => [...list, pollMessage]);
+    this.scrollToBottom();
+    this.showToast('Poll created and sent to channel!');
+  }
+
+  onVotePoll(event: { pollId: string; optionId: string }): void {
+    const userId = this.currentUserId();
+    this.messages.update((list: any[]) =>
+      list.map((m) => {
+        if (m.poll && m.poll.id === event.pollId) {
+          const poll = { ...m.poll };
+          const options = poll.options.map((opt: any) => {
+            let votes = opt.votes ? [...opt.votes] : [];
+            const hasVoted = votes.includes(userId);
+
+            if (opt.id === event.optionId) {
+              if (hasVoted) {
+                votes = votes.filter((v: string) => v !== userId);
+              } else {
+                votes.push(userId);
+              }
+            } else if (!poll.allowMultipleChoice && hasVoted) {
+              votes = votes.filter((v: string) => v !== userId);
+            }
+
+            return { ...opt, votes };
+          });
+
+          return { ...m, poll: { ...poll, options } };
+        }
+        return m;
+      }),
+    );
   }
 
   // Group Templates Preset

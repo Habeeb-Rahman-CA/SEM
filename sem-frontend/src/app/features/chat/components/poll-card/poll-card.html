@@ -1,0 +1,132 @@
+<div
+  class="w-full max-w-md bg-slate-900/90 border border-violet-500/30 rounded-3xl p-4 shadow-2xl space-y-3.5 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-200"
+>
+  <!-- Poll Header & Question -->
+  <div class="space-y-1.5">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-1.5">
+        <span
+          class="px-2.5 py-0.5 rounded-full bg-violet-600/20 border border-violet-500/40 text-violet-300 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1"
+        >
+          <i class="fi fi-rr-stats text-[9px]"></i>
+          <span>Poll</span>
+        </span>
+
+        @if (poll.isAnonymous) {
+          <span
+            class="px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[9px] font-bold uppercase tracking-wider flex items-center gap-1"
+            title="Voter identities are hidden"
+          >
+            <i class="fi fi-rr-incognito text-[8px]"></i>
+            <span>Anonymous</span>
+          </span>
+        }
+
+        @if (poll.allowMultipleChoice) {
+          <span
+            class="px-2 py-0.5 rounded-full bg-sky-500/10 border border-sky-500/30 text-sky-300 text-[9px] font-bold uppercase tracking-wider flex items-center gap-1"
+            title="Multiple choice allowed"
+          >
+            <i class="fi fi-rr-check-double text-[8px]"></i>
+            <span>Multiple Choice</span>
+          </span>
+        }
+      </div>
+
+      <!-- Closed / Active Status -->
+      @if (isPollExpired()) {
+        <span
+          class="px-2 py-0.5 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1"
+        >
+          <i class="fi fi-rr-lock text-[9px]"></i>
+          <span>Closed</span>
+        </span>
+      } @else {
+        <span
+          class="px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 animate-pulse"
+        >
+          <i class="fi fi-rr-clock text-[9px]"></i>
+          <span>Active</span>
+        </span>
+      }
+    </div>
+
+    <!-- Poll Question -->
+    <h4 class="text-sm font-bold text-white leading-snug tracking-wide">
+      {{ poll.question }}
+    </h4>
+  </div>
+
+  <!-- Options List with Progress Bars -->
+  <div class="space-y-2">
+    @for (opt of poll.options; track opt.id) {
+      <button
+        type="button"
+        (click)="onOptionClick(opt.id)"
+        [disabled]="isPollExpired()"
+        [class.border-violet-500]="hasUserVoted(opt)"
+        [class.bg-violet-950\/40]="hasUserVoted(opt)"
+        [class.border-white\/10]="!hasUserVoted(opt)"
+        [class.bg-white\/5]="!hasUserVoted(opt)"
+        [class.hover:border-violet-500\/60]="!isPollExpired()"
+        [class.hover:bg-white\/10]="!isPollExpired()"
+        class="w-full relative overflow-hidden p-3 rounded-2xl border text-left transition-all cursor-pointer group"
+      >
+        <!-- Background Percentage Fill Progress Bar -->
+        <div
+          class="absolute inset-y-0 left-0 bg-gradient-to-r from-violet-600/30 to-indigo-600/30 transition-all duration-500 pointer-events-none rounded-2xl"
+          [style.width.%]="getOptionPercentage(opt)"
+        ></div>
+
+        <!-- Foreground Content -->
+        <div class="relative z-10 flex items-center justify-between gap-3">
+          <div class="flex items-center gap-2.5 flex-1 min-w-0">
+            <!-- Check / Radio Indicator -->
+            <div
+              [class.bg-violet-600]="hasUserVoted(opt)"
+              [class.border-violet-400]="hasUserVoted(opt)"
+              [class.border-white\/30]="!hasUserVoted(opt)"
+              class="w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-colors"
+            >
+              @if (hasUserVoted(opt)) {
+                <i class="fi fi-rr-check text-[10px] text-white"></i>
+              }
+            </div>
+            <span
+              [class.text-white]="hasUserVoted(opt)"
+              [class.text-slate-200]="!hasUserVoted(opt)"
+              class="text-xs font-semibold truncate group-hover:text-white transition-colors"
+            >
+              {{ opt.text }}
+            </span>
+          </div>
+
+          <!-- Vote Percentage & Count -->
+          <div class="flex items-center gap-1.5 shrink-0">
+            <span class="text-xs font-bold text-violet-300"> {{ getOptionPercentage(opt) }}% </span>
+            <span class="text-[10px] text-slate-400 font-medium">
+              ({{ opt.votes ? opt.votes.length : 0 }})
+            </span>
+          </div>
+        </div>
+      </button>
+    }
+  </div>
+
+  <!-- Poll Footer -->
+  <div
+    class="pt-1 flex items-center justify-between text-[11px] text-slate-400 border-t border-white/10"
+  >
+    <div class="flex items-center gap-1.5">
+      <i class="fi fi-rr-users-alt text-xs text-violet-400"></i>
+      <span>{{ getTotalVotes() }} {{ getTotalVotes() === 1 ? 'vote' : 'votes' }}</span>
+    </div>
+
+    @if (poll.expiresAt && !poll.closed) {
+      <div class="flex items-center gap-1 text-[10px] text-slate-400">
+        <i class="fi fi-rr-clock text-[10px]"></i>
+        <span>Closes {{ poll.expiresAt | date: 'shortTime' }}</span>
+      </div>
+    }
+  </div>
+</div>

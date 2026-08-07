@@ -260,11 +260,21 @@
                     "
                     class="max-w-[70%] px-4 py-2.5 text-xs shadow-md relative"
                   >
-                    <app-chat-message-renderer
-                      [content]="msg.content"
-                      (imageClick)="onImageClick($event)"
-                      (videoClick)="onVideoClick($event)"
-                    />
+                    @if (msg.poll) {
+                      <div class="my-1">
+                        <app-poll-card
+                          [poll]="msg.poll"
+                          [currentUserId]="currentUserId()"
+                          (vote)="onVotePoll($event)"
+                        />
+                      </div>
+                    } @else {
+                      <app-chat-message-renderer
+                        [content]="msg.content"
+                        (imageClick)="onImageClick($event)"
+                        (videoClick)="onVideoClick($event)"
+                      />
+                    }
 
                     <div
                       [class.text-violet-200]="msg.senderId === currentUserId()"
@@ -381,6 +391,7 @@
             (cancelReply)="replyingToMessage.set(null)"
             (cancelEdit)="editingMessage.set(null)"
             (sendMessage)="onSendRichMessage($event)"
+            (sendPoll)="onSendPoll($event)"
           />
         </div>
       } @else {
