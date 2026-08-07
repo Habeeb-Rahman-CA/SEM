@@ -22,10 +22,12 @@ export interface ChatMessageItem {
   isTranslating?: boolean;
 }
 
+import { EmojiReactionPickerComponent } from '../emoji-reaction-picker/emoji-reaction-picker';
+
 @Component({
   selector: 'app-message-action-toolbar',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, EmojiReactionPickerComponent],
   templateUrl: './message-action-toolbar.html',
   styleUrls: ['./message-action-toolbar.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -44,8 +46,21 @@ export class MessageActionToolbarComponent {
   @Output() bookmark = new EventEmitter<any>();
   @Output() translate = new EventEmitter<any>();
   @Output() share = new EventEmitter<any>();
+  @Output() reactEmoji = new EventEmitter<{ message: any; emoji: string }>();
 
   isMenuOpen = signal<boolean>(false);
+  showEmojiPicker = signal<boolean>(false);
+
+  toggleEmojiPicker(event: MouseEvent) {
+    event.stopPropagation();
+    this.isMenuOpen.set(false);
+    this.showEmojiPicker.update((v) => !v);
+  }
+
+  onSelectEmoji(emoji: string) {
+    this.showEmojiPicker.set(false);
+    this.reactEmoji.emit({ message: this.message, emoji });
+  }
 
   toggleMenu(event: MouseEvent) {
     event.stopPropagation();

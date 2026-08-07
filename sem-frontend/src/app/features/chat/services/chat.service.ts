@@ -86,6 +86,7 @@ export interface DirectMessage {
   isPinned?: boolean;
   isBookmarked?: boolean;
   translatedText?: string;
+  reactions?: { emoji: string; count: number; userReacted?: boolean; users?: string[] }[];
   createdAt: string;
   updatedAt: string;
 }
@@ -156,6 +157,7 @@ export interface GroupChatMessage {
   isPinned?: boolean;
   isBookmarked?: boolean;
   translatedText?: string;
+  reactions?: { emoji: string; count: number; userReacted?: boolean; users?: string[] }[];
   createdAt: string;
   updatedAt: string;
 }

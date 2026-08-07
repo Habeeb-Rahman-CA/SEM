@@ -282,9 +282,35 @@
                         (bookmark)="onBookmarkMsg($event)"
                         (translate)="onTranslateMsg($event)"
                         (share)="onShareMsg($event)"
+                        (reactEmoji)="onReactEmoji($event)"
                       />
                     </div>
                   </div>
+
+                  <!-- Emoji Reactions Counter Badges -->
+                  @if (msg.reactions && msg.reactions.length > 0) {
+                    <div
+                      [class.justify-end]="msg.senderId === currentUserId()"
+                      class="mt-1 flex flex-wrap gap-1 items-center"
+                    >
+                      @for (r of msg.reactions; track r.emoji) {
+                        <button
+                          type="button"
+                          (click)="onReactEmoji({ message: msg, emoji: r.emoji })"
+                          [class.bg-violet-600\/20]="r.userReacted"
+                          [class.border-violet-500\/50]="r.userReacted"
+                          [class.text-violet-300]="r.userReacted"
+                          [class.bg-white\/5]="!r.userReacted"
+                          [class.border-white\/10]="!r.userReacted"
+                          [class.text-slate-300]="!r.userReacted"
+                          class="px-2 py-0.5 rounded-full border text-[11px] font-medium transition-all hover:scale-105 cursor-pointer flex items-center gap-1 shadow-sm"
+                        >
+                          <span>{{ r.emoji }}</span>
+                          <span class="text-[10px] font-bold">{{ r.count }}</span>
+                        </button>
+                      }
+                    </div>
+                  }
 
                   <!-- Translation Result Card -->
                   @if (msg.translatedText) {

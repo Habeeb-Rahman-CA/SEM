@@ -240,6 +240,36 @@ export class GroupChatsComponent implements OnInit, OnDestroy {
     this.sharingMessage.set(msg);
   }
 
+  onReactEmoji(event: { message: any; emoji: string }): void {
+    this.messages.update((list: any[]) =>
+      list.map((m) => {
+        if (m.id === event.message.id) {
+          const reactions = m.reactions ? [...m.reactions] : [];
+          const existingIdx = reactions.findIndex((r: any) => r.emoji === event.emoji);
+
+          if (existingIdx > -1) {
+            const r = reactions[existingIdx];
+            if (r.userReacted) {
+              const count = r.count - 1;
+              if (count <= 0) {
+                reactions.splice(existingIdx, 1);
+              } else {
+                reactions[existingIdx] = { ...r, count, userReacted: false };
+              }
+            } else {
+              reactions[existingIdx] = { ...r, count: r.count + 1, userReacted: true };
+            }
+          } else {
+            reactions.push({ emoji: event.emoji, count: 1, userReacted: true });
+          }
+
+          return { ...m, reactions };
+        }
+        return m;
+      }),
+    );
+  }
+
   handleConfirmForward(event: {
     targetId: string;
     targetName: string;
