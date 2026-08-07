@@ -25,6 +25,8 @@ import { LinkPreviewCacheEntity } from './entities/link-preview-cache.entity';
 import { ChatModerationAuditLogEntity } from './entities/chat-moderation-audit-log.entity';
 import { ChatMutedUserEntity } from './entities/chat-muted-user.entity';
 import { ChatBannedUserEntity } from './entities/chat-banned-user.entity';
+import { UserE2EEKeyEntity } from './entities/user-e2ee-key.entity';
+import { ChatRetentionPolicyEntity } from './entities/chat-retention-policy.entity';
 
 import { ChannelsService } from './channels.service';
 import { ChannelsController } from './channels.controller';
@@ -50,6 +52,8 @@ import { LinkPreviewsService } from './link-previews.service';
 import { LinkPreviewsController } from './link-previews.controller';
 import { ChatModerationService } from './chat-moderation.service';
 import { ChatModerationController } from './chat-moderation.controller';
+import { ChatSecurityService } from './chat-security.service';
+import { ChatSecurityController } from './chat-security.controller';
 import { WorkspacesModule } from '../workspaces/workspaces.module';
 
 @Module({
@@ -80,6 +84,8 @@ import { WorkspacesModule } from '../workspaces/workspaces.module';
       ChatModerationAuditLogEntity,
       ChatMutedUserEntity,
       ChatBannedUserEntity,
+      UserE2EEKeyEntity,
+      ChatRetentionPolicyEntity,
     ]),
     WorkspacesModule,
   ],
@@ -96,6 +102,7 @@ import { WorkspacesModule } from '../workspaces/workspaces.module';
     MatchFixturesController,
     LinkPreviewsController,
     ChatModerationController,
+    ChatSecurityController,
   ],
   providers: [
     ChannelsService,
@@ -110,6 +117,7 @@ import { WorkspacesModule } from '../workspaces/workspaces.module';
     MatchFixturesService,
     LinkPreviewsService,
     ChatModerationService,
+    ChatSecurityService,
   ],
   exports: [
     ChannelsService,
@@ -124,6 +132,7 @@ import { WorkspacesModule } from '../workspaces/workspaces.module';
     MatchFixturesService,
     LinkPreviewsService,
     ChatModerationService,
+    ChatSecurityService,
   ],
 })
 export class ChatModule {}

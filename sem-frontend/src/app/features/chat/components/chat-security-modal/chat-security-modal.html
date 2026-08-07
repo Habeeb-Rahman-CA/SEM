@@ -1,0 +1,110 @@
+<div *ngIf="isOpen" class="security-modal-overlay" (click)="closeModal()">
+  <div class="security-modal-card" (click)="$event.stopPropagation()">
+    <!-- Modal Header -->
+    <div class="security-modal-header">
+      <div class="header-title">
+        <i class="fi fi-rr-lock title-icon"></i>
+        <div>
+          <h3>Security & Compliance Governance</h3>
+          <p>Configure E2EE, message retention, file scanning, and anti-spam protection</p>
+        </div>
+      </div>
+      <button class="close-btn" (click)="closeModal()">
+        <i class="fi fi-rr-cross"></i>
+      </button>
+    </div>
+
+    <!-- Status Message Banner -->
+    <div *ngIf="statusMessage()" class="status-banner">
+      <i class="fi fi-rr-check-circle"></i> {{ statusMessage() }}
+    </div>
+
+    <div class="security-modal-body">
+      <!-- 1. End-to-End Encryption (E2EE) -->
+      <div class="sec-card">
+        <div class="sec-card-header">
+          <i class="fi fi-rr-key card-icon"></i>
+          <div>
+            <h4>End-to-End Encryption (E2EE for DMs)</h4>
+            <p>Optional zero-knowledge cryptographic keys for private direct messages</p>
+          </div>
+        </div>
+        <div class="sec-card-content">
+          <p class="key-status" *ngIf="isE2EEActive()">
+            <span class="status-dot green"></span> E2EE Active: ECDH-P256 Key Pair Provisioned
+          </p>
+          <button class="btn btn-primary" (click)="onGenerateE2EEKey()" [disabled]="isSubmitting()">
+            <i class="fi fi-rr-refresh"></i> Generate / Register E2EE Key Pair
+          </button>
+          <pre *ngIf="e2eePublicKey" class="key-preview">{{ e2eePublicKey }}</pre>
+        </div>
+      </div>
+
+      <!-- 2. Message Retention Policies -->
+      <div class="sec-card">
+        <div class="sec-card-header">
+          <i class="fi fi-rr-time-fast card-icon"></i>
+          <div>
+            <h4>Message Retention Policy</h4>
+            <p>Automatically purge messages older than configured retention period</p>
+          </div>
+        </div>
+        <div class="sec-card-content">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Retention Window (Days)</label>
+              <select [(ngModel)]="retentionDays">
+                <option [ngValue]="30">30 Days</option>
+                <option [ngValue]="90">90 Days</option>
+                <option [ngValue]="180">180 Days</option>
+                <option [ngValue]="365">365 Days</option>
+                <option [ngValue]="0">Unlimited (Keep forever)</option>
+              </select>
+            </div>
+            <div class="form-group checkbox-group">
+              <label>
+                <input type="checkbox" [(ngModel)]="retentionEnabled" /> Enable Retention Policy
+              </label>
+            </div>
+          </div>
+
+          <div class="btn-group">
+            <button class="btn btn-primary" (click)="onSaveRetention()" [disabled]="isSubmitting()">
+              <i class="fi fi-rr-disk"></i> Save Retention Policy
+            </button>
+            <button class="btn btn-danger" (click)="onRunPurge()" [disabled]="isSubmitting()">
+              <i class="fi fi-rr-trash"></i> Run Manual Purge Now
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Automated File Scanner & Anti-Spam -->
+      <div class="sec-card">
+        <div class="sec-card-header">
+          <i class="fi fi-rr-shield-check card-icon"></i>
+          <div>
+            <h4>Automated File Scanner & Anti-Spam</h4>
+            <p>Real-time executable blocking, malware signature checks, and rate limiting</p>
+          </div>
+        </div>
+        <div class="sec-card-content">
+          <ul class="sec-feature-list">
+            <li>
+              <i class="fi fi-rr-check badge-icon"></i>
+              <strong>Blocked Extensions:</strong> .exe, .bat, .sh, .vbs, .cmd, .scr, .msi, .ps1
+            </li>
+            <li>
+              <i class="fi fi-rr-check badge-icon"></i>
+              <strong>Rate Limiter:</strong> Max 8 messages / 5 seconds per user
+            </li>
+            <li>
+              <i class="fi fi-rr-check badge-icon"></i>
+              <strong>Spam Filters:</strong> Capslock flooding & repetitive string detection
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

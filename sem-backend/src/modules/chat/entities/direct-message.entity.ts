@@ -48,6 +48,12 @@ export class DirectMessage {
   @Column({ name: 'is_deleted', default: false })
   isDeleted: boolean;
 
+  @Column({ name: 'is_encrypted', default: false })
+  isEncrypted: boolean;
+
+  @Column({ nullable: true })
+  nonce: string;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

@@ -623,4 +623,59 @@ export class ChatService {
       `${this.apiUrl}/workspaces/${workspaceId}/chat/moderation/audit-logs?limit=${limit}${channelParam}`,
     );
   }
+
+  // Security API Endpoints
+  registerE2EEKey(
+    workspaceId: string,
+    publicKey: string,
+    algorithm: string = 'ECDH-P256',
+  ): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/workspaces/${workspaceId}/chat/security/e2ee/keys`, {
+      publicKey,
+      algorithm,
+    });
+  }
+
+  getUserE2EEKey(workspaceId: string, userId: string): Observable<any> {
+    return this.http.get<any>(
+      `${this.apiUrl}/workspaces/${workspaceId}/chat/security/e2ee/keys/${userId}`,
+    );
+  }
+
+  scanFile(
+    workspaceId: string,
+    fileName: string,
+    mimeType: string,
+    fileSize: number,
+  ): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/workspaces/${workspaceId}/chat/security/scan-file`, {
+      fileName,
+      mimeType,
+      fileSize,
+    });
+  }
+
+  getRetentionPolicy(workspaceId: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/workspaces/${workspaceId}/chat/security/retention`);
+  }
+
+  updateRetentionPolicy(
+    workspaceId: string,
+    retentionDays: number,
+    autoDeleteMedia: boolean,
+    enabled: boolean,
+  ): Observable<any> {
+    return this.http.put<any>(`${this.apiUrl}/workspaces/${workspaceId}/chat/security/retention`, {
+      retentionDays,
+      autoDeleteMedia,
+      enabled,
+    });
+  }
+
+  purgeExpiredMessages(workspaceId: string): Observable<any> {
+    return this.http.post<any>(
+      `${this.apiUrl}/workspaces/${workspaceId}/chat/security/retention/purge`,
+      {},
+    );
+  }
 }
