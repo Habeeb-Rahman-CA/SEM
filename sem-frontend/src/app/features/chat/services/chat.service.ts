@@ -81,8 +81,11 @@ export interface DirectMessage {
   senderAvatarUrl?: string;
   content: string;
   attachments?: string[];
-  isEdited: boolean;
-  isDeleted: boolean;
+  isEdited?: boolean;
+  isDeleted?: boolean;
+  isPinned?: boolean;
+  isBookmarked?: boolean;
+  translatedText?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -148,6 +151,11 @@ export interface GroupChatMessage {
   senderAvatarUrl?: string;
   content: string;
   attachments?: string[];
+  isEdited?: boolean;
+  isDeleted?: boolean;
+  isPinned?: boolean;
+  isBookmarked?: boolean;
+  translatedText?: string;
   createdAt: string;
   updatedAt: string;
 }

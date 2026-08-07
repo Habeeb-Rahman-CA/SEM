@@ -48,8 +48,13 @@ export class ChatRichMessageInputComponent {
   @Input() members: any[] = [];
   @Input() channels: any[] = [];
 
+  @Input() replyingToMessage: any = null;
+  @Input() editingMessage: any = null;
+
   @Output() sendMessage = new EventEmitter<{ content: string; attachments?: string[] }>();
   @Output() typing = new EventEmitter<void>();
+  @Output() cancelReply = new EventEmitter<void>();
+  @Output() cancelEdit = new EventEmitter<void>();
 
   @ViewChild('textareaRef') textareaRef!: ElementRef<HTMLTextAreaElement>;
   @ViewChild('fileInputRef') fileInputRef!: ElementRef<HTMLInputElement>;
@@ -624,6 +629,13 @@ export class ChatRichMessageInputComponent {
 
     if ((!text && queuedAttachments.length === 0) || this.isSending || this.disabled) return;
 
+    if (this.replyingToMessage) {
+      const rep = this.replyingToMessage;
+      const snippet = rep.content.substring(0, 50).replace(/\n/g, ' ');
+      const quoteHeader = `> **Replying to @${rep.senderName}**: "${snippet}${rep.content.length > 50 ? '...' : ''}"\n\n`;
+      text = quoteHeader + text;
+    }
+
     // Append formatted markdown tags for attachments
     if (queuedAttachments.length > 0) {
       const attMarkup = queuedAttachments
@@ -638,6 +650,8 @@ export class ChatRichMessageInputComponent {
     this.sendMessage.emit({ content: text });
     this.content.set('');
     this.attachments.set([]);
+    if (this.replyingToMessage) this.cancelReply.emit();
+    if (this.editingMessage) this.cancelEdit.emit();
     this.closeAllPickers();
   }
 

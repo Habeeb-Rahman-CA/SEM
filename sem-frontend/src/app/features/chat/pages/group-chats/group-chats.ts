@@ -24,6 +24,9 @@ import {
   ThreadDrawerComponent,
   ThreadReplyItem,
 } from '../../components/thread-drawer/thread-drawer';
+import { MessageActionToolbarComponent } from '../../components/message-action-toolbar/message-action-toolbar';
+import { ForwardMessageModalComponent } from '../../components/forward-message-modal/forward-message-modal';
+import { ShareMessageModalComponent } from '../../components/share-message-modal/share-message-modal';
 
 @Component({
   selector: 'app-group-chats',
@@ -36,6 +39,9 @@ import {
     ImageViewerComponent,
     VideoPlayerComponent,
     ThreadDrawerComponent,
+    MessageActionToolbarComponent,
+    ForwardMessageModalComponent,
+    ShareMessageModalComponent,
   ],
   templateUrl: './group-chats.html',
   styleUrls: ['./group-chats.css'],
@@ -159,6 +165,91 @@ export class GroupChatsComponent implements OnInit, OnDestroy {
         [event.parentMessageId]: [...existing, replyItem],
       };
     });
+  }
+
+  // 10 Message Actions State & Handlers
+  replyingToMessage = signal<any | null>(null);
+  editingMessage = signal<any | null>(null);
+  forwardingMessage = signal<any | null>(null);
+  sharingMessage = signal<any | null>(null);
+  toastMessage = signal<string | null>(null);
+
+  pinnedMessages = computed(() => {
+    return this.messages().filter((m: any) => m.isPinned);
+  });
+
+  showToast(msg: string) {
+    this.toastMessage.set(msg);
+    setTimeout(() => this.toastMessage.set(null), 3000);
+  }
+
+  onReplyMsg(msg: any): void {
+    this.replyingToMessage.set(msg);
+  }
+
+  onThreadMsg(msg: any): void {
+    this.openThread(msg);
+  }
+
+  onEditMsg(msg: any): void {
+    this.editingMessage.set(msg);
+  }
+
+  onDeleteMsg(msg: any): void {
+    this.messages.update((list: any[]) => list.filter((m) => m.id !== msg.id));
+    this.showToast('Message deleted');
+  }
+
+  onPinMsg(msg: any): void {
+    this.messages.update((list: any[]) =>
+      list.map((m) => (m.id === msg.id ? { ...m, isPinned: !m.isPinned } : m)),
+    );
+    this.showToast(msg.isPinned ? 'Message unpinned' : 'Message pinned');
+  }
+
+  onForwardMsg(msg: any): void {
+    this.forwardingMessage.set(msg);
+  }
+
+  onCopyMsg(msg: any): void {
+    navigator.clipboard.writeText(msg.content).then(() => {
+      this.showToast('Message text copied to clipboard');
+    });
+  }
+
+  onBookmarkMsg(msg: any): void {
+    this.messages.update((list: any[]) =>
+      list.map((m) => (m.id === msg.id ? { ...m, isBookmarked: !m.isBookmarked } : m)),
+    );
+    this.showToast(msg.isBookmarked ? 'Bookmark removed' : 'Message bookmarked');
+  }
+
+  onTranslateMsg(msg: any): void {
+    this.messages.update((list: any[]) =>
+      list.map((m) => {
+        if (m.id === msg.id) {
+          const translatedText = m.translatedText ? undefined : `🌐 [Translated]: ${m.content}`;
+          return { ...m, translatedText };
+        }
+        return m;
+      }),
+    );
+  }
+
+  onShareMsg(msg: any): void {
+    this.sharingMessage.set(msg);
+  }
+
+  handleConfirmForward(event: {
+    targetId: string;
+    targetName: string;
+    type: 'user' | 'channel';
+  }): void {
+    const fwd = this.forwardingMessage();
+    if (!fwd) return;
+
+    this.showToast(`Message forwarded to ${event.targetName}`);
+    this.forwardingMessage.set(null);
   }
 
   // Group Templates Preset

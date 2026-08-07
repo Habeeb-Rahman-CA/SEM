@@ -277,17 +277,36 @@
                       }
                     </div>
 
-                    <!-- Quick Reply in Thread Hover Action Button -->
-                    <button
-                      type="button"
-                      (click)="openThread(msg)"
-                      title="Reply in thread (keeps conversation clean)"
-                      class="absolute -top-3.5 right-2 opacity-0 group-hover/msg:opacity-100 bg-slate-900 border border-white/20 text-slate-300 hover:text-white px-2 py-1 rounded-full text-[10px] font-bold shadow-lg transition-all cursor-pointer flex items-center gap-1 z-10"
+                    <!-- Full 10 Message Actions Toolbar -->
+                    <div
+                      class="absolute -top-3.5 right-2 opacity-0 group-hover/msg:opacity-100 transition-all z-20"
                     >
-                      <i class="fi fi-rr-comment-alt-middle text-[10px] text-violet-400"></i>
-                      <span>Reply in thread</span>
-                    </button>
+                      <app-message-action-toolbar
+                        [message]="msg"
+                        [currentUserId]="currentUserId()"
+                        (reply)="onReplyMsg($event)"
+                        (thread)="onThreadMsg($event)"
+                        (edit)="onEditMsg($event)"
+                        (delete)="onDeleteMsg($event)"
+                        (pin)="onPinMsg($event)"
+                        (forward)="onForwardMsg($event)"
+                        (copy)="onCopyMsg($event)"
+                        (bookmark)="onBookmarkMsg($event)"
+                        (translate)="onTranslateMsg($event)"
+                        (share)="onShareMsg($event)"
+                      />
+                    </div>
                   </div>
+
+                  <!-- Translation Result Card -->
+                  @if (msg.translatedText) {
+                    <div
+                      class="mt-1 px-3 py-1.5 rounded-xl bg-teal-950/60 border border-teal-500/30 text-[11px] text-teal-200 animate-in fade-in duration-150"
+                    >
+                      <i class="fi fi-rr-language text-teal-400 text-[10px] mr-1.5"></i>
+                      <span>{{ msg.translatedText }}</span>
+                    </div>
+                  }
 
                   <!-- Thread Replies Badge Link -->
                   @if (getThreadReplyCount(msg.id) > 0) {
@@ -331,6 +350,10 @@
             }} (@mentions, Markdown, Emojis, GIFs & Stickers supported)..."
             [members]="members()"
             [isSending]="isSending()"
+            [replyingToMessage]="replyingToMessage()"
+            [editingMessage]="editingMessage()"
+            (cancelReply)="replyingToMessage.set(null)"
+            (cancelEdit)="editingMessage.set(null)"
             (sendMessage)="onSendRichMessage($event)"
           />
         </div>
@@ -460,4 +483,29 @@
     (close)="closeThread()"
     (sendReply)="sendThreadReply($event)"
   />
+}
+
+<!-- Forward Message Modal -->
+@if (forwardingMessage(); as fwdMsg) {
+  <app-forward-message-modal
+    [message]="fwdMsg"
+    [members]="members()"
+    (close)="forwardingMessage.set(null)"
+    (forwardTarget)="handleConfirmForward($event)"
+  />
+}
+
+<!-- Share Message Modal -->
+@if (sharingMessage(); as shareMsg) {
+  <app-share-message-modal [message]="shareMsg" (close)="sharingMessage.set(null)" />
+}
+
+<!-- Action Toast Notification Banner -->
+@if (toastMessage(); as toast) {
+  <div
+    class="fixed bottom-6 right-6 z-50 px-4 py-2.5 bg-slate-900/95 border border-emerald-500/40 text-emerald-300 text-xs font-bold rounded-2xl shadow-2xl backdrop-blur-xl flex items-center gap-2 animate-in slide-in-from-bottom duration-200"
+  >
+    <i class="fi fi-rr-check-circle text-emerald-400 text-sm"></i>
+    <span>{{ toast }}</span>
+  </div>
 }

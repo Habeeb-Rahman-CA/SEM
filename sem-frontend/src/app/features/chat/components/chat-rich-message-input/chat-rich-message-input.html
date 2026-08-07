@@ -257,6 +257,54 @@
     </div>
   }
 
+  <!-- Replying To Quoted Message Banner -->
+  @if (replyingToMessage) {
+    <div
+      class="mb-2 px-3 py-2 bg-violet-950/60 border-l-4 border-violet-500 rounded-r-xl flex items-center justify-between text-xs animate-in fade-in duration-150"
+    >
+      <div class="flex items-center gap-2 overflow-hidden">
+        <i class="fi fi-rr-reply text-violet-400 text-xs"></i>
+        <div class="truncate">
+          <span class="font-bold text-violet-300"
+            >Replying to {{ replyingToMessage.senderName }}:</span
+          >
+          <span class="text-slate-300 italic ml-1">{{ replyingToMessage.content }}</span>
+        </div>
+      </div>
+      <button
+        type="button"
+        (click)="cancelReply.emit()"
+        title="Cancel Reply"
+        class="w-6 h-6 rounded-full hover:bg-white/10 text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
+      >
+        <i class="fi fi-rr-cross text-[10px]"></i>
+      </button>
+    </div>
+  }
+
+  <!-- Editing Active Message Banner -->
+  @if (editingMessage) {
+    <div
+      class="mb-2 px-3 py-2 bg-amber-950/60 border-l-4 border-amber-500 rounded-r-xl flex items-center justify-between text-xs animate-in fade-in duration-150"
+    >
+      <div class="flex items-center gap-2 overflow-hidden">
+        <i class="fi fi-rr-edit text-amber-400 text-xs"></i>
+        <div class="truncate">
+          <span class="font-bold text-amber-300">Editing Message:</span>
+          <span class="text-slate-300 italic ml-1">{{ editingMessage.content }}</span>
+        </div>
+      </div>
+      <button
+        type="button"
+        (click)="cancelEdit.emit()"
+        title="Cancel Editing"
+        class="w-6 h-6 rounded-full hover:bg-white/10 text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
+      >
+        <i class="fi fi-rr-cross text-[10px]"></i>
+      </button>
+    </div>
+  }
+
   <!-- Text Input Area & Voice Recording Overlay Surface -->
   <div class="relative">
     @if (isRecordingAudio()) {
