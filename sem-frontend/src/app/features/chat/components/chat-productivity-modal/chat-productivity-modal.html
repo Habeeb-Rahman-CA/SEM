@@ -1,0 +1,155 @@
+<div *ngIf="isOpen" class="productivity-modal-overlay" (click)="closeModal()">
+  <div class="productivity-modal-card" (click)="$event.stopPropagation()">
+    <!-- Modal Header -->
+    <div class="productivity-modal-header">
+      <div class="header-title">
+        <i class="fi fi-rr-bolt title-icon"></i>
+        <div>
+          <h3>Chat Productivity Suite</h3>
+          <p>Starred items, reminders, tasks, calendar sync, bookmarks & keyboard shortcuts</p>
+        </div>
+      </div>
+      <button class="close-btn" (click)="closeModal()">
+        <i class="fi fi-rr-cross"></i>
+      </button>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="productivity-tabs">
+      <button [class.active]="activeTab() === 'starred'" (click)="activeTab.set('starred')">
+        <i class="fi fi-rr-star"></i> Starred Messages
+      </button>
+      <button [class.active]="activeTab() === 'reminders'" (click)="activeTab.set('reminders')">
+        <i class="fi fi-rr-bell"></i> Reminders
+      </button>
+      <button [class.active]="activeTab() === 'tasks'" (click)="activeTab.set('tasks')">
+        <i class="fi fi-rr-checkbox"></i> Tasks
+      </button>
+      <button [class.active]="activeTab() === 'calendar'" (click)="activeTab.set('calendar')">
+        <i class="fi fi-rr-calendar"></i> Calendar
+      </button>
+      <button [class.active]="activeTab() === 'bookmarks'" (click)="activeTab.set('bookmarks')">
+        <i class="fi fi-rr-bookmark"></i> Bookmarks
+      </button>
+      <button
+        [class.active]="activeTab() === 'recent_files'"
+        (click)="activeTab.set('recent_files')"
+      >
+        <i class="fi fi-rr-document"></i> Recent Files
+      </button>
+      <button [class.active]="activeTab() === 'shortcuts'" (click)="activeTab.set('shortcuts')">
+        <i class="fi fi-rr-keyboard"></i> Shortcuts
+      </button>
+    </div>
+
+    <div class="productivity-body">
+      <!-- 1. Starred Messages -->
+      <div *ngIf="activeTab() === 'starred'" class="tab-content">
+        <div *ngFor="let item of starredMessages()" class="prod-item-card">
+          <i class="fi fi-rr-star item-icon gold"></i>
+          <div class="item-info">
+            <h4>Message ID: {{ item.messageId }}</h4>
+            <p>
+              Starred on {{ item.createdAt | date: 'mediumDate' }} • Type: {{ item.messageType }}
+            </p>
+          </div>
+        </div>
+        <div *ngIf="starredMessages().length === 0" class="empty-state">
+          <i class="fi fi-rr-star-octogram"></i>
+          <p>No starred messages yet. Hover any message and click Star to save for later.</p>
+        </div>
+      </div>
+
+      <!-- 2. Reminders -->
+      <div *ngIf="activeTab() === 'reminders'" class="tab-content">
+        <div *ngFor="let rem of reminders()" class="prod-item-card">
+          <i class="fi fi-rr-bell item-icon blue"></i>
+          <div class="item-info">
+            <h4>{{ rem.note || 'Scheduled Message Reminder' }}</h4>
+            <p>Remind at: {{ rem.remindAt | date: 'short' }} • Status: {{ rem.status }}</p>
+          </div>
+        </div>
+        <div *ngIf="reminders().length === 0" class="empty-state">
+          <i class="fi fi-rr-bell-school"></i>
+          <p>No pending reminders set.</p>
+        </div>
+      </div>
+
+      <!-- 3. Tasks -->
+      <div *ngIf="activeTab() === 'tasks'" class="tab-content">
+        <div *ngFor="let task of tasks()" class="prod-item-card">
+          <i class="fi fi-rr-checkbox item-icon green"></i>
+          <div class="item-info">
+            <h4>{{ task.taskTitle }}</h4>
+            <p>
+              Due: {{ task.dueDate ? (task.dueDate | date: 'short') : 'No due date' }} • Status:
+              {{ task.status }}
+            </p>
+          </div>
+        </div>
+        <div *ngIf="tasks().length === 0" class="empty-state">
+          <i class="fi fi-rr-list-check"></i>
+          <p>No tasks created from chat messages.</p>
+        </div>
+      </div>
+
+      <!-- 4. Calendar Integration -->
+      <div *ngIf="activeTab() === 'calendar'" class="tab-content">
+        <div *ngFor="let ev of calendarEvents()" class="prod-item-card">
+          <i class="fi fi-rr-calendar item-icon purple"></i>
+          <div class="item-info">
+            <h4>{{ ev.title }}</h4>
+            <p>Scheduled: {{ ev.start | date: 'medium' }} • Event Type: {{ ev.type }}</p>
+          </div>
+        </div>
+        <div *ngIf="calendarEvents().length === 0" class="empty-state">
+          <i class="fi fi-rr-calendar-clock"></i>
+          <p>No synced calendar events found.</p>
+        </div>
+      </div>
+
+      <!-- 5. Bookmarks -->
+      <div *ngIf="activeTab() === 'bookmarks'" class="tab-content">
+        <div *ngFor="let bm of bookmarks()" class="prod-item-card">
+          <i class="fi fi-rr-bookmark item-icon orange"></i>
+          <div class="item-info">
+            <h4>{{ bm.label || bm.targetId }}</h4>
+            <p>Target Type: {{ bm.targetType }} • Saved on {{ bm.createdAt | date: 'short' }}</p>
+          </div>
+        </div>
+        <div *ngIf="bookmarks().length === 0" class="empty-state">
+          <i class="fi fi-rr-bookmark"></i>
+          <p>No bookmarked conversations.</p>
+        </div>
+      </div>
+
+      <!-- 6. Recent Files -->
+      <div *ngIf="activeTab() === 'recent_files'" class="tab-content">
+        <div *ngFor="let file of recentFiles()" class="prod-item-card">
+          <i class="fi fi-rr-file item-icon cyan"></i>
+          <div class="item-info">
+            <h4>{{ file.name }}</h4>
+            <p>
+              {{ file.sizeFormatted || file.size + ' bytes' }} • Uploaded:
+              {{ file.createdAt | date: 'short' }}
+            </p>
+          </div>
+        </div>
+        <div *ngIf="recentFiles().length === 0" class="empty-state">
+          <i class="fi fi-rr-folder-download"></i>
+          <p>No recently shared files found in this workspace.</p>
+        </div>
+      </div>
+
+      <!-- 7. Keyboard Shortcuts -->
+      <div *ngIf="activeTab() === 'shortcuts'" class="tab-content">
+        <div class="shortcuts-grid">
+          <div *ngFor="let sc of shortcuts" class="shortcut-card">
+            <span class="key-badge">{{ sc.keyCombo }}</span>
+            <span class="sc-desc">{{ sc.description }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

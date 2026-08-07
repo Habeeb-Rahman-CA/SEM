@@ -27,6 +27,10 @@ import { ChatMutedUserEntity } from './entities/chat-muted-user.entity';
 import { ChatBannedUserEntity } from './entities/chat-banned-user.entity';
 import { UserE2EEKeyEntity } from './entities/user-e2ee-key.entity';
 import { ChatRetentionPolicyEntity } from './entities/chat-retention-policy.entity';
+import { ChatStarredMessageEntity } from './entities/chat-starred-message.entity';
+import { ChatMessageReminderEntity } from './entities/chat-message-reminder.entity';
+import { ChatMessageTaskEntity } from './entities/chat-message-task.entity';
+import { ChatBookmarkedConversationEntity } from './entities/chat-bookmarked-conversation.entity';
 
 import { ChannelsService } from './channels.service';
 import { ChannelsController } from './channels.controller';
@@ -54,6 +58,8 @@ import { ChatModerationService } from './chat-moderation.service';
 import { ChatModerationController } from './chat-moderation.controller';
 import { ChatSecurityService } from './chat-security.service';
 import { ChatSecurityController } from './chat-security.controller';
+import { ChatProductivityService } from './chat-productivity.service';
+import { ChatProductivityController } from './chat-productivity.controller';
 import { WorkspacesModule } from '../workspaces/workspaces.module';
 
 @Module({
@@ -86,6 +92,10 @@ import { WorkspacesModule } from '../workspaces/workspaces.module';
       ChatBannedUserEntity,
       UserE2EEKeyEntity,
       ChatRetentionPolicyEntity,
+      ChatStarredMessageEntity,
+      ChatMessageReminderEntity,
+      ChatMessageTaskEntity,
+      ChatBookmarkedConversationEntity,
     ]),
     WorkspacesModule,
   ],
@@ -103,6 +113,7 @@ import { WorkspacesModule } from '../workspaces/workspaces.module';
     LinkPreviewsController,
     ChatModerationController,
     ChatSecurityController,
+    ChatProductivityController,
   ],
   providers: [
     ChannelsService,
@@ -118,6 +129,7 @@ import { WorkspacesModule } from '../workspaces/workspaces.module';
     LinkPreviewsService,
     ChatModerationService,
     ChatSecurityService,
+    ChatProductivityService,
   ],
   exports: [
     ChannelsService,
@@ -133,6 +145,7 @@ import { WorkspacesModule } from '../workspaces/workspaces.module';
     LinkPreviewsService,
     ChatModerationService,
     ChatSecurityService,
+    ChatProductivityService,
   ],
 })
 export class ChatModule {}

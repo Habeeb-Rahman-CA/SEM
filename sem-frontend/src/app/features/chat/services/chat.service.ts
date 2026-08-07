@@ -678,4 +678,95 @@ export class ChatService {
       {},
     );
   }
+
+  // Productivity API Endpoints
+  toggleStarMessage(
+    workspaceId: string,
+    messageId: string,
+    messageType: string = 'channel',
+  ): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/workspaces/${workspaceId}/chat/productivity/star`, {
+      messageId,
+      messageType,
+    });
+  }
+
+  getStarredMessages(workspaceId: string): Observable<any[]> {
+    return this.http.get<any[]>(
+      `${this.apiUrl}/workspaces/${workspaceId}/chat/productivity/starred`,
+    );
+  }
+
+  createReminder(
+    workspaceId: string,
+    messageId: string,
+    remindAt: string,
+    note?: string,
+  ): Observable<any> {
+    return this.http.post<any>(
+      `${this.apiUrl}/workspaces/${workspaceId}/chat/productivity/reminders`,
+      { messageId, remindAt, note },
+    );
+  }
+
+  getReminders(workspaceId: string): Observable<any[]> {
+    return this.http.get<any[]>(
+      `${this.apiUrl}/workspaces/${workspaceId}/chat/productivity/reminders`,
+    );
+  }
+
+  createTask(
+    workspaceId: string,
+    messageId: string,
+    taskTitle: string,
+    assigneeId?: string,
+    dueDate?: string,
+  ): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/workspaces/${workspaceId}/chat/productivity/tasks`, {
+      messageId,
+      taskTitle,
+      assigneeId,
+      dueDate,
+    });
+  }
+
+  getTasks(workspaceId: string): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/workspaces/${workspaceId}/chat/productivity/tasks`);
+  }
+
+  getCalendarEvents(workspaceId: string): Observable<any[]> {
+    return this.http.get<any[]>(
+      `${this.apiUrl}/workspaces/${workspaceId}/chat/productivity/calendar`,
+    );
+  }
+
+  toggleBookmark(
+    workspaceId: string,
+    targetId: string,
+    targetType: string = 'channel',
+    label?: string,
+  ): Observable<any> {
+    return this.http.post<any>(
+      `${this.apiUrl}/workspaces/${workspaceId}/chat/productivity/bookmarks`,
+      { targetId, targetType, label },
+    );
+  }
+
+  getBookmarks(workspaceId: string): Observable<any[]> {
+    return this.http.get<any[]>(
+      `${this.apiUrl}/workspaces/${workspaceId}/chat/productivity/bookmarks`,
+    );
+  }
+
+  getUnreadMarker(workspaceId: string, channelId: string): Observable<any> {
+    return this.http.get<any>(
+      `${this.apiUrl}/workspaces/${workspaceId}/chat/productivity/unread-marker?channelId=${channelId}`,
+    );
+  }
+
+  getRecentlySharedFiles(workspaceId: string, limit: number = 10): Observable<any[]> {
+    return this.http.get<any[]>(
+      `${this.apiUrl}/workspaces/${workspaceId}/chat/productivity/recent-files?limit=${limit}`,
+    );
+  }
 }
