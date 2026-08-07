@@ -14,11 +14,12 @@ import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
 import { AudioPlayerComponent } from '../audio-player/audio-player';
+import { LinkPreviewCardComponent, LinkPreviewData } from '../link-preview-card/link-preview-card';
 
 @Component({
   selector: 'app-chat-message-renderer',
   standalone: true,
-  imports: [CommonModule, AudioPlayerComponent],
+  imports: [CommonModule, AudioPlayerComponent, LinkPreviewCardComponent],
   template: `
     <div class="rich-message-content leading-relaxed font-sans text-xs break-words">
       @if (renderedContent) {
@@ -28,6 +29,9 @@ import { AudioPlayerComponent } from '../audio-player/audio-player';
         <div class="mt-2">
           <app-audio-player [src]="audio.url" [title]="audio.name" [size]="audio.size" />
         </div>
+      }
+      @if (linkPreview(); as preview) {
+        <app-link-preview-card [preview]="preview" />
       }
     </div>
   `,
@@ -212,6 +216,7 @@ export class ChatMessageRendererComponent implements OnChanges {
   private sanitizer = inject(DomSanitizer);
   renderedContent: SafeHtml = '';
   audioSource = signal<{ url: string; name: string; size: string } | null>(null);
+  linkPreview = signal<LinkPreviewData | null>(null);
 
   @HostListener('click', ['$event'])
   onHostClick(event: MouseEvent) {
@@ -245,10 +250,51 @@ export class ChatMessageRendererComponent implements OnChanges {
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['content']) {
       this.audioSource.set(null);
-      this.renderedContent = this.sanitizer.bypassSecurityTrustHtml(
-        this.parseRichMessage(this.content || ''),
-      );
+      this.linkPreview.set(null);
+
+      const parsedHtml = this.parseRichMessage(this.content || '');
+      this.renderedContent = this.sanitizer.bypassSecurityTrustHtml(parsedHtml);
+      this.extractLinkPreview(this.content || '');
     }
+  }
+
+  private extractLinkPreview(rawText: string): void {
+    // URL matching regex
+    const urlMatch = rawText.match(/(https?:\/\/[^\s]+)/i);
+    if (!urlMatch) return;
+
+    const url = urlMatch[0];
+    let domain = 'web';
+    try {
+      domain = new URL(url).hostname.replace(/^www\./, '');
+    } catch {}
+
+    // Mock open-graph preview metadata generator
+    let title = `${domain} — Official Overview & Documentation`;
+    let description = `Explore official resources, updates, and community guides on ${domain}.`;
+    let thumbnailUrl: string | undefined =
+      `https://picsum.photos/seed/${encodeURIComponent(domain)}/600/350`;
+
+    if (domain.includes('github')) {
+      title = 'GitHub Repository • Workspace Source Code & Projects';
+      description =
+        'Build software better together. Powerful collaboration, workflow automation, and code management.';
+    } else if (domain.includes('youtube') || domain.includes('youtu.be')) {
+      title = 'Watch Football Highlights & Tournament Streams';
+      description = 'Official match replays, player analysis, and tactical summaries on YouTube.';
+    } else if (domain.includes('angular')) {
+      title = "Angular • The Modern Web Developer's Platform";
+      description =
+        'Deliver web applications with speed and efficiency using component-driven architecture.';
+    }
+
+    this.linkPreview.set({
+      url,
+      title,
+      description,
+      thumbnailUrl,
+      siteName: domain,
+    });
   }
 
   private parseRichMessage(rawText: string): string {
