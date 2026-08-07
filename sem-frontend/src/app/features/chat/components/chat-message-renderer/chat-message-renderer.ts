@@ -100,6 +100,34 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
         max-width: 120px;
         max-height: 120px;
       }
+
+      /* MENTIONS STYLING */
+      ::ng-deep .rich-message-content .mention-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.1rem 0.45rem;
+        border-radius: 0.375rem;
+        font-weight: 700;
+        font-size: 0.9em;
+        margin: 0 0.1rem;
+        vertical-align: baseline;
+      }
+      ::ng-deep .rich-message-content .mention-group {
+        background: rgba(245, 158, 11, 0.2);
+        color: #fbbf24;
+        border: 1px solid rgba(245, 158, 11, 0.35);
+      }
+      ::ng-deep .rich-message-content .mention-user {
+        background: rgba(139, 92, 246, 0.25);
+        color: #c4b5fd;
+        border: 1px solid rgba(139, 92, 246, 0.4);
+      }
+      ::ng-deep .rich-message-content .mention-channel {
+        background: rgba(6, 182, 212, 0.2);
+        color: #67e8f9;
+        border: 1px solid rgba(6, 182, 212, 0.35);
+      }
     `,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -160,7 +188,6 @@ export class ChatMessageRendererComponent implements OnChanges {
             .join('');
           tableHtml += `<tr>${cols}</tr></thead><tbody>`;
         } else if (line.includes('---')) {
-          // Separator row, ignore
           continue;
         } else {
           const cols = line
@@ -189,30 +216,34 @@ export class ChatMessageRendererComponent implements OnChanges {
     // 4. Bullet lists & Ordered lists
     text = text.replace(/^- (.*$)/gim, '<ul class="rich-list"><li>$1</li></ul>');
     text = text.replace(/^(\d+)\.\s+(.*$)/gim, '<ol class="rich-list-ordered"><li>$2</li></ol>');
-    // Clean duplicate <ul> and <ol> tags
     text = text.replace(/<\/ul>\n<ul class="rich-list">/g, '');
     text = text.replace(/<\/ol>\n<ol class="rich-list-ordered">/g, '');
 
     // 5. Formatting syntax
-    // Bold: **text** or <b>text</b>
     text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     text = text.replace(/&lt;b&gt;(.*?)&lt;\/b&gt;/gi, '<strong>$1</strong>');
-
-    // Italic: *text* or <i>text</i>
     text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
     text = text.replace(/&lt;i&gt;(.*?)&lt;\/i&gt;/gi, '<em>$1</em>');
-
-    // Underline: <u>text</u>
     text = text.replace(/&lt;u&gt;(.*?)&lt;\/u&gt;/gi, '<u>$1</u>');
-
-    // Strikethrough: ~~text~~ or <s>text</s>
     text = text.replace(/~~(.*?)~~/g, '<del>$1</del>');
     text = text.replace(/&lt;s&gt;(.*?)&lt;\/s&gt;/gi, '<del>$1</del>');
-
-    // Inline code: `code`
     text = text.replace(/`(.*?)`/g, '<code class="inline-code">$1</code>');
 
-    // Convert newlines outside pre, blockquote, table, ul to <br/>
+    // 6. Mentions Parsing (@everyone, @admins, @referees, @volunteers, @user, #channel)
+    text = text.replace(
+      /@(everyone|admins|referees|volunteers)\b/gi,
+      '<span class="mention-tag mention-group">@$1</span>',
+    );
+    text = text.replace(
+      /@([a-zA-Z0-9_\-]+)\b/g,
+      '<span class="mention-tag mention-user">@$1</span>',
+    );
+    text = text.replace(
+      /#([a-zA-Z0-9_\-]+)\b/g,
+      '<span class="mention-tag mention-channel">#$1</span>',
+    );
+
+    // Convert newlines outside elements to <br/>
     text = text.replace(/\n/g, '<br/>');
 
     return text;

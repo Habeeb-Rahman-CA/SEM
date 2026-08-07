@@ -97,6 +97,16 @@
       >
         <i class="fi fi-rr-table"></i>
       </button>
+
+      <!-- Mention Trigger Button -->
+      <button
+        type="button"
+        (click)="insertFormat('@')"
+        title="Mention User, Role or Group (@)"
+        class="p-1.5 rounded-lg hover:bg-white/10 text-violet-400 font-bold transition-colors text-xs cursor-pointer"
+      >
+        <i class="fi fi-rr-at"></i>
+      </button>
     </div>
 
     <!-- Media Modals Trigger Buttons (Emoji, GIF, Sticker) -->
@@ -147,7 +157,7 @@
     <textarea
       #textareaRef
       [ngModel]="content()"
-      (ngModelChange)="content.set($event)"
+      (ngModelChange)="onContentChange($event)"
       (keydown)="onKeydown($event)"
       [placeholder]="placeholder"
       [disabled]="disabled"
@@ -171,6 +181,63 @@
       </button>
     </div>
   </div>
+
+  <!-- MENTION AUTOCOMPLETE POPUP -->
+  @if (showMentionPicker()) {
+    <div
+      class="absolute bottom-full left-0 mb-2 w-72 bg-slate-900 border border-white/10 rounded-2xl p-2 shadow-2xl z-50 animate-in fade-in zoom-in-95"
+    >
+      <div class="px-2 py-1.5 border-b border-white/10 mb-1 flex items-center justify-between">
+        <span
+          class="text-[10px] font-bold uppercase tracking-wider text-violet-400 flex items-center gap-1"
+        >
+          <i class="fi fi-rr-at"></i> Mention Suggestion
+        </span>
+        <span class="text-[9px] text-slate-500">↑↓ to navigate, Enter to insert</span>
+      </div>
+
+      <div class="max-h-48 overflow-y-auto space-y-0.5 scrollbar-none">
+        @if (filteredMentionSuggestions().length === 0) {
+          <p class="text-[11px] text-slate-500 p-3 text-center">
+            No matching user, role or group mention found.
+          </p>
+        } @else {
+          @for (item of filteredMentionSuggestions(); track item.id; let idx = $index) {
+            <div
+              (click)="applyMention(item)"
+              [class.bg-violet-600\/20]="selectedMentionIndex() === idx"
+              [class.border-violet-500\/30]="selectedMentionIndex() === idx"
+              class="p-2 rounded-xl border border-transparent hover:bg-white/5 hover:border-white/10 flex items-center justify-between cursor-pointer transition-all group"
+            >
+              <div class="flex items-center gap-2.5 min-w-0">
+                <div
+                  class="w-6 h-6 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0"
+                >
+                  <i [class]="item.icon + ' text-xs'"></i>
+                </div>
+                <div class="min-w-0">
+                  <p
+                    class="text-xs font-semibold text-white group-hover:text-violet-300 transition-colors truncate"
+                  >
+                    {{ item.insertText }}
+                  </p>
+                  @if (item.detail) {
+                    <p class="text-[9px] text-slate-400 truncate">{{ item.detail }}</p>
+                  }
+                </div>
+              </div>
+
+              <span
+                class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-white/5 text-slate-400 uppercase"
+              >
+                {{ item.type }}
+              </span>
+            </div>
+          }
+        }
+      </div>
+    </div>
+  }
 
   <!-- EMOJI PICKER POPUP -->
   @if (showEmojiPicker()) {

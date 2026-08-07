@@ -12,6 +12,15 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
+export interface MentionSuggestion {
+  id: string;
+  name: string;
+  type: 'user' | 'role' | 'channel' | 'group';
+  detail?: string;
+  icon: string;
+  insertText: string;
+}
+
 @Component({
   selector: 'app-chat-rich-message-input',
   standalone: true,
@@ -24,6 +33,8 @@ export class ChatRichMessageInputComponent {
   @Input() placeholder: string = 'Type a rich message...';
   @Input() disabled: boolean = false;
   @Input() isSending: boolean = false;
+  @Input() members: any[] = [];
+  @Input() channels: any[] = [];
 
   @Output() sendMessage = new EventEmitter<{ content: string; attachments?: string[] }>();
   @Output() typing = new EventEmitter<void>();
@@ -37,6 +48,48 @@ export class ChatRichMessageInputComponent {
   showGifPicker = signal<boolean>(false);
   showStickerPicker = signal<boolean>(false);
   activeEmojiCategory = signal<string>('sports');
+
+  // Mention Autocomplete state
+  showMentionPicker = signal<boolean>(false);
+  mentionQuery = signal<string>('');
+  mentionCursorIndex = signal<number>(0);
+  selectedMentionIndex = signal<number>(0);
+
+  // Group Mention Presets
+  groupMentions: MentionSuggestion[] = [
+    {
+      id: 'everyone',
+      name: 'everyone',
+      type: 'group',
+      detail: 'Notify all members in workspace',
+      icon: 'fi fi-rr-users-alt text-amber-400',
+      insertText: '@everyone',
+    },
+    {
+      id: 'admins',
+      name: 'admins',
+      type: 'group',
+      detail: 'Notify workspace administrators',
+      icon: 'fi fi-rr-shield-check text-violet-400',
+      insertText: '@admins',
+    },
+    {
+      id: 'referees',
+      name: 'referees',
+      type: 'group',
+      detail: 'Notify referee & officiating team',
+      icon: 'fi fi-rr-whistle text-cyan-400',
+      insertText: '@referees',
+    },
+    {
+      id: 'volunteers',
+      name: 'volunteers',
+      type: 'group',
+      detail: 'Notify volunteer team leaders',
+      icon: 'fi fi-rr-heart-partner-handshake text-emerald-400',
+      insertText: '@volunteers',
+    },
+  ];
 
   // Emojis catalog
   emojiCategories: { [key: string]: { label: string; emojis: string[] } } = {
@@ -229,17 +282,164 @@ export class ChatRichMessageInputComponent {
     { title: 'GG', icon: 'fi fi-rr-smile', bg: 'bg-cyan-600', text: 'GOOD GAME' },
   ];
 
+  // All Mention Suggestions computed
+  allMentionSuggestions = computed<MentionSuggestion[]>(() => {
+    const list: MentionSuggestion[] = [...this.groupMentions];
+
+    // Users
+    if (this.members && this.members.length > 0) {
+      for (const m of this.members) {
+        const username = m.user?.username || m.username;
+        if (username) {
+          list.push({
+            id: m.userId || m.id,
+            name: username,
+            type: 'user',
+            detail: m.role?.name || 'Member',
+            icon: 'fi fi-rr-user text-indigo-400',
+            insertText: `@${username}`,
+          });
+        }
+      }
+    }
+
+    // Roles
+    const roleNames = new Set<string>();
+    if (this.members) {
+      for (const m of this.members) {
+        const rName = m.role?.name;
+        if (rName && !roleNames.has(rName)) {
+          roleNames.add(rName);
+          list.push({
+            id: `role-${rName}`,
+            name: rName,
+            type: 'role',
+            detail: 'Workspace Role',
+            icon: 'fi fi-rr-key text-purple-400',
+            insertText: `@${rName.toLowerCase().replace(/\s+/g, '_')}`,
+          });
+        }
+      }
+    }
+
+    // Channels
+    if (this.channels && this.channels.length > 0) {
+      for (const c of this.channels) {
+        list.push({
+          id: c.id,
+          name: c.name,
+          type: 'channel',
+          detail: 'Workspace Channel',
+          icon: c.icon || 'fi fi-rr-hashtag text-cyan-400',
+          insertText: `@${c.name.toLowerCase().replace(/\s+/g, '-')}`,
+        });
+      }
+    }
+
+    return list;
+  });
+
+  filteredMentionSuggestions = computed<MentionSuggestion[]>(() => {
+    const q = this.mentionQuery().toLowerCase().trim();
+    const suggestions = this.allMentionSuggestions();
+    if (!q) return suggestions;
+    return suggestions.filter(
+      (s) =>
+        s.name.toLowerCase().includes(q) ||
+        s.insertText.toLowerCase().includes(q) ||
+        s.detail?.toLowerCase().includes(q),
+    );
+  });
+
   activeCategoryEmojis = computed(() => {
     return this.emojiCategories[this.activeEmojiCategory()]?.emojis || [];
   });
 
+  onContentChange(val: string) {
+    this.content.set(val);
+    this.checkMentionTrigger();
+  }
+
+  private checkMentionTrigger() {
+    const el = this.textareaRef?.nativeElement;
+    if (!el) return;
+
+    const cursorPos = el.selectionStart;
+    const textBeforeCursor = this.content().substring(0, cursorPos);
+    const words = textBeforeCursor.split(/\s/);
+    const lastWord = words[words.length - 1];
+
+    if (lastWord && (lastWord.startsWith('@') || lastWord.startsWith('#'))) {
+      this.mentionQuery.set(lastWord.substring(1));
+      this.mentionCursorIndex.set(cursorPos);
+      this.selectedMentionIndex.set(0);
+      this.showMentionPicker.set(true);
+    } else {
+      this.showMentionPicker.set(false);
+    }
+  }
+
   onKeydown(event: KeyboardEvent) {
+    if (this.showMentionPicker()) {
+      const suggestions = this.filteredMentionSuggestions();
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        this.selectedMentionIndex.update((idx) =>
+          suggestions.length ? (idx + 1) % suggestions.length : 0,
+        );
+        return;
+      }
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        this.selectedMentionIndex.update((idx) =>
+          suggestions.length ? (idx - 1 + suggestions.length) % suggestions.length : 0,
+        );
+        return;
+      }
+      if (event.key === 'Enter' || event.key === 'Tab') {
+        event.preventDefault();
+        if (suggestions.length > 0) {
+          const selected = suggestions[this.selectedMentionIndex() || 0];
+          this.applyMention(selected);
+        }
+        return;
+      }
+      if (event.key === 'Escape') {
+        this.showMentionPicker.set(false);
+        return;
+      }
+    }
+
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       this.submitMessage();
     } else {
       this.typing.emit();
     }
+  }
+
+  applyMention(suggestion: MentionSuggestion) {
+    const el = this.textareaRef?.nativeElement;
+    if (!el) return;
+
+    const text = this.content();
+    const cursorPos = el.selectionStart;
+    const textBeforeCursor = text.substring(0, cursorPos);
+    const textAfterCursor = text.substring(cursorPos);
+
+    const words = textBeforeCursor.split(/\s/);
+    words.pop(); // Remove partial mention search query
+
+    const newBefore = words.join(' ') + (words.length > 0 ? ' ' : '') + suggestion.insertText + ' ';
+    const newText = newBefore + textAfterCursor;
+
+    this.content.set(newText);
+    this.showMentionPicker.set(false);
+
+    setTimeout(() => {
+      el.focus();
+      el.setSelectionRange(newBefore.length, newBefore.length);
+    }, 10);
   }
 
   submitMessage() {
@@ -324,5 +524,6 @@ export class ChatRichMessageInputComponent {
     this.showEmojiPicker.set(false);
     this.showGifPicker.set(false);
     this.showStickerPicker.set(false);
+    this.showMentionPicker.set(false);
   }
 }

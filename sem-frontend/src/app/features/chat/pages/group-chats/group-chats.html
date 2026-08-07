@@ -282,7 +282,8 @@
           <app-chat-rich-message-input
             placeholder="Send message to {{
               group.name
-            }} (Markdown, Emojis, GIFs, Stickers & Formatting supported)..."
+            }} (@mentions, Markdown, Emojis, GIFs & Stickers supported)..."
+            [members]="members()"
             [isSending]="isSending()"
             (sendMessage)="onSendRichMessage($event)"
           />
