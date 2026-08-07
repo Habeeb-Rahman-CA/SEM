@@ -1,0 +1,241 @@
+<div
+  #playerContainer
+  (mousemove)="onMouseMove()"
+  class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-2xl flex flex-col justify-between overflow-hidden select-none animate-in fade-in duration-200"
+>
+  <!-- Top Header Controls Bar -->
+  <div
+    class="z-20 px-6 py-4 flex items-center justify-between bg-gradient-to-b from-slate-950/90 via-slate-950/50 to-transparent transition-opacity duration-300"
+    [class.opacity-0]="!showControls() && isPlaying()"
+    [class.pointer-events-none]="!showControls() && isPlaying()"
+  >
+    <div class="flex items-center gap-3">
+      <div
+        class="w-9 h-9 rounded-xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-400"
+      >
+        <i class="fi fi-rr-video-camera text-base"></i>
+      </div>
+      <div>
+        <h3 class="text-sm font-semibold text-white truncate max-w-xs md:max-w-md">
+          {{ video().title || 'Shared Video Stream' }}
+        </h3>
+        @if (video().sender) {
+          <p class="text-[11px] text-slate-400 flex items-center gap-2">
+            <span
+              >By <strong class="text-slate-300">{{ video().sender }}</strong></span
+            >
+            @if (video().timestamp) {
+              <span class="w-1 h-1 rounded-full bg-slate-600"></span>
+              <span>{{ video().timestamp }}</span>
+            }
+          </p>
+        }
+      </div>
+    </div>
+
+    <!-- Right Header Actions -->
+    <div class="flex items-center gap-2">
+      <!-- Download Button -->
+      <button
+        (click)="downloadVideo()"
+        title="Download Video"
+        class="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white flex items-center justify-center transition-all cursor-pointer"
+      >
+        <i class="fi fi-rr-download text-sm"></i>
+      </button>
+
+      <!-- Close Button -->
+      <button
+        (click)="closePlayer()"
+        title="Close (Esc)"
+        class="w-10 h-10 rounded-xl bg-white/5 hover:bg-red-500/20 hover:border-red-500/40 border border-white/10 text-slate-300 hover:text-red-400 flex items-center justify-center transition-all cursor-pointer"
+      >
+        <i class="fi fi-rr-cross text-xs"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Video Streaming Element Surface -->
+  <div
+    class="relative flex-1 flex items-center justify-center w-full h-full overflow-hidden bg-black/60"
+  >
+    <video
+      #videoElement
+      [src]="video().url"
+      (loadedmetadata)="onLoadedMetadata()"
+      (timeupdate)="onTimeUpdate()"
+      (ended)="onEnded()"
+      (click)="togglePlay()"
+      class="max-w-full max-h-full object-contain cursor-pointer"
+      playsinline
+    ></video>
+
+    <!-- Overlay Big Play/Pause Center Indicator -->
+    @if (!isPlaying()) {
+      <button
+        (click)="togglePlay()"
+        class="absolute z-10 w-20 h-20 rounded-full bg-violet-600/90 hover:bg-violet-500 text-white flex items-center justify-center shadow-2xl shadow-violet-600/50 border border-white/20 transition-all transform hover:scale-110 cursor-pointer animate-in zoom-in-75 duration-150"
+      >
+        <i class="fi fi-rr-play text-2xl ml-1"></i>
+      </button>
+    }
+  </div>
+
+  <!-- Bottom Player Control Dock -->
+  <div
+    class="z-20 px-6 py-4 bg-gradient-to-t from-slate-950/95 via-slate-950/70 to-transparent space-y-3 transition-opacity duration-300"
+    [class.opacity-0]="!showControls() && isPlaying()"
+    [class.pointer-events-none]="!showControls() && isPlaying()"
+  >
+    <!-- Interactive Seek Scrub Timeline Bar -->
+    <div
+      (click)="seek($event)"
+      class="relative w-full h-2 hover:h-3 bg-white/15 hover:bg-white/25 rounded-full cursor-pointer transition-all group"
+    >
+      <div
+        class="absolute top-0 left-0 h-full bg-gradient-to-r from-violet-500 to-indigo-500 rounded-full transition-all duration-75 relative"
+        [style.width.%]="progressPercentage()"
+      >
+        <!-- Scrub Knob Handle -->
+        <div
+          class="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-4 h-4 rounded-full bg-white shadow-lg border border-violet-600 opacity-0 group-hover:opacity-100 transition-opacity"
+        ></div>
+      </div>
+    </div>
+
+    <!-- Bottom Controls Strip -->
+    <div class="flex items-center justify-between gap-4">
+      <!-- Left Controls: Play, Seek -5s/+5s, Volume, Time -->
+      <div class="flex items-center gap-3 md:gap-4">
+        <!-- Play/Pause Toggle -->
+        <button
+          (click)="togglePlay()"
+          [title]="isPlaying() ? 'Pause (Space)' : 'Play (Space)'"
+          class="w-10 h-10 rounded-xl bg-violet-600 hover:bg-violet-500 text-white flex items-center justify-center transition-all cursor-pointer shadow-md shadow-violet-600/30"
+        >
+          <i
+            [class]="isPlaying() ? 'fi fi-rr-pause text-base' : 'fi fi-rr-play text-base ml-0.5'"
+          ></i>
+        </button>
+
+        <!-- Rewind -5s -->
+        <button
+          (click)="seekRelative(-5)"
+          title="Rewind 5s (Left Arrow)"
+          class="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white flex items-center justify-center transition-all cursor-pointer"
+        >
+          <i class="fi fi-rr-undo text-xs"></i>
+        </button>
+
+        <!-- Forward +5s -->
+        <button
+          (click)="seekRelative(5)"
+          title="Forward 5s (Right Arrow)"
+          class="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white flex items-center justify-center transition-all cursor-pointer"
+        >
+          <i class="fi fi-rr-redo text-xs"></i>
+        </button>
+
+        <!-- Volume Control Block -->
+        <div class="flex items-center gap-2 group">
+          <button
+            (click)="toggleMute()"
+            [title]="isMuted() ? 'Unmute (M)' : 'Mute (M)'"
+            class="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white flex items-center justify-center transition-all cursor-pointer"
+          >
+            <i
+              [class]="
+                isMuted() || volume() === 0
+                  ? 'fi fi-rr-volume-mute text-sm text-red-400'
+                  : 'fi fi-rr-volume text-sm'
+              "
+            ></i>
+          </button>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.05"
+            [value]="isMuted() ? 0 : volume()"
+            (input)="setVolume($event)"
+            class="w-16 md:w-24 accent-violet-500 h-1 bg-white/20 rounded-lg cursor-pointer transition-all"
+          />
+        </div>
+
+        <!-- Timestamp Display -->
+        <div class="text-xs font-mono text-slate-300">
+          <span class="text-white font-semibold">{{ formattedCurrentTime() }}</span>
+          <span class="text-slate-500 mx-1">/</span>
+          <span class="text-slate-400">{{ formattedDuration() }}</span>
+        </div>
+      </div>
+
+      <!-- Right Controls: Playback Speed, Picture-in-Picture, Fullscreen -->
+      <div class="flex items-center gap-2 relative">
+        <!-- Playback Speed Menu Selector -->
+        <div class="relative">
+          <button
+            (click)="showSpeedMenu.set(!showSpeedMenu())"
+            title="Playback Speed"
+            class="h-9 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-slate-200 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer"
+          >
+            <i class="fi fi-rr-time-fast text-xs text-violet-400"></i>
+            <span>{{ playbackRate() }}x</span>
+          </button>
+
+          <!-- Speed Dropdown Menu -->
+          @if (showSpeedMenu()) {
+            <div
+              class="absolute bottom-12 right-0 w-32 bg-slate-900/95 border border-white/10 rounded-xl p-1.5 shadow-2xl backdrop-blur-xl z-30 space-y-0.5 animate-in fade-in slide-in-from-bottom-2 duration-150"
+            >
+              <div
+                class="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-white/5"
+              >
+                Playback Speed
+              </div>
+              @for (speed of speedOptions; track speed) {
+                <button
+                  (click)="setPlaybackRate(speed)"
+                  [class.bg-violet-600/30]="playbackRate() === speed"
+                  [class.text-violet-300]="playbackRate() === speed"
+                  class="w-full text-left px-2.5 py-1.5 text-xs rounded-lg hover:bg-white/10 text-slate-300 hover:text-white transition-colors cursor-pointer flex items-center justify-between"
+                >
+                  <span>{{ speed === 1 ? '1.0x (Normal)' : speed + 'x' }}</span>
+                  @if (playbackRate() === speed) {
+                    <i class="fi fi-rr-check text-[10px] text-violet-400"></i>
+                  }
+                </button>
+              }
+            </div>
+          }
+        </div>
+
+        <!-- Picture-in-Picture Button -->
+        @if (isPipSupported()) {
+          <button
+            (click)="togglePictureInPicture()"
+            title="Picture-in-Picture (P)"
+            [class.bg-violet-600/30]="isPipMode()"
+            [class.text-violet-400]="isPipMode()"
+            class="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white flex items-center justify-center transition-all cursor-pointer border border-white/10"
+          >
+            <i class="fi fi-rr-picture-in-picture-alt text-sm"></i>
+          </button>
+        }
+
+        <!-- Fullscreen Button -->
+        <button
+          (click)="toggleFullscreen()"
+          title="Toggle Fullscreen (F)"
+          class="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white flex items-center justify-center transition-all cursor-pointer border border-white/10"
+        >
+          <i
+            [class]="
+              isFullscreen() ? 'fi fi-rr-compress-alt text-sm' : 'fi fi-rr-expand-arrows text-sm'
+            "
+          ></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

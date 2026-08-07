@@ -1,6 +1,7 @@
 import { Component, input, model, inject, effect } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Workspace } from '../../features/workspaces/services/workspace.service';
+import { WorkspaceTab } from '../../features/workspaces/models/workspace-tab.type';
 import { AvatarComponent } from '../../shared/components/avatar/avatar';
 import { FavoritesService } from '../../core/services/favorites.service';
 
@@ -15,28 +16,7 @@ export class SidebarComponent {
 
   workspace = input<Workspace | null>(null);
   isSidebarOpen = model<boolean>(true);
-  activeTab = model<
-    | 'overview'
-    | 'members'
-    | 'settings'
-    | 'teams'
-    | 'players'
-    | 'events'
-    | 'venues'
-    | 'reports'
-    | 'files'
-    | 'volunteers'
-    | 'equipment'
-    | 'medical'
-    | 'accreditation'
-    | 'streaming'
-    | 'automation'
-    | 'auctions'
-    | 'transfers'
-    | 'rosters'
-    | 'finance'
-    | 'governance'
-  >('overview');
+  activeTab = model<WorkspaceTab>('overview');
   membersCount = input<number>(0);
   teamsCount = input<number>(0);
   playersCount = input<number>(0);

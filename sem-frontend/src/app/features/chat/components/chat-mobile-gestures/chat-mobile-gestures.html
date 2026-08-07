@@ -1,0 +1,78 @@
+<div *ngIf="isOpen" class="mobile-gestures-overlay" (click)="closeModal()">
+  <div class="mobile-gestures-card" (click)="$event.stopPropagation()">
+    <!-- Modal Header -->
+    <div class="mobile-gestures-header">
+      <div class="header-title">
+        <i class="fi fi-rr-mobile title-icon"></i>
+        <div>
+          <h3>Mobile & Offline Chat Governance</h3>
+          <p>Touch gestures, offline message queue, push notifications & media capture</p>
+        </div>
+      </div>
+      <button class="close-btn" (click)="closeModal()">
+        <i class="fi fi-rr-cross"></i>
+      </button>
+    </div>
+
+    <!-- Connection Status Bar -->
+    <div [class.online]="isOnline()" [class.offline]="!isOnline()" class="connection-bar">
+      <i [class.fi-rr-wifi]="isOnline()" [class.fi-rr-wifi-slash]="!isOnline()" class="fi"></i>
+      <span>{{ isOnline() ? 'Online (Realtime Connected)' : 'Offline (Buffering Messages)' }}</span>
+    </div>
+
+    <!-- Background Upload Progress -->
+    <div *ngIf="backgroundUploadProgress() > 0" class="upload-progress-container">
+      <div class="upload-bar" [style.width.%]="backgroundUploadProgress()"></div>
+      <span>Syncing Offline Messages ({{ backgroundUploadProgress() }}%)...</span>
+    </div>
+
+    <div class="mobile-gestures-body">
+      <!-- 1. Gesture Demo Sandbox -->
+      <div class="mob-card">
+        <h4>Swipe Gesture Test Sandbox</h4>
+        <p class="card-desc">Swipe left to Reply • Swipe right to React</p>
+        <div
+          class="swipe-test-box"
+          (touchstart)="onTouchStart($event)"
+          (touchend)="onTouchEnd($event, 'msg-demo-1')"
+        >
+          <i class="fi fi-rr-comment-alt"></i>
+          <span>Swipe this message item horizontally</span>
+        </div>
+        <div *ngIf="swipeAction()" class="swipe-result">
+          Triggered Gesture: <strong>{{ swipeAction() }}</strong> on {{ swipedMessage() }}
+        </div>
+      </div>
+
+      <!-- 2. Media Capture Controls -->
+      <div class="mob-card">
+        <h4>Native Camera & Gallery Capture</h4>
+        <div class="action-buttons">
+          <button class="btn btn-primary" (click)="openCamera()">
+            <i class="fi fi-rr-camera"></i> Take Photo (Camera)
+          </button>
+          <label class="btn btn-secondary file-label">
+            <i class="fi fi-rr-picture"></i> Choose from Gallery
+            <input type="file" accept="image/*" (change)="onGalleryChange($event)" hidden />
+          </label>
+        </div>
+        <div *ngIf="cameraStreamActive()" class="camera-indicator">
+          <i class="fi fi-rr-video-camera"></i> Camera Active — Capturing Stream...
+        </div>
+      </div>
+
+      <!-- 3. Push Notifications & Sync -->
+      <div class="mob-card">
+        <h4>Mobile Push Notifications & Queue</h4>
+        <div class="action-buttons">
+          <button class="btn btn-success" (click)="enablePushNotifications()">
+            <i class="fi fi-rr-bell"></i> Enable Mobile Push Notifications
+          </button>
+          <button class="btn btn-secondary" (click)="syncOfflineQueue()" [disabled]="!isOnline()">
+            <i class="fi fi-rr-refresh"></i> Sync Offline Queue ({{ offlineQueue().length }})
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,218 @@
+<div
+  class="fixed inset-0 z-50 flex justify-end bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200"
+>
+  <div
+    class="w-full max-w-lg bg-slate-900 border-l border-white/10 flex flex-col h-full shadow-2xl animate-in slide-in-from-right duration-300"
+  >
+    <!-- Drawer Top Header -->
+    <div class="p-4 bg-slate-950 border-b border-white/10 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div
+          class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-cyan-600 to-blue-600 text-white flex items-center justify-center text-lg shadow-lg"
+        >
+          <i class="fi fi-rr-comments-question-check"></i>
+        </div>
+        <div>
+          <h3 class="text-sm font-extrabold text-white flex items-center gap-2">
+            Match Official Discussion
+            <span
+              class="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-[9px] font-mono"
+            >
+              #{{ matchData?.matchId || 'MATCH-101' }}
+            </span>
+          </h3>
+          <p class="text-[11px] text-slate-400">
+            Dedicated discussion feed preserved in match history
+          </p>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        (click)="close.emit()"
+        class="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white flex items-center justify-center transition-all cursor-pointer"
+      >
+        <i class="fi fi-rr-cross text-xs"></i>
+      </button>
+    </div>
+
+    <!-- Match Fixture Preview Card Banner -->
+    <div class="p-3 bg-slate-950/60 border-b border-white/5">
+      <div
+        class="p-3 rounded-2xl bg-slate-900/80 border border-violet-500/30 flex items-center justify-between text-xs"
+      >
+        <div>
+          <span class="text-xs font-black text-white block">{{
+            matchData?.title || 'Semi-Finals: Royal Strikers vs Titan Kings'
+          }}</span>
+          <span class="text-[10px] text-slate-400 font-medium block mt-0.5">
+            📍 {{ matchData?.venue || 'National Sports Complex, Pitch 1' }}
+          </span>
+        </div>
+        <div class="text-right shrink-0">
+          <span
+            class="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 text-[9px] font-extrabold border border-rose-500/30"
+          >
+            LIVE SCORE
+          </span>
+          <span class="text-xs font-black text-amber-300 block mt-0.5">
+            {{ matchData ? matchData.homeTeam.score || '184/4' : '184/4' }} -
+            {{ matchData ? matchData.awayTeam.score || '180/8' : '180/8' }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Permanent Record Notice -->
+    <div
+      class="px-4 py-2 bg-emerald-950/30 border-b border-emerald-500/20 flex items-center gap-2 text-[10px] text-emerald-300 font-semibold"
+    >
+      <i class="fi fi-rr-shield-check text-emerald-400 text-xs"></i>
+      <span>All messages in this log are permanently attached to official match records.</span>
+    </div>
+
+    <!-- Role Filter Tabs -->
+    <div
+      class="px-4 py-2 bg-slate-950/40 border-b border-white/5 flex items-center gap-1.5 overflow-x-auto scrollbar-none text-[10px]"
+    >
+      <button
+        type="button"
+        (click)="selectedRoleFilter.set('all')"
+        [class.bg-violet-600]="selectedRoleFilter() === 'all'"
+        [class.text-white]="selectedRoleFilter() === 'all'"
+        [class.bg-white\/5]="selectedRoleFilter() !== 'all'"
+        [class.text-slate-400]="selectedRoleFilter() !== 'all'"
+        class="px-2.5 py-1 rounded-xl font-bold transition-all cursor-pointer shrink-0"
+      >
+        All Roles
+      </button>
+
+      <button
+        type="button"
+        (click)="selectedRoleFilter.set('Referee')"
+        [class.bg-rose-600]="selectedRoleFilter() === 'Referee'"
+        [class.text-white]="selectedRoleFilter() === 'Referee'"
+        [class.bg-white\/5]="selectedRoleFilter() !== 'Referee'"
+        [class.text-slate-400]="selectedRoleFilter() !== 'Referee'"
+        class="px-2.5 py-1 rounded-xl font-bold transition-all cursor-pointer shrink-0 flex items-center gap-1"
+      >
+        <i class="fi fi-rr-whistle"></i> Referees
+      </button>
+
+      <button
+        type="button"
+        (click)="selectedRoleFilter.set('Coach')"
+        [class.bg-amber-600]="selectedRoleFilter() === 'Coach'"
+        [class.text-white]="selectedRoleFilter() === 'Coach'"
+        [class.bg-white\/5]="selectedRoleFilter() !== 'Coach'"
+        [class.text-slate-400]="selectedRoleFilter() !== 'Coach'"
+        class="px-2.5 py-1 rounded-xl font-bold transition-all cursor-pointer shrink-0 flex items-center gap-1"
+      >
+        <i class="fi fi-rr-clipboard-user"></i> Coaches
+      </button>
+
+      <button
+        type="button"
+        (click)="selectedRoleFilter.set('Official')"
+        [class.bg-violet-600]="selectedRoleFilter() === 'Official'"
+        [class.text-white]="selectedRoleFilter() === 'Official'"
+        [class.bg-white\/5]="selectedRoleFilter() !== 'Official'"
+        [class.text-slate-400]="selectedRoleFilter() !== 'Official'"
+        class="px-2.5 py-1 rounded-xl font-bold transition-all cursor-pointer shrink-0 flex items-center gap-1"
+      >
+        <i class="fi fi-rr-user-gear"></i> Officials
+      </button>
+
+      <button
+        type="button"
+        (click)="selectedRoleFilter.set('Organizer')"
+        [class.bg-cyan-600]="selectedRoleFilter() === 'Organizer'"
+        [class.text-white]="selectedRoleFilter() === 'Organizer'"
+        [class.bg-white\/5]="selectedRoleFilter() !== 'Organizer'"
+        [class.text-slate-400]="selectedRoleFilter() !== 'Organizer'"
+        class="px-2.5 py-1 rounded-xl font-bold transition-all cursor-pointer shrink-0 flex items-center gap-1"
+      >
+        <i class="fi fi-rr-trophy"></i> Organizers
+      </button>
+    </div>
+
+    <!-- Timeline Notes List -->
+    <div class="flex-1 overflow-y-auto p-4 space-y-3 scrollbar-none">
+      @for (note of filteredNotes; track note.id) {
+        <div
+          class="p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-2 hover:border-white/20 transition-all"
+        >
+          <div class="flex items-center justify-between text-xs">
+            <div class="flex items-center gap-2">
+              <span class="font-extrabold text-white">{{ note.senderName }}</span>
+              <span
+                class="px-2 py-0.5 rounded-lg border text-[9px] font-extrabold uppercase {{
+                  note.roleColor
+                }}"
+              >
+                {{ note.senderRole }}
+              </span>
+            </div>
+            <div class="flex items-center gap-1.5 text-[10px] text-slate-400">
+              @if (note.isPinned) {
+                <i class="fi fi-sr-thumbtack text-amber-400" title="Pinned Note"></i>
+              }
+              <span>{{ note.timestamp }}</span>
+            </div>
+          </div>
+
+          <p class="text-xs text-slate-300 leading-relaxed font-sans">{{ note.content }}</p>
+        </div>
+      }
+    </div>
+
+    <!-- Dispatch Quick Templates & Message Input -->
+    <div class="p-4 bg-slate-950 border-t border-white/10 space-y-2.5 shrink-0">
+      <!-- Quick Template Chips -->
+      <div class="flex items-center gap-1.5 text-[10px]">
+        <span class="text-slate-400 font-medium">Quick Templates:</span>
+        <button
+          type="button"
+          (click)="insertTemplate('pitch')"
+          class="px-2 py-0.5 rounded-lg bg-white/5 hover:bg-white/10 text-cyan-300 font-semibold transition-all cursor-pointer"
+        >
+          Pitch Status
+        </button>
+        <button
+          type="button"
+          (click)="insertTemplate('lineup')"
+          class="px-2 py-0.5 rounded-lg bg-white/5 hover:bg-white/10 text-amber-300 font-semibold transition-all cursor-pointer"
+        >
+          Lineup Approved
+        </button>
+        <button
+          type="button"
+          (click)="insertTemplate('notice')"
+          class="px-2 py-0.5 rounded-lg bg-white/5 hover:bg-white/10 text-rose-300 font-semibold transition-all cursor-pointer"
+        >
+          Match Notice
+        </button>
+      </div>
+
+      <!-- Textarea input -->
+      <div class="flex items-center gap-2">
+        <textarea
+          rows="2"
+          [ngModel]="noteInput()"
+          (ngModelChange)="noteInput.set($event)"
+          placeholder="Post official referee, coach, or organizer note to match records..."
+          class="flex-1 bg-white/5 border border-white/10 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-all resize-none"
+        ></textarea>
+        <button
+          type="button"
+          (click)="sendNote()"
+          [disabled]="!noteInput().trim()"
+          class="px-4 py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 text-white font-bold text-xs transition-all cursor-pointer shrink-0 shadow-lg flex items-center gap-1.5"
+        >
+          <i class="fi fi-rr-paper-plane"></i>
+          <span>Post</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

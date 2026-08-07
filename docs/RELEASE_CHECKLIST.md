@@ -1,4 +1,4 @@
-# v5.5 Release Checklist
+# v6.0 Release Checklist
 
 Walk through this list before promoting a build to production. Each item
 has three parts: **what** (the requirement), **evidence** (where in the

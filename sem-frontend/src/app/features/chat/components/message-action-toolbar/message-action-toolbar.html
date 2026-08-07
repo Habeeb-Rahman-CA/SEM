@@ -1,0 +1,226 @@
+<div class="relative inline-flex items-center">
+  <!-- Quick Hover Toolbar Pill -->
+  <div
+    class="flex items-center gap-0.5 bg-slate-900/90 backdrop-blur-md border border-white/10 rounded-full px-1.5 py-1 shadow-xl opacity-0 group-hover/msg:opacity-100 transition-all duration-150 z-20"
+  >
+    <!-- Quick Popular Reactions -->
+    <button
+      type="button"
+      (click)="onSelectEmoji('👍')"
+      title="React 👍"
+      class="w-7 h-7 rounded-full hover:bg-white/15 text-slate-300 hover:scale-125 flex items-center justify-center transition-all cursor-pointer text-xs"
+    >
+      👍
+    </button>
+    <button
+      type="button"
+      (click)="onSelectEmoji('❤️')"
+      title="React ❤️"
+      class="w-7 h-7 rounded-full hover:bg-white/15 text-slate-300 hover:scale-125 flex items-center justify-center transition-all cursor-pointer text-xs"
+    >
+      ❤️
+    </button>
+    <button
+      type="button"
+      (click)="onSelectEmoji('🔥')"
+      title="React 🔥"
+      class="w-7 h-7 rounded-full hover:bg-white/15 text-slate-300 hover:scale-125 flex items-center justify-center transition-all cursor-pointer text-xs"
+    >
+      🔥
+    </button>
+
+    <!-- Open Reaction Emoji Picker -->
+    <button
+      type="button"
+      (click)="toggleEmojiPicker($event)"
+      title="Add Reaction"
+      class="w-7 h-7 rounded-full hover:bg-white/10 text-slate-300 hover:text-amber-400 flex items-center justify-center transition-colors cursor-pointer text-xs"
+    >
+      <i class="fi fi-rr-smile"></i>
+    </button>
+
+    <div class="w-px h-4 bg-white/10 mx-0.5"></div>
+
+    <!-- Quick Reply -->
+    <button
+      type="button"
+      (click)="onAction('reply', $event)"
+      title="Reply (Quoted)"
+      class="w-7 h-7 rounded-full hover:bg-white/10 text-slate-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer text-xs"
+    >
+      <i class="fi fi-rr-reply"></i>
+    </button>
+
+    <!-- Quick Thread -->
+    <button
+      type="button"
+      (click)="onAction('thread', $event)"
+      title="Reply in Thread"
+      class="w-7 h-7 rounded-full hover:bg-white/10 text-slate-300 hover:text-violet-400 flex items-center justify-center transition-colors cursor-pointer text-xs"
+    >
+      <i class="fi fi-rr-comment-alt-middle"></i>
+    </button>
+
+    <!-- Quick Bookmark -->
+    <button
+      type="button"
+      (click)="onAction('bookmark', $event)"
+      [title]="message.isBookmarked ? 'Remove Bookmark' : 'Bookmark Message'"
+      [class.text-amber-400]="message.isBookmarked"
+      class="w-7 h-7 rounded-full hover:bg-white/10 text-slate-300 hover:text-amber-400 flex items-center justify-center transition-colors cursor-pointer text-xs"
+    >
+      <i [class]="message.isBookmarked ? 'fi fi-sr-bookmark' : 'fi fi-rr-bookmark'"></i>
+    </button>
+
+    <!-- Dropdown Toggle -->
+    <button
+      type="button"
+      (click)="toggleMenu($event)"
+      title="More Actions"
+      class="w-7 h-7 rounded-full hover:bg-white/10 text-slate-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer text-xs"
+    >
+      <i class="fi fi-rr-menu-dots-vertical"></i>
+    </button>
+  </div>
+
+  <!-- Emoji Reaction Picker Popover Overlay -->
+  @if (showEmojiPicker()) {
+    <div class="fixed inset-0 z-30" (click)="showEmojiPicker.set(false)"></div>
+    <div class="absolute right-0 top-9 z-40">
+      <app-emoji-reaction-picker
+        (selectEmoji)="onSelectEmoji($event)"
+        (close)="showEmojiPicker.set(false)"
+      />
+    </div>
+  }
+
+  <!-- Extended Dropdown Menu -->
+  @if (isMenuOpen()) {
+    <!-- Backdrop to close -->
+    <div class="fixed inset-0 z-30" (click)="closeMenu()"></div>
+
+    <div
+      class="absolute right-0 top-9 w-48 bg-slate-900/95 backdrop-blur-xl border border-white/15 rounded-2xl shadow-2xl p-1.5 z-40 animate-in fade-in zoom-in-95 duration-100 space-y-0.5"
+    >
+      <!-- Reply -->
+      <button
+        type="button"
+        (click)="onAction('reply', $event)"
+        class="w-full px-3 py-1.5 rounded-xl hover:bg-white/10 text-slate-200 text-xs font-semibold flex items-center gap-2.5 transition-colors cursor-pointer"
+      >
+        <i class="fi fi-rr-reply text-slate-400 text-xs"></i>
+        <span>Reply</span>
+      </button>
+
+      <!-- Thread -->
+      <button
+        type="button"
+        (click)="onAction('thread', $event)"
+        class="w-full px-3 py-1.5 rounded-xl hover:bg-white/10 text-slate-200 text-xs font-semibold flex items-center gap-2.5 transition-colors cursor-pointer"
+      >
+        <i class="fi fi-rr-comment-alt-middle text-violet-400 text-xs"></i>
+        <span>Reply in Thread</span>
+      </button>
+
+      <!-- Pin -->
+      <button
+        type="button"
+        (click)="onAction('pin', $event)"
+        class="w-full px-3 py-1.5 rounded-xl hover:bg-white/10 text-slate-200 text-xs font-semibold flex items-center gap-2.5 transition-colors cursor-pointer"
+      >
+        <i
+          [class]="
+            message.isPinned
+              ? 'fi fi-sr-thumbtack text-amber-400'
+              : 'fi fi-rr-thumbtack text-slate-400'
+          "
+          class="text-xs"
+        ></i>
+        <span>{{ message.isPinned ? 'Unpin Message' : 'Pin Message' }}</span>
+      </button>
+
+      <!-- Bookmark -->
+      <button
+        type="button"
+        (click)="onAction('bookmark', $event)"
+        class="w-full px-3 py-1.5 rounded-xl hover:bg-white/10 text-slate-200 text-xs font-semibold flex items-center gap-2.5 transition-colors cursor-pointer"
+      >
+        <i
+          [class]="
+            message.isBookmarked
+              ? 'fi fi-sr-bookmark text-amber-400'
+              : 'fi fi-rr-bookmark text-slate-400'
+          "
+          class="text-xs"
+        ></i>
+        <span>{{ message.isBookmarked ? 'Bookmarked' : 'Bookmark' }}</span>
+      </button>
+
+      <!-- Forward -->
+      <button
+        type="button"
+        (click)="onAction('forward', $event)"
+        class="w-full px-3 py-1.5 rounded-xl hover:bg-white/10 text-slate-200 text-xs font-semibold flex items-center gap-2.5 transition-colors cursor-pointer"
+      >
+        <i class="fi fi-rr-share-square text-sky-400 text-xs"></i>
+        <span>Forward</span>
+      </button>
+
+      <!-- Copy -->
+      <button
+        type="button"
+        (click)="onAction('copy', $event)"
+        class="w-full px-3 py-1.5 rounded-xl hover:bg-white/10 text-slate-200 text-xs font-semibold flex items-center gap-2.5 transition-colors cursor-pointer"
+      >
+        <i class="fi fi-rr-copy text-slate-400 text-xs"></i>
+        <span>Copy Text</span>
+      </button>
+
+      <!-- Translate -->
+      <button
+        type="button"
+        (click)="onAction('translate', $event)"
+        class="w-full px-3 py-1.5 rounded-xl hover:bg-white/10 text-slate-200 text-xs font-semibold flex items-center gap-2.5 transition-colors cursor-pointer"
+      >
+        <i class="fi fi-rr-language text-teal-400 text-xs"></i>
+        <span>{{ message.translatedText ? 'Hide Translation' : 'Translate Message' }}</span>
+      </button>
+
+      <!-- Share -->
+      <button
+        type="button"
+        (click)="onAction('share', $event)"
+        class="w-full px-3 py-1.5 rounded-xl hover:bg-white/10 text-slate-200 text-xs font-semibold flex items-center gap-2.5 transition-colors cursor-pointer"
+      >
+        <i class="fi fi-rr-link-alt text-indigo-400 text-xs"></i>
+        <span>Share Link</span>
+      </button>
+
+      <!-- Edit (Sender Only) -->
+      @if (message.senderId === currentUserId) {
+        <div class="h-px bg-white/10 my-1"></div>
+
+        <button
+          type="button"
+          (click)="onAction('edit', $event)"
+          class="w-full px-3 py-1.5 rounded-xl hover:bg-white/10 text-amber-300 text-xs font-semibold flex items-center gap-2.5 transition-colors cursor-pointer"
+        >
+          <i class="fi fi-rr-edit text-xs"></i>
+          <span>Edit Message</span>
+        </button>
+      }
+
+      <!-- Delete (Sender Only) -->
+      @if (message.senderId === currentUserId) {
+        <button
+          type="button"
+          (click)="onAction('delete', $event)"
+          class="w-full px-3 py-1.5 rounded-xl hover:bg-rose-500/20 text-rose-400 text-xs font-semibold flex items-center gap-2.5 transition-colors cursor-pointer"
+        >
+          <i class="fi fi-rr-trash text-xs"></i>
+          <span>Delete Message</span>
+        </button>
+      }
+    </div>
+  }
+</div>

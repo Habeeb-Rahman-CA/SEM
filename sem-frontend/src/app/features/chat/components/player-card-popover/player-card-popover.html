@@ -1,0 +1,121 @@
+@if (player) {
+  <div
+    class="fixed z-50 w-72 bg-slate-900/95 border border-emerald-500/40 rounded-3xl shadow-2xl overflow-hidden backdrop-blur-xl animate-in zoom-in-95 fade-in duration-150 pointer-events-none"
+    [style.top.px]="position.y"
+    [style.left.px]="position.x"
+  >
+    <!-- Header Hero Banner -->
+    <div
+      class="relative p-4 bg-gradient-to-br from-indigo-900/60 via-slate-900 to-slate-950 border-b border-white/10"
+    >
+      <!-- Jersey Badge -->
+      <div
+        class="absolute top-3 right-3 px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-[10px] font-black tracking-widest"
+      >
+        #{{ player.jerseyNumber }}
+      </div>
+
+      <div class="flex items-center gap-3">
+        <!-- Player Avatar -->
+        <div class="relative">
+          <div
+            class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-500 to-cyan-500 p-0.5 shadow-lg"
+          >
+            <div
+              class="w-full h-full rounded-[14px] bg-slate-900 flex items-center justify-center text-emerald-400 font-extrabold text-base"
+            >
+              {{ player.name.charAt(0) }}
+            </div>
+          </div>
+          <div
+            class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-slate-900 flex items-center justify-center text-slate-950 text-[8px]"
+          >
+            <i class="fi fi-rr-check"></i>
+          </div>
+        </div>
+
+        <div class="min-w-0">
+          <h4 class="text-sm font-extrabold text-white truncate leading-tight">
+            {{ player.name }}
+          </h4>
+          <span class="text-[10px] text-slate-400 font-mono block">@{{ player.handle }}</span>
+          <!-- Rating Badge -->
+          <div class="mt-1 flex items-center gap-1">
+            <span
+              class="px-1.5 py-0.2 rounded bg-amber-500/20 border border-amber-500/30 text-amber-300 text-[9px] font-extrabold flex items-center gap-1"
+            >
+              <i class="fi fi-rr-star text-amber-400 text-[8px]"></i>
+              {{ player.rating.toFixed(1) }} / 10
+            </span>
+            <span class="text-[9px] text-slate-400 font-medium truncate">{{
+              player.position
+            }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Team Info Bar -->
+    <div
+      class="px-4 py-2 bg-slate-950/60 border-b border-white/5 flex items-center justify-between text-[11px]"
+    >
+      <div class="flex items-center gap-2">
+        <div
+          class="w-5 h-5 rounded-lg bg-indigo-600/30 border border-indigo-400/40 text-indigo-300 flex items-center justify-center font-black text-[9px]"
+        >
+          {{ player.teamCode }}
+        </div>
+        <span class="font-bold text-white text-xs">{{ player.teamName }}</span>
+      </div>
+      <span
+        class="text-[9px] font-bold text-emerald-400 uppercase tracking-wider bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-500/30"
+      >
+        Active Squad
+      </span>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="p-3.5 space-y-3">
+      <div class="grid grid-cols-4 gap-1.5 text-center">
+        <div class="p-2 rounded-xl bg-white/5 border border-white/5">
+          <span class="text-xs font-black text-white block">{{ player.stats.matchesPlayed }}</span>
+          <span class="text-[8px] text-slate-400 font-bold uppercase">Matches</span>
+        </div>
+        <div class="p-2 rounded-xl bg-white/5 border border-white/5">
+          <span class="text-xs font-black text-emerald-400 block">{{
+            player.stats.goalsOrRuns
+          }}</span>
+          <span class="text-[8px] text-slate-400 font-bold uppercase">Runs/Goals</span>
+        </div>
+        <div class="p-2 rounded-xl bg-white/5 border border-white/5">
+          <span class="text-xs font-black text-cyan-400 block">{{
+            player.stats.assistsOrWickets
+          }}</span>
+          <span class="text-[8px] text-slate-400 font-bold uppercase">Wkt/Assist</span>
+        </div>
+        <div class="p-2 rounded-xl bg-white/5 border border-white/5">
+          <span class="text-xs font-black text-amber-400 block">{{ player.stats.mvpCount }}</span>
+          <span class="text-[8px] text-slate-400 font-bold uppercase">MVPs</span>
+        </div>
+      </div>
+
+      <!-- Attendance Percentage Bar -->
+      <div class="space-y-1 pt-1">
+        <div class="flex items-center justify-between text-[10px]">
+          <span class="text-slate-400 font-medium flex items-center gap-1">
+            <i class="fi fi-rr-calendar-check text-emerald-400 text-xs"></i> Attendance Rate
+          </span>
+          <span class="font-extrabold text-emerald-300">{{ player.attendancePercentage }}%</span>
+        </div>
+        <div
+          class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden p-0.5 border border-white/10"
+        >
+          <div
+            class="h-full bg-gradient-to-r from-emerald-500 to-cyan-400 rounded-full transition-all duration-300"
+            [style.width.%]="player.attendancePercentage"
+          ></div>
+        </div>
+      </div>
+    </div>
+  </div>
+}

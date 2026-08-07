@@ -1,0 +1,695 @@
+<div
+  (dragover)="onDragOver($event)"
+  (dragleave)="onDragLeave($event)"
+  (drop)="onDrop($event)"
+  [class.border-violet-500]="isDragging()"
+  [class.bg-violet-950\/30]="isDragging()"
+  class="relative bg-slate-900/70 border border-white/10 rounded-2xl p-2 shadow-2xl backdrop-blur-xl transition-all"
+>
+  <!-- Drag & Drop Overlay Indicator -->
+  @if (isDragging()) {
+    <div
+      class="absolute inset-0 bg-violet-950/80 backdrop-blur-md rounded-2xl z-50 border-2 border-dashed border-violet-400 flex flex-col items-center justify-center pointer-events-none animate-in fade-in zoom-in-95"
+    >
+      <div
+        class="w-12 h-12 rounded-2xl bg-violet-600/30 text-violet-300 border border-violet-500/40 flex items-center justify-center mb-2 text-2xl animate-bounce"
+      >
+        <i class="fi fi-rr-upload"></i>
+      </div>
+      <p class="text-sm font-bold text-white tracking-wide">Drop files here to upload & attach</p>
+      <p class="text-xs text-violet-300">
+        Images, Videos, Audio, PDFs, Word, Excel, ZIP, APK supported
+      </p>
+    </div>
+  }
+
+  <!-- Hidden File Input -->
+  <input #fileInputRef type="file" multiple (change)="onFileSelected($event)" class="hidden" />
+
+  <!-- Top Rich Formatting Action Toolbar -->
+  <div
+    class="flex items-center justify-between pb-2 mb-2 border-b border-white/10 px-2 overflow-x-auto scrollbar-none gap-1"
+  >
+    <div class="flex items-center gap-1">
+      <!-- Upload File Attachment Button -->
+      <button
+        type="button"
+        (click)="triggerFileInput()"
+        title="Upload Media & Attachments (Drag & Drop or Paste supported)"
+        class="p-1.5 rounded-lg bg-violet-600/20 hover:bg-violet-600/30 text-violet-300 border border-violet-500/30 transition-colors text-xs font-semibold cursor-pointer flex items-center gap-1"
+      >
+        <i class="fi fi-rr-paperclip"></i>
+        <span class="text-[10px] font-bold hidden sm:inline">Attach</span>
+      </button>
+
+      <!-- Create Poll Button -->
+      <button
+        type="button"
+        (click)="isCreatePollOpen.set(true)"
+        title="Create Team Poll (Anonymous, Multiple Choice & Presets supported)"
+        class="p-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 transition-colors text-xs font-semibold cursor-pointer flex items-center gap-1"
+      >
+        <i class="fi fi-rr-stats"></i>
+        <span class="text-[10px] font-bold hidden sm:inline">Poll</span>
+      </button>
+
+      <!-- Publish Announcement Button -->
+      <button
+        type="button"
+        (click)="isCreateAnnouncementOpen.set(true)"
+        title="Publish Special Auto-Pinned Announcement with Read Confirmation"
+        class="p-1.5 rounded-lg bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 transition-colors text-xs font-semibold cursor-pointer flex items-center gap-1"
+      >
+        <i class="fi fi-rr-bullhorn"></i>
+        <span class="text-[10px] font-bold hidden sm:inline">Announcement</span>
+      </button>
+
+      <!-- Schedule Message Button -->
+      <button
+        type="button"
+        (click)="isScheduleModalOpen.set(true)"
+        [disabled]="!content().trim()"
+        title="Schedule message for future delivery (Tomorrow 9AM, Before Match, etc.)"
+        class="p-1.5 rounded-lg bg-sky-600/20 hover:bg-sky-600/30 disabled:opacity-40 disabled:cursor-not-allowed text-sky-300 border border-sky-500/30 transition-colors text-xs font-semibold cursor-pointer flex items-center gap-1"
+      >
+        <i class="fi fi-rr-calendar-clock"></i>
+        <span class="text-[10px] font-bold hidden sm:inline">Schedule</span>
+      </button>
+
+      <div class="w-px h-4 bg-white/10 mx-1"></div>
+
+      <!-- Bold -->
+      <button
+        type="button"
+        (click)="insertFormat('**', '**')"
+        title="Bold (**text**)"
+        class="p-1.5 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white transition-colors text-xs cursor-pointer"
+      >
+        <i class="fi fi-rr-bold"></i>
+      </button>
+
+      <!-- Italic -->
+      <button
+        type="button"
+        (click)="insertFormat('*', '*')"
+        title="Italic (*text*)"
+        class="p-1.5 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white transition-colors text-xs cursor-pointer"
+      >
+        <i class="fi fi-rr-italic"></i>
+      </button>
+
+      <!-- Underline -->
+      <button
+        type="button"
+        (click)="insertFormat('<u>', '</u>')"
+        title="Underline (<u>text</u>)"
+        class="p-1.5 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white transition-colors text-xs cursor-pointer"
+      >
+        <i class="fi fi-rr-underline"></i>
+      </button>
+
+      <!-- Strikethrough -->
+      <button
+        type="button"
+        (click)="insertFormat('~~', '~~')"
+        title="Strikethrough (~~text~~)"
+        class="p-1.5 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white transition-colors text-xs cursor-pointer"
+      >
+        <i class="fi fi-rr-strikethrough"></i>
+      </button>
+
+      <div class="w-px h-4 bg-white/10 mx-1"></div>
+
+      <!-- Inline Code -->
+      <button
+        type="button"
+        (click)="insertFormat('`', '`')"
+        title="Inline Code (`code`)"
+        class="p-1.5 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white transition-colors text-xs cursor-pointer"
+      >
+        <i class="fi fi-rr-code-simple"></i>
+      </button>
+
+      <!-- Code Block -->
+      <button
+        type="button"
+        (click)="insertBlock('```\n// Write code here\n```')"
+        title="Code Block (``` code ```)"
+        class="p-1.5 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white transition-colors text-xs cursor-pointer"
+      >
+        <i class="fi fi-rr-brackets-curly"></i>
+      </button>
+
+      <!-- Quote -->
+      <button
+        type="button"
+        (click)="insertBlock('> Quote text')"
+        title="Blockquote (> text)"
+        class="p-1.5 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white transition-colors text-xs cursor-pointer"
+      >
+        <i class="fi fi-rr-quote-right"></i>
+      </button>
+
+      <!-- Bullet List -->
+      <button
+        type="button"
+        (click)="insertBlock('- Item 1\n- Item 2')"
+        title="Bullet List (- item)"
+        class="p-1.5 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white transition-colors text-xs cursor-pointer"
+      >
+        <i class="fi fi-rr-list"></i>
+      </button>
+
+      <!-- Table -->
+      <button
+        type="button"
+        (click)="insertTable()"
+        title="Insert Markdown Table"
+        class="p-1.5 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white transition-colors text-xs cursor-pointer"
+      >
+        <i class="fi fi-rr-table"></i>
+      </button>
+
+      <!-- Mention Trigger Button -->
+      <button
+        type="button"
+        (click)="insertFormat('@')"
+        title="Mention User, Role or Group (@)"
+        class="p-1.5 rounded-lg hover:bg-white/10 text-violet-400 font-bold transition-colors text-xs cursor-pointer"
+      >
+        <i class="fi fi-rr-at"></i>
+      </button>
+    </div>
+
+    <!-- Media Modals Trigger Buttons (Emoji, GIF, Sticker) -->
+    <div class="flex items-center gap-1">
+      <!-- Emoji Picker -->
+      <button
+        type="button"
+        (click)="toggleEmojiPicker()"
+        [class.text-amber-400]="showEmojiPicker()"
+        [class.bg-white\/10]="showEmojiPicker()"
+        title="Insert Emoji"
+        class="p-1.5 rounded-lg hover:bg-white/10 text-slate-300 hover:text-amber-400 transition-colors text-xs cursor-pointer flex items-center gap-1"
+      >
+        <i class="fi fi-rr-smile"></i>
+        <span class="text-[10px] font-bold hidden sm:inline">Emoji</span>
+      </button>
+
+      <!-- GIF Selector -->
+      <button
+        type="button"
+        (click)="toggleGifPicker()"
+        [class.text-violet-400]="showGifPicker()"
+        [class.bg-white\/10]="showGifPicker()"
+        title="Send GIF"
+        class="p-1.5 rounded-lg hover:bg-white/10 text-slate-300 hover:text-violet-400 transition-colors text-xs cursor-pointer flex items-center gap-1"
+      >
+        <i class="fi fi-rr-picture"></i>
+        <span class="text-[10px] font-bold hidden sm:inline">GIF</span>
+      </button>
+
+      <!-- Sticker Selector -->
+      <button
+        type="button"
+        (click)="toggleStickerPicker()"
+        [class.text-emerald-400]="showStickerPicker()"
+        [class.bg-white\/10]="showStickerPicker()"
+        title="Send Sports Sticker"
+        class="p-1.5 rounded-lg hover:bg-white/10 text-slate-300 hover:text-emerald-400 transition-colors text-xs cursor-pointer flex items-center gap-1"
+      >
+        <i class="fi fi-rr-sticker"></i>
+        <span class="text-[10px] font-bold hidden sm:inline">Sticker</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ATTACHMENTS QUEUE PREVIEW RIBBON -->
+  @if (attachments().length > 0) {
+    <div
+      class="px-2 mb-2 flex items-center gap-2 overflow-x-auto scrollbar-none py-1.5 border-b border-white/10"
+    >
+      @for (att of attachments(); track att.id) {
+        <div
+          class="relative group shrink-0 w-44 bg-slate-950/80 border border-white/10 rounded-xl p-2 flex items-center gap-2"
+        >
+          <!-- Thumbnail / Icon Badge -->
+          <div
+            class="w-10 h-10 rounded-lg bg-white/5 border border-white/10 overflow-hidden shrink-0 flex items-center justify-center"
+          >
+            @if (att.category === 'image' && att.previewUrl) {
+              <img [src]="att.previewUrl" [alt]="att.name" class="w-full h-full object-cover" />
+            } @else if (att.category === 'video') {
+              <i class="fi fi-rr-video-camera text-violet-400 text-lg"></i>
+            } @else if (att.category === 'audio') {
+              <i class="fi fi-rr-music text-emerald-400 text-lg"></i>
+            } @else if (att.category === 'pdf') {
+              <i class="fi fi-rr-file-pdf text-rose-400 text-lg"></i>
+            } @else if (att.category === 'word') {
+              <i class="fi fi-rr-document text-blue-400 text-lg"></i>
+            } @else if (att.category === 'excel') {
+              <i class="fi fi-rr-stats text-emerald-400 text-lg"></i>
+            } @else if (att.category === 'zip') {
+              <i class="fi fi-rr-box-alt text-amber-400 text-lg"></i>
+            } @else if (att.category === 'apk') {
+              <i class="fi fi-rr-mobile text-purple-400 text-lg"></i>
+            } @else {
+              <i class="fi fi-rr-file text-slate-400 text-lg"></i>
+            }
+          </div>
+
+          <!-- Info & Progress Bar -->
+          <div class="min-w-0 flex-1">
+            <p class="text-[11px] font-bold text-white truncate">{{ att.name }}</p>
+            <p class="text-[9px] text-slate-400 mb-1">{{ att.sizeFormatted }}</p>
+
+            <!-- Progress Bar -->
+            @if (att.progress < 100) {
+              <div class="w-full h-1 bg-white/10 rounded-full overflow-hidden">
+                <div
+                  [style.width.%]="att.progress"
+                  class="h-full bg-violet-500 transition-all duration-150"
+                ></div>
+              </div>
+            } @else {
+              <span class="text-[9px] font-bold text-emerald-400 flex items-center gap-1">
+                <i class="fi fi-rr-check text-[8px]"></i> Ready
+              </span>
+            }
+          </div>
+
+          <!-- Remove Button -->
+          <button
+            type="button"
+            (click)="removeAttachment(att.id)"
+            class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-rose-600 hover:bg-rose-500 text-white flex items-center justify-center text-[10px] shadow-md transition-transform cursor-pointer"
+          >
+            <i class="fi fi-rr-cross text-[8px]"></i>
+          </button>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Replying To Quoted Message Banner -->
+  @if (replyingToMessage) {
+    <div
+      class="mb-2 px-3 py-2 bg-violet-950/60 border-l-4 border-violet-500 rounded-r-xl flex items-center justify-between text-xs animate-in fade-in duration-150"
+    >
+      <div class="flex items-center gap-2 overflow-hidden">
+        <i class="fi fi-rr-reply text-violet-400 text-xs"></i>
+        <div class="truncate">
+          <span class="font-bold text-violet-300"
+            >Replying to {{ replyingToMessage.senderName }}:</span
+          >
+          <span class="text-slate-300 italic ml-1">{{ replyingToMessage.content }}</span>
+        </div>
+      </div>
+      <button
+        type="button"
+        (click)="cancelReply.emit()"
+        title="Cancel Reply"
+        class="w-6 h-6 rounded-full hover:bg-white/10 text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
+      >
+        <i class="fi fi-rr-cross text-[10px]"></i>
+      </button>
+    </div>
+  }
+
+  <!-- Editing Active Message Banner -->
+  @if (editingMessage) {
+    <div
+      class="mb-2 px-3 py-2 bg-amber-950/60 border-l-4 border-amber-500 rounded-r-xl flex items-center justify-between text-xs animate-in fade-in duration-150"
+    >
+      <div class="flex items-center gap-2 overflow-hidden">
+        <i class="fi fi-rr-edit text-amber-400 text-xs"></i>
+        <div class="truncate">
+          <span class="font-bold text-amber-300">Editing Message:</span>
+          <span class="text-slate-300 italic ml-1">{{ editingMessage.content }}</span>
+        </div>
+      </div>
+      <button
+        type="button"
+        (click)="cancelEdit.emit()"
+        title="Cancel Editing"
+        class="w-6 h-6 rounded-full hover:bg-white/10 text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
+      >
+        <i class="fi fi-rr-cross text-[10px]"></i>
+      </button>
+    </div>
+  }
+
+  <!-- Text Input Area & Voice Recording Overlay Surface -->
+  <div class="relative">
+    @if (isRecordingAudio()) {
+      <!-- Live Voice Recording Active Overlay -->
+      <div
+        class="px-4 py-3 bg-slate-950/90 border border-emerald-500/30 rounded-xl flex items-center justify-between gap-4 animate-in fade-in duration-150"
+      >
+        <div class="flex items-center gap-3">
+          <!-- Pulsing Red Recording / Amber Paused Status Indicator -->
+          <div class="flex items-center gap-2">
+            @if (isRecordingPaused()) {
+              <span
+                class="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[9px] font-bold uppercase tracking-wider"
+              >
+                PAUSED
+              </span>
+            } @else {
+              <div class="relative flex items-center justify-center">
+                <span
+                  class="animate-ping absolute inline-flex h-4 w-4 rounded-full bg-rose-500 opacity-75"
+                ></span>
+                <span class="relative inline-flex rounded-full h-3 w-3 bg-rose-600"></span>
+              </div>
+              <span
+                class="text-[9px] font-bold text-rose-400 uppercase tracking-wider hidden sm:inline"
+                >REC</span
+              >
+            }
+          </div>
+
+          <!-- Duration Indicator -->
+          <span class="text-xs font-mono font-bold text-white tracking-wider">
+            {{ formattedRecordingTime() }}
+          </span>
+
+          <!-- Real-Time Waveform Visualizer -->
+          <div class="flex items-center gap-0.5 h-5 px-2 py-0.5 border-l border-r border-white/10">
+            @for (level of liveWaveformLevels(); track $index) {
+              <div
+                [style.height.%]="isRecordingPaused() ? 30 : level"
+                [class.from-amber-500]="isRecordingPaused()"
+                [class.to-amber-400]="isRecordingPaused()"
+                [class.from-emerald-500]="!isRecordingPaused()"
+                [class.to-teal-400]="!isRecordingPaused()"
+                class="w-1 bg-gradient-to-t rounded-full transition-all duration-75"
+              ></div>
+            }
+          </div>
+
+          <!-- Pause / Resume Control Button -->
+          <button
+            type="button"
+            (click)="togglePauseAudioRecording()"
+            [title]="isRecordingPaused() ? 'Resume Voice Recording' : 'Pause Voice Recording'"
+            [class.bg-amber-500\/20]="isRecordingPaused()"
+            [class.border-amber-500\/40]="isRecordingPaused()"
+            [class.text-amber-300]="isRecordingPaused()"
+            class="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 transition-colors cursor-pointer text-xs flex items-center gap-1"
+          >
+            <i
+              [class]="
+                isRecordingPaused() ? 'fi fi-rr-play text-xs ml-0.5' : 'fi fi-rr-pause text-xs'
+              "
+            ></i>
+            <span class="text-[10px] font-bold hidden md:inline">
+              {{ isRecordingPaused() ? 'Resume' : 'Pause' }}
+            </span>
+          </button>
+
+          <!-- Noise Reduction Badge Toggle -->
+          <button
+            type="button"
+            (click)="toggleNoiseSuppression()"
+            [title]="
+              isNoiseSuppressionEnabled() ? 'Noise Reduction Enabled' : 'Noise Reduction Disabled'
+            "
+            [class.bg-emerald-500\/20]="isNoiseSuppressionEnabled()"
+            [class.text-emerald-300]="isNoiseSuppressionEnabled()"
+            class="px-2 py-0.5 rounded-lg bg-white/5 text-[10px] font-bold text-slate-400 border border-white/10 hover:text-white transition-colors cursor-pointer flex items-center gap-1 hidden sm:flex"
+          >
+            <i class="fi fi-rr-headset text-[10px]"></i>
+            <span>NR</span>
+          </button>
+        </div>
+
+        <!-- Recording Actions: Delete draft or Finish & Attach -->
+        <div class="flex items-center gap-2">
+          <!-- Delete Before Sending Button -->
+          <button
+            type="button"
+            (click)="deleteAudioRecording()"
+            title="Delete voice note draft before sending"
+            class="p-2 rounded-xl bg-rose-600/20 hover:bg-rose-600/40 text-rose-300 border border-rose-500/30 transition-colors cursor-pointer flex items-center gap-1"
+          >
+            <i class="fi fi-rr-trash text-xs"></i>
+            <span class="text-[10px] font-bold hidden md:inline">Delete</span>
+          </button>
+
+          <!-- Done & Attach Audio Button -->
+          <button
+            type="button"
+            (click)="stopAndSendAudioRecording()"
+            title="Send Voice Note"
+            class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-emerald-600/30 transition-all cursor-pointer"
+          >
+            <i class="fi fi-rr-check text-xs"></i>
+            <span>Send</span>
+          </button>
+        </div>
+      </div>
+    } @else {
+      <textarea
+        #textareaRef
+        [ngModel]="content()"
+        (ngModelChange)="onContentChange($event)"
+        (keydown)="onKeydown($event)"
+        (paste)="onPaste($event)"
+        [placeholder]="placeholder"
+        [disabled]="disabled"
+        rows="2"
+        class="w-full bg-transparent px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none resize-none leading-relaxed"
+      ></textarea>
+
+      <div class="flex items-center justify-between px-2 pt-1 pb-1">
+        <!-- Hold-to-Record Mic Button -->
+        <button
+          type="button"
+          (mousedown)="startAudioRecording()"
+          (mouseup)="stopAndSendAudioRecording()"
+          (touchstart)="startAudioRecording()"
+          (touchend)="stopAndSendAudioRecording()"
+          (click)="startAudioRecording()"
+          title="Hold to Record Voice Message (or Click to start)"
+          class="p-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 transition-all text-xs cursor-pointer flex items-center gap-1.5 active:scale-95"
+        >
+          <i class="fi fi-rr-microphone text-xs"></i>
+          <span class="text-[10px] font-bold hidden sm:inline">Voice Note</span>
+        </button>
+
+        <button
+          type="button"
+          (click)="submitMessage()"
+          [disabled]="(!content().trim() && attachments().length === 0) || disabled || isSending"
+          class="px-4 py-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 disabled:opacity-40 text-white text-xs font-semibold rounded-xl flex items-center gap-2 shadow-lg shadow-violet-600/20 transition-all cursor-pointer"
+        >
+          @if (isSending) {
+            <i class="fi fi-rr-spinner animate-spin"></i>
+          } @else {
+            <i class="fi fi-rr-paper-plane"></i>
+            <span>Send</span>
+          }
+        </button>
+      </div>
+    }
+  </div>
+
+  <!-- MENTION AUTOCOMPLETE POPUP -->
+  @if (showMentionPicker()) {
+    <div
+      class="absolute bottom-full left-0 mb-2 w-72 bg-slate-900 border border-white/10 rounded-2xl p-2 shadow-2xl z-50 animate-in fade-in zoom-in-95"
+    >
+      <div class="px-2 py-1.5 border-b border-white/10 mb-1 flex items-center justify-between">
+        <span
+          class="text-[10px] font-bold uppercase tracking-wider text-violet-400 flex items-center gap-1"
+        >
+          <i class="fi fi-rr-at"></i> Mention Suggestion
+        </span>
+        <span class="text-[9px] text-slate-500">↑↓ to navigate, Enter to insert</span>
+      </div>
+
+      <div class="max-h-48 overflow-y-auto space-y-0.5 scrollbar-none">
+        @if (filteredMentionSuggestions().length === 0) {
+          <p class="text-[11px] text-slate-500 p-3 text-center">
+            No matching user, role or group mention found.
+          </p>
+        } @else {
+          @for (item of filteredMentionSuggestions(); track item.id; let idx = $index) {
+            <div
+              (click)="applyMention(item)"
+              [class.bg-violet-600\/20]="selectedMentionIndex() === idx"
+              [class.border-violet-500\/30]="selectedMentionIndex() === idx"
+              class="p-2 rounded-xl border border-transparent hover:bg-white/5 hover:border-white/10 flex items-center justify-between cursor-pointer transition-all group"
+            >
+              <div class="flex items-center gap-2.5 min-w-0">
+                <div
+                  class="w-6 h-6 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0"
+                >
+                  <i [class]="item.icon + ' text-xs'"></i>
+                </div>
+                <div class="min-w-0">
+                  <p
+                    class="text-xs font-semibold text-white group-hover:text-violet-300 transition-colors truncate"
+                  >
+                    {{ item.insertText }}
+                  </p>
+                  @if (item.detail) {
+                    <p class="text-[9px] text-slate-400 truncate">{{ item.detail }}</p>
+                  }
+                </div>
+              </div>
+
+              <span
+                class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-white/5 text-slate-400 uppercase"
+              >
+                {{ item.type }}
+              </span>
+            </div>
+          }
+        }
+      </div>
+    </div>
+  }
+
+  <!-- EMOJI PICKER POPUP -->
+  @if (showEmojiPicker()) {
+    <div
+      class="absolute bottom-full right-0 mb-2 w-72 bg-slate-900 border border-white/10 rounded-2xl p-3 shadow-2xl z-50 animate-in fade-in zoom-in-95"
+    >
+      <div class="flex items-center justify-between border-b border-white/10 pb-2 mb-2">
+        <span class="text-xs font-bold text-white flex items-center gap-1.5">
+          <i class="fi fi-rr-smile text-amber-400"></i> Emoji Picker
+        </span>
+        <button
+          (click)="showEmojiPicker.set(false)"
+          class="text-slate-400 hover:text-white text-xs"
+        >
+          <i class="fi fi-rr-cross"></i>
+        </button>
+      </div>
+
+      <div
+        class="flex items-center gap-1 border-b border-white/10 pb-2 mb-2 overflow-x-auto scrollbar-none"
+      >
+        @for (catKey of ['sports', 'smileys', 'objects', 'symbols']; track catKey) {
+          <button
+            type="button"
+            (click)="activeEmojiCategory.set(catKey)"
+            [class.bg-violet-600\/30]="activeEmojiCategory() === catKey"
+            [class.text-violet-300]="activeEmojiCategory() === catKey"
+            class="px-2 py-1 rounded-lg text-[10px] font-semibold text-slate-400 hover:text-white transition-colors cursor-pointer capitalize"
+          >
+            {{ catKey }}
+          </button>
+        }
+      </div>
+
+      <div class="grid grid-cols-7 gap-1.5 max-h-44 overflow-y-auto scrollbar-none p-1">
+        @for (emoji of activeCategoryEmojis(); track emoji) {
+          <button
+            type="button"
+            (click)="insertEmoji(emoji)"
+            class="text-lg hover:scale-125 transition-transform p-1 rounded hover:bg-white/10 flex items-center justify-center cursor-pointer"
+          >
+            {{ emoji }}
+          </button>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- GIF PICKER POPUP -->
+  @if (showGifPicker()) {
+    <div
+      class="absolute bottom-full right-0 mb-2 w-80 bg-slate-900 border border-white/10 rounded-2xl p-3 shadow-2xl z-50 animate-in fade-in zoom-in-95"
+    >
+      <div class="flex items-center justify-between border-b border-white/10 pb-2 mb-2">
+        <span class="text-xs font-bold text-white flex items-center gap-1.5">
+          <i class="fi fi-rr-picture text-violet-400"></i> Sports & Reaction GIFs
+        </span>
+        <button (click)="showGifPicker.set(false)" class="text-slate-400 hover:text-white text-xs">
+          <i class="fi fi-rr-cross"></i>
+        </button>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2 max-h-56 overflow-y-auto scrollbar-none p-1">
+        @for (gif of gifs; track gif.title) {
+          <div
+            (click)="sendGif(gif.url)"
+            class="group relative rounded-xl overflow-hidden border border-white/10 bg-slate-950 aspect-video cursor-pointer hover:border-violet-500 transition-all"
+          >
+            <img
+              [src]="gif.url"
+              [alt]="gif.title"
+              class="w-full h-full object-cover group-hover:scale-105 transition-transform"
+            />
+            <div
+              class="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+            >
+              <span class="text-[10px] font-bold text-white text-center px-1">{{ gif.title }}</span>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- STICKER PICKER POPUP -->
+  @if (showStickerPicker()) {
+    <div
+      class="absolute bottom-full right-0 mb-2 w-72 bg-slate-900 border border-white/10 rounded-2xl p-3 shadow-2xl z-50 animate-in fade-in zoom-in-95"
+    >
+      <div class="flex items-center justify-between border-b border-white/10 pb-2 mb-2">
+        <span class="text-xs font-bold text-white flex items-center gap-1.5">
+          <i class="fi fi-rr-sticker text-emerald-400"></i> Sports Reaction Stickers
+        </span>
+        <button
+          (click)="showStickerPicker.set(false)"
+          class="text-slate-400 hover:text-white text-xs"
+        >
+          <i class="fi fi-rr-cross"></i>
+        </button>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2 max-h-56 overflow-y-auto scrollbar-none p-1">
+        @for (st of stickers; track st.title) {
+          <button
+            type="button"
+            (click)="sendSticker(st.text)"
+            [class]="st.bg"
+            class="p-3 rounded-xl border border-white/20 text-white flex flex-col items-center justify-center gap-1 shadow-lg hover:scale-105 transition-transform cursor-pointer"
+          >
+            <i [class]="st.icon + ' text-xl'"></i>
+            <span class="text-[10px] font-black tracking-wider uppercase">{{ st.text }}</span>
+          </button>
+        }
+      </div>
+    </div>
+  }
+</div>
+
+<!-- Create Poll Modal -->
+@if (isCreatePollOpen()) {
+  <app-create-poll-modal
+    (close)="isCreatePollOpen.set(false)"
+    (createPoll)="handleCreatePoll($event)"
+  />
+}
+
+<!-- Create Announcement Modal -->
+@if (isCreateAnnouncementOpen()) {
+  <app-create-announcement-modal
+    (close)="isCreateAnnouncementOpen.set(false)"
+    (createAnnouncement)="handleCreateAnnouncement($event)"
+  />
+}
+
+<!-- Schedule Message Modal -->
+@if (isScheduleModalOpen()) {
+  <app-schedule-message-modal
+    [messagePreview]="content()"
+    (close)="isScheduleModalOpen.set(false)"
+    (schedule)="handleScheduleMessage($event)"
+  />
+}

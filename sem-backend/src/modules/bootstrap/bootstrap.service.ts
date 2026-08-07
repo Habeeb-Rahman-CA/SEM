@@ -6,6 +6,12 @@ import { Player } from '../players/entities/player.entity';
 import { Event } from '../events/entities/event.entity';
 import { Sport } from '../workspaces/entities/sport.entity';
 import { WorkspacesService } from '../workspaces/workspaces.service';
+import {
+  CURRENCIES_SEED,
+  CONTRACT_TYPES_SEED,
+  TRANSFER_TYPES_SEED,
+  ACCESS_LEVELS_SEED,
+} from './data';
 
 @Injectable()
 export class BootstrapService {
@@ -33,29 +39,10 @@ export class BootstrapService {
         name: s.name,
         code: s.code,
       })),
-      currencies: [
-        { code: 'INR', symbol: '₹', label: 'Indian Rupee' },
-        { code: 'USD', symbol: '$', label: 'US Dollar' },
-        { code: 'EUR', symbol: '€', label: 'Euro' },
-        { code: 'GBP', symbol: '£', label: 'British Pound' },
-      ],
-      contractTypes: [
-        { value: 'full_time', label: 'Full time' },
-        { value: 'loan', label: 'Loan' },
-        { value: 'youth', label: 'Youth' },
-        { value: 'short_term', label: 'Short term' },
-        { value: 'amateur', label: 'Amateur' },
-      ],
-      transferTypes: [
-        { value: 'permanent', label: 'Permanent' },
-        { value: 'loan', label: 'Loan' },
-      ],
-      accessLevels: [
-        { value: 'general', label: 'General' },
-        { value: 'restricted', label: 'Restricted' },
-        { value: 'vip', label: 'VIP' },
-        { value: 'all_areas', label: 'All Areas' },
-      ],
+      currencies: CURRENCIES_SEED,
+      contractTypes: CONTRACT_TYPES_SEED,
+      transferTypes: TRANSFER_TYPES_SEED,
+      accessLevels: ACCESS_LEVELS_SEED,
       generatedAt: new Date().toISOString(),
     };
   }

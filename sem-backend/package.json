@@ -1,7 +1,7 @@
 {
   "name": "taisen-backend",
-  "version": "5.5.0",
-  "description": "NestJS Backend API service for the Taisen Sports Event Management Platform, supplying live scoring gateways, concurrency locks, and advanced reporting exports.",
+  "version": "6.0.0",
+  "description": "NestJS Backend API service for the Taisen Workspace Platform, supplying live scoring gateways, concurrency locks, and advanced reporting exports.",
   "author": "Taisen Team",
   "private": true,
   "license": "MIT",
@@ -23,7 +23,8 @@
     "migration:run": "npm run typeorm migration:run -- -d src/db/data-source.ts",
     "migration:revert": "npm run typeorm migration:revert -- -d src/db/data-source.ts",
     "migration:generate": "npm run typeorm migration:generate -- -d src/db/data-source.ts",
-    "migration:create": "npm run typeorm migration:create"
+    "migration:create": "npm run typeorm migration:create",
+    "seed": "ts-node -r tsconfig-paths/register src/seeds/seed.ts"
   },
   "dependencies": {
     "@elastic/elasticsearch": "^9.4.2",

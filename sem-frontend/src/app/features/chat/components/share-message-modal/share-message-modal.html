@@ -1,0 +1,66 @@
+<div
+  class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200"
+>
+  <div
+    class="w-full max-w-md bg-slate-900 border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200"
+  >
+    <!-- Header -->
+    <div
+      class="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-slate-900/80"
+    >
+      <div class="flex items-center gap-3">
+        <div
+          class="w-9 h-9 rounded-2xl bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center text-sm font-bold"
+        >
+          <i class="fi fi-rr-link-alt"></i>
+        </div>
+        <div>
+          <h3 class="text-sm font-bold text-white">Share Message Link</h3>
+          <p class="text-[11px] text-slate-400">Direct workspace deep link</p>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        (click)="close.emit()"
+        class="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/10 flex items-center justify-center transition-colors cursor-pointer"
+      >
+        <i class="fi fi-rr-cross text-xs"></i>
+      </button>
+    </div>
+
+    <!-- Content Preview -->
+    <div class="p-6 space-y-4">
+      <div class="p-4 bg-slate-950 border border-white/10 rounded-2xl text-xs space-y-1">
+        <span class="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">
+          Message Snippet
+        </span>
+        <p class="text-slate-300 italic line-clamp-3">{{ message?.content }}</p>
+      </div>
+
+      <!-- Shareable Link Input Box -->
+      <div class="space-y-1.5">
+        <label class="text-[11px] font-bold text-slate-300 uppercase tracking-wider">
+          Permalink
+        </label>
+        <div class="flex items-center gap-2">
+          <input
+            type="text"
+            readonly
+            [value]="shareUrl"
+            class="flex-1 bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-indigo-300 select-all focus:outline-none font-mono"
+          />
+
+          <button
+            type="button"
+            (click)="copyShareLink()"
+            class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/30 transition-all cursor-pointer shrink-0 flex items-center gap-1.5"
+          >
+            <i [class]="isCopied() ? 'fi fi-rr-check text-xs' : 'fi fi-rr-copy text-xs'"></i>
+            <span>{{ isCopied() ? 'Copied!' : 'Copy Link' }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

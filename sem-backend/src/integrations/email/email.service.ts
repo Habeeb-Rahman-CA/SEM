@@ -104,7 +104,7 @@ export class EmailService {
             </div>
             <div class="footer">
               <p style="margin: 0 0 4px 0;">This notification was sent on behalf of ${workspaceName}.</p>
-              <p style="margin: 0;">Powered by Taisen Sports Event Management Platform.</p>
+              <p style="margin: 0;">Powered by Taisen Platform.</p>
             </div>
           </div>
         </body>

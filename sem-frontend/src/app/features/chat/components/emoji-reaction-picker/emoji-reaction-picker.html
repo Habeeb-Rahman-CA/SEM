@@ -1,0 +1,80 @@
+<div
+  class="w-72 bg-slate-900/95 backdrop-blur-2xl border border-white/15 rounded-3xl shadow-2xl overflow-hidden flex flex-col z-50 animate-in zoom-in-95 duration-150"
+>
+  <!-- Header & Popular Quick Reactions Bar -->
+  <div class="p-3 bg-slate-950/80 border-b border-white/10 space-y-2">
+    <div class="flex items-center justify-between">
+      <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+        Popular Reactions
+      </span>
+      <button
+        type="button"
+        (click)="close.emit()"
+        class="w-5 h-5 rounded-full hover:bg-white/10 text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+      >
+        <i class="fi fi-rr-cross text-[9px]"></i>
+      </button>
+    </div>
+
+    <!-- Quick Popular Pill Bar -->
+    <div
+      class="flex items-center justify-between gap-1 bg-white/5 p-1 rounded-2xl border border-white/10"
+    >
+      @for (emoji of popularEmojis; track emoji) {
+        <button
+          type="button"
+          (click)="onEmojiSelect(emoji)"
+          class="w-7 h-7 hover:bg-white/15 rounded-xl flex items-center justify-center text-sm hover:scale-125 transition-all cursor-pointer"
+        >
+          {{ emoji }}
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- Scrollable Catalog -->
+  <div class="p-3 space-y-3 max-h-64 overflow-y-auto scrollbar-none">
+    <!-- Recently Used Section -->
+    @if (recentlyUsed().length > 0) {
+      <div class="space-y-1.5">
+        <span
+          class="text-[10px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1"
+        >
+          <i class="fi fi-rr-time-past text-[9px]"></i>
+          <span>Recently Used</span>
+        </span>
+        <div class="flex flex-wrap gap-1">
+          @for (emoji of recentlyUsed(); track emoji) {
+            <button
+              type="button"
+              (click)="onEmojiSelect(emoji)"
+              class="w-8 h-8 hover:bg-white/10 rounded-xl flex items-center justify-center text-base hover:scale-110 transition-transform cursor-pointer"
+            >
+              {{ emoji }}
+            </button>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- All Emoji Categories -->
+    @for (cat of emojiCategories; track cat.name) {
+      <div class="space-y-1.5">
+        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+          {{ cat.name }}
+        </span>
+        <div class="grid grid-cols-7 gap-1">
+          @for (emoji of cat.emojis; track emoji) {
+            <button
+              type="button"
+              (click)="onEmojiSelect(emoji)"
+              class="w-8 h-8 hover:bg-white/10 rounded-xl flex items-center justify-center text-base hover:scale-125 transition-transform cursor-pointer"
+            >
+              {{ emoji }}
+            </button>
+          }
+        </div>
+      </div>
+    }
+  </div>
+</div>

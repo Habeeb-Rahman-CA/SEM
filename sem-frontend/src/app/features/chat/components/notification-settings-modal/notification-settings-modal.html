@@ -1,0 +1,318 @@
+<div
+  class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-150"
+>
+  <div
+    class="w-full max-w-xl bg-slate-900 border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-150"
+  >
+    <!-- Header -->
+    <div
+      class="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-slate-950/40 shrink-0"
+    >
+      <div class="flex items-center gap-3">
+        <div
+          class="w-9 h-9 rounded-2xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-400"
+        >
+          <i class="fi fi-rr-bell text-lg"></i>
+        </div>
+        <div>
+          <h3 class="text-sm font-bold text-white">Notification Preferences</h3>
+          <p class="text-[11px] text-slate-400">
+            Configure desktop, browser, email & mention alerts
+          </p>
+        </div>
+      </div>
+      <button
+        type="button"
+        (click)="close.emit()"
+        class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white flex items-center justify-center transition-colors"
+      >
+        <i class="fi fi-rr-cross text-xs"></i>
+      </button>
+    </div>
+
+    <!-- Body Scroll Content -->
+    <div class="p-6 space-y-6 overflow-y-auto scrollbar-thin flex-1">
+      <!-- 1. Notification Scope -->
+      <div class="space-y-2">
+        <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+          Notification Trigger Scope
+        </label>
+        <div class="grid grid-cols-3 gap-2">
+          <button
+            type="button"
+            (click)="notificationScope.set('all')"
+            [class.bg-violet-600\/20]="notificationScope() === 'all'"
+            [class.border-violet-500\/50]="notificationScope() === 'all'"
+            [class.text-white]="notificationScope() === 'all'"
+            [class.bg-white\/5]="notificationScope() !== 'all'"
+            [class.border-white\/10]="notificationScope() !== 'all'"
+            [class.text-slate-400]="notificationScope() !== 'all'"
+            class="p-3 rounded-2xl border text-left flex flex-col justify-between transition-all hover:bg-white/10 cursor-pointer"
+          >
+            <i class="fi fi-rr-bell-ring text-violet-400 text-sm mb-2"></i>
+            <div>
+              <div class="text-xs font-bold">All Messages</div>
+              <div class="text-[9px] opacity-70">Notify on every message</div>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            (click)="notificationScope.set('mentions_only')"
+            [class.bg-violet-600\/20]="notificationScope() === 'mentions_only'"
+            [class.border-violet-500\/50]="notificationScope() === 'mentions_only'"
+            [class.text-white]="notificationScope() === 'mentions_only'"
+            [class.bg-white\/5]="notificationScope() !== 'mentions_only'"
+            [class.border-white\/10]="notificationScope() !== 'mentions_only'"
+            [class.text-slate-400]="notificationScope() !== 'mentions_only'"
+            class="p-3 rounded-2xl border text-left flex flex-col justify-between transition-all hover:bg-white/10 cursor-pointer"
+          >
+            <i class="fi fi-rr-at text-amber-400 text-sm mb-2"></i>
+            <div>
+              <div class="text-xs font-bold">Mentions Only</div>
+              <div class="text-[9px] opacity-70">Only @mentions & direct messages</div>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            (click)="notificationScope.set('nothing')"
+            [class.bg-violet-600\/20]="notificationScope() === 'nothing'"
+            [class.border-violet-500\/50]="notificationScope() === 'nothing'"
+            [class.text-white]="notificationScope() === 'nothing'"
+            [class.bg-white\/5]="notificationScope() !== 'nothing'"
+            [class.border-white\/10]="notificationScope() !== 'nothing'"
+            [class.text-slate-400]="notificationScope() !== 'nothing'"
+            class="p-3 rounded-2xl border text-left flex flex-col justify-between transition-all hover:bg-white/10 cursor-pointer"
+          >
+            <i class="fi fi-rr-bell-slash text-rose-400 text-sm mb-2"></i>
+            <div>
+              <div class="text-xs font-bold">Mute All</div>
+              <div class="text-[9px] opacity-70">Disable all sound & popups</div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- 2. Delivery Channels (Desktop, Browser, Push) -->
+      <div class="space-y-3 pt-2 border-t border-white/10">
+        <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+          Delivery Channels
+        </label>
+
+        <div class="space-y-2">
+          <!-- Desktop Notifications -->
+          <div
+            class="p-3.5 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between"
+          >
+            <div class="flex items-center gap-3">
+              <div
+                class="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center"
+              >
+                <i class="fi fi-rr-computer text-sm"></i>
+              </div>
+              <div>
+                <div class="text-xs font-bold text-white flex items-center gap-2">
+                  <span>Desktop System Notifications</span>
+                  @if (browserPermissionStatus() === 'granted') {
+                    <span
+                      class="px-1.5 py-0.2 bg-emerald-500/20 text-emerald-300 rounded text-[9px] font-bold"
+                      >Granted</span
+                    >
+                  } @else {
+                    <button
+                      type="button"
+                      (click)="requestBrowserPermission()"
+                      class="text-[9px] font-bold text-amber-400 underline hover:text-amber-300"
+                    >
+                      Request Permission
+                    </button>
+                  }
+                </div>
+                <div class="text-[10px] text-slate-400">
+                  Show native OS banner popups for urgent messages
+                </div>
+              </div>
+            </div>
+            <input
+              type="checkbox"
+              [ngModel]="desktopEnabled()"
+              (ngModelChange)="desktopEnabled.set($event)"
+              class="w-4 h-4 accent-violet-600 rounded cursor-pointer"
+            />
+          </div>
+
+          <!-- In-App Browser Notifications -->
+          <div
+            class="p-3.5 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between"
+          >
+            <div class="flex items-center gap-3">
+              <div
+                class="w-8 h-8 rounded-xl bg-violet-500/20 text-violet-400 flex items-center justify-center"
+              >
+                <i class="fi fi-rr-globe text-sm"></i>
+              </div>
+              <div>
+                <div class="text-xs font-bold text-white">Browser & In-App Alerts</div>
+                <div class="text-[10px] text-slate-400">
+                  Audio chime and toast popups inside the application
+                </div>
+              </div>
+            </div>
+            <input
+              type="checkbox"
+              [ngModel]="browserEnabled()"
+              (ngModelChange)="browserEnabled.set($event)"
+              class="w-4 h-4 accent-violet-600 rounded cursor-pointer"
+            />
+          </div>
+
+          <!-- Web Push Notifications -->
+          <div
+            class="p-3.5 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between"
+          >
+            <div class="flex items-center gap-3">
+              <div
+                class="w-8 h-8 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center"
+              >
+                <i class="fi fi-rr-mobile-button text-sm"></i>
+              </div>
+              <div>
+                <div class="text-xs font-bold text-white">Mobile & Web Push</div>
+                <div class="text-[10px] text-slate-400">
+                  Push notifications when application tab is closed
+                </div>
+              </div>
+            </div>
+            <input
+              type="checkbox"
+              [ngModel]="pushEnabled()"
+              (ngModelChange)="pushEnabled.set($event)"
+              class="w-4 h-4 accent-violet-600 rounded cursor-pointer"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Email Digest Frequencies -->
+      <div class="space-y-2 pt-2 border-t border-white/10">
+        <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+          Email Summary & Digest
+        </label>
+        <div class="grid grid-cols-4 gap-2">
+          @for (option of emailOptions; track option) {
+            <button
+              type="button"
+              (click)="emailDigest.set(option)"
+              [class.bg-violet-600\/20]="emailDigest() === option"
+              [class.border-violet-500\/50]="emailDigest() === option"
+              [class.text-white]="emailDigest() === option"
+              [class.bg-white\/5]="emailDigest() !== option"
+              [class.border-white\/10]="emailDigest() !== option"
+              [class.text-slate-400]="emailDigest() !== option"
+              class="p-2.5 rounded-xl border text-center text-xs font-bold capitalize transition-all hover:bg-white/10 cursor-pointer"
+            >
+              {{ option === 'off' ? 'Disabled' : option }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- 4. Mute Specific Channels -->
+      @if (channels.length > 0) {
+        <div class="space-y-2 pt-2 border-t border-white/10">
+          <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+            Mute Specific Channels
+          </label>
+          <div class="space-y-1.5 max-h-36 overflow-y-auto scrollbar-thin">
+            @for (ch of channels; track ch.id) {
+              <div
+                class="p-2.5 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between text-xs"
+              >
+                <span class="font-bold text-white flex items-center gap-2">
+                  <i class="fi fi-rr-hashtag text-slate-400"></i> {{ ch.name }}
+                </span>
+                <button
+                  type="button"
+                  (click)="toggleMuteChannel(ch.id)"
+                  [class.bg-rose-500\/20]="mutedChannelIds().includes(ch.id)"
+                  [class.border-rose-500\/40]="mutedChannelIds().includes(ch.id)"
+                  [class.text-rose-300]="mutedChannelIds().includes(ch.id)"
+                  [class.bg-white\/5]="!mutedChannelIds().includes(ch.id)"
+                  [class.border-white\/10]="!mutedChannelIds().includes(ch.id)"
+                  [class.text-slate-300]="!mutedChannelIds().includes(ch.id)"
+                  class="px-2.5 py-1 rounded-lg border text-[10px] font-semibold transition-all hover:scale-105 cursor-pointer flex items-center gap-1"
+                >
+                  <i
+                    [class]="
+                      mutedChannelIds().includes(ch.id) ? 'fi fi-rr-bell-slash' : 'fi fi-rr-bell'
+                    "
+                  ></i>
+                  <span>{{ mutedChannelIds().includes(ch.id) ? 'Muted' : 'Active' }}</span>
+                </button>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- 5. Mute Specific Users -->
+      @if (users.length > 0) {
+        <div class="space-y-2 pt-2 border-t border-white/10">
+          <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+            Mute Specific Direct Message Partners
+          </label>
+          <div class="space-y-1.5 max-h-36 overflow-y-auto scrollbar-thin">
+            @for (u of users; track u.id) {
+              <div
+                class="p-2.5 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between text-xs"
+              >
+                <span class="font-bold text-white flex items-center gap-2">
+                  <i class="fi fi-rr-user text-slate-400"></i> {{ u.username }}
+                </span>
+                <button
+                  type="button"
+                  (click)="toggleMuteUser(u.id)"
+                  [class.bg-rose-500\/20]="mutedUserIds().includes(u.id)"
+                  [class.border-rose-500\/40]="mutedUserIds().includes(u.id)"
+                  [class.text-rose-300]="mutedUserIds().includes(u.id)"
+                  [class.bg-white\/5]="!mutedUserIds().includes(u.id)"
+                  [class.border-white\/10]="!mutedUserIds().includes(u.id)"
+                  [class.text-slate-300]="!mutedUserIds().includes(u.id)"
+                  class="px-2.5 py-1 rounded-lg border text-[10px] font-semibold transition-all hover:scale-105 cursor-pointer flex items-center gap-1"
+                >
+                  <i
+                    [class]="
+                      mutedUserIds().includes(u.id) ? 'fi fi-rr-volume-mute' : 'fi fi-rr-volume'
+                    "
+                  ></i>
+                  <span>{{ mutedUserIds().includes(u.id) ? 'Muted' : 'Active' }}</span>
+                </button>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Footer Actions -->
+    <div
+      class="px-6 py-4 border-t border-white/10 bg-slate-950/40 flex items-center justify-end gap-3 shrink-0"
+    >
+      <button
+        type="button"
+        (click)="close.emit()"
+        class="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-semibold transition-colors cursor-pointer"
+      >
+        Cancel
+      </button>
+      <button
+        type="button"
+        (click)="save()"
+        class="px-5 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold shadow-lg shadow-violet-600/20 transition-all cursor-pointer"
+      >
+        Save Preferences
+      </button>
+    </div>
+  </div>
+</div>

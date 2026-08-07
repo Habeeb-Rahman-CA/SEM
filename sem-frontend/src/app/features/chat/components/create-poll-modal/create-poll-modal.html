@@ -1,0 +1,221 @@
+<div
+  class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200"
+>
+  <div
+    class="w-full max-w-lg bg-slate-900 border border-white/15 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200"
+  >
+    <!-- Modal Header -->
+    <div
+      class="px-6 py-4 bg-gradient-to-r from-violet-950/80 via-slate-900 to-indigo-950/80 border-b border-white/10 flex items-center justify-between"
+    >
+      <div class="flex items-center gap-3">
+        <div
+          class="w-10 h-10 rounded-2xl bg-violet-600/20 border border-violet-500/30 text-violet-400 flex items-center justify-center text-lg"
+        >
+          <i class="fi fi-rr-stats"></i>
+        </div>
+        <div>
+          <h3 class="text-base font-bold text-white tracking-wide">Create Workspace Poll</h3>
+          <p class="text-xs text-slate-400">Ask your team a question & collect real-time votes</p>
+        </div>
+      </div>
+      <button
+        type="button"
+        (click)="close.emit()"
+        class="w-8 h-8 rounded-full hover:bg-white/10 text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+      >
+        <i class="fi fi-rr-cross text-xs"></i>
+      </button>
+    </div>
+
+    <!-- Scrollable Modal Body -->
+    <div class="p-6 overflow-y-auto space-y-5 scrollbar-thin scrollbar-thumb-white/10">
+      <!-- Quick Presets -->
+      <div class="space-y-2">
+        <label
+          class="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5"
+        >
+          <i class="fi fi-rr-magic-wand text-violet-400"></i>
+          <span>Quick Presets</span>
+        </label>
+        <div class="grid grid-cols-2 gap-2">
+          @for (preset of presetTemplates; track preset.name) {
+            <button
+              type="button"
+              (click)="applyPreset(preset)"
+              class="px-3 py-2 rounded-2xl bg-white/5 hover:bg-violet-600/15 border border-white/10 hover:border-violet-500/40 text-left transition-all cursor-pointer group flex items-center gap-2.5"
+            >
+              <i
+                [class]="
+                  'fi ' +
+                  preset.icon +
+                  ' text-violet-400 text-sm group-hover:scale-110 transition-transform'
+                "
+              ></i>
+              <div>
+                <div class="text-xs font-bold text-slate-200 group-hover:text-white">
+                  {{ preset.name }}
+                </div>
+                <div class="text-[10px] text-slate-400 truncate max-w-[140px]">
+                  {{ preset.question }}
+                </div>
+              </div>
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Question Field -->
+      <div class="space-y-1.5">
+        <label class="text-[11px] font-bold uppercase tracking-wider text-slate-300">
+          Poll Question <span class="text-rose-400">*</span>
+        </label>
+        <input
+          type="text"
+          [ngModel]="question()"
+          (ngModelChange)="question.set($event)"
+          placeholder="e.g., What time works best for our team match?"
+          class="w-full px-4 py-2.5 rounded-2xl bg-slate-950/80 border border-white/15 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-violet-500 transition-colors"
+        />
+      </div>
+
+      <!-- Options Field -->
+      <div class="space-y-2">
+        <div class="flex items-center justify-between">
+          <label class="text-[11px] font-bold uppercase tracking-wider text-slate-300">
+            Poll Options <span class="text-rose-400">*</span> (Min 2, Max 8)
+          </label>
+          <span class="text-[10px] text-slate-400">{{ options().length }}/8 options</span>
+        </div>
+
+        <div class="space-y-2">
+          @for (opt of options(); track trackByIndex($index); let i = $index) {
+            <div class="flex items-center gap-2 animate-in fade-in duration-150">
+              <span class="text-xs font-bold text-violet-400 w-5 text-center">{{ i + 1 }}.</span>
+              <input
+                type="text"
+                [ngModel]="opt"
+                (ngModelChange)="updateOption(i, $event)"
+                placeholder="Option {{ i + 1 }}"
+                class="flex-1 px-3.5 py-2 rounded-xl bg-slate-950/80 border border-white/15 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-violet-500 transition-colors"
+              />
+              @if (options().length > 2) {
+                <button
+                  type="button"
+                  (click)="removeOption(i)"
+                  title="Remove Option"
+                  class="w-8 h-8 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                >
+                  <i class="fi fi-rr-trash text-xs"></i>
+                </button>
+              }
+            </div>
+          }
+        </div>
+
+        @if (options().length < 8) {
+          <button
+            type="button"
+            (click)="addOption()"
+            class="w-full py-2 rounded-2xl border border-dashed border-violet-500/30 hover:border-violet-500/60 bg-violet-600/10 hover:bg-violet-600/20 text-violet-300 text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 mt-2"
+          >
+            <i class="fi fi-rr-plus text-xs"></i>
+            <span>Add Option</span>
+          </button>
+        }
+      </div>
+
+      <!-- Settings & Toggles -->
+      <div class="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3">
+        <label
+          class="text-[11px] font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5"
+        >
+          <i class="fi fi-rr-settings text-violet-400"></i>
+          <span>Poll Settings</span>
+        </label>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+          <!-- Anonymous Voting Toggle -->
+          <label
+            class="flex items-center gap-3 p-2.5 rounded-xl bg-slate-900 border border-white/10 cursor-pointer hover:bg-white/5 transition-colors"
+          >
+            <input
+              type="checkbox"
+              [ngModel]="isAnonymous()"
+              (ngModelChange)="isAnonymous.set($event)"
+              class="w-4 h-4 rounded text-violet-600 focus:ring-violet-500 border-white/20 bg-slate-950"
+            />
+            <div>
+              <div class="text-xs font-bold text-white flex items-center gap-1">
+                <i class="fi fi-rr-incognito text-amber-400 text-xs"></i>
+                <span>Anonymous Voting</span>
+              </div>
+              <div class="text-[10px] text-slate-400">Voter identities are hidden</div>
+            </div>
+          </label>
+
+          <!-- Multiple Choice Toggle -->
+          <label
+            class="flex items-center gap-3 p-2.5 rounded-xl bg-slate-900 border border-white/10 cursor-pointer hover:bg-white/5 transition-colors"
+          >
+            <input
+              type="checkbox"
+              [ngModel]="allowMultipleChoice()"
+              (ngModelChange)="allowMultipleChoice.set($event)"
+              class="w-4 h-4 rounded text-violet-600 focus:ring-violet-500 border-white/20 bg-slate-950"
+            />
+            <div>
+              <div class="text-xs font-bold text-white flex items-center gap-1">
+                <i class="fi fi-rr-check-double text-sky-400 text-xs"></i>
+                <span>Multiple Choice</span>
+              </div>
+              <div class="text-[10px] text-slate-400">Allow selecting multiple options</div>
+            </div>
+          </label>
+        </div>
+
+        <!-- Closing Time Select -->
+        <div class="space-y-1.5 pt-2">
+          <label
+            class="text-[10px] font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1"
+          >
+            <i class="fi fi-rr-clock text-amber-400"></i>
+            <span>Poll Duration / Closing Time</span>
+          </label>
+          <select
+            [ngModel]="durationPreset()"
+            (ngModelChange)="durationPreset.set($event)"
+            class="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-white/15 text-white text-xs focus:outline-none focus:border-violet-500 cursor-pointer"
+          >
+            <option value="1h">Closes in 1 Hour</option>
+            <option value="24h">Closes in 24 Hours (Default)</option>
+            <option value="7d">Closes in 7 Days</option>
+            <option value="never">No Closing Time (Open Indefinitely)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Footer Actions -->
+    <div
+      class="px-6 py-4 bg-slate-950/80 border-t border-white/10 flex items-center justify-end gap-3"
+    >
+      <button
+        type="button"
+        (click)="close.emit()"
+        class="px-4 py-2 rounded-2xl hover:bg-white/10 text-slate-300 text-xs font-bold transition-colors cursor-pointer"
+      >
+        Cancel
+      </button>
+      <button
+        type="button"
+        (click)="onSubmit()"
+        [disabled]="!question().trim() || options().length < 2"
+        class="px-5 py-2 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold shadow-lg shadow-violet-600/30 transition-all cursor-pointer flex items-center gap-1.5"
+      >
+        <i class="fi fi-rr-paper-plane text-xs"></i>
+        <span>Create & Send Poll</span>
+      </button>
+    </div>
+  </div>
+</div>

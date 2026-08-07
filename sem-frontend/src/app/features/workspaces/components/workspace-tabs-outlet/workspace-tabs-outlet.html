@@ -164,4 +164,25 @@
   @case ('governance') {
     <app-governance class="h-full block min-h-0" [workspaceId]="workspaceId()" />
   }
+  @case ('chat') {
+    <app-channels
+      class="h-full block min-h-0"
+      [workspaceId]="workspaceId()"
+      [members]="members()"
+    />
+  }
+  @case ('direct-messages') {
+    <app-direct-messages
+      class="h-full block min-h-0"
+      [workspaceId]="workspaceId()"
+      [members]="members()"
+    />
+  }
+  @case ('group-chats') {
+    <app-group-chats
+      class="h-full block min-h-0"
+      [workspaceId]="workspaceId()"
+      [members]="members()"
+    />
+  }
 }

@@ -31,7 +31,7 @@ kubectl -n sem apply -f 40-pdb.yaml
   your cluster.
 - **Image registry** — the Deployments reference `sem-backend:latest`
   and `sem-frontend:latest`. Retag to your registry (e.g.
-  `ghcr.io/org/sem-backend:v5.5.0`) before applying.
+  `ghcr.io/org/sem-backend:v6.0.0`) before applying.
 
 ## Autoscaling
 

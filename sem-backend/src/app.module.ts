@@ -61,6 +61,7 @@ import { FavoritesModule } from './modules/favorites/favorites.module';
 import { RecentlyViewedModule } from './modules/recently-viewed/recently-viewed.module';
 import { GlobalNotesModule } from './modules/global-notes/global-notes.module';
 import { BackgroundJobsModule } from './modules/background-jobs/background-jobs.module';
+import { ChatModule } from './modules/chat/chat.module';
 import { RealtimeModule } from './common/realtime/realtime.module';
 
 @Module({
@@ -177,6 +178,7 @@ import { RealtimeModule } from './common/realtime/realtime.module';
     RecentlyViewedModule,
     GlobalNotesModule,
     BackgroundJobsModule,
+    ChatModule,
   ],
   controllers: [AppController],
   providers: [

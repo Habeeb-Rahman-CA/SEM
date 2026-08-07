@@ -126,7 +126,7 @@ export class ShareController {
     if (stats.runs) bits.push(`${stats.runs} runs`);
     if (stats.mvps) bits.push(`${stats.mvps} MVPs`);
     if (stats.avgRating) bits.push(`avg ${stats.avgRating.toFixed(2)}`);
-    return bits.length ? bits.join(' · ') : 'Sports Event Management';
+    return bits.length ? bits.join(' · ') : 'Taisen Platform';
   }
 
   private buildHtml(opts: {
