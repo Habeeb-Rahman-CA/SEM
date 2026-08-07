@@ -197,6 +197,7 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 export class ChatMessageRendererComponent implements OnChanges {
   @Input({ required: true }) content: string = '';
   @Output() imageClick = new EventEmitter<{ url: string; title?: string }>();
+  @Output() videoClick = new EventEmitter<{ url: string; title?: string }>();
 
   private sanitizer = inject(DomSanitizer);
   renderedContent: SafeHtml = '';
@@ -204,10 +205,18 @@ export class ChatMessageRendererComponent implements OnChanges {
   @HostListener('click', ['$event'])
   onHostClick(event: MouseEvent) {
     const target = event.target as HTMLElement;
-    if (target && target.tagName.toLowerCase() === 'img') {
-      const imgEl = target as HTMLImageElement;
-      if (imgEl.src) {
-        this.imageClick.emit({ url: imgEl.src, title: imgEl.alt || 'Image Attachment' });
+    if (target) {
+      if (target.tagName.toLowerCase() === 'img') {
+        const imgEl = target as HTMLImageElement;
+        if (imgEl.src) {
+          this.imageClick.emit({ url: imgEl.src, title: imgEl.alt || 'Image Attachment' });
+        }
+      } else if (target.tagName.toLowerCase() === 'video') {
+        const videoEl = target as HTMLVideoElement;
+        if (videoEl.src) {
+          event.preventDefault();
+          this.videoClick.emit({ url: videoEl.src, title: 'Video Attachment' });
+        }
       }
     }
   }

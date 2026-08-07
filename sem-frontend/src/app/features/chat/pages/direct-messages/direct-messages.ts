@@ -19,6 +19,7 @@ import { SocketService } from '../../../../core/services/socket.service';
 import { ChatMessageRendererComponent } from '../../components/chat-message-renderer/chat-message-renderer';
 import { ChatRichMessageInputComponent } from '../../components/chat-rich-message-input/chat-rich-message-input';
 import { ImageViewerComponent, GalleryImage } from '../../components/image-viewer/image-viewer';
+import { VideoPlayerComponent, VideoSource } from '../../components/video-player/video-player';
 
 @Component({
   selector: 'app-direct-messages',
@@ -29,6 +30,7 @@ import { ImageViewerComponent, GalleryImage } from '../../components/image-viewe
     ChatMessageRendererComponent,
     ChatRichMessageInputComponent,
     ImageViewerComponent,
+    VideoPlayerComponent,
   ],
   templateUrl: './direct-messages.html',
   styleUrls: ['./direct-messages.css'],
@@ -69,6 +71,10 @@ export class DirectMessagesComponent implements OnInit, OnDestroy {
   isImageViewerOpen = signal<boolean>(false);
   galleryImages = signal<GalleryImage[]>([]);
   activeImageIndex = signal<number>(0);
+
+  // Video Player Modal State
+  isVideoPlayerOpen = signal<boolean>(false);
+  activeVideo = signal<VideoSource | null>(null);
 
   filteredConversations = computed(() => {
     const q = this.searchQuery().toLowerCase().trim();
@@ -375,6 +381,14 @@ export class DirectMessagesComponent implements OnInit, OnDestroy {
     this.galleryImages.set(allImages);
     this.activeImageIndex.set(foundIndex);
     this.isImageViewerOpen.set(true);
+  }
+
+  onVideoClick(event: { url: string; title?: string }): void {
+    this.activeVideo.set({
+      url: event.url,
+      title: event.title || 'Shared Video Stream',
+    });
+    this.isVideoPlayerOpen.set(true);
   }
 
   getInitials(name?: string): string {

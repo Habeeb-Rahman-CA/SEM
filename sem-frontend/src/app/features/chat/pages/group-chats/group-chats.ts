@@ -19,6 +19,7 @@ import { SocketService } from '../../../../core/services/socket.service';
 import { ChatMessageRendererComponent } from '../../components/chat-message-renderer/chat-message-renderer';
 import { ChatRichMessageInputComponent } from '../../components/chat-rich-message-input/chat-rich-message-input';
 import { ImageViewerComponent, GalleryImage } from '../../components/image-viewer/image-viewer';
+import { VideoPlayerComponent, VideoSource } from '../../components/video-player/video-player';
 
 @Component({
   selector: 'app-group-chats',
@@ -29,6 +30,7 @@ import { ImageViewerComponent, GalleryImage } from '../../components/image-viewe
     ChatMessageRendererComponent,
     ChatRichMessageInputComponent,
     ImageViewerComponent,
+    VideoPlayerComponent,
   ],
   templateUrl: './group-chats.html',
   styleUrls: ['./group-chats.css'],
@@ -107,6 +109,10 @@ export class GroupChatsComponent implements OnInit, OnDestroy {
   isImageViewerOpen = signal<boolean>(false);
   galleryImages = signal<GalleryImage[]>([]);
   activeImageIndex = signal<number>(0);
+
+  // Video Player Modal State
+  isVideoPlayerOpen = signal<boolean>(false);
+  activeVideo = signal<VideoSource | null>(null);
 
   // Group Templates Preset
   presetTemplates = [
@@ -455,6 +461,14 @@ export class GroupChatsComponent implements OnInit, OnDestroy {
     this.galleryImages.set(allImages);
     this.activeImageIndex.set(foundIndex);
     this.isImageViewerOpen.set(true);
+  }
+
+  onVideoClick(event: { url: string; title?: string }): void {
+    this.activeVideo.set({
+      url: event.url,
+      title: event.title || 'Shared Group Video',
+    });
+    this.isVideoPlayerOpen.set(true);
   }
 
   filteredGroupChats = computed(() => this.filteredGroups());

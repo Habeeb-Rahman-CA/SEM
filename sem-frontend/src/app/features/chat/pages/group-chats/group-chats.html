@@ -253,6 +253,7 @@
                   <app-chat-message-renderer
                     [content]="msg.content"
                     (imageClick)="onImageClick($event)"
+                    (videoClick)="onVideoClick($event)"
                   />
 
                   <div
@@ -589,4 +590,9 @@
     [initialIndex]="activeImageIndex()"
     (close)="isImageViewerOpen.set(false)"
   />
+}
+
+<!-- Video Player Modal Streaming Surface -->
+@if (isVideoPlayerOpen() && activeVideo(); as currentVid) {
+  <app-video-player [video]="currentVid" (close)="isVideoPlayerOpen.set(false)" />
 }
