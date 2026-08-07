@@ -236,33 +236,63 @@
                   </div>
                 }
 
-                <!-- Message Bubble -->
-                <div
-                  [class]="
-                    msg.senderId === currentUserId()
-                      ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-2xl rounded-br-none shadow-lg shadow-violet-600/10 border border-violet-400/20'
-                      : 'bg-white/10 backdrop-blur-md text-slate-200 rounded-2xl rounded-bl-none border border-white/10'
-                  "
-                  class="max-w-[70%] px-4 py-2.5 text-xs shadow-md"
-                >
-                  @if (msg.senderId !== currentUserId()) {
-                    <p class="text-[10px] font-bold text-violet-300 mb-1">
-                      {{ msg.senderName }}
-                    </p>
-                  }
-                  <app-chat-message-renderer
-                    [content]="msg.content"
-                    (imageClick)="onImageClick($event)"
-                    (videoClick)="onVideoClick($event)"
-                  />
-
+                <!-- Message Bubble & Thread Actions -->
+                <div class="relative group/msg flex flex-col">
                   <div
-                    [class.text-violet-200]="msg.senderId === currentUserId()"
-                    [class.text-slate-400]="msg.senderId !== currentUserId()"
-                    class="mt-1 flex items-center justify-end gap-1 text-[10px] opacity-80"
+                    [class]="
+                      msg.senderId === currentUserId()
+                        ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-2xl rounded-br-none shadow-lg shadow-violet-600/10 border border-violet-400/20'
+                        : 'bg-white/10 backdrop-blur-md text-slate-200 rounded-2xl rounded-bl-none border border-white/10'
+                    "
+                    class="max-w-[70%] px-4 py-2.5 text-xs shadow-md relative"
                   >
-                    <span>{{ msg.createdAt | date: 'shortTime' }}</span>
+                    @if (msg.senderId !== currentUserId()) {
+                      <p class="text-[10px] font-bold text-violet-300 mb-1">
+                        {{ msg.senderName }}
+                      </p>
+                    }
+                    <app-chat-message-renderer
+                      [content]="msg.content"
+                      (imageClick)="onImageClick($event)"
+                      (videoClick)="onVideoClick($event)"
+                    />
+
+                    <div
+                      [class.text-violet-200]="msg.senderId === currentUserId()"
+                      [class.text-slate-400]="msg.senderId !== currentUserId()"
+                      class="mt-1 flex items-center justify-end gap-1 text-[10px] opacity-80"
+                    >
+                      <span>{{ msg.createdAt | date: 'shortTime' }}</span>
+                    </div>
+
+                    <!-- Quick Reply in Thread Hover Action Button -->
+                    <button
+                      type="button"
+                      (click)="openThread(msg)"
+                      title="Reply in thread (keeps channel clean)"
+                      class="absolute -top-3.5 right-2 opacity-0 group-hover/msg:opacity-100 bg-slate-900 border border-white/20 text-slate-300 hover:text-white px-2 py-1 rounded-full text-[10px] font-bold shadow-lg transition-all cursor-pointer flex items-center gap-1 z-10"
+                    >
+                      <i class="fi fi-rr-comment-alt-middle text-[10px] text-violet-400"></i>
+                      <span>Reply in thread</span>
+                    </button>
                   </div>
+
+                  <!-- Thread Replies Badge Link -->
+                  @if (getThreadReplyCount(msg.id) > 0) {
+                    <button
+                      type="button"
+                      (click)="openThread(msg)"
+                      [class.self-end]="msg.senderId === currentUserId()"
+                      [class.self-start]="msg.senderId !== currentUserId()"
+                      class="mt-1 text-[10px] font-bold text-violet-400 hover:text-violet-300 transition-colors flex items-center gap-1.5 cursor-pointer bg-violet-600/10 px-2 py-0.5 rounded-full border border-violet-500/20"
+                    >
+                      <i class="fi fi-rr-comment-alt-middle text-[9px]"></i>
+                      <span
+                        >{{ getThreadReplyCount(msg.id) }}
+                        {{ getThreadReplyCount(msg.id) === 1 ? 'reply' : 'replies' }}</span
+                      >
+                    </button>
+                  }
                 </div>
               </div>
             }
@@ -595,4 +625,16 @@
 <!-- Video Player Modal Streaming Surface -->
 @if (isVideoPlayerOpen() && activeVideo(); as currentVid) {
   <app-video-player [video]="currentVid" (close)="isVideoPlayerOpen.set(false)" />
+}
+
+<!-- Nested Thread Side Drawer Surface -->
+@if (activeThreadMessage(); as threadMsg) {
+  <app-thread-drawer
+    [parentMessage]="threadMsg"
+    [replies]="activeThreadReplies()"
+    [currentUserId]="currentUserId()"
+    [members]="members()"
+    (close)="closeThread()"
+    (sendReply)="sendThreadReply($event)"
+  />
 }

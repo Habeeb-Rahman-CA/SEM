@@ -20,6 +20,10 @@ import { ChatMessageRendererComponent } from '../../components/chat-message-rend
 import { ChatRichMessageInputComponent } from '../../components/chat-rich-message-input/chat-rich-message-input';
 import { ImageViewerComponent, GalleryImage } from '../../components/image-viewer/image-viewer';
 import { VideoPlayerComponent, VideoSource } from '../../components/video-player/video-player';
+import {
+  ThreadDrawerComponent,
+  ThreadReplyItem,
+} from '../../components/thread-drawer/thread-drawer';
 
 @Component({
   selector: 'app-group-chats',
@@ -31,6 +35,7 @@ import { VideoPlayerComponent, VideoSource } from '../../components/video-player
     ChatRichMessageInputComponent,
     ImageViewerComponent,
     VideoPlayerComponent,
+    ThreadDrawerComponent,
   ],
   templateUrl: './group-chats.html',
   styleUrls: ['./group-chats.css'],
@@ -113,6 +118,48 @@ export class GroupChatsComponent implements OnInit, OnDestroy {
   // Video Player Modal State
   isVideoPlayerOpen = signal<boolean>(false);
   activeVideo = signal<VideoSource | null>(null);
+
+  // Thread Side Drawer State
+  activeThreadMessage = signal<any | null>(null);
+  threadRepliesMap = signal<{ [messageId: string]: ThreadReplyItem[] }>({});
+
+  activeThreadReplies = computed(() => {
+    const parent = this.activeThreadMessage();
+    if (!parent) return [];
+    return this.threadRepliesMap()[parent.id] || [];
+  });
+
+  openThread(msg: any): void {
+    this.activeThreadMessage.set(msg);
+  }
+
+  closeThread(): void {
+    this.activeThreadMessage.set(null);
+  }
+
+  getThreadReplyCount(messageId: string): number {
+    return (this.threadRepliesMap()[messageId] || []).length;
+  }
+
+  sendThreadReply(event: { parentMessageId: string; content: string }): void {
+    const currentUser = this.authService.currentUser();
+    const replyItem: ThreadReplyItem = {
+      id: 'rep-' + Math.random().toString(36).substring(2, 9),
+      parentMessageId: event.parentMessageId,
+      senderId: this.currentUserId(),
+      senderName: currentUser?.username || 'You',
+      content: event.content,
+      createdAt: new Date().toISOString(),
+    };
+
+    this.threadRepliesMap.update((map) => {
+      const existing = map[event.parentMessageId] || [];
+      return {
+        ...map,
+        [event.parentMessageId]: [...existing, replyItem],
+      };
+    });
+  }
 
   // Group Templates Preset
   presetTemplates = [
