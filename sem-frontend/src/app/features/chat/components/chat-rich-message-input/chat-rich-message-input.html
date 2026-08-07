@@ -1,11 +1,49 @@
 <div
-  class="relative bg-slate-900/70 border border-white/10 rounded-2xl p-2 shadow-2xl backdrop-blur-xl"
+  (dragover)="onDragOver($event)"
+  (dragleave)="onDragLeave($event)"
+  (drop)="onDrop($event)"
+  [class.border-violet-500]="isDragging()"
+  [class.bg-violet-950\/30]="isDragging()"
+  class="relative bg-slate-900/70 border border-white/10 rounded-2xl p-2 shadow-2xl backdrop-blur-xl transition-all"
 >
+  <!-- Drag & Drop Overlay Indicator -->
+  @if (isDragging()) {
+    <div
+      class="absolute inset-0 bg-violet-950/80 backdrop-blur-md rounded-2xl z-50 border-2 border-dashed border-violet-400 flex flex-col items-center justify-center pointer-events-none animate-in fade-in zoom-in-95"
+    >
+      <div
+        class="w-12 h-12 rounded-2xl bg-violet-600/30 text-violet-300 border border-violet-500/40 flex items-center justify-center mb-2 text-2xl animate-bounce"
+      >
+        <i class="fi fi-rr-upload"></i>
+      </div>
+      <p class="text-sm font-bold text-white tracking-wide">Drop files here to upload & attach</p>
+      <p class="text-xs text-violet-300">
+        Images, Videos, Audio, PDFs, Word, Excel, ZIP, APK supported
+      </p>
+    </div>
+  }
+
+  <!-- Hidden File Input -->
+  <input #fileInputRef type="file" multiple (change)="onFileSelected($event)" class="hidden" />
+
   <!-- Top Rich Formatting Action Toolbar -->
   <div
     class="flex items-center justify-between pb-2 mb-2 border-b border-white/10 px-2 overflow-x-auto scrollbar-none gap-1"
   >
     <div class="flex items-center gap-1">
+      <!-- Upload File Attachment Button -->
+      <button
+        type="button"
+        (click)="triggerFileInput()"
+        title="Upload Media & Attachments (Drag & Drop or Paste supported)"
+        class="p-1.5 rounded-lg bg-violet-600/20 hover:bg-violet-600/30 text-violet-300 border border-violet-500/30 transition-colors text-xs font-semibold cursor-pointer flex items-center gap-1"
+      >
+        <i class="fi fi-rr-paperclip"></i>
+        <span class="text-[10px] font-bold hidden sm:inline">Attach</span>
+      </button>
+
+      <div class="w-px h-4 bg-white/10 mx-1"></div>
+
       <!-- Bold -->
       <button
         type="button"
@@ -152,6 +190,73 @@
     </div>
   </div>
 
+  <!-- ATTACHMENTS QUEUE PREVIEW RIBBON -->
+  @if (attachments().length > 0) {
+    <div
+      class="px-2 mb-2 flex items-center gap-2 overflow-x-auto scrollbar-none py-1.5 border-b border-white/10"
+    >
+      @for (att of attachments(); track att.id) {
+        <div
+          class="relative group shrink-0 w-44 bg-slate-950/80 border border-white/10 rounded-xl p-2 flex items-center gap-2"
+        >
+          <!-- Thumbnail / Icon Badge -->
+          <div
+            class="w-10 h-10 rounded-lg bg-white/5 border border-white/10 overflow-hidden shrink-0 flex items-center justify-center"
+          >
+            @if (att.category === 'image' && att.previewUrl) {
+              <img [src]="att.previewUrl" [alt]="att.name" class="w-full h-full object-cover" />
+            } @else if (att.category === 'video') {
+              <i class="fi fi-rr-video-camera text-violet-400 text-lg"></i>
+            } @else if (att.category === 'audio') {
+              <i class="fi fi-rr-music text-emerald-400 text-lg"></i>
+            } @else if (att.category === 'pdf') {
+              <i class="fi fi-rr-file-pdf text-rose-400 text-lg"></i>
+            } @else if (att.category === 'word') {
+              <i class="fi fi-rr-document text-blue-400 text-lg"></i>
+            } @else if (att.category === 'excel') {
+              <i class="fi fi-rr-stats text-emerald-400 text-lg"></i>
+            } @else if (att.category === 'zip') {
+              <i class="fi fi-rr-box-alt text-amber-400 text-lg"></i>
+            } @else if (att.category === 'apk') {
+              <i class="fi fi-rr-mobile text-purple-400 text-lg"></i>
+            } @else {
+              <i class="fi fi-rr-file text-slate-400 text-lg"></i>
+            }
+          </div>
+
+          <!-- Info & Progress Bar -->
+          <div class="min-w-0 flex-1">
+            <p class="text-[11px] font-bold text-white truncate">{{ att.name }}</p>
+            <p class="text-[9px] text-slate-400 mb-1">{{ att.sizeFormatted }}</p>
+
+            <!-- Progress Bar -->
+            @if (att.progress < 100) {
+              <div class="w-full h-1 bg-white/10 rounded-full overflow-hidden">
+                <div
+                  [style.width.%]="att.progress"
+                  class="h-full bg-violet-500 transition-all duration-150"
+                ></div>
+              </div>
+            } @else {
+              <span class="text-[9px] font-bold text-emerald-400 flex items-center gap-1">
+                <i class="fi fi-rr-check text-[8px]"></i> Ready
+              </span>
+            }
+          </div>
+
+          <!-- Remove Button -->
+          <button
+            type="button"
+            (click)="removeAttachment(att.id)"
+            class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-rose-600 hover:bg-rose-500 text-white flex items-center justify-center text-[10px] shadow-md transition-transform cursor-pointer"
+          >
+            <i class="fi fi-rr-cross text-[8px]"></i>
+          </button>
+        </div>
+      }
+    </div>
+  }
+
   <!-- Text Input Area -->
   <div class="relative">
     <textarea
@@ -159,6 +264,7 @@
       [ngModel]="content()"
       (ngModelChange)="onContentChange($event)"
       (keydown)="onKeydown($event)"
+      (paste)="onPaste($event)"
       [placeholder]="placeholder"
       [disabled]="disabled"
       rows="2"
@@ -169,7 +275,7 @@
       <button
         type="button"
         (click)="submitMessage()"
-        [disabled]="!content().trim() || disabled || isSending"
+        [disabled]="(!content().trim() && attachments().length === 0) || disabled || isSending"
         class="px-4 py-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 disabled:opacity-40 text-white text-xs font-semibold rounded-xl flex items-center gap-2 shadow-lg shadow-violet-600/20 transition-all cursor-pointer"
       >
         @if (isSending) {
@@ -256,7 +362,6 @@
         </button>
       </div>
 
-      <!-- Emoji Category Tabs -->
       <div
         class="flex items-center gap-1 border-b border-white/10 pb-2 mb-2 overflow-x-auto scrollbar-none"
       >
@@ -273,7 +378,6 @@
         }
       </div>
 
-      <!-- Emojis Grid -->
       <div class="grid grid-cols-7 gap-1.5 max-h-44 overflow-y-auto scrollbar-none p-1">
         @for (emoji of activeCategoryEmojis(); track emoji) {
           <button
@@ -302,7 +406,6 @@
         </button>
       </div>
 
-      <!-- GIFs Grid -->
       <div class="grid grid-cols-2 gap-2 max-h-56 overflow-y-auto scrollbar-none p-1">
         @for (gif of gifs; track gif.title) {
           <div
@@ -342,7 +445,6 @@
         </button>
       </div>
 
-      <!-- Stickers Grid -->
       <div class="grid grid-cols-2 gap-2 max-h-56 overflow-y-auto scrollbar-none p-1">
         @for (st of stickers; track st.title) {
           <button

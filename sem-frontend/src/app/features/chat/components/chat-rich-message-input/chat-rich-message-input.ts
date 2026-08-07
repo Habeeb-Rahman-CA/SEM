@@ -21,6 +21,18 @@ export interface MentionSuggestion {
   insertText: string;
 }
 
+export interface AttachmentItem {
+  id: string;
+  file: File;
+  name: string;
+  sizeFormatted: string;
+  category: 'image' | 'video' | 'audio' | 'pdf' | 'word' | 'excel' | 'zip' | 'apk' | 'file';
+  previewUrl?: string;
+  progress: number;
+  status: 'uploading' | 'completed' | 'error';
+  url?: string;
+}
+
 @Component({
   selector: 'app-chat-rich-message-input',
   standalone: true,
@@ -40,8 +52,13 @@ export class ChatRichMessageInputComponent {
   @Output() typing = new EventEmitter<void>();
 
   @ViewChild('textareaRef') textareaRef!: ElementRef<HTMLTextAreaElement>;
+  @ViewChild('fileInputRef') fileInputRef!: ElementRef<HTMLInputElement>;
 
   content = signal<string>('');
+
+  // Attachments Queue State
+  attachments = signal<AttachmentItem[]>([]);
+  isDragging = signal<boolean>(false);
 
   // Pickers state
   showEmojiPicker = signal<boolean>(false);
@@ -282,11 +299,9 @@ export class ChatRichMessageInputComponent {
     { title: 'GG', icon: 'fi fi-rr-smile', bg: 'bg-cyan-600', text: 'GOOD GAME' },
   ];
 
-  // All Mention Suggestions computed
   allMentionSuggestions = computed<MentionSuggestion[]>(() => {
     const list: MentionSuggestion[] = [...this.groupMentions];
 
-    // Users
     if (this.members && this.members.length > 0) {
       for (const m of this.members) {
         const username = m.user?.username || m.username;
@@ -303,7 +318,6 @@ export class ChatRichMessageInputComponent {
       }
     }
 
-    // Roles
     const roleNames = new Set<string>();
     if (this.members) {
       for (const m of this.members) {
@@ -322,7 +336,6 @@ export class ChatRichMessageInputComponent {
       }
     }
 
-    // Channels
     if (this.channels && this.channels.length > 0) {
       for (const c of this.channels) {
         list.push({
@@ -354,6 +367,155 @@ export class ChatRichMessageInputComponent {
   activeCategoryEmojis = computed(() => {
     return this.emojiCategories[this.activeEmojiCategory()]?.emojis || [];
   });
+
+  // DRAG & DROP HANDLERS
+  onDragOver(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragging.set(true);
+  }
+
+  onDragLeave(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragging.set(false);
+  }
+
+  onDrop(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragging.set(false);
+
+    if (event.dataTransfer?.files && event.dataTransfer.files.length > 0) {
+      this.handleFiles(Array.from(event.dataTransfer.files));
+    }
+  }
+
+  // CLIPBOARD PASTE HANDLER
+  onPaste(event: ClipboardEvent) {
+    const items = event.clipboardData?.items;
+    if (!items) return;
+
+    const files: File[] = [];
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].kind === 'file') {
+        const file = items[i].getAsFile();
+        if (file) files.push(file);
+      }
+    }
+
+    if (files.length > 0) {
+      this.handleFiles(files);
+    }
+  }
+
+  // FILE INPUT HANDLER
+  triggerFileInput() {
+    this.fileInputRef?.nativeElement?.click();
+  }
+
+  onFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      this.handleFiles(Array.from(input.files));
+      input.value = '';
+    }
+  }
+
+  private handleFiles(files: File[]) {
+    const newItems: AttachmentItem[] = files.map((file) => {
+      const id = 'att-' + Math.random().toString(36).substring(2, 9);
+      const category = this.getFileCategory(file);
+      const previewUrl = category === 'image' ? URL.createObjectURL(file) : undefined;
+
+      const item: AttachmentItem = {
+        id,
+        file,
+        name: file.name,
+        sizeFormatted: this.formatBytes(file.size),
+        category,
+        previewUrl,
+        progress: 0,
+        status: 'uploading',
+      };
+
+      this.simulateUpload(item);
+      return item;
+    });
+
+    this.attachments.update((prev) => [...prev, ...newItems]);
+  }
+
+  private simulateUpload(item: AttachmentItem) {
+    let currentProgress = 0;
+    const interval = setInterval(() => {
+      currentProgress += Math.floor(Math.random() * 25) + 15;
+      if (currentProgress >= 100) {
+        currentProgress = 100;
+        clearInterval(interval);
+
+        // Generate simulated object URL or data URL
+        const mockUrl =
+          item.previewUrl || `https://storage.taisen.app/files/${encodeURIComponent(item.name)}`;
+        this.attachments.update((list) =>
+          list.map((att) =>
+            att.id === item.id ? { ...att, progress: 100, status: 'completed', url: mockUrl } : att,
+          ),
+        );
+      } else {
+        this.attachments.update((list) =>
+          list.map((att) => (att.id === item.id ? { ...att, progress: currentProgress } : att)),
+        );
+      }
+    }, 150);
+  }
+
+  removeAttachment(id: string) {
+    this.attachments.update((list) => {
+      const target = list.find((a) => a.id === id);
+      if (target?.previewUrl) {
+        URL.revokeObjectURL(target.previewUrl);
+      }
+      return list.filter((a) => a.id !== id);
+    });
+  }
+
+  private getFileCategory(file: File): AttachmentItem['category'] {
+    const mime = file.type.toLowerCase();
+    const ext = file.name.split('.').pop()?.toLowerCase() || '';
+
+    if (mime.startsWith('image/')) return 'image';
+    if (mime.startsWith('video/')) return 'video';
+    if (mime.startsWith('audio/')) return 'audio';
+    if (mime.includes('pdf') || ext === 'pdf') return 'pdf';
+    if (mime.includes('word') || ext === 'doc' || ext === 'docx') return 'word';
+    if (
+      mime.includes('excel') ||
+      mime.includes('spreadsheet') ||
+      ext === 'xls' ||
+      ext === 'xlsx' ||
+      ext === 'csv'
+    )
+      return 'excel';
+    if (
+      ext === 'zip' ||
+      ext === 'rar' ||
+      ext === '7z' ||
+      mime.includes('zip') ||
+      mime.includes('archive')
+    )
+      return 'zip';
+    if (ext === 'apk' || mime.includes('android')) return 'apk';
+    return 'file';
+  }
+
+  private formatBytes(bytes: number): string {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  }
 
   onContentChange(val: string) {
     this.content.set(val);
@@ -428,7 +590,7 @@ export class ChatRichMessageInputComponent {
     const textAfterCursor = text.substring(cursorPos);
 
     const words = textBeforeCursor.split(/\s/);
-    words.pop(); // Remove partial mention search query
+    words.pop();
 
     const newBefore = words.join(' ') + (words.length > 0 ? ' ' : '') + suggestion.insertText + ' ';
     const newText = newBefore + textAfterCursor;
@@ -443,10 +605,25 @@ export class ChatRichMessageInputComponent {
   }
 
   submitMessage() {
-    const text = this.content().trim();
-    if (!text || this.isSending || this.disabled) return;
+    let text = this.content().trim();
+    const queuedAttachments = this.attachments();
+
+    if ((!text && queuedAttachments.length === 0) || this.isSending || this.disabled) return;
+
+    // Append formatted markdown tags for attachments
+    if (queuedAttachments.length > 0) {
+      const attMarkup = queuedAttachments
+        .map(
+          (att) =>
+            `[ATTACHMENT:${att.url || 'pending'}|${att.name}|${att.category}|${att.sizeFormatted}]`,
+        )
+        .join('\n');
+      text = text ? `${text}\n${attMarkup}` : attMarkup;
+    }
+
     this.sendMessage.emit({ content: text });
     this.content.set('');
+    this.attachments.set([]);
     this.closeAllPickers();
   }
 

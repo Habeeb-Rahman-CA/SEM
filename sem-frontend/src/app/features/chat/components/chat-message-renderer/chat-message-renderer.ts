@@ -128,6 +128,57 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
         color: #67e8f9;
         border: 1px solid rgba(6, 182, 212, 0.35);
       }
+
+      /* MEDIA ATTACHMENTS STYLING */
+      ::ng-deep .rich-message-content img.msg-att-img {
+        max-width: 280px;
+        max-height: 240px;
+        border-radius: 0.75rem;
+        display: block;
+        margin: 0.4rem 0;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+      }
+      ::ng-deep .rich-message-content video.msg-att-video {
+        max-width: 320px;
+        max-height: 240px;
+        border-radius: 0.75rem;
+        display: block;
+        margin: 0.4rem 0;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+      }
+      ::ng-deep .rich-message-content audio.msg-att-audio {
+        max-width: 300px;
+        margin: 0.4rem 0;
+        display: block;
+      }
+      ::ng-deep .rich-message-content .msg-att-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding: 0.6rem 0.8rem;
+        background: rgba(15, 23, 42, 0.8);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 0.75rem;
+        margin: 0.4rem 0;
+        max-width: 320px;
+      }
+      ::ng-deep .rich-message-content .msg-att-card a.att-dl-btn {
+        padding: 0.3rem 0.6rem;
+        background: rgba(139, 92, 246, 0.2);
+        border: 1px solid rgba(139, 92, 246, 0.35);
+        color: #c4b5fd;
+        border-radius: 0.5rem;
+        font-weight: 700;
+        font-size: 0.85em;
+        text-decoration: none;
+        transition: all 0.15s ease;
+      }
+      ::ng-deep .rich-message-content .msg-att-card a.att-dl-btn:hover {
+        background: rgba(139, 92, 246, 0.4);
+        color: #ffffff;
+      }
     `,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -149,7 +200,7 @@ export class ChatMessageRendererComponent implements OnChanges {
   private parseRichMessage(rawText: string): string {
     if (!rawText) return '';
 
-    // Check for direct GIF or Sticker syntax [GIF:url] or [STICKER:url]
+    // Direct GIF or Sticker syntax
     if (rawText.startsWith('[GIF:') && rawText.endsWith(']')) {
       const gifUrl = rawText.substring(5, rawText.length - 1);
       return `<img src="${this.escapeHtml(gifUrl)}" alt="GIF" class="msg-gif" />`;
@@ -160,6 +211,48 @@ export class ChatMessageRendererComponent implements OnChanges {
     }
 
     let text = this.escapeHtml(rawText);
+
+    // 0. Attachments parsing [ATTACHMENT:url|name|category|size]
+    text = text.replace(
+      /\[ATTACHMENT:(.*?)\|(.*?)\|(.*?)\|(.*?)\]/g,
+      (match, url, name, category, size) => {
+        const safeUrl = this.escapeHtml(url);
+        const safeName = this.escapeHtml(name);
+        const safeSize = this.escapeHtml(size);
+
+        if (category === 'image') {
+          return `<img src="${safeUrl}" alt="${safeName}" class="msg-att-img" />`;
+        }
+        if (category === 'video') {
+          return `<video src="${safeUrl}" controls class="msg-att-video"></video>`;
+        }
+        if (category === 'audio') {
+          return `<audio src="${safeUrl}" controls class="msg-att-audio"></audio>`;
+        }
+
+        let iconClass = 'fi fi-rr-file text-slate-400';
+        if (category === 'pdf') iconClass = 'fi fi-rr-file-pdf text-rose-400';
+        if (category === 'word') iconClass = 'fi fi-rr-document text-blue-400';
+        if (category === 'excel') iconClass = 'fi fi-rr-stats text-emerald-400';
+        if (category === 'zip') iconClass = 'fi fi-rr-box-alt text-amber-400';
+        if (category === 'apk') iconClass = 'fi fi-rr-mobile text-purple-400';
+
+        return `
+          <div class="msg-att-card">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <i class="${iconClass} text-xl"></i>
+              <div class="min-w-0">
+                <p class="font-bold text-white text-xs truncate mb-0.5">${safeName}</p>
+                <p class="text-[10px] text-slate-400 mb-0">${safeSize}</p>
+              </div>
+            </div>
+            <a href="${safeUrl}" target="_blank" download class="att-dl-btn flex items-center gap-1">
+              <i class="fi fi-rr-download text-xs"></i> Download
+            </a>
+          </div>
+        `;
+      },
+    );
 
     // 1. Code blocks ```code```
     text = text.replace(/```([\s\S]*?)```/g, (match, codeContent) => {
