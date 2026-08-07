@@ -12,22 +12,24 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import {
-  ChatService,
-  GroupChat,
-  GroupChatMessage,
-  GroupChatMember,
-} from '../../services/chat.service';
+import { ChatService, GroupChat, GroupChatMessage } from '../../services/chat.service';
 import { AuthService } from '../../../auth/services/auth.service';
 import { SocketService } from '../../../../core/services/socket.service';
 
 import { ChatMessageRendererComponent } from '../../components/chat-message-renderer/chat-message-renderer';
 import { ChatRichMessageInputComponent } from '../../components/chat-rich-message-input/chat-rich-message-input';
+import { ImageViewerComponent, GalleryImage } from '../../components/image-viewer/image-viewer';
 
 @Component({
   selector: 'app-group-chats',
   standalone: true,
-  imports: [CommonModule, FormsModule, ChatMessageRendererComponent, ChatRichMessageInputComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ChatMessageRendererComponent,
+    ChatRichMessageInputComponent,
+    ImageViewerComponent,
+  ],
   templateUrl: './group-chats.html',
   styleUrls: ['./group-chats.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -50,399 +52,435 @@ export class GroupChatsComponent implements OnInit, OnDestroy {
 
   searchQuery = signal<string>('');
   messageInput = signal<string>('');
-  memberSearchQuery = signal<string>('');
+  searchMessageQuery = signal<string>('');
 
-  // Create Group Modal state
+  // Modals state
   isCreateModalOpen = signal<boolean>(false);
-  newGroupName = signal<string>('');
-  newGroupDescription = signal<string>('');
-  newGroupIcon = signal<string>('fi fi-rr-users-alt');
-  newGroupIsTemporary = signal<boolean>(false);
-  newGroupExpiresAt = signal<string>('');
-  selectedMemberIds = signal<string[]>([]);
-
-  // Add Member Modal state
+  isMembersModalOpen = signal<boolean>(false);
   isAddMemberModalOpen = signal<boolean>(false);
-
-  // Group Details Drawer
   isDetailsDrawerOpen = signal<boolean>(false);
+  isSearchingMessages = signal<boolean>(false);
+  searchResults = signal<any[]>([]);
 
   isLoadingGroups = signal<boolean>(true);
   isLoadingMessages = signal<boolean>(false);
   isSending = signal<boolean>(false);
 
-  typingUsers = signal<{ [userId: string]: string }>({});
-  private typingTimeout: any = null;
+  // New Group Form state
+  newGroupName = signal<string>('');
+  newGroupDescription = signal<string>('');
+  newGroupCategory = signal<string>('custom');
+  newGroupIcon = signal<string>('fi fi-rr-users-alt');
+  newGroupIsTemporary = signal<boolean>(false);
+  selectedInitialUserIds = signal<string[]>([]);
 
-  availableIcons = [
-    { label: 'Users', icon: 'fi fi-rr-users-alt' },
-    { label: 'Referee Whistle', icon: 'fi fi-rr-whistle' },
-    { label: 'Trophy', icon: 'fi fi-rr-trophy' },
-    { label: 'Venue Building', icon: 'fi fi-rr-building' },
-    { label: 'Badge Check', icon: 'fi fi-rr-badge-check' },
-    { label: 'Clipboard', icon: 'fi fi-rr-clipboard' },
-    { label: 'Shield', icon: 'fi fi-rr-shield' },
-    { label: 'Megaphone', icon: 'fi fi-rr-bullhorn' },
+  presetIcons = [
+    { icon: 'fi fi-rr-users-alt', label: 'Group' },
+    { icon: 'fi fi-rr-trophy', label: 'Trophy' },
+    { icon: 'fi fi-rr-whistle', label: 'Referee' },
+    { icon: 'fi fi-rr-heart-partner-handshake', label: 'Volunteer' },
+    { icon: 'fi fi-rr-marker', label: 'Venue' },
+    { icon: 'fi fi-rr-briefcase', label: 'Committee' },
+  ];
+  availableIcons = this.presetIcons;
+
+  removeMemberFromActiveGroup(mem: any, event: Event): void {
+    event.stopPropagation();
+    const userId = mem.userId || mem.id;
+    if (userId) {
+      this.removeMemberFromGroup(userId);
+    }
+  }
+
+  leaveCurrentGroup(): void {
+    const group = this.selectedGroup();
+    if (group) {
+      this.leaveGroup(group, new Event('click'));
+    }
+  }
+
+  // Typing indicator state
+  typingUsers = signal<{ userId: string; username: string }[]>([]);
+  private typingTimeouts = new Map<string, any>();
+
+  // Image Viewer Lightbox State
+  isImageViewerOpen = signal<boolean>(false);
+  galleryImages = signal<GalleryImage[]>([]);
+  activeImageIndex = signal<number>(0);
+
+  // Group Templates Preset
+  presetTemplates = [
+    {
+      name: 'Football Referees',
+      category: 'referees',
+      icon: 'fi fi-rr-whistle text-cyan-400',
+      desc: 'Official referee coordination & match assignments.',
+    },
+    {
+      name: 'Cricket Team Captains',
+      category: 'captains',
+      icon: 'fi fi-rr-trophy text-amber-400',
+      desc: 'Captains strategy, toss results & captain briefings.',
+    },
+    {
+      name: 'Volunteer Leaders',
+      category: 'volunteers',
+      icon: 'fi fi-rr-heart-partner-handshake text-emerald-400',
+      desc: 'Ground operations, venue volunteers & tasks.',
+    },
+    {
+      name: 'Venue Managers',
+      category: 'operations',
+      icon: 'fi fi-rr-marker text-rose-400',
+      desc: 'Stadium facilities, equipment & pitch readiness.',
+    },
+    {
+      name: 'Tournament Committee',
+      category: 'committee',
+      icon: 'fi fi-rr-briefcase text-violet-400',
+      desc: 'Executive decisions, scheduling & disputes.',
+    },
   ];
 
-  filteredGroupChats = computed(() => {
+  filteredGroups = computed(() => {
     const q = this.searchQuery().toLowerCase().trim();
-    const list = this.groupChats();
-    if (!q) return list;
-    return list.filter(
+    if (!q) return this.groupChats();
+    return this.groupChats().filter(
       (g) =>
         g.name.toLowerCase().includes(q) ||
         g.description?.toLowerCase().includes(q) ||
-        g.lastMessageText?.toLowerCase().includes(q),
+        g.category?.toLowerCase().includes(q),
     );
   });
 
-  filteredWorkspaceMembers = computed(() => {
-    const q = this.memberSearchQuery().toLowerCase().trim();
+  availableWorkspaceMembers = computed(() => {
+    const group = this.selectedGroup();
+    if (!group || !this.members()) return [];
+    const existingMemberIds = new Set(group.members?.map((m) => m.userId));
     return this.members().filter((m) => {
-      if (!q) return true;
-      return m.user?.username?.toLowerCase().includes(q) || m.role?.name?.toLowerCase().includes(q);
+      const uId = m.userId || m.id;
+      return !existingMemberIds.has(uId);
     });
   });
 
-  nonGroupMembers = computed(() => {
-    const active = this.selectedGroup();
-    if (!active || !active.members) return this.members();
-    const existingUserIds = new Set(active.members.map((m) => m.userId));
-    const q = this.memberSearchQuery().toLowerCase().trim();
-    return this.members().filter((m) => {
-      const isNotMember = !existingUserIds.has(m.userId);
-      if (!q) return isNotMember;
-      return (
-        isNotMember &&
-        (m.user?.username?.toLowerCase().includes(q) || m.role?.name?.toLowerCase().includes(q))
-      );
-    });
-  });
+  nonGroupMembers = computed(() => this.availableWorkspaceMembers());
+  filteredWorkspaceMembers = computed(() => this.availableWorkspaceMembers());
+  selectedMemberIds = computed(() => this.selectedInitialUserIds());
 
-  ngOnInit() {
+  toggleMemberSelection(userId: string): void {
+    this.toggleInitialUser(userId);
+  }
+
+  createGroup(): void {
+    this.createGroupChat();
+  }
+
+  ngOnInit(): void {
     this.loadGroupChats();
     this.setupSocketListeners();
   }
 
-  ngOnDestroy() {
-    const active = this.selectedGroup();
-    if (active) {
-      this.socketService.emit('unsubscribeGroupChat', { groupId: active.id });
-    }
-    this.cleanupSocketListeners();
+  ngOnDestroy(): void {
+    this.socketService.off('group_message');
+    this.socketService.off('group_typing');
   }
 
-  private setupSocketListeners() {
-    this.socketService.on('group_message_received', this.handleGroupMessageReceived);
-    this.socketService.on('group_user_typing', this.handleGroupUserTyping);
-    this.socketService.on('group_user_stop_typing', this.handleGroupUserStopTyping);
-  }
+  private setupSocketListeners(): void {
+    this.socketService.on('group_message', (msg: GroupChatMessage) => {
+      const selected = this.selectedGroup();
+      if (selected && selected.id === msg.groupChatId) {
+        this.messages.update((list) => [...list, msg]);
+        this.scrollToBottom();
+      }
+      this.loadGroupChats();
+    });
 
-  private cleanupSocketListeners() {
-    this.socketService.off('group_message_received', this.handleGroupMessageReceived);
-    this.socketService.off('group_user_typing', this.handleGroupUserTyping);
-    this.socketService.off('group_user_stop_typing', this.handleGroupUserStopTyping);
-  }
+    this.socketService.on(
+      'group_typing',
+      (data: { groupChatId: string; userId: string; username: string; isTyping: boolean }) => {
+        const selected = this.selectedGroup();
+        if (selected && selected.id === data.groupChatId && data.userId !== this.currentUserId()) {
+          if (data.isTyping) {
+            this.typingUsers.update((list) => {
+              if (!list.some((u) => u.userId === data.userId)) {
+                return [...list, { userId: data.userId, username: data.username }];
+              }
+              return list;
+            });
 
-  private handleGroupMessageReceived = (message: any) => {
-    const active = this.selectedGroup();
-    if (active && active.id === message.groupChatId) {
-      this.messages.update((list) => [...list, message]);
-      this.scrollToBottom();
-      this.markAsRead(active.id);
-    }
-
-    this.groupChats.update((list) =>
-      list.map((g) => {
-        if (g.id === message.groupChatId) {
-          const isViewing = active?.id === g.id;
-          return {
-            ...g,
-            lastMessageAt: message.createdAt,
-            lastMessageText: message.content,
-            unreadCount: isViewing ? 0 : g.unreadCount + 1,
-          };
+            if (this.typingTimeouts.has(data.userId)) {
+              clearTimeout(this.typingTimeouts.get(data.userId));
+            }
+            const timeout = setTimeout(() => {
+              this.typingUsers.update((list) => list.filter((u) => u.userId !== data.userId));
+              this.typingTimeouts.delete(data.userId);
+            }, 3000);
+            this.typingTimeouts.set(data.userId, timeout);
+          } else {
+            this.typingUsers.update((list) => list.filter((u) => u.userId !== data.userId));
+          }
         }
-        return g;
-      }),
+      },
     );
-  };
+  }
 
-  private handleGroupUserTyping = (data: {
-    senderId: string;
-    username: string;
-    groupId: string;
-  }) => {
-    const active = this.selectedGroup();
-    if (active && active.id === data.groupId && data.senderId !== this.currentUserId()) {
-      this.typingUsers.update((map) => ({ ...map, [data.senderId]: data.username }));
-    }
-  };
-
-  private handleGroupUserStopTyping = (data: { senderId: string; groupId: string }) => {
-    const active = this.selectedGroup();
-    if (active && active.id === data.groupId) {
-      this.typingUsers.update((map) => {
-        const copy = { ...map };
-        delete copy[data.senderId];
-        return copy;
-      });
-    }
-  };
-
-  loadGroupChats() {
+  loadGroupChats(): void {
     this.isLoadingGroups.set(true);
     this.chatService.getGroupChats(this.workspaceId()).subscribe({
-      next: (groups) => {
-        this.groupChats.set(groups);
+      next: (res: GroupChat[]) => {
+        this.groupChats.set(res);
         this.isLoadingGroups.set(false);
-        if (groups.length > 0 && !this.selectedGroup()) {
-          this.selectGroup(groups[0]);
-        }
       },
-      error: (err) => {
-        console.error('Failed to load group chats:', err);
+      error: (err: any) => {
+        console.error('Failed to load group chats', err);
         this.isLoadingGroups.set(false);
       },
     });
   }
 
-  selectGroup(group: GroupChat) {
-    const prev = this.selectedGroup();
-    if (prev) {
-      this.socketService.emit('unsubscribeGroupChat', { groupId: prev.id });
-    }
-
+  selectGroup(group: GroupChat): void {
     this.selectedGroup.set(group);
-    this.typingUsers.set({});
-    this.socketService.emit('subscribeGroupChat', { groupId: group.id });
-
-    // Fetch full group details (with members)
-    this.chatService.getGroupChatDetails(this.workspaceId(), group.id).subscribe({
-      next: (fullDetails) => {
-        this.selectedGroup.set(fullDetails);
-      },
-    });
-
-    this.loadMessages(group.id);
-    this.markAsRead(group.id);
+    this.loadGroupMessages(group.id);
   }
 
-  loadMessages(groupId: string) {
+  loadGroupMessages(groupChatId: string): void {
     this.isLoadingMessages.set(true);
-    this.chatService.getGroupMessages(this.workspaceId(), groupId).subscribe({
-      next: (msgs) => {
+    this.chatService.getGroupMessages(this.workspaceId(), groupChatId).subscribe({
+      next: (msgs: GroupChatMessage[]) => {
         this.messages.set(msgs);
         this.isLoadingMessages.set(false);
         this.scrollToBottom();
       },
-      error: (err) => {
-        console.error('Failed to load group messages:', err);
+      error: (err: any) => {
+        console.error('Failed to load group messages', err);
         this.isLoadingMessages.set(false);
       },
     });
   }
 
-  markAsRead(groupId: string) {
-    this.chatService.markGroupAsRead(this.workspaceId(), groupId).subscribe({
-      next: () => {
-        this.groupChats.update((list) =>
-          list.map((g) => (g.id === groupId ? { ...g, unreadCount: 0 } : g)),
-        );
-      },
-    });
+  sendMessage(): void {
+    const text = this.messageInput().trim();
+    if (!text) return;
+    this.onSendRichMessage({ content: text });
   }
 
-  onInputKeyDown(event: KeyboardEvent) {
-    if (event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault();
-      this.sendMessage();
-    } else {
-      this.emitTypingSignal();
-    }
-  }
-
-  private emitTypingSignal() {
-    const active = this.selectedGroup();
-    const currentUser = this.authService.currentUser();
-    if (!active || !currentUser) return;
-
-    this.socketService.emit('group_typing', {
-      groupId: active.id,
-      username: currentUser.username,
-    });
-
-    if (this.typingTimeout) clearTimeout(this.typingTimeout);
-    this.typingTimeout = setTimeout(() => {
-      this.socketService.emit('group_stop_typing', {
-        groupId: active.id,
-      });
-    }, 2000);
-  }
-
-  sendMessage(textInput?: string) {
-    const text = (textInput || this.messageInput()).trim();
-    const active = this.selectedGroup();
-    if (!text || !active || this.isSending()) return;
+  onSendRichMessage(event: { content: string; attachments?: string[] }): void {
+    const group = this.selectedGroup();
+    if (!group || this.isSending()) return;
 
     this.isSending.set(true);
-    this.chatService.sendGroupMessage(this.workspaceId(), active.id, text).subscribe({
-      next: (newMsg) => {
-        this.messages.update((list) => [...list, newMsg]);
+    this.chatService.sendGroupMessage(this.workspaceId(), group.id, event.content).subscribe({
+      next: (msg: GroupChatMessage) => {
+        this.messages.update((list) => [...list, msg]);
         this.messageInput.set('');
         this.isSending.set(false);
         this.scrollToBottom();
-
-        this.groupChats.update((list) =>
-          list.map((g) =>
-            g.id === active.id
-              ? { ...g, lastMessageAt: newMsg.createdAt, lastMessageText: text }
-              : g,
-          ),
-        );
+        this.loadGroupChats();
       },
-      error: (err) => {
-        console.error('Failed to send group message:', err);
+      error: (err: any) => {
+        console.error('Failed to send group message', err);
         this.isSending.set(false);
       },
     });
   }
 
-  onSendRichMessage(event: { content: string; attachments?: string[] }) {
-    this.sendMessage(event.content);
+  onTyping(): void {
+    const group = this.selectedGroup();
+    if (!group) return;
+    this.socketService.emit('group_typing', {
+      workspaceId: this.workspaceId(),
+      groupChatId: group.id,
+    });
   }
 
-  toggleMemberSelection(userId: string) {
-    this.selectedMemberIds.update((ids) =>
-      ids.includes(userId) ? ids.filter((id) => id !== userId) : [...ids, userId],
-    );
+  openCreateModal(preset?: any): void {
+    if (preset) {
+      this.newGroupName.set(preset.name);
+      this.newGroupDescription.set(preset.desc);
+      this.newGroupCategory.set(preset.category);
+    } else {
+      this.newGroupName.set('');
+      this.newGroupDescription.set('');
+      this.newGroupCategory.set('custom');
+    }
+    this.selectedInitialUserIds.set([]);
+    this.isCreateModalOpen.set(true);
   }
 
-  createGroup() {
+  closeCreateModal(): void {
+    this.isCreateModalOpen.set(false);
+  }
+
+  toggleInitialUser(userId: string): void {
+    this.selectedInitialUserIds.update((ids) => {
+      if (ids.includes(userId)) return ids.filter((id) => id !== userId);
+      return [...ids, userId];
+    });
+  }
+
+  createGroupChat(): void {
     const name = this.newGroupName().trim();
     if (!name) return;
 
+    this.isSending.set(true);
     this.chatService
       .createGroupChat(this.workspaceId(), {
         name,
         description: this.newGroupDescription().trim() || undefined,
-        icon: this.newGroupIcon(),
-        isTemporary: this.newGroupIsTemporary(),
-        expiresAt: this.newGroupExpiresAt() || undefined,
-        initialMemberUserIds: this.selectedMemberIds(),
+        category: this.newGroupCategory(),
+        initialMemberUserIds: this.selectedInitialUserIds(),
       })
       .subscribe({
-        next: (group) => {
-          this.isCreateModalOpen.set(false);
-          this.resetCreateModal();
+        next: (group: GroupChat) => {
+          this.isSending.set(false);
+          this.closeCreateModal();
           this.loadGroupChats();
           this.selectGroup(group);
         },
-        error: (err) => {
-          console.error('Failed to create group:', err);
+        error: (err: any) => {
+          console.error('Failed to create group chat', err);
+          this.isSending.set(false);
         },
       });
   }
 
-  resetCreateModal() {
-    this.newGroupName.set('');
-    this.newGroupDescription.set('');
-    this.newGroupIcon.set('fi fi-rr-users-alt');
-    this.newGroupIsTemporary.set(false);
-    this.newGroupExpiresAt.set('');
-    this.selectedMemberIds.set([]);
+  addMemberToActiveGroup(mem: any): void {
+    const userId = mem.userId || mem.id;
+    if (userId) {
+      this.addMemberToGroup(userId);
+      this.isAddMemberModalOpen.set(false);
+    }
   }
 
-  addMemberToActiveGroup(member: any) {
-    const active = this.selectedGroup();
-    if (!active) return;
+  addMemberToGroup(userId: string): void {
+    const group = this.selectedGroup();
+    if (!group) return;
 
-    this.chatService.addGroupMember(this.workspaceId(), active.id, member.userId).subscribe({
-      next: (updatedGroup) => {
-        this.selectedGroup.set(updatedGroup);
-        this.isAddMemberModalOpen.set(false);
+    this.chatService.addGroupMember(this.workspaceId(), group.id, userId).subscribe({
+      next: () => {
+        this.chatService
+          .getGroupChatDetails(this.workspaceId(), group.id)
+          .subscribe((updated: GroupChat) => {
+            this.selectedGroup.set(updated);
+            this.loadGroupChats();
+          });
       },
     });
   }
 
-  removeMemberFromActiveGroup(member: GroupChatMember, event: Event) {
+  removeMemberFromGroup(userId: string): void {
+    const group = this.selectedGroup();
+    if (!group) return;
+
+    this.chatService.removeGroupMember(this.workspaceId(), group.id, userId).subscribe({
+      next: () => {
+        this.chatService
+          .getGroupChatDetails(this.workspaceId(), group.id)
+          .subscribe((updated: GroupChat) => {
+            this.selectedGroup.set(updated);
+            this.loadGroupChats();
+          });
+      },
+    });
+  }
+
+  togglePin(group: GroupChat, event: Event): void {
     event.stopPropagation();
-    const active = this.selectedGroup();
-    if (!active) return;
-
-    this.chatService.removeGroupMember(this.workspaceId(), active.id, member.userId).subscribe({
-      next: () => {
-        this.selectedGroup.update((g) =>
-          g ? { ...g, members: g.members?.filter((m) => m.userId !== member.userId) } : null,
-        );
-      },
-    });
+    this.groupChats.update((list) =>
+      list.map((g) => (g.id === group.id ? { ...g, isPinned: !g.isPinned } : g)),
+    );
   }
 
-  leaveCurrentGroup() {
-    const active = this.selectedGroup();
-    if (!active) return;
+  toggleMute(group: GroupChat, event: Event): void {
+    event.stopPropagation();
+    this.groupChats.update((list) =>
+      list.map((g) => (g.id === group.id ? { ...g, isMuted: !g.isMuted } : g)),
+    );
+  }
 
-    this.chatService.leaveGroupChat(this.workspaceId(), active.id).subscribe({
+  leaveGroup(group: GroupChat, event: Event): void {
+    event.stopPropagation();
+    if (!confirm(`Are you sure you want to leave ${group.name}?`)) return;
+
+    this.chatService.leaveGroupChat(this.workspaceId(), group.id).subscribe({
       next: () => {
-        this.selectedGroup.set(null);
+        if (this.selectedGroup()?.id === group.id) {
+          this.selectedGroup.set(null);
+        }
         this.loadGroupChats();
       },
     });
   }
 
-  togglePin(group: GroupChat, event: Event) {
-    event.stopPropagation();
-    const newPinned = !group.isPinned;
-    this.chatService
-      .updateGroupChat(this.workspaceId(), group.id, { isPinned: newPinned })
-      .subscribe({
-        next: () => {
-          this.groupChats.update((list) =>
-            list.map((g) => (g.id === group.id ? { ...g, isPinned: newPinned } : g)),
-          );
-        },
-      });
+  searchMessages(): void {
+    const q = this.searchMessageQuery().toLowerCase().trim();
+    const group = this.selectedGroup();
+    if (!q || !group) return;
+
+    const matched = this.messages().filter((m) => m.content.toLowerCase().includes(q));
+    this.searchResults.set(matched);
   }
 
-  toggleMute(group: GroupChat, event: Event) {
-    event.stopPropagation();
-    const newMuted = !group.isMuted;
-    this.chatService
-      .updateGroupChat(this.workspaceId(), group.id, { isMuted: newMuted })
-      .subscribe({
-        next: () => {
-          this.groupChats.update((list) =>
-            list.map((g) => (g.id === group.id ? { ...g, isMuted: newMuted } : g)),
-          );
-        },
-      });
+  onImageClick(event: { url: string; title?: string }): void {
+    const allImages: GalleryImage[] = [];
+    let foundIndex = 0;
+
+    for (const m of this.messages()) {
+      const matches = m.content.matchAll(
+        /src="([^"]+)"|\[GIF:([^\]]+)\]|\[ATTACHMENT:([^\|]+)\|([^\|]+)\|image/g,
+      );
+      for (const match of matches) {
+        const url = match[1] || match[2] || match[3];
+        if (url) {
+          if (url === event.url) {
+            foundIndex = allImages.length;
+          }
+          allImages.push({
+            url,
+            title: match[4] || event.title || 'Group Chat Image',
+            sender: m.senderName,
+            timestamp: new Date(m.createdAt).toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit',
+            }),
+          });
+        }
+      }
+    }
+
+    if (allImages.length === 0) {
+      allImages.push({ url: event.url, title: event.title || 'Image Preview' });
+    }
+
+    this.galleryImages.set(allImages);
+    this.activeImageIndex.set(foundIndex);
+    this.isImageViewerOpen.set(true);
   }
 
-  private scrollToBottom() {
+  filteredGroupChats = computed(() => this.filteredGroups());
+
+  getTypingUserNames(): string {
+    const users = this.typingUsers();
+    if (users.length === 1) return `${users[0].username} is typing...`;
+    if (users.length === 2) return `${users[0].username} and ${users[1].username} are typing...`;
+    if (users.length > 2)
+      return `${users[0].username} and ${users.length - 1} others are typing...`;
+    return '';
+  }
+
+  getInitials(name?: string): string {
+    if (!name) return '?';
+    const parts = name.split(' ');
+    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    return name.substring(0, 2).toUpperCase();
+  }
+
+  private scrollToBottom(): void {
     setTimeout(() => {
       if (this.messagesContainer) {
         const el = this.messagesContainer.nativeElement;
         el.scrollTop = el.scrollHeight;
       }
     }, 50);
-  }
-
-  getInitials(name?: string): string {
-    if (!name) return '?';
-    return name
-      .split(' ')
-      .map((part) => part[0])
-      .join('')
-      .toUpperCase()
-      .substring(0, 2);
-  }
-
-  getTypingUserNames(): string {
-    const names = Object.values(this.typingUsers());
-    if (names.length === 0) return '';
-    if (names.length === 1) return `${names[0]} is typing...`;
-    return `${names.join(', ')} are typing...`;
   }
 }

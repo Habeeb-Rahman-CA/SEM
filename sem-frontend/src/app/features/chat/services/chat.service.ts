@@ -102,6 +102,7 @@ export interface GroupChat {
   workspaceId: string;
   name: string;
   description?: string;
+  category?: string;
   icon: string;
   isTemporary: boolean;
   expiresAt?: string;
@@ -121,6 +122,7 @@ export interface GroupChat {
 export interface CreateGroupChatDto {
   name: string;
   description?: string;
+  category?: string;
   icon?: string;
   isTemporary?: boolean;
   expiresAt?: string;

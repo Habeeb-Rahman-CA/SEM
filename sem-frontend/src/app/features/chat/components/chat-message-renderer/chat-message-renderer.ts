@@ -1,6 +1,9 @@
 import {
   Component,
   Input,
+  Output,
+  EventEmitter,
+  HostListener,
   OnChanges,
   SimpleChanges,
   ChangeDetectionStrategy,
@@ -95,6 +98,13 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
         margin: 0.35rem 0;
         border: 1px solid rgba(255, 255, 255, 0.1);
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+        cursor: pointer;
+        transition: transform 0.15s ease;
+      }
+      ::ng-deep .rich-message-content img.msg-gif:hover,
+      ::ng-deep .rich-message-content img.msg-sticker:hover,
+      ::ng-deep .rich-message-content img.msg-att-img:hover {
+        transform: scale(1.02);
       }
       ::ng-deep .rich-message-content img.msg-sticker {
         max-width: 120px;
@@ -138,6 +148,7 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
         margin: 0.4rem 0;
         border: 1px solid rgba(255, 255, 255, 0.15);
         box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+        cursor: pointer;
       }
       ::ng-deep .rich-message-content video.msg-att-video {
         max-width: 320px;
@@ -185,9 +196,21 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 })
 export class ChatMessageRendererComponent implements OnChanges {
   @Input({ required: true }) content: string = '';
+  @Output() imageClick = new EventEmitter<{ url: string; title?: string }>();
 
   private sanitizer = inject(DomSanitizer);
   renderedContent: SafeHtml = '';
+
+  @HostListener('click', ['$event'])
+  onHostClick(event: MouseEvent) {
+    const target = event.target as HTMLElement;
+    if (target && target.tagName.toLowerCase() === 'img') {
+      const imgEl = target as HTMLImageElement;
+      if (imgEl.src) {
+        this.imageClick.emit({ url: imgEl.src, title: imgEl.alt || 'Image Attachment' });
+      }
+    }
+  }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['content']) {

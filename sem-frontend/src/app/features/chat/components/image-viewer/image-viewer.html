@@ -1,0 +1,199 @@
+<div
+  #viewerContainerRef
+  class="fixed inset-0 bg-slate-950/95 backdrop-blur-2xl z-50 flex flex-col justify-between p-4 overflow-hidden select-none animate-in fade-in zoom-in-95 duration-200"
+>
+  <!-- TOP TOOLBAR -->
+  <div
+    class="flex items-center justify-between z-10 px-4 py-3 bg-slate-900/70 border border-white/10 rounded-2xl backdrop-blur-md shadow-2xl"
+  >
+    <div class="flex items-center gap-3 min-w-0">
+      <div
+        class="w-9 h-9 rounded-xl bg-violet-600/20 border border-violet-500/30 text-violet-300 flex items-center justify-center shrink-0"
+      >
+        <i class="fi fi-rr-picture text-base"></i>
+      </div>
+      <div class="min-w-0">
+        <h3 class="text-sm font-extrabold text-white truncate">
+          {{ currentImage()?.title || 'Image Attachment' }}
+        </h3>
+        <p class="text-[10px] text-slate-400 truncate">
+          @if (currentImage()?.sender) {
+            <span>Shared by {{ currentImage()?.sender }}</span>
+          }
+          @if (currentImage()?.timestamp) {
+            <span class="ml-1 opacity-75">• {{ currentImage()?.timestamp }}</span>
+          }
+        </p>
+      </div>
+    </div>
+
+    <!-- Gallery Counter & Close -->
+    <div class="flex items-center gap-3">
+      @if (images.length > 1) {
+        <span
+          class="px-3 py-1 text-xs font-bold rounded-xl bg-white/10 text-white border border-white/10 font-mono"
+        >
+          {{ currentIndex() + 1 }} / {{ images.length }}
+        </span>
+      }
+
+      <button
+        type="button"
+        (click)="onClose()"
+        class="w-9 h-9 rounded-xl bg-white/10 hover:bg-rose-600 text-slate-300 hover:text-white flex items-center justify-center transition-all cursor-pointer"
+        title="Close Viewer (Esc)"
+      >
+        <i class="fi fi-rr-cross text-xs"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- CENTER IMAGE VIEWPORT -->
+  <div class="relative flex-1 flex items-center justify-center overflow-hidden my-4">
+    <!-- Gallery Navigation Left Button -->
+    @if (images.length > 1) {
+      <button
+        type="button"
+        (click)="prevImage()"
+        class="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-2xl bg-slate-900/80 hover:bg-violet-600 border border-white/10 text-white flex items-center justify-center text-lg shadow-2xl transition-all cursor-pointer active:scale-95 group"
+        title="Previous Image (Left Arrow)"
+      >
+        <i class="fi fi-rr-angle-left group-hover:-translate-x-0.5 transition-transform"></i>
+      </button>
+    }
+
+    <!-- Main Rendered Image -->
+    @if (currentImage()) {
+      <div class="w-full h-full flex items-center justify-center p-4">
+        <img
+          [src]="currentImage()!.url"
+          [alt]="currentImage()!.title || 'Image Preview'"
+          [style.transform]="'scale(' + zoomLevel() + ') rotate(' + rotationAngle() + 'deg)'"
+          class="max-w-full max-h-full object-contain transition-transform duration-200 shadow-2xl rounded-lg cursor-grab active:cursor-grabbing"
+        />
+      </div>
+    }
+
+    <!-- Gallery Navigation Right Button -->
+    @if (images.length > 1) {
+      <button
+        type="button"
+        (click)="nextImage()"
+        class="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-2xl bg-slate-900/80 hover:bg-violet-600 border border-white/10 text-white flex items-center justify-center text-lg shadow-2xl transition-all cursor-pointer active:scale-95 group"
+        title="Next Image (Right Arrow)"
+      >
+        <i class="fi fi-rr-angle-right group-hover:translate-x-0.5 transition-transform"></i>
+      </button>
+    }
+  </div>
+
+  <!-- BOTTOM CONTROL BAR & GALLERY THUMBNAIL STRIP -->
+  <div class="flex flex-col items-center gap-3 z-10">
+    <!-- Floating Image Action Controls Toolbar -->
+    <div
+      class="flex items-center gap-1.5 px-4 py-2 bg-slate-900/80 border border-white/10 rounded-2xl backdrop-blur-md shadow-2xl"
+    >
+      <!-- Zoom Out -->
+      <button
+        type="button"
+        (click)="zoomOut()"
+        title="Zoom Out (-)"
+        class="p-2 rounded-xl hover:bg-white/10 text-slate-300 hover:text-white transition-colors text-xs cursor-pointer flex items-center gap-1"
+      >
+        <i class="fi fi-rr-zoom-out"></i>
+      </button>
+
+      <!-- Zoom Level Badge -->
+      <span class="text-xs font-mono font-bold text-violet-400 px-2 min-w-[50px] text-center">
+        {{ (zoomLevel() * 100).toFixed(0) }}%
+      </span>
+
+      <!-- Zoom In -->
+      <button
+        type="button"
+        (click)="zoomIn()"
+        title="Zoom In (+)"
+        class="p-2 rounded-xl hover:bg-white/10 text-slate-300 hover:text-white transition-colors text-xs cursor-pointer flex items-center gap-1"
+      >
+        <i class="fi fi-rr-zoom-in"></i>
+      </button>
+
+      <!-- Reset Zoom -->
+      <button
+        type="button"
+        (click)="resetTransform()"
+        title="Reset Zoom & Rotation"
+        class="p-2 rounded-xl hover:bg-white/10 text-slate-300 hover:text-white transition-colors text-xs font-bold cursor-pointer"
+      >
+        1:1
+      </button>
+
+      <div class="w-px h-4 bg-white/10 mx-1"></div>
+
+      <!-- Rotate Left -->
+      <button
+        type="button"
+        (click)="rotateCounterClockwise()"
+        title="Rotate Counter-Clockwise"
+        class="p-2 rounded-xl hover:bg-white/10 text-slate-300 hover:text-white transition-colors text-xs cursor-pointer"
+      >
+        <i class="fi fi-rr-undo-alt"></i>
+      </button>
+
+      <!-- Rotate Right -->
+      <button
+        type="button"
+        (click)="rotateClockwise()"
+        title="Rotate Clockwise (R)"
+        class="p-2 rounded-xl hover:bg-white/10 text-slate-300 hover:text-white transition-colors text-xs cursor-pointer"
+      >
+        <i class="fi fi-rr-redo-alt"></i>
+      </button>
+
+      <div class="w-px h-4 bg-white/10 mx-1"></div>
+
+      <!-- Download -->
+      <button
+        type="button"
+        (click)="downloadImage()"
+        title="Download Image"
+        class="p-2 rounded-xl bg-violet-600/20 hover:bg-violet-600 text-violet-300 hover:text-white transition-colors text-xs font-bold cursor-pointer flex items-center gap-1"
+      >
+        <i class="fi fi-rr-download"></i>
+        <span class="text-[10px] hidden sm:inline">Download</span>
+      </button>
+
+      <!-- Fullscreen Toggle -->
+      <button
+        type="button"
+        (click)="toggleFullscreen()"
+        title="Toggle Fullscreen"
+        class="p-2 rounded-xl hover:bg-white/10 text-slate-300 hover:text-white transition-colors text-xs cursor-pointer"
+      >
+        <i [class]="isFullscreen() ? 'fi fi-rr-compress' : 'fi fi-rr-expand'"></i>
+      </button>
+    </div>
+
+    <!-- Thumbnail Strip Carousel -->
+    @if (images.length > 1) {
+      <div
+        class="flex items-center gap-2 max-w-xl overflow-x-auto px-4 py-2 scrollbar-none bg-slate-900/60 border border-white/10 rounded-2xl backdrop-blur-md"
+      >
+        @for (img of images; track img.url; let idx = $index) {
+          <button
+            type="button"
+            (click)="selectImage(idx)"
+            [class.border-violet-500]="currentIndex() === idx"
+            [class.ring-2]="currentIndex() === idx"
+            [class.ring-violet-500\/50]="currentIndex() === idx"
+            [class.opacity-100]="currentIndex() === idx"
+            [class.opacity-50]="currentIndex() !== idx"
+            class="w-12 h-12 rounded-xl overflow-hidden border border-white/10 shrink-0 hover:opacity-100 transition-all cursor-pointer relative bg-slate-950"
+          >
+            <img [src]="img.url" [alt]="img.title || 'Thumb'" class="w-full h-full object-cover" />
+          </button>
+        }
+      </div>
+    }
+  </div>
+</div>

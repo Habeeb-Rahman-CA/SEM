@@ -250,7 +250,10 @@
                       {{ msg.senderName }}
                     </p>
                   }
-                  <app-chat-message-renderer [content]="msg.content" />
+                  <app-chat-message-renderer
+                    [content]="msg.content"
+                    (imageClick)="onImageClick($event)"
+                  />
 
                   <div
                     [class.text-violet-200]="msg.senderId === currentUserId()"
@@ -577,4 +580,13 @@
       </div>
     </div>
   </div>
+}
+
+<!-- Image Lightbox Modal Viewer -->
+@if (isImageViewerOpen()) {
+  <app-image-viewer
+    [images]="galleryImages()"
+    [initialIndex]="activeImageIndex()"
+    (close)="isImageViewerOpen.set(false)"
+  />
 }

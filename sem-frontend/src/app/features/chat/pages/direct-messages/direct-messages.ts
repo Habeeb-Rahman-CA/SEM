@@ -18,11 +18,18 @@ import { SocketService } from '../../../../core/services/socket.service';
 
 import { ChatMessageRendererComponent } from '../../components/chat-message-renderer/chat-message-renderer';
 import { ChatRichMessageInputComponent } from '../../components/chat-rich-message-input/chat-rich-message-input';
+import { ImageViewerComponent, GalleryImage } from '../../components/image-viewer/image-viewer';
 
 @Component({
   selector: 'app-direct-messages',
   standalone: true,
-  imports: [CommonModule, FormsModule, ChatMessageRendererComponent, ChatRichMessageInputComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ChatMessageRendererComponent,
+    ChatRichMessageInputComponent,
+    ImageViewerComponent,
+  ],
   templateUrl: './direct-messages.html',
   styleUrls: ['./direct-messages.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -58,333 +65,331 @@ export class DirectMessagesComponent implements OnInit, OnDestroy {
   isPartnerTyping = signal<boolean>(false);
   private typingTimeout: any = null;
 
+  // Image Viewer Lightbox State
+  isImageViewerOpen = signal<boolean>(false);
+  galleryImages = signal<GalleryImage[]>([]);
+  activeImageIndex = signal<number>(0);
+
   filteredConversations = computed(() => {
     const q = this.searchQuery().toLowerCase().trim();
-    const list = this.conversations();
-    if (!q) return list;
-    return list.filter(
-      (c) =>
-        c.partner?.username?.toLowerCase().includes(q) ||
-        c.lastMessageText?.toLowerCase().includes(q),
+    if (!q) return this.conversations();
+    return this.conversations().filter((c: DirectMessageConversation) =>
+      c.partner.username.toLowerCase().includes(q),
     );
   });
 
-  filteredWorkspaceMembers = computed(() => {
-    const myId = this.currentUserId();
+  availableMembers = computed(() => {
+    const meId = this.currentUserId();
+    const existingPartnerIds = new Set(
+      this.conversations().map((c: DirectMessageConversation) => c.partner.id),
+    );
     const q = this.memberSearchQuery().toLowerCase().trim();
-    return this.members().filter((m) => {
-      const isNotMe = m.userId !== myId;
-      if (!q) return isNotMe;
-      return (
-        isNotMe &&
-        (m.user?.username?.toLowerCase().includes(q) || m.role?.name?.toLowerCase().includes(q))
-      );
+
+    return (this.members() || []).filter((m: any) => {
+      const uId = m.userId || m.id;
+      if (uId === meId) return false;
+      if (existingPartnerIds.has(uId)) return false;
+      if (q) {
+        return m.user?.username?.toLowerCase().includes(q);
+      }
+      return true;
     });
   });
 
-  ngOnInit() {
+  filteredWorkspaceMembers = computed(() => this.availableMembers());
+
+  startConversationWithMember(mem: any): void {
+    const targetUserId = mem.userId || mem.id;
+    if (targetUserId) {
+      this.startNewDm(targetUserId);
+    }
+  }
+
+  ngOnInit(): void {
     this.loadConversations();
     this.setupSocketListeners();
   }
 
-  ngOnDestroy() {
-    this.cleanupSocketListeners();
+  ngOnDestroy(): void {
+    this.socketService.off('dm_message');
+    this.socketService.off('dm_typing');
+    this.socketService.off('dm_read');
+    this.socketService.off('user_status');
   }
 
-  private setupSocketListeners() {
-    this.socketService.on('dm_received', this.handleDmReceived);
-    this.socketService.on('user_presence_change', this.handleUserPresenceChange);
-    this.socketService.on('dm_user_typing', this.handleDmUserTyping);
-    this.socketService.on('dm_user_stop_typing', this.handleDmUserStopTyping);
-    this.socketService.on('dm_read_receipt', this.handleDmReadReceipt);
-  }
+  private setupSocketListeners(): void {
+    this.socketService.on('dm_message', (msg: DirectMessage) => {
+      const selected = this.selectedConversation();
+      if (selected && selected.id === msg.conversationId) {
+        this.messages.update((list) => [...list, msg]);
+        this.scrollToBottom();
+        this.markAsRead(msg.conversationId);
+      }
+      this.loadConversations();
+    });
 
-  private cleanupSocketListeners() {
-    this.socketService.off('dm_received', this.handleDmReceived);
-    this.socketService.off('user_presence_change', this.handleUserPresenceChange);
-    this.socketService.off('dm_user_typing', this.handleDmUserTyping);
-    this.socketService.off('dm_user_stop_typing', this.handleDmUserStopTyping);
-    this.socketService.off('dm_read_receipt', this.handleDmReadReceipt);
-  }
-
-  private handleDmReceived = (message: any) => {
-    const active = this.selectedConversation();
-    if (active && active.id === message.conversationId) {
-      this.messages.update((list) => [...list, message]);
-      this.scrollToBottom();
-      this.markAsRead(active.id);
-    }
-
-    // Update conversation preview and unread count
-    this.conversations.update((list) =>
-      list.map((c) => {
-        if (c.id === message.conversationId) {
-          const isViewing = active?.id === c.id;
-          return {
-            ...c,
-            lastMessageAt: message.createdAt,
-            lastMessageText: message.content,
-            unreadCount: isViewing ? 0 : c.unreadCount + 1,
-          };
-        }
-        return c;
-      }),
-    );
-  };
-
-  private handleUserPresenceChange = (data: { userId: string; status: 'online' | 'offline' }) => {
-    const isOnline = data.status === 'online';
-    this.conversations.update((list) =>
-      list.map((c) => {
-        if (c.partner?.id === data.userId) {
-          return {
-            ...c,
-            partner: {
-              ...c.partner,
-              isOnline,
-            },
-          };
-        }
-        return c;
-      }),
-    );
-
-    const active = this.selectedConversation();
-    if (active && active.partner?.id === data.userId) {
-      this.selectedConversation.set({
-        ...active,
-        partner: {
-          ...active.partner,
-          isOnline,
-        },
-      });
-    }
-  };
-
-  private handleDmUserTyping = (data: { senderId: string; conversationId: string }) => {
-    const active = this.selectedConversation();
-    if (active && active.id === data.conversationId) {
-      this.isPartnerTyping.set(true);
-    }
-  };
-
-  private handleDmUserStopTyping = (data: { senderId: string; conversationId: string }) => {
-    const active = this.selectedConversation();
-    if (active && active.id === data.conversationId) {
-      this.isPartnerTyping.set(false);
-    }
-  };
-
-  private handleDmReadReceipt = (data: {
-    readerUserId: string;
-    conversationId: string;
-    readAt: string;
-  }) => {
-    const active = this.selectedConversation();
-    if (active && active.id === data.conversationId) {
-      this.messages.update((list) =>
-        list.map((m) => {
-          if (m.senderId === this.currentUserId()) {
-            return { ...m, isRead: true };
+    this.socketService.on(
+      'dm_typing',
+      (data: { conversationId: string; userId: string; isTyping: boolean }) => {
+        const selected = this.selectedConversation();
+        if (
+          selected &&
+          selected.id === data.conversationId &&
+          data.userId !== this.currentUserId()
+        ) {
+          this.isPartnerTyping.set(data.isTyping);
+          if (data.isTyping) {
+            clearTimeout(this.typingTimeout);
+            this.typingTimeout = setTimeout(() => {
+              this.isPartnerTyping.set(false);
+            }, 3000);
           }
-          return m;
-        }),
-      );
-    }
-  };
-
-  loadConversations() {
-    this.isLoadingConversations.set(true);
-    this.chatService.listDmConversations(this.workspaceId()).subscribe({
-      next: (data) => {
-        this.conversations.set(data);
-        this.isLoadingConversations.set(false);
-        if (data.length > 0 && !this.selectedConversation()) {
-          this.selectConversation(data[0]);
         }
       },
-      error: (err) => {
-        console.error('Failed to load DM conversations:', err);
+    );
+
+    this.socketService.on('dm_read', (data: { conversationId: string; userId: string }) => {
+      const selected = this.selectedConversation();
+      if (selected && selected.id === data.conversationId && data.userId !== this.currentUserId()) {
+        this.messages.update((list) =>
+          list.map((m: DirectMessage) =>
+            m.senderId === this.currentUserId() ? { ...m, isRead: true } : m,
+          ),
+        );
+      }
+    });
+
+    this.socketService.on(
+      'user_status',
+      (data: { userId: string; isOnline: boolean; lastSeen?: string }) => {
+        this.conversations.update((list) =>
+          list.map((c: DirectMessageConversation) => {
+            if (c.partner.id === data.userId) {
+              return {
+                ...c,
+                partner: {
+                  ...c.partner,
+                  isOnline: data.isOnline,
+                  lastSeen: data.lastSeen || c.partner.lastSeen,
+                },
+              };
+            }
+            return c;
+          }),
+        );
+      },
+    );
+  }
+
+  loadConversations(): void {
+    this.isLoadingConversations.set(true);
+    this.chatService.listDmConversations(this.workspaceId()).subscribe({
+      next: (res: DirectMessageConversation[]) => {
+        this.conversations.set(res);
+        this.isLoadingConversations.set(false);
+      },
+      error: (err: any) => {
+        console.error('Failed to load conversations', err);
         this.isLoadingConversations.set(false);
       },
     });
   }
 
-  selectConversation(conv: DirectMessageConversation) {
+  selectConversation(conv: DirectMessageConversation): void {
     this.selectedConversation.set(conv);
-    this.isPartnerTyping.set(false);
     this.loadMessages(conv.id);
     this.markAsRead(conv.id);
   }
 
-  loadMessages(conversationId: string) {
+  loadMessages(conversationId: string): void {
     this.isLoadingMessages.set(true);
     this.chatService.getDmMessages(this.workspaceId(), conversationId).subscribe({
-      next: (msgs) => {
+      next: (msgs: DirectMessage[]) => {
         this.messages.set(msgs);
         this.isLoadingMessages.set(false);
         this.scrollToBottom();
       },
-      error: (err) => {
-        console.error('Failed to load messages:', err);
+      error: (err: any) => {
+        console.error('Failed to load messages', err);
         this.isLoadingMessages.set(false);
       },
     });
   }
 
-  markAsRead(conversationId: string) {
+  sendMessage(): void {
+    const text = this.messageInput().trim();
+    if (!text) return;
+    this.onSendRichMessage({ content: text });
+  }
+
+  onSendRichMessage(event: { content: string; attachments?: string[] }): void {
+    const conv = this.selectedConversation();
+    if (!conv || this.isSending()) return;
+
+    this.isSending.set(true);
+    this.chatService
+      .sendDirectMessage(this.workspaceId(), conv.partner.id, event.content)
+      .subscribe({
+        next: (msg: DirectMessage) => {
+          this.messages.update((list) => [...list, msg]);
+          this.messageInput.set('');
+          this.isSending.set(false);
+          this.scrollToBottom();
+          this.loadConversations();
+        },
+        error: (err: any) => {
+          console.error('Failed to send message', err);
+          this.isSending.set(false);
+        },
+      });
+  }
+
+  onTyping(): void {
+    const conv = this.selectedConversation();
+    if (!conv) return;
+    this.socketService.emit('dm_typing', {
+      workspaceId: this.workspaceId(),
+      conversationId: conv.id,
+      recipientId: conv.partner.id,
+    });
+  }
+
+  markAsRead(conversationId: string): void {
     this.chatService.markDmAsRead(this.workspaceId(), conversationId).subscribe({
       next: () => {
         this.conversations.update((list) =>
-          list.map((c) => (c.id === conversationId ? { ...c, unreadCount: 0 } : c)),
-        );
-        const active = this.selectedConversation();
-        if (active && active.partner) {
-          this.socketService.emit('dm_read', {
-            workspaceId: this.workspaceId(),
-            conversationId,
-            partnerUserId: active.partner.id,
-            readAt: new Date().toISOString(),
-          });
-        }
-      },
-    });
-  }
-
-  onInputKeyDown(event: KeyboardEvent) {
-    if (event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault();
-      this.sendMessage();
-    } else {
-      this.emitTypingSignal();
-    }
-  }
-
-  private emitTypingSignal() {
-    const active = this.selectedConversation();
-    if (!active || !active.partner) return;
-
-    this.socketService.emit('dm_typing', {
-      workspaceId: this.workspaceId(),
-      conversationId: active.id,
-      recipientUserId: active.partner.id,
-    });
-
-    if (this.typingTimeout) clearTimeout(this.typingTimeout);
-    this.typingTimeout = setTimeout(() => {
-      this.socketService.emit('dm_stop_typing', {
-        workspaceId: this.workspaceId(),
-        conversationId: active.id,
-        recipientUserId: active.partner.id,
-      });
-    }, 2000);
-  }
-
-  sendMessage(textInput?: string) {
-    const text = (textInput || this.messageInput()).trim();
-    const active = this.selectedConversation();
-    if (!text || !active || !active.partner || this.isSending()) return;
-
-    this.isSending.set(true);
-    this.chatService.sendDirectMessage(this.workspaceId(), active.partner.id, text).subscribe({
-      next: (newMsg) => {
-        this.messages.update((list) => [...list, newMsg]);
-        this.messageInput.set('');
-        this.isSending.set(false);
-        this.scrollToBottom();
-
-        this.conversations.update((list) =>
-          list.map((c) =>
-            c.id === active.id
-              ? { ...c, lastMessageAt: newMsg.createdAt, lastMessageText: text }
-              : c,
+          list.map((c: DirectMessageConversation) =>
+            c.id === conversationId ? { ...c, unreadCount: 0 } : c,
           ),
         );
       },
-      error: (err) => {
-        console.error('Failed to send message:', err);
+    });
+  }
+
+  togglePin(conv: DirectMessageConversation, event: Event): void {
+    event.stopPropagation();
+    const newStatus = !conv.isPinned;
+    this.chatService
+      .updateDmSettings(this.workspaceId(), conv.id, { isPinned: newStatus })
+      .subscribe({
+        next: () => {
+          this.conversations.update((list) =>
+            list.map((c: DirectMessageConversation) =>
+              c.id === conv.id ? { ...c, isPinned: newStatus } : c,
+            ),
+          );
+        },
+      });
+  }
+
+  toggleMute(conv: DirectMessageConversation, event: Event): void {
+    event.stopPropagation();
+    const newStatus = !conv.isMuted;
+    this.chatService
+      .updateDmSettings(this.workspaceId(), conv.id, { isMuted: newStatus })
+      .subscribe({
+        next: () => {
+          this.conversations.update((list) =>
+            list.map((c: DirectMessageConversation) =>
+              c.id === conv.id ? { ...c, isMuted: newStatus } : c,
+            ),
+          );
+        },
+      });
+  }
+
+  startNewDm(targetUserId: string): void {
+    this.isNewDmModalOpen.set(false);
+    this.isSending.set(true);
+    this.chatService.sendDirectMessage(this.workspaceId(), targetUserId, '👋 Hello!').subscribe({
+      next: (msg: DirectMessage) => {
+        this.isSending.set(false);
+        this.loadConversations();
+        this.chatService
+          .listDmConversations(this.workspaceId())
+          .subscribe((convs: DirectMessageConversation[]) => {
+            const created = convs.find(
+              (c: DirectMessageConversation) => c.partner.id === targetUserId,
+            );
+            if (created) {
+              this.selectConversation(created);
+            }
+          });
+      },
+      error: (err: any) => {
+        console.error('Failed to start new DM', err);
         this.isSending.set(false);
       },
     });
   }
 
-  onSendRichMessage(event: { content: string; attachments?: string[] }) {
-    this.sendMessage(event.content);
-  }
-
-  startConversationWithMember(member: any) {
-    this.chatService.getOrCreateDmConversation(this.workspaceId(), member.userId).subscribe({
-      next: (conv) => {
-        this.isNewDmModalOpen.set(false);
-        this.loadConversations();
-        this.selectConversation(conv);
-      },
-      error: (err) => {
-        console.error('Failed to start conversation:', err);
-      },
-    });
-  }
-
-  togglePin(conv: DirectMessageConversation, event: Event) {
-    event.stopPropagation();
-    const newPinned = !conv.isPinned;
-    this.chatService
-      .updateDmSettings(this.workspaceId(), conv.id, { isPinned: newPinned })
-      .subscribe({
-        next: () => {
-          this.conversations.update((list) =>
-            list.map((c) => (c.id === conv.id ? { ...c, isPinned: newPinned } : c)),
-          );
-        },
-      });
-  }
-
-  toggleMute(conv: DirectMessageConversation, event: Event) {
-    event.stopPropagation();
-    const newMuted = !conv.isMuted;
-    this.chatService
-      .updateDmSettings(this.workspaceId(), conv.id, { isMuted: newMuted })
-      .subscribe({
-        next: () => {
-          this.conversations.update((list) =>
-            list.map((c) => (c.id === conv.id ? { ...c, isMuted: newMuted } : c)),
-          );
-        },
-      });
-  }
-
-  executeSearchMessages() {
+  searchMessages(): void {
     const q = this.searchMessageQuery().trim();
-    if (!q) {
-      this.searchResults.set([]);
-      return;
-    }
+    const conv = this.selectedConversation();
+    if (!q || !conv) return;
+
     this.isSearchingMessages.set(true);
     this.chatService.searchDmMessages(this.workspaceId(), q).subscribe({
-      next: (results) => {
-        this.searchResults.set(results);
+      next: (results: any[]) => {
+        this.searchResults.set(results.filter((m: any) => m.conversationId === conv.id));
         this.isSearchingMessages.set(false);
       },
-      error: () => this.isSearchingMessages.set(false),
+      error: (err: any) => {
+        console.error('Failed to search messages', err);
+        this.isSearchingMessages.set(false);
+      },
     });
   }
 
-  private scrollToBottom() {
+  onImageClick(event: { url: string; title?: string }): void {
+    const allImages: GalleryImage[] = [];
+    let foundIndex = 0;
+
+    for (const m of this.messages()) {
+      const matches = m.content.matchAll(
+        /src="([^"]+)"|\[GIF:([^\]]+)\]|\[ATTACHMENT:([^\|]+)\|([^\|]+)\|image/g,
+      );
+      for (const match of matches) {
+        const url = match[1] || match[2] || match[3];
+        if (url) {
+          if (url === event.url) {
+            foundIndex = allImages.length;
+          }
+          allImages.push({
+            url,
+            title: match[4] || event.title || 'Chat Image',
+            sender: m.senderName,
+            timestamp: new Date(m.createdAt).toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit',
+            }),
+          });
+        }
+      }
+    }
+
+    if (allImages.length === 0) {
+      allImages.push({ url: event.url, title: event.title || 'Image Preview' });
+    }
+
+    this.galleryImages.set(allImages);
+    this.activeImageIndex.set(foundIndex);
+    this.isImageViewerOpen.set(true);
+  }
+
+  getInitials(name?: string): string {
+    if (!name) return '?';
+    const parts = name.split(' ');
+    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    return name.substring(0, 2).toUpperCase();
+  }
+
+  private scrollToBottom(): void {
     setTimeout(() => {
       if (this.messagesContainer) {
         const el = this.messagesContainer.nativeElement;
         el.scrollTop = el.scrollHeight;
       }
     }, 50);
-  }
-
-  getInitials(name?: string): string {
-    if (!name) return '?';
-    return name
-      .split(' ')
-      .map((part) => part[0])
-      .join('')
-      .toUpperCase()
-      .substring(0, 2);
   }
 }
