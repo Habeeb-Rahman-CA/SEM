@@ -1,0 +1,380 @@
+<div
+  class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200"
+>
+  <div
+    class="w-full max-w-5xl bg-slate-900 border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-200"
+  >
+    <!-- Modal Header -->
+    <div
+      class="p-5 bg-slate-950 border-b border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-4"
+    >
+      <div class="flex items-center gap-3">
+        <div
+          class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-600 text-white flex items-center justify-center text-xl shadow-lg"
+        >
+          <i class="fi fi-rr-folder-tree"></i>
+        </div>
+        <div>
+          <h3 class="text-base font-extrabold text-white flex items-center gap-2">
+            Shared File Repository
+            <span
+              class="px-2.5 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30 text-[10px] font-mono"
+            >
+              {{ channelName }}
+            </span>
+          </h3>
+          <p class="text-xs text-slate-400">
+            Searchable workspace repository for media, documents & assets
+          </p>
+        </div>
+      </div>
+
+      <!-- Search Input & View Mode Toggles -->
+      <div class="flex items-center gap-2">
+        <div class="relative w-64">
+          <i
+            class="fi fi-rr-search absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"
+          ></i>
+          <input
+            type="text"
+            [ngModel]="searchQuery()"
+            (ngModelChange)="searchQuery.set($event)"
+            placeholder="Search files, uploaders, folders..."
+            class="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-violet-500 transition-all"
+          />
+        </div>
+
+        <div class="flex items-center p-1 rounded-xl bg-white/5 border border-white/10 text-xs">
+          <button
+            type="button"
+            (click)="viewMode.set('grid')"
+            [class.bg-violet-600]="viewMode() === 'grid'"
+            [class.text-white]="viewMode() === 'grid'"
+            [class.text-slate-400]="viewMode() !== 'grid'"
+            class="p-1.5 rounded-lg transition-all cursor-pointer"
+            title="Grid View"
+          >
+            <i class="fi fi-rr-grid"></i>
+          </button>
+          <button
+            type="button"
+            (click)="viewMode.set('list')"
+            [class.bg-violet-600]="viewMode() === 'list'"
+            [class.text-white]="viewMode() === 'list'"
+            [class.text-slate-400]="viewMode() !== 'list'"
+            class="p-1.5 rounded-lg transition-all cursor-pointer"
+            title="List View"
+          >
+            <i class="fi fi-rr-list"></i>
+          </button>
+        </div>
+
+        <button
+          type="button"
+          (click)="close.emit()"
+          class="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white flex items-center justify-center transition-all cursor-pointer"
+        >
+          <i class="fi fi-rr-cross text-xs"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Category Navigation Tabs -->
+    <div
+      class="px-5 py-2.5 bg-slate-950/60 border-b border-white/5 flex items-center justify-between overflow-x-auto scrollbar-none text-xs"
+    >
+      <div class="flex items-center gap-1.5 shrink-0">
+        <button
+          type="button"
+          (click)="activeTab.set('all'); selectedFolderFilter.set(null)"
+          [class.bg-violet-600]="activeTab() === 'all' && !selectedFolderFilter()"
+          [class.text-white]="activeTab() === 'all' && !selectedFolderFilter()"
+          [class.bg-white\/5]="activeTab() !== 'all' || selectedFolderFilter()"
+          [class.text-slate-400]="activeTab() !== 'all' || selectedFolderFilter()"
+          class="px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer"
+        >
+          All Files
+        </button>
+
+        <button
+          type="button"
+          (click)="activeTab.set('folders')"
+          [class.bg-violet-600]="activeTab() === 'folders'"
+          [class.text-white]="activeTab() === 'folders'"
+          [class.bg-white\/5]="activeTab() !== 'folders'"
+          [class.text-slate-400]="activeTab() !== 'folders'"
+          class="px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-1.5"
+        >
+          <i class="fi fi-rr-folder"></i> Folders
+        </button>
+
+        <button
+          type="button"
+          (click)="activeTab.set('images'); selectedFolderFilter.set(null)"
+          [class.bg-emerald-600]="activeTab() === 'images'"
+          [class.text-white]="activeTab() === 'images'"
+          [class.bg-white\/5]="activeTab() !== 'images'"
+          [class.text-slate-400]="activeTab() !== 'images'"
+          class="px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-1.5"
+        >
+          <i class="fi fi-rr-picture"></i> Images
+        </button>
+
+        <button
+          type="button"
+          (click)="activeTab.set('documents'); selectedFolderFilter.set(null)"
+          [class.bg-cyan-600]="activeTab() === 'documents'"
+          [class.text-white]="activeTab() === 'documents'"
+          [class.bg-white\/5]="activeTab() !== 'documents'"
+          [class.text-slate-400]="activeTab() !== 'documents'"
+          class="px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-1.5"
+        >
+          <i class="fi fi-rr-document"></i> Documents
+        </button>
+
+        <button
+          type="button"
+          (click)="activeTab.set('videos'); selectedFolderFilter.set(null)"
+          [class.bg-amber-600]="activeTab() === 'videos'"
+          [class.text-white]="activeTab() === 'videos'"
+          [class.bg-white\/5]="activeTab() !== 'videos'"
+          [class.text-slate-400]="activeTab() !== 'videos'"
+          class="px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-1.5"
+        >
+          <i class="fi fi-rr-video-camera-alt"></i> Videos
+        </button>
+
+        <button
+          type="button"
+          (click)="activeTab.set('recent'); selectedFolderFilter.set(null)"
+          [class.bg-indigo-600]="activeTab() === 'recent'"
+          [class.text-white]="activeTab() === 'recent'"
+          [class.bg-white\/5]="activeTab() !== 'recent'"
+          [class.text-slate-400]="activeTab() !== 'recent'"
+          class="px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-1.5"
+        >
+          <i class="fi fi-rr-clock-three"></i> Recent
+        </button>
+
+        <button
+          type="button"
+          (click)="activeTab.set('pinned'); selectedFolderFilter.set(null)"
+          [class.bg-rose-600]="activeTab() === 'pinned'"
+          [class.text-white]="activeTab() === 'pinned'"
+          [class.bg-white\/5]="activeTab() !== 'pinned'"
+          [class.text-slate-400]="activeTab() !== 'pinned'"
+          class="px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-1.5"
+        >
+          <i class="fi fi-rr-thumbtack"></i> Pinned
+        </button>
+      </div>
+
+      @if (selectedFolderFilter(); as currentFolder) {
+        <div
+          class="flex items-center gap-1.5 text-xs text-violet-300 font-bold shrink-0 bg-violet-500/10 px-3 py-1 rounded-xl border border-violet-500/20"
+        >
+          <span>Folder: {{ currentFolder }}</span>
+          <button (click)="selectFolder(null)" class="hover:text-white cursor-pointer ml-1">
+            <i class="fi fi-rr-cross-small"></i>
+          </button>
+        </div>
+      }
+    </div>
+
+    <!-- Repository Content Area -->
+    <div class="flex-1 overflow-y-auto p-5 space-y-6 scrollbar-none">
+      <!-- Folders Shelf Grid (Visible on 'all' or 'folders' tab) -->
+      @if (activeTab() === 'all' || activeTab() === 'folders') {
+        <div class="space-y-2">
+          <h4
+            class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2"
+          >
+            <i class="fi fi-rr-folder-open text-violet-400"></i> Workspace Directories
+          </h4>
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+            @for (folder of folders(); track folder.id) {
+              <div
+                (click)="selectFolder(folder.name)"
+                class="p-3.5 rounded-2xl bg-white/5 border border-white/10 hover:border-violet-500/40 hover:bg-white/10 transition-all cursor-pointer flex items-center gap-3 group"
+              >
+                <div
+                  class="w-10 h-10 rounded-xl {{
+                    folder.color
+                  }} flex items-center justify-center text-lg group-hover:scale-105 transition-transform"
+                >
+                  <i class="fi {{ folder.icon }}"></i>
+                </div>
+                <div class="min-w-0">
+                  <h5
+                    class="text-xs font-bold text-white truncate group-hover:text-violet-300 transition-colors"
+                  >
+                    {{ folder.name }}
+                  </h5>
+                  <span class="text-[10px] text-slate-400">{{ folder.fileCount }} Files</span>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Files Section Header -->
+      <div class="space-y-3">
+        <div class="flex items-center justify-between text-xs">
+          <h4 class="font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+            <i class="fi fi-rr-document-signed text-cyan-400"></i> Shared Files ({{
+              filteredFiles().length
+            }})
+          </h4>
+        </div>
+
+        @if (filteredFiles().length === 0) {
+          <div class="p-12 text-center bg-white/5 border border-white/5 rounded-3xl space-y-2">
+            <i class="fi fi-rr-folder-search text-3xl text-slate-500 block"></i>
+            <p class="text-sm font-extrabold text-white">No files match your search criteria</p>
+            <p class="text-xs text-slate-400">
+              Try searching for a different keyword or changing category tab filters.
+            </p>
+          </div>
+        } @else if (viewMode() === 'grid') {
+          <!-- GRID VIEW -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            @for (file of filteredFiles(); track file.id) {
+              <div
+                class="p-4 rounded-2xl bg-white/5 border border-white/10 hover:border-violet-500/30 transition-all flex flex-col justify-between space-y-3 group relative"
+              >
+                <!-- Pin Badge Button -->
+                <button
+                  type="button"
+                  (click)="togglePin(file.id)"
+                  [title]="file.isPinned ? 'Unpin File' : 'Pin File'"
+                  class="absolute top-3 right-3 w-7 h-7 rounded-xl bg-slate-950/70 hover:bg-slate-900 border border-white/10 text-slate-400 hover:text-amber-400 flex items-center justify-center transition-all cursor-pointer z-10"
+                >
+                  <i
+                    [class]="
+                      file.isPinned ? 'fi fi-sr-thumbtack text-amber-400' : 'fi fi-rr-thumbtack'
+                    "
+                  ></i>
+                </button>
+
+                <div>
+                  <!-- Media Thumbnail or Icon Badge -->
+                  @if (file.thumbnailUrl) {
+                    <div
+                      class="w-full h-32 rounded-xl bg-slate-950 overflow-hidden mb-3 border border-white/10 relative group-hover:brightness-110 transition-all"
+                    >
+                      <img
+                        [src]="file.thumbnailUrl"
+                        [alt]="file.name"
+                        class="w-full h-full object-cover"
+                      />
+                    </div>
+                  } @else {
+                    <div
+                      class="w-full h-24 rounded-xl bg-gradient-to-tr from-slate-950 to-slate-900 border border-white/10 flex items-center justify-center mb-3 text-2xl text-violet-400"
+                    >
+                      @if (file.category === 'documents') {
+                        <i class="fi fi-rr-file-pdf text-rose-400"></i>
+                      } @else if (file.category === 'videos') {
+                        <i class="fi fi-rr-video-camera-alt text-amber-400"></i>
+                      } @else {
+                        <i class="fi fi-rr-document text-cyan-400"></i>
+                      }
+                    </div>
+                  }
+
+                  <h5
+                    class="text-xs font-bold text-white truncate leading-snug group-hover:text-violet-300 transition-colors"
+                    [title]="file.name"
+                  >
+                    {{ file.name }}
+                  </h5>
+                  <div class="mt-1 flex items-center gap-2 text-[10px] text-slate-400">
+                    <span
+                      class="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 font-mono"
+                      >{{ file.size }}</span
+                    >
+                    <span>• {{ file.uploadedAt }}</span>
+                  </div>
+                </div>
+
+                <div
+                  class="pt-2 border-t border-white/5 flex items-center justify-between text-[10px]"
+                >
+                  <span class="text-slate-400 truncate max-w-[120px]"
+                    >By {{ file.uploaderName }}</span
+                  >
+                  <div class="flex items-center gap-1">
+                    <button
+                      type="button"
+                      (click)="previewFile.emit(file)"
+                      class="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 font-semibold transition-all cursor-pointer"
+                    >
+                      Preview
+                    </button>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        } @else {
+          <!-- LIST VIEW -->
+          <div class="space-y-2">
+            @for (file of filteredFiles(); track file.id) {
+              <div
+                class="p-3 rounded-2xl bg-white/5 border border-white/10 hover:border-violet-500/30 transition-all flex items-center justify-between gap-4"
+              >
+                <div class="flex items-center gap-3 min-w-0">
+                  <div
+                    class="w-9 h-9 rounded-xl bg-slate-950 border border-white/10 flex items-center justify-center text-slate-300 text-sm shrink-0"
+                  >
+                    @if (file.category === 'images') {
+                      <i class="fi fi-rr-picture text-emerald-400"></i>
+                    } @else if (file.category === 'documents') {
+                      <i class="fi fi-rr-file-pdf text-rose-400"></i>
+                    } @else if (file.category === 'videos') {
+                      <i class="fi fi-rr-video-camera-alt text-amber-400"></i>
+                    } @else {
+                      <i class="fi fi-rr-document text-cyan-400"></i>
+                    }
+                  </div>
+                  <div class="min-w-0">
+                    <h5 class="text-xs font-bold text-white truncate" [title]="file.name">
+                      {{ file.name }}
+                    </h5>
+                    <div class="flex items-center gap-2 text-[10px] text-slate-400">
+                      <span>{{ file.size }}</span>
+                      <span>• Folder: {{ file.folderName }}</span>
+                      <span>• By {{ file.uploaderName }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-2 shrink-0 text-xs">
+                  <button
+                    type="button"
+                    (click)="togglePin(file.id)"
+                    class="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-amber-400 transition-all cursor-pointer"
+                  >
+                    <i
+                      [class]="
+                        file.isPinned ? 'fi fi-sr-thumbtack text-amber-400' : 'fi fi-rr-thumbtack'
+                      "
+                    ></i>
+                  </button>
+                  <button
+                    type="button"
+                    (click)="previewFile.emit(file)"
+                    class="px-3 py-1.5 rounded-xl bg-violet-600/20 border border-violet-500/40 text-violet-300 font-bold hover:bg-violet-600/30 transition-all cursor-pointer"
+                  >
+                    Preview
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+</div>

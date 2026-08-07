@@ -61,6 +61,7 @@ import {
 } from '../../components/generate-event-channels-modal/generate-event-channels-modal';
 import { MatchDiscussionDrawerComponent } from '../../components/match-discussion-drawer/match-discussion-drawer';
 import { SmartMatchData } from '../../components/smart-event-card/smart-event-card';
+import { FileRepositoryModalComponent } from '../../components/file-repository-modal/file-repository-modal';
 
 @Component({
   selector: 'app-group-chats',
@@ -89,6 +90,7 @@ import { SmartMatchData } from '../../components/smart-event-card/smart-event-ca
     NotificationSummaryModalComponent,
     GenerateEventChannelsModalComponent,
     MatchDiscussionDrawerComponent,
+    FileRepositoryModalComponent,
   ],
   templateUrl: './group-chats.html',
   styleUrls: ['./group-chats.css'],
@@ -127,6 +129,7 @@ export class GroupChatsComponent implements OnInit, OnDestroy {
   isAdvancedSearchOpen = signal<boolean>(false);
   selectedAttachmentDetails = signal<AttachmentFileDetails | null>(null);
   activeDiscussionMatch = signal<SmartMatchData | null>(null);
+  isFileRepositoryOpen = signal<boolean>(false);
   typingUsers = signal<{ userId: string; username: string }[]>([]);
   userPresence = signal<UserPresenceState>({
     status: 'online',

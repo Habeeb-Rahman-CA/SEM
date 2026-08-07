@@ -4,11 +4,14 @@ import {
   Output,
   EventEmitter,
   ChangeDetectionStrategy,
+  OnInit,
+  inject,
   signal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SmartMatchData } from '../smart-event-card/smart-event-card';
+import { ChatService } from '../../services/chat.service';
 
 export interface MatchDiscussionNote {
   id: string;
@@ -29,9 +32,12 @@ export interface MatchDiscussionNote {
   styleUrls: ['./match-discussion-drawer.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class MatchDiscussionDrawerComponent {
+export class MatchDiscussionDrawerComponent implements OnInit {
+  @Input() workspaceId: string = 'default-ws';
   @Input() matchData!: SmartMatchData;
   @Output() close = new EventEmitter<void>();
+
+  private chatService = inject(ChatService);
 
   selectedRoleFilter = signal<'all' | 'Referee' | 'Coach' | 'Official' | 'Organizer'>('all');
   noteInput = signal<string>('');
@@ -80,6 +86,31 @@ export class MatchDiscussionDrawerComponent {
     },
   ]);
 
+  ngOnInit(): void {
+    const mId = this.matchData?.matchId || 'MATCH-101';
+    this.chatService.getMatchNotes(this.workspaceId, mId).subscribe({
+      next: (dbNotes) => {
+        if (dbNotes && dbNotes.length > 0) {
+          const mapped: MatchDiscussionNote[] = dbNotes.map((n: any) => ({
+            id: n.id,
+            matchId: n.matchId,
+            senderName: n.senderName,
+            senderRole: n.senderRole,
+            roleColor: n.roleColor || 'bg-violet-500/20 text-violet-300 border-violet-500/30',
+            content: n.content,
+            timestamp: new Date(n.createdAt).toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit',
+            }),
+            isPinned: !!n.isPinned,
+          }));
+          this.discussionNotes.set(mapped);
+        }
+      },
+      error: () => {},
+    });
+  }
+
   get filteredNotes(): MatchDiscussionNote[] {
     const filter = this.selectedRoleFilter();
     if (filter === 'all') return this.discussionNotes();
@@ -90,9 +121,10 @@ export class MatchDiscussionDrawerComponent {
     const text = this.noteInput().trim();
     if (!text) return;
 
+    const mId = this.matchData?.matchId || 'MATCH-101';
     const newNote: MatchDiscussionNote = {
       id: `mdn-${Date.now()}`,
-      matchId: this.matchData?.matchId || 'MATCH-101',
+      matchId: mId,
       senderName: 'Habeeb Rahman',
       senderRole: 'Organizer',
       roleColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
@@ -102,6 +134,18 @@ export class MatchDiscussionDrawerComponent {
 
     this.discussionNotes.update((notes) => [...notes, newNote]);
     this.noteInput.set('');
+
+    this.chatService
+      .createMatchNote(this.workspaceId, mId, {
+        senderId: 'user-admin',
+        senderName: 'Habeeb Rahman',
+        senderRole: 'Organizer',
+        roleColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
+        content: text,
+      })
+      .subscribe({
+        error: () => {},
+      });
   }
 
   insertTemplate(type: 'pitch' | 'lineup' | 'notice'): void {

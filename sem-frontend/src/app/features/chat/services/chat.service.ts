@@ -414,4 +414,54 @@ export class ChatService {
       {},
     );
   }
+
+  // File Repository API Endpoints
+  getRepositoryFolders(workspaceId: string): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/workspaces/${workspaceId}/file-repository/folders`);
+  }
+
+  createRepositoryFolder(
+    workspaceId: string,
+    data: { name: string; icon?: string; color?: string },
+  ): Observable<any> {
+    return this.http.post<any>(
+      `${this.apiUrl}/workspaces/${workspaceId}/file-repository/folders`,
+      data,
+    );
+  }
+
+  getRepositoryFiles(workspaceId: string, category?: string, folderId?: string): Observable<any[]> {
+    let url = `${this.apiUrl}/workspaces/${workspaceId}/file-repository/files?`;
+    if (category) url += `category=${category}&`;
+    if (folderId) url += `folderId=${folderId}&`;
+    return this.http.get<any[]>(url);
+  }
+
+  createRepositoryFile(workspaceId: string, fileData: any): Observable<any> {
+    return this.http.post<any>(
+      `${this.apiUrl}/workspaces/${workspaceId}/file-repository/files`,
+      fileData,
+    );
+  }
+
+  togglePinRepositoryFile(workspaceId: string, fileId: string): Observable<any> {
+    return this.http.patch<any>(
+      `${this.apiUrl}/workspaces/${workspaceId}/file-repository/files/${fileId}/pin`,
+      {},
+    );
+  }
+
+  // Match Discussion Notes API Endpoints
+  getMatchNotes(workspaceId: string, matchId: string): Observable<any[]> {
+    return this.http.get<any[]>(
+      `${this.apiUrl}/workspaces/${workspaceId}/matches/${matchId}/notes`,
+    );
+  }
+
+  createMatchNote(workspaceId: string, matchId: string, noteData: any): Observable<any> {
+    return this.http.post<any>(
+      `${this.apiUrl}/workspaces/${workspaceId}/matches/${matchId}/notes`,
+      noteData,
+    );
+  }
 }

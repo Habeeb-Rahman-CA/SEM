@@ -56,8 +56,8 @@
             LIVE SCORE
           </span>
           <span class="text-xs font-black text-amber-300 block mt-0.5">
-            {{ matchData?.homeTeam?.score || '184/4' }} -
-            {{ matchData?.awayTeam?.score || '180/8' }}
+            {{ matchData ? matchData.homeTeam.score || '184/4' : '184/4' }} -
+            {{ matchData ? matchData.awayTeam.score || '180/8' : '180/8' }}
           </span>
         </div>
       </div>
