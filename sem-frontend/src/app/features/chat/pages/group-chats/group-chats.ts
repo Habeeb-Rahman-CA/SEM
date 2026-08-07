@@ -847,7 +847,35 @@ export class GroupChatsComponent implements OnInit, OnDestroy {
     this.isLoadingMessages.set(true);
     this.chatService.getGroupMessages(this.workspaceId(), groupChatId).subscribe({
       next: (msgs: GroupChatMessage[]) => {
-        this.messages.set(msgs);
+        if (!msgs || msgs.length === 0) {
+          const sampleMsgs: GroupChatMessage[] = [
+            {
+              id: 'msg-demo-1',
+              groupChatId,
+              workspaceId: this.workspaceId(),
+              senderId: 'user-admin',
+              senderName: 'Habeeb Rahman',
+              content:
+                'Welcome everyone! Please review the live fixture details for match #MATCH-101 below.',
+              createdAt: new Date(Date.now() - 3600000).toISOString(),
+              updatedAt: new Date(Date.now() - 3600000).toISOString(),
+            },
+            {
+              id: 'msg-demo-2',
+              groupChatId,
+              workspaceId: this.workspaceId(),
+              senderId: 'user-referee-1',
+              senderName: 'David Warner (Umpire)',
+              content:
+                'Pitch conditions and ground inspection completed for match #MATCH-FT-88. Live score updates and officials list are linked.',
+              createdAt: new Date(Date.now() - 1800000).toISOString(),
+              updatedAt: new Date(Date.now() - 1800000).toISOString(),
+            },
+          ];
+          this.messages.set(sampleMsgs);
+        } else {
+          this.messages.set(msgs);
+        }
         this.isLoadingMessages.set(false);
         this.scrollToBottom();
       },

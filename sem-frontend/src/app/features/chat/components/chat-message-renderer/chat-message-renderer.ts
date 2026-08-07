@@ -15,15 +15,19 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
 import { AudioPlayerComponent } from '../audio-player/audio-player';
 import { LinkPreviewCardComponent, LinkPreviewData } from '../link-preview-card/link-preview-card';
+import { SmartEventCardComponent, SmartMatchData } from '../smart-event-card/smart-event-card';
 
 @Component({
   selector: 'app-chat-message-renderer',
   standalone: true,
-  imports: [CommonModule, AudioPlayerComponent, LinkPreviewCardComponent],
+  imports: [CommonModule, AudioPlayerComponent, LinkPreviewCardComponent, SmartEventCardComponent],
   template: `
     <div class="rich-message-content leading-relaxed font-sans text-xs break-words">
       @if (renderedContent) {
         <div [innerHTML]="renderedContent"></div>
+      }
+      @if (smartMatchCard(); as match) {
+        <app-smart-event-card [matchData]="match" />
       }
       @if (audioSource(); as audio) {
         <div class="mt-2">
@@ -217,6 +221,7 @@ export class ChatMessageRendererComponent implements OnChanges {
   renderedContent: SafeHtml = '';
   audioSource = signal<{ url: string; name: string; size: string } | null>(null);
   linkPreview = signal<LinkPreviewData | null>(null);
+  smartMatchCard = signal<SmartMatchData | null>(null);
 
   @HostListener('click', ['$event'])
   onHostClick(event: MouseEvent) {
@@ -251,10 +256,69 @@ export class ChatMessageRendererComponent implements OnChanges {
     if (changes['content']) {
       this.audioSource.set(null);
       this.linkPreview.set(null);
+      this.smartMatchCard.set(null);
 
       const parsedHtml = this.parseRichMessage(this.content || '');
       this.renderedContent = this.sanitizer.bypassSecurityTrustHtml(parsedHtml);
       this.extractLinkPreview(this.content || '');
+      this.extractSmartMatchCard(this.content || '');
+    }
+  }
+
+  private extractSmartMatchCard(rawText: string): void {
+    if (!rawText) return;
+
+    // Detect Match ID or Event ID patterns (e.g. #match-101, #event-202, MATCH-CRICK-44, EVENT-FT-88, MATCH-101)
+    const matchRegex = /#?(match|event)[-_]?([a-zA-Z0-9\-]+)/i;
+    const match = rawText.match(matchRegex);
+
+    if (!match) return;
+
+    const fullMatchId = match[0].toUpperCase().replace('#', '');
+    const idKey = match[2].toLowerCase();
+
+    if (
+      idKey.includes('ft') ||
+      idKey.includes('football') ||
+      idKey.includes('202') ||
+      idKey === '88'
+    ) {
+      this.smartMatchCard.set({
+        matchId: fullMatchId,
+        title: 'Finals: Dynamo FC vs Lightning Strikers',
+        tournamentName: 'Regional Football Championship 2026',
+        status: 'live',
+        sportType: 'football',
+        homeTeam: { name: 'Dynamo FC', code: 'DFC', score: '2' },
+        awayTeam: { name: 'Lightning Strikers', code: 'LST', score: '1' },
+        venue: 'Metropolitan Arena, Pitch A',
+        startTime: 'Today, 7:00 PM IST',
+        officials: [
+          { role: 'Head Referee', name: 'Marco Rossi' },
+          { role: 'Assistant Referee 1', name: 'John Smith' },
+          { role: 'Assistant Referee 2', name: 'Peter Jones' },
+          { role: 'VAR Official', name: 'Claire Adams' },
+        ],
+      });
+    } else {
+      // Default Cricket match card preview
+      this.smartMatchCard.set({
+        matchId: fullMatchId,
+        title: 'Semi-Finals: Royal Strikers vs Titan Kings',
+        tournamentName: 'Cricket Premier Cup 2026',
+        status: 'live',
+        sportType: 'cricket',
+        homeTeam: { name: 'Royal Strikers', code: 'RSC', score: '184/4 (18.2 ov)' },
+        awayTeam: { name: 'Titan Kings', code: 'TKS', score: '180/8 (20.0 ov)' },
+        venue: 'National Sports Complex, Pitch 1',
+        startTime: 'Today, 4:30 PM IST',
+        officials: [
+          { role: 'Field Umpire 1', name: 'Alex Miller' },
+          { role: 'Field Umpire 2', name: 'David Warner' },
+          { role: 'Match Referee', name: 'Robert Hawkins' },
+          { role: 'TV / 3rd Umpire', name: 'Sarah Jenkins' },
+        ],
+      });
     }
   }
 

@@ -1,0 +1,159 @@
+@if (matchData) {
+  <div
+    class="my-2 rounded-2xl bg-slate-900/90 border border-violet-500/30 overflow-hidden shadow-xl backdrop-blur-md transition-all hover:border-violet-500/50"
+  >
+    <!-- Card Top Header -->
+    <div
+      class="px-3.5 py-2 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border-b border-white/10 flex items-center justify-between"
+    >
+      <div class="flex items-center gap-2 min-w-0">
+        <div
+          class="w-6 h-6 rounded-lg bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-400 text-xs"
+        >
+          <i class="fi fi-rr-trophy"></i>
+        </div>
+        <div class="truncate">
+          <span class="text-[11px] font-bold text-white block truncate">{{ matchData.title }}</span>
+          <span class="text-[9px] text-slate-400 font-medium block truncate">{{
+            matchData.tournamentName
+          }}</span>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-1.5 shrink-0">
+        <span
+          class="px-1.5 py-0.5 rounded-md bg-white/5 border border-white/10 text-[9px] font-mono text-slate-300"
+        >
+          #{{ matchData.matchId }}
+        </span>
+
+        @if (matchData.status === 'live') {
+          <span
+            class="px-2 py-0.5 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-400 text-[9px] font-extrabold flex items-center gap-1.5 animate-pulse"
+          >
+            <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+            LIVE
+          </span>
+        } @else if (matchData.status === 'completed') {
+          <span
+            class="px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-300 text-[9px] font-bold"
+          >
+            FINISHED
+          </span>
+        } @else {
+          <span
+            class="px-2 py-0.5 rounded-full bg-sky-500/20 border border-sky-500/40 text-sky-300 text-[9px] font-bold"
+          >
+            SCHEDULED
+          </span>
+        }
+      </div>
+    </div>
+
+    <!-- Teams & Scores Section -->
+    <div class="p-3.5 bg-slate-950/40">
+      <div class="grid grid-cols-7 items-center gap-2">
+        <!-- Home Team -->
+        <div class="col-span-3 flex items-center gap-2.5">
+          <div
+            class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-600 to-violet-700 border border-indigo-400/30 text-white font-black text-xs flex items-center justify-center shadow-md shrink-0"
+          >
+            {{ matchData.homeTeam.code }}
+          </div>
+          <div class="min-w-0">
+            <div class="text-xs font-bold text-white truncate">{{ matchData.homeTeam.name }}</div>
+            <div class="text-[10px] text-slate-400 font-medium">Home Team</div>
+          </div>
+        </div>
+
+        <!-- Score / VS Display -->
+        <div class="col-span-1 text-center">
+          @if (matchData.homeTeam.score && matchData.awayTeam.score) {
+            <div
+              class="px-2 py-1 rounded-xl bg-violet-950/60 border border-violet-500/40 text-amber-300 text-xs font-black shadow-inner"
+            >
+              <div>{{ matchData.homeTeam.score }}</div>
+              <div class="text-[9px] text-slate-400 font-normal">vs</div>
+              <div>{{ matchData.awayTeam.score }}</div>
+            </div>
+          } @else {
+            <div
+              class="w-8 h-8 rounded-full bg-white/5 border border-white/10 text-slate-400 font-black text-[10px] flex items-center justify-center mx-auto"
+            >
+              VS
+            </div>
+          }
+        </div>
+
+        <!-- Away Team -->
+        <div class="col-span-3 flex items-center justify-end gap-2.5 text-right">
+          <div class="min-w-0">
+            <div class="text-xs font-bold text-white truncate">{{ matchData.awayTeam.name }}</div>
+            <div class="text-[10px] text-slate-400 font-medium">Away Team</div>
+          </div>
+          <div
+            class="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-600 to-teal-700 border border-cyan-400/30 text-white font-black text-xs flex items-center justify-center shadow-md shrink-0"
+          >
+            {{ matchData.awayTeam.code }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Match Details Grid (Venue, Time, Status) -->
+    <div
+      class="px-3.5 py-2.5 bg-slate-900/60 border-t border-white/5 grid grid-cols-2 gap-2 text-[10px]"
+    >
+      <div class="flex items-center gap-1.5 text-slate-300">
+        <i class="fi fi-rr-marker text-rose-400 text-xs"></i>
+        <span class="truncate" title="{{ matchData.venue }}">
+          <strong>Venue:</strong> {{ matchData.venue }}
+        </span>
+      </div>
+
+      <div class="flex items-center gap-1.5 text-slate-300 justify-end">
+        <i class="fi fi-rr-clock text-amber-400 text-xs"></i>
+        <span class="truncate"> <strong>Time:</strong> {{ matchData.startTime }} </span>
+      </div>
+    </div>
+
+    <!-- Collapsible Officials & Match Officers -->
+    @if (isExpanded()) {
+      <div
+        class="px-3.5 py-2 bg-slate-950/80 border-t border-white/10 text-[10px] space-y-1 animate-in fade-in"
+      >
+        <div
+          class="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1"
+        >
+          <i class="fi fi-rr-whistle text-cyan-400"></i> Match Officials & Referees
+        </div>
+        <div class="grid grid-cols-2 gap-x-4 gap-y-1">
+          @for (official of matchData.officials; track official.name) {
+            <div
+              class="flex items-center justify-between text-slate-300 bg-white/5 px-2 py-1 rounded-lg"
+            >
+              <span class="text-slate-400 font-medium">{{ official.role }}:</span>
+              <span class="font-bold text-white">{{ official.name }}</span>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Card Action Footer -->
+    <div
+      class="px-3 py-1.5 bg-slate-950/90 border-t border-white/5 flex items-center justify-between text-[10px]"
+    >
+      <button
+        type="button"
+        (click)="toggleExpand()"
+        class="text-violet-400 hover:text-violet-300 font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+      >
+        <i [class]="isExpanded() ? 'fi fi-rr-angle-small-up' : 'fi fi-rr-angle-small-down'"></i>
+        <span>{{ isExpanded() ? 'Hide Officials' : 'View Officials & Referees' }}</span>
+      </button>
+
+      <span class="text-slate-400 text-[9px] italic">Smart Event Card Preview</span>
+    </div>
+  </div>
+}
