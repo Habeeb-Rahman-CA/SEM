@@ -1,0 +1,294 @@
+<div
+  class="relative bg-slate-900/70 border border-white/10 rounded-2xl p-2 shadow-2xl backdrop-blur-xl"
+>
+  <!-- Top Rich Formatting Action Toolbar -->
+  <div
+    class="flex items-center justify-between pb-2 mb-2 border-b border-white/10 px-2 overflow-x-auto scrollbar-none gap-1"
+  >
+    <div class="flex items-center gap-1">
+      <!-- Bold -->
+      <button
+        type="button"
+        (click)="insertFormat('**', '**')"
+        title="Bold (**text**)"
+        class="p-1.5 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white transition-colors text-xs cursor-pointer"
+      >
+        <i class="fi fi-rr-bold"></i>
+      </button>
+
+      <!-- Italic -->
+      <button
+        type="button"
+        (click)="insertFormat('*', '*')"
+        title="Italic (*text*)"
+        class="p-1.5 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white transition-colors text-xs cursor-pointer"
+      >
+        <i class="fi fi-rr-italic"></i>
+      </button>
+
+      <!-- Underline -->
+      <button
+        type="button"
+        (click)="insertFormat('<u>', '</u>')"
+        title="Underline (<u>text</u>)"
+        class="p-1.5 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white transition-colors text-xs cursor-pointer"
+      >
+        <i class="fi fi-rr-underline"></i>
+      </button>
+
+      <!-- Strikethrough -->
+      <button
+        type="button"
+        (click)="insertFormat('~~', '~~')"
+        title="Strikethrough (~~text~~)"
+        class="p-1.5 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white transition-colors text-xs cursor-pointer"
+      >
+        <i class="fi fi-rr-strikethrough"></i>
+      </button>
+
+      <div class="w-px h-4 bg-white/10 mx-1"></div>
+
+      <!-- Inline Code -->
+      <button
+        type="button"
+        (click)="insertFormat('`', '`')"
+        title="Inline Code (`code`)"
+        class="p-1.5 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white transition-colors text-xs cursor-pointer"
+      >
+        <i class="fi fi-rr-code-simple"></i>
+      </button>
+
+      <!-- Code Block -->
+      <button
+        type="button"
+        (click)="insertBlock('```\n// Write code here\n```')"
+        title="Code Block (``` code ```)"
+        class="p-1.5 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white transition-colors text-xs cursor-pointer"
+      >
+        <i class="fi fi-rr-brackets-curly"></i>
+      </button>
+
+      <!-- Quote -->
+      <button
+        type="button"
+        (click)="insertBlock('> Quote text')"
+        title="Blockquote (> text)"
+        class="p-1.5 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white transition-colors text-xs cursor-pointer"
+      >
+        <i class="fi fi-rr-quote-right"></i>
+      </button>
+
+      <!-- Bullet List -->
+      <button
+        type="button"
+        (click)="insertBlock('- Item 1\n- Item 2')"
+        title="Bullet List (- item)"
+        class="p-1.5 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white transition-colors text-xs cursor-pointer"
+      >
+        <i class="fi fi-rr-list"></i>
+      </button>
+
+      <!-- Table -->
+      <button
+        type="button"
+        (click)="insertTable()"
+        title="Insert Markdown Table"
+        class="p-1.5 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white transition-colors text-xs cursor-pointer"
+      >
+        <i class="fi fi-rr-table"></i>
+      </button>
+    </div>
+
+    <!-- Media Modals Trigger Buttons (Emoji, GIF, Sticker) -->
+    <div class="flex items-center gap-1">
+      <!-- Emoji Picker -->
+      <button
+        type="button"
+        (click)="toggleEmojiPicker()"
+        [class.text-amber-400]="showEmojiPicker()"
+        [class.bg-white\/10]="showEmojiPicker()"
+        title="Insert Emoji"
+        class="p-1.5 rounded-lg hover:bg-white/10 text-slate-300 hover:text-amber-400 transition-colors text-xs cursor-pointer flex items-center gap-1"
+      >
+        <i class="fi fi-rr-smile"></i>
+        <span class="text-[10px] font-bold hidden sm:inline">Emoji</span>
+      </button>
+
+      <!-- GIF Selector -->
+      <button
+        type="button"
+        (click)="toggleGifPicker()"
+        [class.text-violet-400]="showGifPicker()"
+        [class.bg-white\/10]="showGifPicker()"
+        title="Send GIF"
+        class="p-1.5 rounded-lg hover:bg-white/10 text-slate-300 hover:text-violet-400 transition-colors text-xs cursor-pointer flex items-center gap-1"
+      >
+        <i class="fi fi-rr-picture"></i>
+        <span class="text-[10px] font-bold hidden sm:inline">GIF</span>
+      </button>
+
+      <!-- Sticker Selector -->
+      <button
+        type="button"
+        (click)="toggleStickerPicker()"
+        [class.text-emerald-400]="showStickerPicker()"
+        [class.bg-white\/10]="showStickerPicker()"
+        title="Send Sports Sticker"
+        class="p-1.5 rounded-lg hover:bg-white/10 text-slate-300 hover:text-emerald-400 transition-colors text-xs cursor-pointer flex items-center gap-1"
+      >
+        <i class="fi fi-rr-sticker"></i>
+        <span class="text-[10px] font-bold hidden sm:inline">Sticker</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Text Input Area -->
+  <div class="relative">
+    <textarea
+      #textareaRef
+      [ngModel]="content()"
+      (ngModelChange)="content.set($event)"
+      (keydown)="onKeydown($event)"
+      [placeholder]="placeholder"
+      [disabled]="disabled"
+      rows="2"
+      class="w-full bg-transparent px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none resize-none leading-relaxed"
+    ></textarea>
+
+    <div class="flex items-center justify-end px-2 pt-1 pb-1">
+      <button
+        type="button"
+        (click)="submitMessage()"
+        [disabled]="!content().trim() || disabled || isSending"
+        class="px-4 py-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 disabled:opacity-40 text-white text-xs font-semibold rounded-xl flex items-center gap-2 shadow-lg shadow-violet-600/20 transition-all cursor-pointer"
+      >
+        @if (isSending) {
+          <i class="fi fi-rr-spinner animate-spin"></i>
+        } @else {
+          <i class="fi fi-rr-paper-plane"></i>
+          <span>Send</span>
+        }
+      </button>
+    </div>
+  </div>
+
+  <!-- EMOJI PICKER POPUP -->
+  @if (showEmojiPicker()) {
+    <div
+      class="absolute bottom-full right-0 mb-2 w-72 bg-slate-900 border border-white/10 rounded-2xl p-3 shadow-2xl z-50 animate-in fade-in zoom-in-95"
+    >
+      <div class="flex items-center justify-between border-b border-white/10 pb-2 mb-2">
+        <span class="text-xs font-bold text-white flex items-center gap-1.5">
+          <i class="fi fi-rr-smile text-amber-400"></i> Emoji Picker
+        </span>
+        <button
+          (click)="showEmojiPicker.set(false)"
+          class="text-slate-400 hover:text-white text-xs"
+        >
+          <i class="fi fi-rr-cross"></i>
+        </button>
+      </div>
+
+      <!-- Emoji Category Tabs -->
+      <div
+        class="flex items-center gap-1 border-b border-white/10 pb-2 mb-2 overflow-x-auto scrollbar-none"
+      >
+        @for (catKey of ['sports', 'smileys', 'objects', 'symbols']; track catKey) {
+          <button
+            type="button"
+            (click)="activeEmojiCategory.set(catKey)"
+            [class.bg-violet-600\/30]="activeEmojiCategory() === catKey"
+            [class.text-violet-300]="activeEmojiCategory() === catKey"
+            class="px-2 py-1 rounded-lg text-[10px] font-semibold text-slate-400 hover:text-white transition-colors cursor-pointer capitalize"
+          >
+            {{ catKey }}
+          </button>
+        }
+      </div>
+
+      <!-- Emojis Grid -->
+      <div class="grid grid-cols-7 gap-1.5 max-h-44 overflow-y-auto scrollbar-none p-1">
+        @for (emoji of activeCategoryEmojis(); track emoji) {
+          <button
+            type="button"
+            (click)="insertEmoji(emoji)"
+            class="text-lg hover:scale-125 transition-transform p-1 rounded hover:bg-white/10 flex items-center justify-center cursor-pointer"
+          >
+            {{ emoji }}
+          </button>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- GIF PICKER POPUP -->
+  @if (showGifPicker()) {
+    <div
+      class="absolute bottom-full right-0 mb-2 w-80 bg-slate-900 border border-white/10 rounded-2xl p-3 shadow-2xl z-50 animate-in fade-in zoom-in-95"
+    >
+      <div class="flex items-center justify-between border-b border-white/10 pb-2 mb-2">
+        <span class="text-xs font-bold text-white flex items-center gap-1.5">
+          <i class="fi fi-rr-picture text-violet-400"></i> Sports & Reaction GIFs
+        </span>
+        <button (click)="showGifPicker.set(false)" class="text-slate-400 hover:text-white text-xs">
+          <i class="fi fi-rr-cross"></i>
+        </button>
+      </div>
+
+      <!-- GIFs Grid -->
+      <div class="grid grid-cols-2 gap-2 max-h-56 overflow-y-auto scrollbar-none p-1">
+        @for (gif of gifs; track gif.title) {
+          <div
+            (click)="sendGif(gif.url)"
+            class="group relative rounded-xl overflow-hidden border border-white/10 bg-slate-950 aspect-video cursor-pointer hover:border-violet-500 transition-all"
+          >
+            <img
+              [src]="gif.url"
+              [alt]="gif.title"
+              class="w-full h-full object-cover group-hover:scale-105 transition-transform"
+            />
+            <div
+              class="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+            >
+              <span class="text-[10px] font-bold text-white text-center px-1">{{ gif.title }}</span>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- STICKER PICKER POPUP -->
+  @if (showStickerPicker()) {
+    <div
+      class="absolute bottom-full right-0 mb-2 w-72 bg-slate-900 border border-white/10 rounded-2xl p-3 shadow-2xl z-50 animate-in fade-in zoom-in-95"
+    >
+      <div class="flex items-center justify-between border-b border-white/10 pb-2 mb-2">
+        <span class="text-xs font-bold text-white flex items-center gap-1.5">
+          <i class="fi fi-rr-sticker text-emerald-400"></i> Sports Reaction Stickers
+        </span>
+        <button
+          (click)="showStickerPicker.set(false)"
+          class="text-slate-400 hover:text-white text-xs"
+        >
+          <i class="fi fi-rr-cross"></i>
+        </button>
+      </div>
+
+      <!-- Stickers Grid -->
+      <div class="grid grid-cols-2 gap-2 max-h-56 overflow-y-auto scrollbar-none p-1">
+        @for (st of stickers; track st.title) {
+          <button
+            type="button"
+            (click)="sendSticker(st.text)"
+            [class]="st.bg"
+            class="p-3 rounded-xl border border-white/20 text-white flex flex-col items-center justify-center gap-1 shadow-lg hover:scale-105 transition-transform cursor-pointer"
+          >
+            <i [class]="st.icon + ' text-xl'"></i>
+            <span class="text-[10px] font-black tracking-wider uppercase">{{ st.text }}</span>
+          </button>
+        }
+      </div>
+    </div>
+  }
+</div>

@@ -16,10 +16,13 @@ import { ChatService, DirectMessageConversation, DirectMessage } from '../../ser
 import { AuthService } from '../../../auth/services/auth.service';
 import { SocketService } from '../../../../core/services/socket.service';
 
+import { ChatMessageRendererComponent } from '../../components/chat-message-renderer/chat-message-renderer';
+import { ChatRichMessageInputComponent } from '../../components/chat-rich-message-input/chat-rich-message-input';
+
 @Component({
   selector: 'app-direct-messages',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ChatMessageRendererComponent, ChatRichMessageInputComponent],
   templateUrl: './direct-messages.html',
   styleUrls: ['./direct-messages.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -277,8 +280,8 @@ export class DirectMessagesComponent implements OnInit, OnDestroy {
     }, 2000);
   }
 
-  sendMessage() {
-    const text = this.messageInput().trim();
+  sendMessage(textInput?: string) {
+    const text = (textInput || this.messageInput()).trim();
     const active = this.selectedConversation();
     if (!text || !active || !active.partner || this.isSending()) return;
 
@@ -290,7 +293,6 @@ export class DirectMessagesComponent implements OnInit, OnDestroy {
         this.isSending.set(false);
         this.scrollToBottom();
 
-        // Update conversation list preview
         this.conversations.update((list) =>
           list.map((c) =>
             c.id === active.id
@@ -304,6 +306,10 @@ export class DirectMessagesComponent implements OnInit, OnDestroy {
         this.isSending.set(false);
       },
     });
+  }
+
+  onSendRichMessage(event: { content: string; attachments?: string[] }) {
+    this.sendMessage(event.content);
   }
 
   startConversationWithMember(member: any) {

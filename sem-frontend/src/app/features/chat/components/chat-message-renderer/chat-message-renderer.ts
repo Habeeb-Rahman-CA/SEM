@@ -1,0 +1,229 @@
+import {
+  Component,
+  Input,
+  OnChanges,
+  SimpleChanges,
+  ChangeDetectionStrategy,
+  inject,
+} from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+
+@Component({
+  selector: 'app-chat-message-renderer',
+  standalone: true,
+  imports: [CommonModule],
+  template: `
+    <div
+      class="rich-message-content leading-relaxed font-sans text-xs break-words"
+      [innerHTML]="renderedContent"
+    ></div>
+  `,
+  styles: [
+    `
+      :host {
+        display: block;
+      }
+      ::ng-deep .rich-message-content p {
+        margin-bottom: 0.35rem;
+      }
+      ::ng-deep .rich-message-content p:last-child {
+        margin-bottom: 0;
+      }
+      ::ng-deep .rich-message-content code.inline-code {
+        background: rgba(255, 255, 255, 0.15);
+        color: #f1f5f9;
+        padding: 0.15rem 0.35rem;
+        border-radius: 0.25rem;
+        font-family: monospace;
+        font-size: 0.85em;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      ::ng-deep .rich-message-content pre.code-block {
+        background: rgba(15, 23, 42, 0.9);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 0.5rem;
+        padding: 0.6rem 0.8rem;
+        margin: 0.5rem 0;
+        overflow-x: auto;
+        font-family: 'Fira Code', 'Courier New', Courier, monospace;
+        font-size: 0.8em;
+        color: #38bdf8;
+      }
+      ::ng-deep .rich-message-content blockquote.quote-block {
+        border-left: 3px solid #818cf8;
+        background: rgba(129, 140, 248, 0.1);
+        padding: 0.35rem 0.75rem;
+        margin: 0.4rem 0;
+        border-radius: 0 0.375rem 0.375rem 0;
+        font-style: italic;
+        color: #cbd5e1;
+      }
+      ::ng-deep .rich-message-content ul.rich-list {
+        list-style-type: disc;
+        padding-left: 1.25rem;
+        margin: 0.4rem 0;
+      }
+      ::ng-deep .rich-message-content ol.rich-list-ordered {
+        list-style-type: decimal;
+        padding-left: 1.25rem;
+        margin: 0.4rem 0;
+      }
+      ::ng-deep .rich-message-content table.rich-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 0.5rem 0;
+        font-size: 0.85em;
+      }
+      ::ng-deep .rich-message-content table.rich-table th,
+      ::ng-deep .rich-message-content table.rich-table td {
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        padding: 0.4rem 0.6rem;
+        text-align: left;
+      }
+      ::ng-deep .rich-message-content table.rich-table th {
+        background: rgba(255, 255, 255, 0.1);
+        font-weight: 600;
+        color: #818cf8;
+      }
+      ::ng-deep .rich-message-content img.msg-gif,
+      ::ng-deep .rich-message-content img.msg-sticker {
+        max-width: 200px;
+        max-height: 180px;
+        border-radius: 0.5rem;
+        display: block;
+        margin: 0.35rem 0;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+      }
+      ::ng-deep .rich-message-content img.msg-sticker {
+        max-width: 120px;
+        max-height: 120px;
+      }
+    `,
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class ChatMessageRendererComponent implements OnChanges {
+  @Input({ required: true }) content: string = '';
+
+  private sanitizer = inject(DomSanitizer);
+  renderedContent: SafeHtml = '';
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['content']) {
+      this.renderedContent = this.sanitizer.bypassSecurityTrustHtml(
+        this.parseRichMessage(this.content || ''),
+      );
+    }
+  }
+
+  private parseRichMessage(rawText: string): string {
+    if (!rawText) return '';
+
+    // Check for direct GIF or Sticker syntax [GIF:url] or [STICKER:url]
+    if (rawText.startsWith('[GIF:') && rawText.endsWith(']')) {
+      const gifUrl = rawText.substring(5, rawText.length - 1);
+      return `<img src="${this.escapeHtml(gifUrl)}" alt="GIF" class="msg-gif" />`;
+    }
+    if (rawText.startsWith('[STICKER:') && rawText.endsWith(']')) {
+      const stickerUrl = rawText.substring(9, rawText.length - 1);
+      return `<img src="${this.escapeHtml(stickerUrl)}" alt="Sticker" class="msg-sticker" />`;
+    }
+
+    let text = this.escapeHtml(rawText);
+
+    // 1. Code blocks ```code```
+    text = text.replace(/```([\s\S]*?)```/g, (match, codeContent) => {
+      return `<pre class="code-block"><code>${codeContent.trim()}</code></pre>`;
+    });
+
+    // 2. Blockquotes > quote
+    text = text.replace(/^&gt;\s+(.*$)/gim, '<blockquote class="quote-block">$1</blockquote>');
+
+    // 3. Markdown Tables | col 1 | col 2 |
+    const lines = text.split('\n');
+    let inTable = false;
+    let tableHtml = '';
+    const processedLines: string[] = [];
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (line.startsWith('|') && line.endsWith('|')) {
+        if (!inTable) {
+          inTable = true;
+          tableHtml = '<table class="rich-table"><thead>';
+          const cols = line
+            .split('|')
+            .filter((c) => c.trim() !== '')
+            .map((c) => `<th>${c.trim()}</th>`)
+            .join('');
+          tableHtml += `<tr>${cols}</tr></thead><tbody>`;
+        } else if (line.includes('---')) {
+          // Separator row, ignore
+          continue;
+        } else {
+          const cols = line
+            .split('|')
+            .filter((c) => c.trim() !== '')
+            .map((c) => `<td>${c.trim()}</td>`)
+            .join('');
+          tableHtml += `<tr>${cols}</tr>`;
+        }
+      } else {
+        if (inTable) {
+          inTable = false;
+          tableHtml += '</tbody></table>';
+          processedLines.push(tableHtml);
+          tableHtml = '';
+        }
+        processedLines.push(lines[i]);
+      }
+    }
+    if (inTable) {
+      tableHtml += '</tbody></table>';
+      processedLines.push(tableHtml);
+    }
+    text = processedLines.join('\n');
+
+    // 4. Bullet lists & Ordered lists
+    text = text.replace(/^- (.*$)/gim, '<ul class="rich-list"><li>$1</li></ul>');
+    text = text.replace(/^(\d+)\.\s+(.*$)/gim, '<ol class="rich-list-ordered"><li>$2</li></ol>');
+    // Clean duplicate <ul> and <ol> tags
+    text = text.replace(/<\/ul>\n<ul class="rich-list">/g, '');
+    text = text.replace(/<\/ol>\n<ol class="rich-list-ordered">/g, '');
+
+    // 5. Formatting syntax
+    // Bold: **text** or <b>text</b>
+    text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    text = text.replace(/&lt;b&gt;(.*?)&lt;\/b&gt;/gi, '<strong>$1</strong>');
+
+    // Italic: *text* or <i>text</i>
+    text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    text = text.replace(/&lt;i&gt;(.*?)&lt;\/i&gt;/gi, '<em>$1</em>');
+
+    // Underline: <u>text</u>
+    text = text.replace(/&lt;u&gt;(.*?)&lt;\/u&gt;/gi, '<u>$1</u>');
+
+    // Strikethrough: ~~text~~ or <s>text</s>
+    text = text.replace(/~~(.*?)~~/g, '<del>$1</del>');
+    text = text.replace(/&lt;s&gt;(.*?)&lt;\/s&gt;/gi, '<del>$1</del>');
+
+    // Inline code: `code`
+    text = text.replace(/`(.*?)`/g, '<code class="inline-code">$1</code>');
+
+    // Convert newlines outside pre, blockquote, table, ul to <br/>
+    text = text.replace(/\n/g, '<br/>');
+
+    return text;
+  }
+
+  private escapeHtml(str: string): string {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+}

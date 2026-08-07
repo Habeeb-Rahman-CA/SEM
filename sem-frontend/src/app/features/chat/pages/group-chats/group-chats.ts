@@ -21,10 +21,13 @@ import {
 import { AuthService } from '../../../auth/services/auth.service';
 import { SocketService } from '../../../../core/services/socket.service';
 
+import { ChatMessageRendererComponent } from '../../components/chat-message-renderer/chat-message-renderer';
+import { ChatRichMessageInputComponent } from '../../components/chat-rich-message-input/chat-rich-message-input';
+
 @Component({
   selector: 'app-group-chats',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ChatMessageRendererComponent, ChatRichMessageInputComponent],
   templateUrl: './group-chats.html',
   styleUrls: ['./group-chats.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -278,8 +281,8 @@ export class GroupChatsComponent implements OnInit, OnDestroy {
     }, 2000);
   }
 
-  sendMessage() {
-    const text = this.messageInput().trim();
+  sendMessage(textInput?: string) {
+    const text = (textInput || this.messageInput()).trim();
     const active = this.selectedGroup();
     if (!text || !active || this.isSending()) return;
 
@@ -291,7 +294,6 @@ export class GroupChatsComponent implements OnInit, OnDestroy {
         this.isSending.set(false);
         this.scrollToBottom();
 
-        // Update preview in list
         this.groupChats.update((list) =>
           list.map((g) =>
             g.id === active.id
@@ -305,6 +307,10 @@ export class GroupChatsComponent implements OnInit, OnDestroy {
         this.isSending.set(false);
       },
     });
+  }
+
+  onSendRichMessage(event: { content: string; attachments?: string[] }) {
+    this.sendMessage(event.content);
   }
 
   toggleMemberSelection(userId: string) {
