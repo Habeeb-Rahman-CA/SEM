@@ -207,6 +207,7 @@ export class ChatMessageRendererComponent implements OnChanges {
   @Input({ required: true }) content: string = '';
   @Output() imageClick = new EventEmitter<{ url: string; title?: string }>();
   @Output() videoClick = new EventEmitter<{ url: string; title?: string }>();
+  @Output() fileDetailsClick = new EventEmitter<{ name: string; url?: string; category: string }>();
 
   private sanitizer = inject(DomSanitizer);
   renderedContent: SafeHtml = '';
@@ -216,6 +217,16 @@ export class ChatMessageRendererComponent implements OnChanges {
   onHostClick(event: MouseEvent) {
     const target = event.target as HTMLElement;
     if (target) {
+      const card = target.closest('.msg-att-card') as HTMLElement;
+      if (card) {
+        const titleEl = card.querySelector('.font-bold');
+        const fileName = titleEl ? titleEl.textContent || 'Attachment' : 'Attachment';
+        const linkEl = card.querySelector('a') as HTMLAnchorElement;
+        const url = linkEl ? linkEl.href : '';
+        this.fileDetailsClick.emit({ name: fileName, url, category: 'file' });
+        return;
+      }
+
       if (target.tagName.toLowerCase() === 'img') {
         const imgEl = target as HTMLImageElement;
         if (imgEl.src) {

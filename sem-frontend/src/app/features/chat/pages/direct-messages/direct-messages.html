@@ -304,6 +304,7 @@
                         [content]="msg.content"
                         (imageClick)="onImageClick($event)"
                         (videoClick)="onVideoClick($event)"
+                        (fileDetailsClick)="onFileDetailsClick($event, msg.senderName)"
                       />
                     }
 
@@ -587,6 +588,14 @@
     [members]="members()"
     (close)="isAdvancedSearchOpen.set(false)"
     (jumpToMessage)="onJumpToMessage($event)"
+  />
+}
+
+<!-- Attachment Inspection & Metadata Modal -->
+@if (selectedAttachmentDetails(); as attDetails) {
+  <app-attachment-details-modal
+    [attachment]="attDetails"
+    (close)="selectedAttachmentDetails.set(null)"
   />
 }
 

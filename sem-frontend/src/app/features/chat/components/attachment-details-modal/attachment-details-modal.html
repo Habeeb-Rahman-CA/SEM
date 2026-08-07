@@ -1,0 +1,291 @@
+<div
+  class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200"
+>
+  <div
+    class="w-full max-w-lg bg-slate-900 border border-emerald-500/30 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200"
+  >
+    <!-- Modal Header -->
+    <div
+      class="px-6 py-4 bg-gradient-to-r from-emerald-950/80 via-slate-900 to-indigo-950/80 border-b border-emerald-500/20 flex items-center justify-between shrink-0"
+    >
+      <div class="flex items-center gap-3 min-w-0">
+        <div
+          class="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center text-lg shadow-lg shrink-0"
+        >
+          <i class="fi fi-rr-document"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+          @if (isEditingName()) {
+            <div class="flex items-center gap-2">
+              <input
+                type="text"
+                [ngModel]="editedName()"
+                (ngModelChange)="editedName.set($event)"
+                (keydown.enter)="saveRename()"
+                class="px-2 py-1 rounded-xl bg-slate-950 border border-emerald-500 text-xs text-white focus:outline-none w-full"
+              />
+              <button
+                type="button"
+                (click)="saveRename()"
+                class="p-1 rounded-lg bg-emerald-600 text-white text-xs hover:bg-emerald-500"
+              >
+                <i class="fi fi-rr-check"></i>
+              </button>
+            </div>
+          } @else {
+            <div class="flex items-center gap-2">
+              <h3 class="text-sm font-bold text-white truncate tracking-wide">
+                {{ attachment.name }}
+              </h3>
+              <button
+                type="button"
+                (click)="isEditingName.set(true)"
+                title="Rename File"
+                class="text-slate-400 hover:text-emerald-400 text-xs transition-colors cursor-pointer"
+              >
+                <i class="fi fi-rr-edit"></i>
+              </button>
+            </div>
+          }
+          <p class="text-[11px] text-emerald-200/80">Attachment Details & Security Inspection</p>
+        </div>
+      </div>
+      <button
+        type="button"
+        (click)="close.emit()"
+        class="w-8 h-8 rounded-full hover:bg-white/10 text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
+      >
+        <i class="fi fi-rr-cross text-xs"></i>
+      </button>
+    </div>
+
+    <!-- Body Scroll Area -->
+    <div class="p-6 overflow-y-auto space-y-5 scrollbar-thin scrollbar-thumb-white/10">
+      <!-- File Visual Preview Card -->
+      <div
+        class="w-full h-44 rounded-2xl bg-slate-950 border border-white/10 overflow-hidden flex items-center justify-center relative group"
+      >
+        @if (attachment.category === 'image' && attachment.url) {
+          <img
+            [src]="attachment.url"
+            [alt]="attachment.name"
+            class="w-full h-full object-contain p-2"
+          />
+        } @else {
+          <div class="flex flex-col items-center justify-center space-y-2 text-center p-4">
+            <div
+              class="w-16 h-16 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center text-3xl shadow-inner"
+            >
+              @switch (attachment.category) {
+                @case ('pdf') {
+                  <i class="fi fi-rr-file-pdf"></i>
+                }
+                @case ('word') {
+                  <i class="fi fi-rr-file-word"></i>
+                }
+                @case ('excel') {
+                  <i class="fi fi-rr-file-excel"></i>
+                }
+                @case ('zip') {
+                  <i class="fi fi-rr-folder-download"></i>
+                }
+                @case ('audio') {
+                  <i class="fi fi-rr-music-alt"></i>
+                }
+                @case ('video') {
+                  <i class="fi fi-rr-play-alt"></i>
+                }
+                @default {
+                  <i class="fi fi-rr-document"></i>
+                }
+              }
+            </div>
+            <span class="text-xs font-bold text-slate-300 uppercase tracking-wider">
+              {{ attachment.category }} File
+            </span>
+          </div>
+        }
+      </div>
+
+      <!-- Security / Virus Scan Status Banner -->
+      <div
+        class="p-3.5 rounded-2xl border flex items-center justify-between text-xs"
+        [class.bg-emerald-500\/10]="attachment.virusScanStatus === 'clean'"
+        [class.border-emerald-500\/30]="attachment.virusScanStatus === 'clean'"
+        [class.text-emerald-300]="attachment.virusScanStatus === 'clean'"
+        [class.bg-amber-500\/10]="attachment.virusScanStatus === 'scanning'"
+        [class.border-amber-500\/30]="attachment.virusScanStatus === 'scanning'"
+        [class.text-amber-300]="attachment.virusScanStatus === 'scanning'"
+        [class.bg-rose-500\/10]="attachment.virusScanStatus === 'flagged'"
+        [class.border-rose-500\/30]="attachment.virusScanStatus === 'flagged'"
+        [class.text-rose-300]="attachment.virusScanStatus === 'flagged'"
+      >
+        <div class="flex items-center gap-2.5">
+          <i
+            [class]="
+              attachment.virusScanStatus === 'clean'
+                ? 'fi fi-rr-shield-check text-base text-emerald-400'
+                : attachment.virusScanStatus === 'scanning'
+                  ? 'fi fi-rr-spinner animate-spin text-base text-amber-400'
+                  : 'fi fi-rr-shield-exclamation text-base text-rose-400'
+            "
+          ></i>
+          <div>
+            <div class="font-bold">
+              {{
+                attachment.virusScanStatus === 'clean'
+                  ? 'Passed Virus & Threat Scan'
+                  : attachment.virusScanStatus === 'scanning'
+                    ? 'Security Scan in Progress...'
+                    : 'Threat Flagged by Virus Scanner'
+              }}
+            </div>
+            <div class="text-[10px] opacity-80">
+              Scanned with Enterprise Defender • No threats detected
+            </div>
+          </div>
+        </div>
+        <span
+          class="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border border-current opacity-90"
+        >
+          {{ attachment.virusScanStatus }}
+        </span>
+      </div>
+
+      <!-- Tab Selectors -->
+      <div class="flex border-b border-white/10 text-xs">
+        <button
+          type="button"
+          (click)="activeTab.set('details')"
+          [class.border-emerald-400]="activeTab() === 'details'"
+          [class.text-emerald-400]="activeTab() === 'details'"
+          [class.text-slate-400]="activeTab() !== 'details'"
+          class="px-4 py-2 border-b-2 font-bold transition-colors cursor-pointer"
+        >
+          File Metadata
+        </button>
+        <button
+          type="button"
+          (click)="activeTab.set('versions')"
+          [class.border-emerald-400]="activeTab() === 'versions'"
+          [class.text-emerald-400]="activeTab() === 'versions'"
+          [class.text-slate-400]="activeTab() !== 'versions'"
+          class="px-4 py-2 border-b-2 font-bold transition-colors cursor-pointer flex items-center gap-1.5"
+        >
+          <span>Version History</span>
+          <span class="px-1.5 py-0.5 rounded-full bg-white/10 text-[10px]">
+            {{ attachment.version || 'v1.0' }}
+          </span>
+        </button>
+      </div>
+
+      <!-- Details Grid Tab -->
+      @if (activeTab() === 'details') {
+        <div class="grid grid-cols-2 gap-3 text-xs">
+          <!-- File Size -->
+          <div class="p-3 rounded-2xl bg-white/5 border border-white/10 space-y-1">
+            <span
+              class="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1"
+            >
+              <i class="fi fi-rr-disk text-emerald-400"></i> File Size
+            </span>
+            <p class="font-bold text-white">{{ attachment.sizeFormatted || '1.8 MB' }}</p>
+          </div>
+
+          <!-- Version -->
+          <div class="p-3 rounded-2xl bg-white/5 border border-white/10 space-y-1">
+            <span
+              class="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1"
+            >
+              <i class="fi fi-rr-code-branch text-emerald-400"></i> Version
+            </span>
+            <p class="font-bold text-white">{{ attachment.version || 'v1.0' }} (Latest)</p>
+          </div>
+
+          <!-- Uploader -->
+          <div class="p-3 rounded-2xl bg-white/5 border border-white/10 space-y-1">
+            <span
+              class="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1"
+            >
+              <i class="fi fi-rr-user text-emerald-400"></i> Uploaded By
+            </span>
+            <p class="font-bold text-white">{{ attachment.uploaderName || 'Member' }}</p>
+          </div>
+
+          <!-- Upload Date -->
+          <div class="p-3 rounded-2xl bg-white/5 border border-white/10 space-y-1">
+            <span
+              class="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1"
+            >
+              <i class="fi fi-rr-calendar text-emerald-400"></i> Upload Date
+            </span>
+            <p class="font-bold text-white">{{ attachment.createdAt | date: 'short' }}</p>
+          </div>
+        </div>
+      } @else {
+        <!-- Version History List -->
+        <div class="space-y-2 text-xs">
+          <div
+            class="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between"
+          >
+            <div class="flex items-center gap-2.5">
+              <span
+                class="px-2 py-0.5 rounded-md bg-emerald-500/30 text-emerald-300 font-mono font-bold text-[10px]"
+              >
+                {{ attachment.version || 'v1.0' }}
+              </span>
+              <div>
+                <div class="font-bold text-white">{{ attachment.name }}</div>
+                <div class="text-[10px] text-slate-400">
+                  Uploaded by {{ attachment.uploaderName }} • Active
+                </div>
+              </div>
+            </div>
+            <span class="text-[10px] text-emerald-400 font-bold uppercase">Current</span>
+          </div>
+
+          <!-- Mock previous version for versioning demonstrate -->
+          <div
+            class="p-3 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between opacity-75"
+          >
+            <div class="flex items-center gap-2.5">
+              <span
+                class="px-2 py-0.5 rounded-md bg-white/10 text-slate-400 font-mono font-bold text-[10px]"
+              >
+                v0.9
+              </span>
+              <div>
+                <div class="font-medium text-slate-300">Initial Draft_{{ attachment.name }}</div>
+                <div class="text-[10px] text-slate-500">Archived 2 days ago</div>
+              </div>
+            </div>
+            <button type="button" class="text-[10px] text-sky-400 hover:underline">Restore</button>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Modal Footer Actions -->
+    <div
+      class="px-6 py-4 bg-slate-950/80 border-t border-white/10 flex items-center justify-between"
+    >
+      <button
+        type="button"
+        (click)="isEditingName.set(true)"
+        class="px-3.5 py-2 rounded-2xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-bold border border-white/10 transition-colors cursor-pointer flex items-center gap-1.5"
+      >
+        <i class="fi fi-rr-edit text-xs"></i>
+        <span>Rename File</span>
+      </button>
+
+      <button
+        type="button"
+        (click)="onDownload()"
+        class="px-5 py-2 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/30 transition-all cursor-pointer flex items-center gap-1.5"
+      >
+        <i class="fi fi-rr-download text-xs"></i>
+        <span>Download File</span>
+      </button>
+    </div>
+  </div>
+</div>

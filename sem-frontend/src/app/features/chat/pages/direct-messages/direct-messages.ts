@@ -36,6 +36,10 @@ import {
   ScheduledMessageItem,
 } from '../../components/scheduled-messages-drawer/scheduled-messages-drawer';
 import { AdvancedSearchModalComponent } from '../../components/advanced-search-modal/advanced-search-modal';
+import {
+  AttachmentDetailsModalComponent,
+  AttachmentFileDetails,
+} from '../../components/attachment-details-modal/attachment-details-modal';
 
 @Component({
   selector: 'app-direct-messages',
@@ -55,6 +59,7 @@ import { AdvancedSearchModalComponent } from '../../components/advanced-search-m
     AnnouncementCardComponent,
     ScheduledMessagesDrawerComponent,
     AdvancedSearchModalComponent,
+    AttachmentDetailsModalComponent,
   ],
   templateUrl: './direct-messages.html',
   styleUrls: ['./direct-messages.css'],
@@ -91,6 +96,7 @@ export class DirectMessagesComponent implements OnInit, OnDestroy {
   scheduledMessages = signal<ScheduledMessageItem[]>([]);
   isScheduledDrawerOpen = signal<boolean>(false);
   isAdvancedSearchOpen = signal<boolean>(false);
+  selectedAttachmentDetails = signal<AttachmentFileDetails | null>(null);
 
   isPartnerTyping = signal<boolean>(false);
   private typingTimeout: any = null;
@@ -383,6 +389,25 @@ export class DirectMessagesComponent implements OnInit, OnDestroy {
   onJumpToMessage(msg: any): void {
     this.scrollToBottom();
     this.showToast(`Jumped to message from ${msg.senderName || 'Member'}`);
+  }
+
+  onFileDetailsClick(
+    file: { name: string; url?: string; category?: string },
+    senderName?: string,
+  ): void {
+    const details: AttachmentFileDetails = {
+      id: 'att-' + Math.random().toString(36).substring(2, 9),
+      name: file.name || 'Attachment_File.pdf',
+      url: file.url || '',
+      sizeFormatted: '2.4 MB',
+      uploaderName: senderName || 'Workspace Member',
+      uploaderRole: 'Member',
+      createdAt: new Date().toISOString(),
+      version: 'v1.0',
+      virusScanStatus: 'clean',
+      category: (file.category as any) || 'pdf',
+    };
+    this.selectedAttachmentDetails.set(details);
   }
 
   filteredConversations = computed(() => {
