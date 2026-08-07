@@ -53,6 +53,17 @@
         <span class="text-[10px] font-bold hidden sm:inline">Poll</span>
       </button>
 
+      <!-- Publish Announcement Button -->
+      <button
+        type="button"
+        (click)="isCreateAnnouncementOpen.set(true)"
+        title="Publish Special Auto-Pinned Announcement with Read Confirmation"
+        class="p-1.5 rounded-lg bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 transition-colors text-xs font-semibold cursor-pointer flex items-center gap-1"
+      >
+        <i class="fi fi-rr-bullhorn"></i>
+        <span class="text-[10px] font-bold hidden sm:inline">Announcement</span>
+      </button>
+
       <div class="w-px h-4 bg-white/10 mx-1"></div>
 
       <!-- Bold -->
@@ -651,5 +662,13 @@
   <app-create-poll-modal
     (close)="isCreatePollOpen.set(false)"
     (createPoll)="handleCreatePoll($event)"
+  />
+}
+
+<!-- Create Announcement Modal -->
+@if (isCreateAnnouncementOpen()) {
+  <app-create-announcement-modal
+    (close)="isCreateAnnouncementOpen.set(false)"
+    (createAnnouncement)="handleCreateAnnouncement($event)"
   />
 }

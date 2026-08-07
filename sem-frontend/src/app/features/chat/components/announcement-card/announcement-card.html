@@ -1,0 +1,117 @@
+<div
+  [class.border-rose-500\/50]="announcement.priority === 'urgent'"
+  [class.shadow-rose-900\/20]="announcement.priority === 'urgent'"
+  [class.border-amber-500\/50]="announcement.priority === 'important'"
+  [class.shadow-amber-900\/20]="announcement.priority === 'important'"
+  [class.border-sky-500\/50]="announcement.priority === 'notice'"
+  [class.shadow-sky-900\/20]="announcement.priority === 'notice'"
+  class="w-full max-w-lg bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 border-2 rounded-3xl p-4.5 shadow-2xl space-y-3.5 backdrop-blur-xl relative overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+>
+  <!-- Glowing Background Accent -->
+  <div
+    [class.from-rose-600\/10]="announcement.priority === 'urgent'"
+    [class.from-amber-600\/10]="announcement.priority === 'important'"
+    [class.from-sky-600\/10]="announcement.priority === 'notice'"
+    class="absolute -top-12 -right-12 w-40 h-40 bg-gradient-to-br to-transparent rounded-full blur-2xl pointer-events-none"
+  ></div>
+
+  <!-- Announcement Top Header Bar -->
+  <div class="flex items-center justify-between relative z-10">
+    <div class="flex items-center gap-2">
+      <!-- Announcement Main Tag -->
+      <span
+        [class.bg-rose-500\/20]="announcement.priority === 'urgent'"
+        [class.border-rose-500\/40]="announcement.priority === 'urgent'"
+        [class.text-rose-300]="announcement.priority === 'urgent'"
+        [class.bg-amber-500\/20]="announcement.priority === 'important'"
+        [class.border-amber-500\/40]="announcement.priority === 'important'"
+        [class.text-amber-300]="announcement.priority === 'important'"
+        [class.bg-sky-500\/20]="announcement.priority === 'notice'"
+        [class.border-sky-500\/40]="announcement.priority === 'notice'"
+        [class.text-sky-300]="announcement.priority === 'notice'"
+        class="px-3 py-1 rounded-full border text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 shadow-sm"
+      >
+        <i class="fi fi-rr-bullhorn text-xs animate-bounce"></i>
+        <span>Announcement</span>
+      </span>
+
+      <!-- Auto Pinned Badge -->
+      <span
+        class="px-2.5 py-0.5 rounded-full bg-violet-600/20 border border-violet-500/40 text-violet-300 text-[9px] font-bold uppercase tracking-wider flex items-center gap-1"
+        title="Automatically pinned message"
+      >
+        <i class="fi fi-rr-thumbtack text-[8px]"></i>
+        <span>Pinned</span>
+      </span>
+    </div>
+
+    <!-- Priority Badge -->
+    @if (announcement.priority === 'urgent') {
+      <span
+        class="px-2.5 py-0.5 rounded-full bg-rose-600 text-white text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-md shadow-rose-600/40"
+      >
+        <i class="fi fi-rr-alarm-clock text-[9px]"></i> Urgent
+      </span>
+    } @else if (announcement.priority === 'important') {
+      <span
+        class="px-2.5 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-md shadow-amber-500/40"
+      >
+        <i class="fi fi-rr-star text-[9px]"></i> Important
+      </span>
+    } @else {
+      <span
+        class="px-2.5 py-0.5 rounded-full bg-sky-500 text-slate-950 text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-md shadow-sky-500/40"
+      >
+        <i class="fi fi-rr-info text-[9px]"></i> Notice
+      </span>
+    }
+  </div>
+
+  <!-- Announcement Headline Title -->
+  <div class="relative z-10 space-y-1">
+    <h3 class="text-base font-black text-white leading-snug tracking-wide">
+      {{ announcement.title }}
+    </h3>
+    <p class="text-xs text-slate-300 leading-relaxed whitespace-pre-line font-medium">
+      {{ announcement.content }}
+    </p>
+  </div>
+
+  <!-- Read Confirmation Footer Section -->
+  @if (announcement.requireReadConfirmation) {
+    <div
+      class="pt-2.5 border-t border-white/10 flex items-center justify-between gap-3 relative z-10"
+    >
+      <!-- Read Counter Badge -->
+      <div class="flex items-center gap-1.5 text-[11px] font-semibold text-slate-300">
+        <div
+          class="w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center text-[10px]"
+        >
+          <i class="fi fi-rr-eye"></i>
+        </div>
+        <span
+          >Confirmed by {{ getReadCount() }} {{ getReadCount() === 1 ? 'member' : 'members' }}</span
+        >
+      </div>
+
+      <!-- Action Button or Acknowledged State -->
+      @if (hasUserConfirmed()) {
+        <span
+          class="px-3 py-1 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[11px] font-bold flex items-center gap-1.5 shadow-sm"
+        >
+          <i class="fi fi-rr-check-double text-xs"></i>
+          <span>Acknowledged</span>
+        </span>
+      } @else {
+        <button
+          type="button"
+          (click)="onAcknowledge()"
+          class="px-3.5 py-1.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black text-[11px] shadow-lg shadow-emerald-500/20 transition-all cursor-pointer flex items-center gap-1.5 hover:scale-105 active:scale-95"
+        >
+          <i class="fi fi-rr-check-circle text-xs"></i>
+          <span>Confirm Read</span>
+        </button>
+      }
+    </div>
+  }
+</div>

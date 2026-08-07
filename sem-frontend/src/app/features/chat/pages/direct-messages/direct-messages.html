@@ -260,7 +260,15 @@
                     "
                     class="max-w-[70%] px-4 py-2.5 text-xs shadow-md relative"
                   >
-                    @if (msg.poll) {
+                    @if (msg.announcement) {
+                      <div class="my-1">
+                        <app-announcement-card
+                          [announcement]="msg.announcement"
+                          [currentUserId]="currentUserId()"
+                          (confirmRead)="onConfirmReadAnnouncement($event)"
+                        />
+                      </div>
+                    } @else if (msg.poll) {
                       <div class="my-1">
                         <app-poll-card
                           [poll]="msg.poll"
@@ -392,6 +400,7 @@
             (cancelEdit)="editingMessage.set(null)"
             (sendMessage)="onSendRichMessage($event)"
             (sendPoll)="onSendPoll($event)"
+            (sendAnnouncement)="onSendAnnouncement($event)"
           />
         </div>
       } @else {

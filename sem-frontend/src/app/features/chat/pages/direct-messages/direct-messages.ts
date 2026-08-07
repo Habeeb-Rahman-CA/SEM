@@ -29,6 +29,8 @@ import { ForwardMessageModalComponent } from '../../components/forward-message-m
 import { ShareMessageModalComponent } from '../../components/share-message-modal/share-message-modal';
 import { PollCardComponent } from '../../components/poll-card/poll-card';
 import { PollData } from '../../components/create-poll-modal/create-poll-modal';
+import { AnnouncementCardComponent } from '../../components/announcement-card/announcement-card';
+import { AnnouncementData } from '../../components/create-announcement-modal/create-announcement-modal';
 
 @Component({
   selector: 'app-direct-messages',
@@ -45,6 +47,7 @@ import { PollData } from '../../components/create-poll-modal/create-poll-modal';
     ForwardMessageModalComponent,
     ShareMessageModalComponent,
     PollCardComponent,
+    AnnouncementCardComponent,
   ],
   templateUrl: './direct-messages.html',
   styleUrls: ['./direct-messages.css'],
@@ -298,6 +301,47 @@ export class DirectMessagesComponent implements OnInit, OnDestroy {
         return m;
       }),
     );
+  }
+
+  onSendAnnouncement(announcement: AnnouncementData): void {
+    const currentUser = this.authService.currentUser();
+    const activeConv = this.selectedConversation();
+    if (!activeConv) return;
+
+    const announcementMessage: any = {
+      id: 'msg-' + Math.random().toString(36).substring(2, 9),
+      conversationId: activeConv.id,
+      workspaceId: this.workspaceId(),
+      senderId: this.currentUserId(),
+      senderName: currentUser?.username || 'You',
+      content: `📢 **Announcement**: ${announcement.title}`,
+      isPinned: true, // Announcements are automatically pinned!
+      announcement: { ...announcement, createdById: this.currentUserId() },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    this.messages.update((list: any[]) => [...list, announcementMessage]);
+    this.scrollToBottom();
+    this.showToast('Announcement published & pinned!');
+  }
+
+  onConfirmReadAnnouncement(announcementId: string): void {
+    const userId = this.currentUserId();
+    this.messages.update((list: any[]) =>
+      list.map((m) => {
+        if (m.announcement && m.announcement.id === announcementId) {
+          const ann = { ...m.announcement };
+          const reads = ann.readConfirmations ? [...ann.readConfirmations] : [];
+          if (!reads.includes(userId)) {
+            reads.push(userId);
+          }
+          return { ...m, announcement: { ...ann, readConfirmations: reads } };
+        }
+        return m;
+      }),
+    );
+    this.showToast('Read confirmation acknowledged');
   }
 
   filteredConversations = computed(() => {

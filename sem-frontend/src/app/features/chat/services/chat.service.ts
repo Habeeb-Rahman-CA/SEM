@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { PollData } from '../components/create-poll-modal/create-poll-modal';
+import { AnnouncementData } from '../components/create-announcement-modal/create-announcement-modal';
 
 export interface Channel {
   id: string;
@@ -89,6 +90,7 @@ export interface DirectMessage {
   translatedText?: string;
   reactions?: { emoji: string; count: number; userReacted?: boolean; users?: string[] }[];
   poll?: PollData;
+  announcement?: AnnouncementData;
   createdAt: string;
   updatedAt: string;
 }
@@ -161,6 +163,7 @@ export interface GroupChatMessage {
   translatedText?: string;
   reactions?: { emoji: string; count: number; userReacted?: boolean; users?: string[] }[];
   poll?: PollData;
+  announcement?: AnnouncementData;
   createdAt: string;
   updatedAt: string;
 }
