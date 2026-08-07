@@ -66,8 +66,9 @@ export class ChatRichMessageInputComponent {
   showStickerPicker = signal<boolean>(false);
   activeEmojiCategory = signal<string>('sports');
 
-  // Audio Recording State (Hold-to-Record, Waveform & Noise Reduction)
+  // Audio Recording State (Hold-to-Record, Waveform, Pause/Resume & Noise Reduction)
   isRecordingAudio = signal<boolean>(false);
+  isRecordingPaused = signal<boolean>(false);
   recordingDuration = signal<number>(0);
   isNoiseSuppressionEnabled = signal<boolean>(true);
   liveWaveformLevels = signal<number[]>([20, 45, 70, 30, 85, 40, 60, 90, 50, 30, 65, 80]);
@@ -764,14 +765,43 @@ export class ChatRichMessageInputComponent {
 
       this.mediaRecorder.start();
       this.isRecordingAudio.set(true);
+      this.isRecordingPaused.set(false);
       this.recordingDuration.set(0);
 
       this.recordingTimer = setInterval(() => {
-        this.recordingDuration.update((d) => d + 1);
+        if (!this.isRecordingPaused()) {
+          this.recordingDuration.update((d) => d + 1);
+        }
       }, 1000);
     } catch (err) {
       console.error('Microphone access denied or error:', err);
     }
+  }
+
+  pauseAudioRecording(): void {
+    if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
+      this.mediaRecorder.pause();
+      this.isRecordingPaused.set(true);
+    }
+  }
+
+  resumeAudioRecording(): void {
+    if (this.mediaRecorder && this.mediaRecorder.state === 'paused') {
+      this.mediaRecorder.resume();
+      this.isRecordingPaused.set(false);
+    }
+  }
+
+  togglePauseAudioRecording(): void {
+    if (this.isRecordingPaused()) {
+      this.resumeAudioRecording();
+    } else {
+      this.pauseAudioRecording();
+    }
+  }
+
+  deleteAudioRecording(): void {
+    this.cancelAudioRecording();
   }
 
   stopAndSendAudioRecording(): void {
@@ -813,16 +843,18 @@ export class ChatRichMessageInputComponent {
   private updateLiveWaveform(): void {
     if (!this.analyserNode || !this.isRecordingAudio()) return;
 
-    const dataArray = new Uint8Array(this.analyserNode.frequencyBinCount);
-    this.analyserNode.getByteFrequencyData(dataArray);
+    if (!this.isRecordingPaused()) {
+      const dataArray = new Uint8Array(this.analyserNode.frequencyBinCount);
+      this.analyserNode.getByteFrequencyData(dataArray);
 
-    const levels: number[] = [];
-    const step = Math.floor(dataArray.length / 12);
-    for (let i = 0; i < 12; i++) {
-      const val = dataArray[i * step] || 10;
-      levels.push(Math.max(15, Math.min(100, Math.floor((val / 255) * 100))));
+      const levels: number[] = [];
+      const step = Math.floor(dataArray.length / 12);
+      for (let i = 0; i < 12; i++) {
+        const val = dataArray[i * step] || 10;
+        levels.push(Math.max(15, Math.min(100, Math.floor((val / 255) * 100))));
+      }
+      this.liveWaveformLevels.set(levels);
     }
-    this.liveWaveformLevels.set(levels);
 
     this.animFrameId = requestAnimationFrame(() => this.updateLiveWaveform());
   }
@@ -841,6 +873,7 @@ export class ChatRichMessageInputComponent {
       this.mediaRecorder.stream.getTracks().forEach((t) => t.stop());
     }
     this.isRecordingAudio.set(false);
+    this.isRecordingPaused.set(false);
     this.recordingDuration.set(0);
   }
 }
